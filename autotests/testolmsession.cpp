@@ -3,11 +3,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "e2ee/qolmsession.h"
+#include "e2ee/qolmaccount.h"
 #include "testolmsession.h"
 
 using namespace Quotient;
 
-std::pair<QOlmSessionPtr, QOlmSessionPtr> createSessionPair()
+std::pair<QOlmSession, QOlmSession> createSessionPair()
 {
     QByteArray pickledAccountA("eOBXIKivUT6YYowRH031BNv7zNmzqM5B7CpXdyeaPvala5mt7/OeqrG1qVA7vA1SYloFyvJPIy0QNkD3j1HiPl5vtZHN53rtfZ9exXDok03zjmssqn4IJsqcA7Fbo1FZeKafG0NFcWwCPTdmcV7REqxjqGm3I4K8MQFa45AdTGSUu2C12cWeOcbSMlcINiMral+Uyah1sgPmLJ18h1qcnskXUXQvpffZ5DiUw1Iz5zxnwOQF1GVyowPJD7Zdugvj75RQnDxAn6CzyvrY2k2CuedwqDC3fIXM2xdUNWttW4nC2g4InpBhCVvNwhZYxlUb5BUEjmPI2AB3dAL5ry6o9MFncmbN6x5x");
     QByteArray pickledAccountB("eModTvoFi9oOIkax4j4nuxw9Tcl/J8mOmUctUWI68Q89HSaaPTqR+tdlKQ85v2GOs5NlZCp7EuycypN9GQ4fFbHUCrS7nspa3GFBWsR8PnM8+wez5PWmfFZLg3drOvT0jbMjpDx0MjGYClHBqcrEpKx9oFaIRGBaX6HXzT4lRaWSJkXxuX92q8iGNrLn96PuAWFNcD+2JXpPcNFntslwLUNgqzpZ04aIFYwL80GmzyOgq3Bz1GO6u3TgCQEAmTIYN2QkO0MQeuSfe7UoMumhlAJ6R8GPcdSSPtmXNk4tdyzzlgpVq1hm7ZLKto+g8/5Aq3PvnvA8wCqno2+Pi1duK1pZFTIlActr");
@@ -29,7 +30,7 @@ std::pair<QOlmSessionPtr, QOlmSessionPtr> createSessionPair()
     auto outbound =
         accountA.createOutboundSession(identityKeyB, oneTimeKeyB).value();
 
-    const auto preKey = outbound->encrypt(""); // Payload does not matter for PreKey
+    const auto preKey = outbound.encrypt(""); // Payload does not matter for PreKey
 
     if (preKey.type() != QOlmMessage::PreKey) {
         // We can't call QFail here because it's an helper function returning a value
@@ -42,19 +43,19 @@ std::pair<QOlmSessionPtr, QOlmSessionPtr> createSessionPair()
 void TestOlmSession::olmOutboundSessionCreation()
 {
     const auto [_, outboundSession] = createSessionPair();
-    QCOMPARE(0, outboundSession->hasReceivedMessage());
+    QCOMPARE(0, outboundSession.hasReceivedMessage());
 }
 
 void TestOlmSession::olmEncryptDecrypt()
 {
     const auto [inboundSession, outboundSession] = createSessionPair();
-    const auto encrypted = outboundSession->encrypt("Hello world!");
+    const auto encrypted = outboundSession.encrypt("Hello world!");
     if (encrypted.type() == QOlmMessage::PreKey) {
         QOlmMessage m(encrypted); // clone
-        QVERIFY(inboundSession->matchesInboundSession(m));
+        QVERIFY(inboundSession.matchesInboundSession(m));
     }
 
-    const auto decrypted = inboundSession->decrypt(encrypted).value();
+    const auto decrypted = inboundSession.decrypt(encrypted).value();
 
     QCOMPARE(decrypted, "Hello world!");
 }
@@ -68,19 +69,19 @@ void TestOlmSession::correctSessionOrdering()
     // MC7n8hX1l7WlC2/WJGHZinMocgiBZa4vwGAOredb/ME
     auto session3 = QOlmSession::unpickle("7g5cfQRsDk2ROXf9S01n2leZiFRon+EbvXcMOADU0UGNk2TmVDJ95K0Nywf24FNklNVtXtFDiFPHFwNSmCbHNCp3hsGtZlt0AHUkMmL48XklLqzwtVk5/v2RRmSKR5LqYdIakrtuK/fY0ENhBZIbI1sRetaJ2KMbY9l6rCJNfFg8VhpZ4KTVvEZVuP9g/eZkCnP5NxzXiBRF6nfY3O/zhcKxa3acIqs6BMhyLsfuJ80t+hQ1HvVyuhBerGujdSDzV9tJ9SPidOwfYATk81LVF9hTmnI0KaZa7qCtFzhG0dU/Z3hIWH9HOaw1aSB/IPmughbwdJOwERyhuo3YHoznlQnJ7X252BlI", Unencrypted{}).value();
 
-    const auto session1Id = session1->sessionId();
-    const auto session2Id = session2->sessionId();
-    const auto session3Id = session3->sessionId();
+    const auto session1Id = session1.sessionId();
+    const auto session2Id = session2.sessionId();
+    const auto session3Id = session3.sessionId();
 
-    std::vector<QOlmSessionPtr> sessionList;
+    std::vector<QOlmSession> sessionList;
     sessionList.push_back(std::move(session1));
     sessionList.push_back(std::move(session2));
     sessionList.push_back(std::move(session3));
 
     std::sort(sessionList.begin(), sessionList.end());
-    QCOMPARE(sessionList[0]->sessionId(), session2Id);
-    QCOMPARE(sessionList[1]->sessionId(), session3Id);
-    QCOMPARE(sessionList[2]->sessionId(), session1Id);
+    QCOMPARE(sessionList[0].sessionId(), session2Id);
+    QCOMPARE(sessionList[1].sessionId(), session3Id);
+    QCOMPARE(sessionList[2].sessionId(), session1Id);
 }
 
 QTEST_GUILESS_MAIN(TestOlmSession)

@@ -88,8 +88,6 @@ public:
                            Connection* connection, bool encrypted);
     KeyVerificationSession(QString userId, QString deviceId,
                            Connection* connection);
-    ~KeyVerificationSession() override;
-    Q_DISABLE_COPY_MOVE(KeyVerificationSession)
 
     void handleEvent(const KeyVerificationEvent& baseEvent);
 
@@ -122,24 +120,27 @@ private:
     const QString m_remoteDeviceId;
     const QString m_transactionId;
     Connection* m_connection;
-    OlmSAS* m_sas = nullptr;
+    bool m_encrypted;
+    QStringList m_remoteSupportedMethods{};
+
+    CStructPtr<OlmSAS> olmDataHolder = makeOlmData();
+    OlmSAS* olmData = olmDataHolder.get();
     QVector<EmojiEntry> m_sasEmojis;
     bool startSentByUs = false;
     State m_state = INCOMING;
     Error m_error = NONE;
-    QString m_startEvent;
-    QString m_commitment;
+    QString m_startEvent{};
+    QString m_commitment{};
     bool macReceived = false;
-    bool m_encrypted;
-    QStringList m_remoteSupportedMethods;
     bool m_verified = false;
     QString m_pendingEdKeyId{};
 
+    static CStructPtr<OlmSAS> makeOlmData();
     void handleReady(const KeyVerificationReadyEvent& event);
     void handleStart(const KeyVerificationStartEvent& event);
     void handleKey(const KeyVerificationKeyEvent& event);
     void handleMac(const KeyVerificationMacEvent& event);
-    void init(std::chrono::milliseconds timeout);
+    void setupTimeout(std::chrono::milliseconds timeout);
     void setState(State state);
     void setError(Error error);
     static QString errorToString(Error error);

@@ -46,7 +46,7 @@ private Q_SLOTS:
         session->handleEvent(KeyVerificationStartEvent(transactionId, deviceId));
         QVERIFY(session->state() == KeyVerificationSession::ACCEPTED);
         auto account = new QOlmAccount(userId, deviceId);
-        account->createNewAccount();
+        account->setupNewAccount();
 
         auto sas = olm_sas(new std::byte[olm_sas_size()]);
         const auto randomLength = olm_create_sas_random_length(sas);

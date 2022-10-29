@@ -15,16 +15,16 @@ namespace Quotient {
 class QUOTIENT_API QOlmInboundGroupSession
 {
 public:
-    ~QOlmInboundGroupSession();
     //! Creates a new instance of `OlmInboundGroupSession`.
-    static QOlmExpected<QOlmInboundGroupSessionPtr> create(const QByteArray& key);
+    static QOlmExpected<QOlmInboundGroupSession> create(const QByteArray& key);
     //! Import an inbound group session, from a previous export.
-    static QOlmExpected<QOlmInboundGroupSessionPtr> importSession(const QByteArray& key);
+    static QOlmExpected<QOlmInboundGroupSession> importSession(
+        const QByteArray& key);
     //! Serialises an `OlmInboundGroupSession` to encrypted Base64.
     QByteArray pickle(const PicklingMode& mode) const;
     //! Deserialises from encrypted Base64 that was previously obtained by pickling
     //! an `OlmInboundGroupSession`.
-    static QOlmExpected<QOlmInboundGroupSessionPtr> unpickle(
+    static QOlmExpected<QOlmInboundGroupSession> unpickle(
         QByteArray&& pickled, const PicklingMode& mode);
     //! Decrypts ciphertext received for this group session.
     QOlmExpected<std::pair<QByteArray, uint32_t> > decrypt(const QByteArray& message);
@@ -49,11 +49,12 @@ public:
     OlmErrorCode lastErrorCode() const;
     const char* lastError() const;
 
-    QOlmInboundGroupSession(OlmInboundGroupSession* session);
 private:
-    OlmInboundGroupSession* m_groupSession;
+    QOlmInboundGroupSession();
+    CStructPtr<OlmInboundGroupSession> m_groupSession;
     QString m_olmSessionId;
     QString m_senderId;
+    OlmInboundGroupSession* olmData = m_groupSession.get();
 };
 
 using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;

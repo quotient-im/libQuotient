@@ -9,45 +9,39 @@
 using namespace Quotient;
 
 OlmErrorCode QOlmUtility::lastErrorCode() const {
-    return olm_utility_last_error_code(m_utility);
+    return olm_utility_last_error_code(olmDataHolder.get());
 }
 
 const char* QOlmUtility::lastError() const
 {
-    return olm_utility_last_error(m_utility);
+    return olm_utility_last_error(olmDataHolder.get());
 }
 
 QOlmUtility::QOlmUtility()
-{
-    auto utility = new uint8_t[olm_utility_size()];
-    m_utility = olm_utility(utility);
-}
+    : olmDataHolder(
+        makeCStruct(olm_utility, olm_utility_size, olm_clear_utility))
+{}
 
-QOlmUtility::~QOlmUtility()
+QString QOlmUtility::sha256Bytes(const QByteArray& inputBuf) const
 {
-    olm_clear_utility(m_utility);
-    delete[](reinterpret_cast<uint8_t *>(m_utility));
-}
-
-QString QOlmUtility::sha256Bytes(const QByteArray &inputBuf) const
-{
-    const auto outputLen = olm_sha256_length(m_utility);
+    const auto outputLen = olm_sha256_length(olmDataHolder.get());
     QByteArray outputBuf(outputLen, '\0');
-    olm_sha256(m_utility, inputBuf.data(), inputBuf.length(),
+    olm_sha256(olmDataHolder.get(), inputBuf.data(), inputBuf.length(),
             outputBuf.data(), outputBuf.length());
 
     return QString::fromUtf8(outputBuf);
 }
 
-QString QOlmUtility::sha256Utf8Msg(const QString &message) const
+QString QOlmUtility::sha256Utf8Msg(const QString& message) const
 {
     return sha256Bytes(message.toUtf8());
 }
 
 bool QOlmUtility::ed25519Verify(const QByteArray& key, const QByteArray& message,
-                                QByteArray signature)
+                                QByteArray signature) const
 {
-    return olm_ed25519_verify(m_utility, key.data(), key.size(), message.data(),
-                              message.size(), signature.data(), signature.size())
+    return olm_ed25519_verify(olmDataHolder.get(), key.data(), key.size(),
+                              message.data(), message.size(), signature.data(),
+                              signature.size())
            == 0;
 }

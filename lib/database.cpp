@@ -3,17 +3,18 @@
 
 #include "database.h"
 
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlError>
-#include <QtCore/QStandardPaths>
-#include <QtCore/QDebug>
-#include <QtCore/QDir>
+#include "logging.h"
 
 #include "e2ee/e2ee.h"
-#include "e2ee/qolmsession.h"
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmoutboundsession.h"
+#include "e2ee/qolmsession.h"
+
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
+#include <QtSql/QSqlDatabase>
+#include <QtSql/QSqlError>
+#include <QtSql/QSqlQuery>
 
 using namespace Quotient;
 Database::Database(const QString& matrixId, const QString& deviceId, QObject* parent)
@@ -201,15 +202,17 @@ void Database::saveOlmSession(const QString& senderKey, const QString& sessionId
     commit();
 }
 
-UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(const PicklingMode& picklingMode)
+UnorderedMap<QString, std::vector<QOlmSession>> Database::loadOlmSessions(
+    const PicklingMode& picklingMode)
 {
-    auto query = prepareQuery(QStringLiteral("SELECT * FROM olm_sessions ORDER BY lastReceived DESC;"));
+    auto query = prepareQuery(QStringLiteral(
+        "SELECT * FROM olm_sessions ORDER BY lastReceived DESC;"));
     transaction();
     execute(query);
     commit();
-    UnorderedMap<QString, std::vector<QOlmSessionPtr>> sessions;
+    UnorderedMap<QString, std::vector<QOlmSession>> sessions;
     while (query.next()) {
-        if (auto expectedSession =
+        if (auto&& expectedSession =
                 QOlmSession::unpickle(query.value("pickle").toByteArray(),
                                       picklingMode)) {
             sessions[query.value("senderKey").toString()].emplace_back(
@@ -221,21 +224,35 @@ UnorderedMap<QString, std::vector<QOlmSessionPtr>> Database::loadOlmSessions(con
     return sessions;
 }
 
-UnorderedMap<QString, QOlmInboundGroupSessionPtr> Database::loadMegolmSessions(const QString& roomId, const PicklingMode& picklingMode)
+UnorderedMap<QString, QOlmInboundGroupSession> Database::loadMegolmSessions(
+    const QString& roomId, const PicklingMode& picklingMode)
 {
     auto query = prepareQuery(QStringLiteral("SELECT * FROM inbound_megolm_sessions WHERE roomId=:roomId;"));
     query.bindValue(":roomId", roomId);
     transaction();
     execute(query);
     commit();
-    UnorderedMap<QString, QOlmInboundGroupSessionPtr> sessions;
+    UnorderedMap<QString, QOlmInboundGroupSession> sessions;
     while (query.next()) {
-        if (auto expectedSession = QOlmInboundGroupSession::unpickle(
+        if (auto&& expectedSession = QOlmInboundGroupSession::unpickle(
                 query.value("pickle").toByteArray(), picklingMode)) {
-            auto& sessionPtr = sessions[query.value("sessionId").toString()] =
-                std::move(*expectedSession);
-            sessionPtr->setOlmSessionId(query.value("olmSessionId").toString());
-            sessionPtr->setSenderId(query.value("senderId").toString());
+            const auto sessionId = query.value("sessionId").toString();
+            if (const auto it = sessions.find(sessionId); it != sessions.end()) {
+                qCritical(DATABASE) << "More than one inbound group session "
+                                       "with the same session id"
+                                    << sessionId << "in the database";
+                Q_ASSERT(false);
+                // For Release builds, take the last session found
+                qCritical(DATABASE)
+                    << "The database is intact but only one session will be "
+                       "used so some messages will be undecryptable";
+                sessions.erase(it);
+            }
+            expectedSession->setOlmSessionId(
+                query.value("olmSessionId").toString());
+            expectedSession->setSenderId(query.value("senderId").toString());
+            sessions.try_emplace(query.value("sessionId").toString(),
+                                 std::move(*expectedSession));
         } else
             qCWarning(E2EE) << "Failed to unpickle megolm session:"
                             << expectedSession.error();
@@ -340,21 +357,22 @@ void Database::saveCurrentOutboundMegolmSession(
     commit();
 }
 
-QOlmOutboundGroupSessionPtr Database::loadCurrentOutboundMegolmSession(const QString& roomId, const PicklingMode& picklingMode)
+Omittable<QOlmOutboundGroupSession> Database::loadCurrentOutboundMegolmSession(
+    const QString& roomId, const PicklingMode& picklingMode)
 {
     auto query = prepareQuery(QStringLiteral("SELECT * FROM outbound_megolm_sessions WHERE roomId=:roomId ORDER BY creationTime DESC;"));
     query.bindValue(":roomId", roomId);
     execute(query);
     if (query.next()) {
-        auto sessionResult = QOlmOutboundGroupSession::unpickle(query.value("pickle").toByteArray(), picklingMode);
-        if (sessionResult) {
-            auto session = std::move(*sessionResult);
-            session->setCreationTime(query.value("creationTime").toDateTime());
+        if (auto&& session = QOlmOutboundGroupSession::unpickle(
+                query.value("pickle").toByteArray(), picklingMode)) {
+            session->setCreationTime(
+                query.value("creationTime").toDateTime());
             session->setMessageCount(query.value("messageCount").toInt());
-            return session;
+            return std::move(*session);
         }
     }
-    return nullptr;
+    return none;
 }
 
 void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QString& sessionId, int index)

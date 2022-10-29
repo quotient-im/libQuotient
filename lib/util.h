@@ -196,6 +196,41 @@ constexpr ImplPtr<ImplType, TypeToDelete> ZeroImpl()
     return { nullptr, [](TypeToDelete*) { /* nullptr doesn't need deletion */ } };
 }
 
+template <typename T>
+struct CStructDeleter {
+    size_t (*destructor)(T*);
+
+    void operator()(T* toDelete)
+    {
+        destructor(toDelete);
+        delete[] reinterpret_cast<std::byte*>(toDelete);
+    }
+};
+
+//! \brief An owning pointer to a C structure
+//!
+//! This is intented to ease lifecycle management of Olm structures.
+//! \sa makeCStruct
+template <typename T>
+using CStructPtr = std::unique_ptr<T, CStructDeleter<T>>;
+
+//! \brief Create a C structure with pre-programmed deletion logic
+//!
+//! This facility function creates a CStructPtr that owns the pointer returned
+//! by \p constructor. The memory passed to \p constructor is allocated
+//! as an array of bytes; the size of that array is determined by calling
+//! \p sizeFn. Finally, since the returned pointer is owning, it also stores
+//! the corresponding CStructDeleter instance; when called at destruction of
+//! the owning pointer, this deleter first calls \p destructor passing the
+//! original C pointer returned by \p constructor; and then deletes the
+//! allocated array of bytes.
+template <typename T>
+inline auto makeCStruct(T* (*constructor)(void*), size_t (*sizeFn)(),
+                        auto destructor)
+{
+    return CStructPtr<T>{ constructor(new std::byte[sizeFn()]), { destructor } };
+}
+
 //! \brief Multiplex several functors in one
 //!
 //! This is a well-known trick to wrap several lambdas into a single functor

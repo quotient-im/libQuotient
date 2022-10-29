@@ -321,11 +321,11 @@ public:
     Database* database() const;
     PicklingMode picklingMode() const;
 
-    UnorderedMap<QString, QOlmInboundGroupSessionPtr> loadRoomMegolmSessions(
+    UnorderedMap<QString, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;
-    QOlmOutboundGroupSessionPtr loadCurrentOutboundMegolmSession(
+    Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
         const QString& roomId) const;
     void saveCurrentOutboundMegolmSession(
         const QString& roomId, const QOlmOutboundGroupSession& session) const;
