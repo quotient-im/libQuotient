@@ -1386,7 +1386,6 @@ ForgetRoomJob* Connection::forgetRoom(const QString& id)
                         forgetJob->abandon();
                     }
                 });
-        connect(leaveJob, &BaseJob::failure, forgetJob, &BaseJob::abandon);
     } else
         run(forgetJob);
     connect(forgetJob, &BaseJob::result, this, [this, id, forgetJob] {
