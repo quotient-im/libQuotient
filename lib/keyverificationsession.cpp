@@ -6,7 +6,6 @@
 #include "connection.h"
 #include "database.h"
 #include "e2ee/qolmaccount.h"
-#include "e2ee/qolmutils.h"
 #include "olm/sas.h"
 
 #include "events/event.h"

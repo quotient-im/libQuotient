@@ -63,7 +63,7 @@
 #include <functional>
 
 #ifdef Quotient_E2EE_ENABLED
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmutility.h"

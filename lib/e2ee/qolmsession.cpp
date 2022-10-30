@@ -4,7 +4,6 @@
 
 #include "qolmsession.h"
 
-#include "e2ee/qolmutils.h"
 #include "logging.h"
 
 #include <cstring>

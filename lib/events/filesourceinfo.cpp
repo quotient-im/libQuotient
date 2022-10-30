@@ -8,7 +8,7 @@
 #include "util.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "e2ee/qolmutils.h"
+#    include "e2ee/e2ee_common.h"
 
 #    include <QtCore/QCryptographicHash>
 

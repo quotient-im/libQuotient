@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 
 struct OlmInboundGroupSession;
 

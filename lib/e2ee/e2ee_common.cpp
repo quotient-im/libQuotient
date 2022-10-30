@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "e2ee/qolmutils.h"
+#include "e2ee/e2ee_common.h"
 
 #include "logging.h"
 
@@ -20,9 +20,9 @@ QByteArray Quotient::toKey(const Quotient::PicklingMode &mode)
     return std::get<Quotient::Encrypted>(mode).key;
 }
 
-void Quotient::fillWithRandom(std::span<char, std::dynamic_extent> buffer)
+RandomBuffer::RandomBuffer(size_t size) : QByteArray(bufferForOlm(size))
 {
-    QRandomGenerator::system()->generate(buffer.begin(), buffer.end());
+    QRandomGenerator::system()->generate(begin(), end());
 }
 
 QByteArray Quotient::bufferForOlm(size_t bufferSize)

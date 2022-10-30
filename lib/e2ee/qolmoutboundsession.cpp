@@ -5,7 +5,6 @@
 #include "qolmoutboundsession.h"
 
 #include "logging.h"
-#include "qolmutils.h"
 
 #include <olm/olm.h>
 

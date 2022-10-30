@@ -7,7 +7,6 @@
 #include "connection.h"
 #include "e2ee/qolmsession.h"
 #include "e2ee/qolmutility.h"
-#include "e2ee/qolmutils.h"
 
 #include "csapi/keys.h"
 

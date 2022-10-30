@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "qolminboundsession.h"
-#include "qolmutils.h"
 #include "../logging.h"
 
 #include <cstring>

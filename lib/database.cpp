@@ -5,7 +5,6 @@
 
 #include "logging.h"
 
-#include "e2ee/e2ee.h"
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmoutboundsession.h"
 #include "e2ee/qolmsession.h"

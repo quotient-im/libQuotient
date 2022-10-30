@@ -41,7 +41,6 @@
 #    include "e2ee/qolminboundsession.h"
 #    include "e2ee/qolmsession.h"
 #    include "e2ee/qolmutility.h"
-#    include "e2ee/qolmutils.h"
 
 #    include "events/keyverificationevent.h"
 #endif // Quotient_E2EE_ENABLED
