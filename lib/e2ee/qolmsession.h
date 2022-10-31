@@ -18,11 +18,11 @@ class QUOTIENT_API QOlmSession
 {
 public:
     //! Serialises an `QOlmSession` to encrypted Base64.
-    QByteArray pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingKey& key) const;
 
     //! Deserialises from encrypted Base64 previously made with pickle()
     static QOlmExpected<QOlmSession> unpickle(QByteArray&& pickled,
-                                              const PicklingMode& mode);
+                                              const PicklingKey& key);
 
     //! Encrypts a plaintext message using the session.
     QOlmMessage encrypt(const QByteArray& plaintext) const;

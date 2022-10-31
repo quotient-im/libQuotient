@@ -37,9 +37,9 @@ public:
     void saveOlmSession(const QString& senderKey, const QString& sessionId,
                         const QByteArray& pickle, const QDateTime& timestamp);
     UnorderedMap<QString, std::vector<QOlmSession>> loadOlmSessions(
-        const PicklingMode& picklingMode);
+        const PicklingKey& key);
     UnorderedMap<QString, QOlmInboundGroupSession> loadMegolmSessions(
-        const QString& roomId, const PicklingMode& picklingMode);
+        const QString& roomId, const PicklingKey& key);
     void saveMegolmSession(const QString& roomId, const QString& sessionId,
                            const QByteArray& pickle, const QString& senderId,
                            const QString& olmSessionId);
@@ -53,9 +53,9 @@ public:
     void setOlmSessionLastReceived(const QString& sessionId,
                                    const QDateTime& timestamp);
     Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
-        const QString& roomId, const PicklingMode& picklingMode);
+        const QString& roomId, const PicklingKey& key);
     void saveCurrentOutboundMegolmSession(
-        const QString& roomId, const PicklingMode& picklingMode,
+        const QString& roomId, const PicklingKey& key,
         const QOlmOutboundGroupSession& session);
     void updateOlmSession(const QString& senderKey, const QString& sessionId,
                           const QByteArray& pickle);

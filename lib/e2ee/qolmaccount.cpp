@@ -13,6 +13,7 @@
 #include <QtCore/QRandomGenerator>
 
 #include <olm/olm.h>
+#include <span>
 
 using namespace Quotient;
 
@@ -27,7 +28,7 @@ const char* QOlmAccount::lastError() const
 }
 
 QOlmExpected<QOlmSession> QOlmAccount::createInbound(
-    const QOlmMessage& preKeyMessage, const QString& theirIdentityKey) const
+    QOlmMessage preKeyMessage, const QByteArray& theirIdentityKey) const
 {
     if (preKeyMessage.type() != QOlmMessage::PreKey) {
         qCCritical(E2EE) << "The message is not a pre-key; will try to create "
@@ -36,18 +37,22 @@ QOlmExpected<QOlmSession> QOlmAccount::createInbound(
 
     QOlmSession session{};
 
-    QByteArray oneTimeKeyMessageBuf = preKeyMessage.toCiphertext();
-    QByteArray theirIdentityKeyBuf = theirIdentityKey.toUtf8();
+    // std::span has size_type that fits standard library and Olm, avoiding
+    // the warning noise about integer signedness/precision
+    const std::span oneTimeKeyMessageBuf{ preKeyMessage.begin(),
+                                          preKeyMessage.end() };
+    const std::span theirIdentityKeyBuf{ theirIdentityKey.cbegin(),
+                                         theirIdentityKey.cend() };
     const auto error =
         theirIdentityKey.isEmpty()
             ? olm_create_inbound_session(session.olmData, olmData,
                                          oneTimeKeyMessageBuf.data(),
-                                         oneTimeKeyMessageBuf.length())
+                                         oneTimeKeyMessageBuf.size())
             : olm_create_inbound_session_from(session.olmData, olmData,
                                               theirIdentityKeyBuf.data(),
-                                              theirIdentityKeyBuf.length(),
+                                              theirIdentityKeyBuf.size(),
                                               oneTimeKeyMessageBuf.data(),
-                                              oneTimeKeyMessageBuf.length());
+                                              oneTimeKeyMessageBuf.size());
 
     if (error == olm_error()) {
         qCWarning(E2EE) << "Error when creating inbound session"
@@ -70,18 +75,16 @@ QOlmAccount::QOlmAccount(QStringView userId, QStringView deviceId,
 void QOlmAccount::setupNewAccount()
 {
     if (const auto randomLength = olm_create_account_random_length(olmData);
-        olm_create_account(olmData, RandomBuffer(randomLength), randomLength)
+        olm_create_account(olmData, getRandom(randomLength).data(), randomLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to setup a new account");
 
     emit needsSave();
 }
 
-OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled,
-                                   const PicklingMode& mode)
+OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled, const PicklingKey& key)
 {
-    if (const auto key = toKey(mode);
-        olm_unpickle_account(olmData, key.data(), key.length(), pickled.data(),
+    if (olm_unpickle_account(olmData, key.data(), key.size(), pickled.data(),
                              pickled.size())
         == olm_error()) {
         // Probably log the user out since we have no way of getting to the keys
@@ -90,12 +93,11 @@ OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled,
     return OLM_SUCCESS;
 }
 
-QByteArray QOlmAccount::pickle(const PicklingMode &mode)
+QByteArray QOlmAccount::pickle(const PicklingKey& key) const
 {
-    const QByteArray key = toKey(mode);
     const size_t pickleLength = olm_pickle_account_length(olmData);
     QByteArray pickleBuffer(pickleLength, '\0');
-    if (olm_pickle_account(olmData, key.data(), key.length(),
+    if (olm_pickle_account(olmData, key.data(), key.size(),
                            pickleBuffer.data(), pickleLength)
         == olm_error())
         QOLM_INTERNAL_ERROR(qPrintable("Failed to pickle Olm account "
@@ -122,10 +124,11 @@ IdentityKeys QOlmAccount::identityKeys() const
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
 {
-    QByteArray signatureBuffer(olm_account_signature_length(olmData), '\0');
+    const auto signatureLength = olm_account_signature_length(olmData);
+    auto signatureBuffer = bufferForOlm(signatureLength);
 
     if (olm_account_sign(olmData, message.data(), message.length(),
-                         signatureBuffer.data(), signatureBuffer.length())
+                         signatureBuffer.data(), signatureLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to sign a message");
 
@@ -161,7 +164,7 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
     const auto randomLength =
         olm_account_generate_one_time_keys_random_length(olmData, numberOfKeys);
     const auto result = olm_account_generate_one_time_keys(
-        olmData, numberOfKeys, RandomBuffer(randomLength), randomLength);
+        olmData, numberOfKeys, getRandom(randomLength).data(), randomLength);
 
     if (result == olm_error())
         QOLM_INTERNAL_ERROR(qPrintable(
@@ -258,7 +261,8 @@ QOlmExpected<QOlmSession> QOlmAccount::createOutboundSession(
         olm_create_outbound_session(
             olmOutboundSession.olmData, olmData, theirIdentityKey.data(),
             theirIdentityKey.length(), theirOneTimeKey.data(),
-            theirOneTimeKey.length(), RandomBuffer(randomLength), randomLength)
+            theirOneTimeKey.length(), getRandom(randomLength).data(),
+            randomLength)
         == olm_error()) {
         const auto errorCode = olmOutboundSession.lastErrorCode();
         QOLM_FAIL_OR_LOG_X(errorCode == OLM_NOT_ENOUGH_RANDOM,

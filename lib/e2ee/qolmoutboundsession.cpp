@@ -27,35 +27,32 @@ QOlmOutboundGroupSession::QOlmOutboundGroupSession()
     if (const auto randomLength =
             olm_init_outbound_group_session_random_length(olmData);
         olm_init_outbound_group_session(olmData,
-                                        RandomBuffer(randomLength).bytes(),
+                                        getRandom<uint8_t>(randomLength).data(),
                                         randomLength)
         == olm_error()) {
         QOLM_INTERNAL_ERROR("Failed to initialise an outbound group session");
     }
 }
 
-QByteArray QOlmOutboundGroupSession::pickle(const PicklingMode &mode) const
+QByteArray QOlmOutboundGroupSession::pickle(const PicklingKey& key) const
 {
     const auto pickleLength =
         olm_pickle_outbound_group_session_length(olmData);
     QByteArray pickledBuf(pickleLength, '\0');
-    auto key = toKey(mode);
-    if (olm_pickle_outbound_group_session(olmData, key.data(), key.length(),
+    if (olm_pickle_outbound_group_session(olmData, key.data(), key.size(),
                                           pickledBuf.data(), pickleLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to pickle the outbound group session");
 
-    key.clear();
     return pickledBuf;
 }
 
 QOlmExpected<QOlmOutboundGroupSession> QOlmOutboundGroupSession::unpickle(
-    QByteArray&& pickled, const PicklingMode& mode)
+    QByteArray&& pickled, const PicklingKey& key)
 {
     QOlmOutboundGroupSession groupSession{};
-    auto key = toKey(mode);
     if (olm_unpickle_outbound_group_session(groupSession.olmData, key.data(),
-                                            key.length(), pickled.data(),
+                                            key.size(), pickled.data(),
                                             pickled.length())
         == olm_error()) {
         qWarning(E2EE) << "Failed to unpickle an outbound group session:"
@@ -63,7 +60,6 @@ QOlmExpected<QOlmOutboundGroupSession> QOlmOutboundGroupSession::unpickle(
         return groupSession.lastErrorCode();
     }
 
-    key.clear();
     return groupSession;
 }
 

@@ -319,7 +319,6 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
     Database* database() const;
-    PicklingMode picklingMode() const;
 
     UnorderedMap<QString, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;

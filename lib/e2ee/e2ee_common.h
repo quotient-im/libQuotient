@@ -16,6 +16,7 @@
 #    include "expected.h"
 
 #    include <olm/error.h>
+#    include <span>
 #    include <variant>
 #endif
 
@@ -66,18 +67,8 @@ inline bool isSupportedAlgorithm(const QString& algorithm)
     QOLM_FAIL_OR_LOG_X(lastErrorCode() == (InternalFailureValue_), (Message_), \
                        lastError())
 
-struct Unencrypted {};
-struct Encrypted {
-    QByteArray key;
-};
-
-using PicklingMode = std::variant<Unencrypted, Encrypted>;
-
 template <typename T>
 using QOlmExpected = Expected<T, OlmErrorCode>;
-
-// Convert PicklingMode to key
-QUOTIENT_API QByteArray toKey(const PicklingMode &mode);
 
 //! \brief Initialise a buffer object for use with Olm calls
 //!
@@ -88,32 +79,113 @@ QUOTIENT_API QByteArray bufferForOlm(size_t bufferSize);
 //!
 //! It's a safe cast since size_t can easily accommodate the range between
 //! 0 and INTMAX - 1 that Qt containers support; yet compilers complain...
-inline size_t unsignedSize(auto qtBuffer)
+inline size_t unsignedSize(const auto& qtBuffer)
 {
-    // The buffer size cannot be negative by definition, so this is deemed safe
     return static_cast<size_t>(qtBuffer.size());
 }
 
-class QUOTIENT_API RandomBuffer : public QByteArray {
+class QUOTIENT_API FixedBufferBase {
 public:
-    explicit RandomBuffer(size_t size);
-    ~RandomBuffer() { clear(); }
+    enum InitOptions { Uninitialized, FillWithZeros, FillWithRandom };
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    QUO_IMPLICIT operator void*() { return data(); }
-    char* chars() { return data(); }
-    uint8_t* bytes() { return reinterpret_cast<uint8_t*>(data()); }
+    static constexpr auto MaxBufferSize = 1024;
+    static constexpr auto TotalSecureHeapSize = 65536;
 
-    Q_DISABLE_COPY(RandomBuffer)
-    RandomBuffer(RandomBuffer&&) = default;
-    void operator=(RandomBuffer&&) = delete;
+    auto size() const { return data_ == nullptr ? 0 : size_; }
+    auto empty() const { return data_ == nullptr || size_ == 0; }
+
+    void clear();
+
+    Q_DISABLE_COPY(FixedBufferBase)
+    FixedBufferBase& operator=(FixedBufferBase&&) = delete;
+
+protected:
+    FixedBufferBase(size_t bufferSize, InitOptions options);
+    ~FixedBufferBase() { clear(); }
+
+    FixedBufferBase(FixedBufferBase&& other)
+        : data_(std::exchange(other.data_, nullptr)), size_(other.size_)
+    {}
+
+    void fillWithRandom();
+    void fillFrom(QByteArray&& source);
+
+    void* rawData() { return data_; }
+    const void* rawData() const { return data_; }
+
+private:
+    void* data_ = nullptr;
+    size_t size_ = 0;
 };
 
-[[deprecated("Create RandomBuffer directly")]] //
-inline RandomBuffer getRandom(size_t bufferSize)
+template <typename ElementT = uint8_t, size_t ExtentN = std::dynamic_extent,
+          bool DataIsWriteable = true>
+class QUOTIENT_API FixedBuffer : public FixedBufferBase {
+public:
+    using element_type = ElementT;
+    static constexpr auto extent = ExtentN; // Matching std::span
+
+    static_assert(sizeof(ElementT) == 1);
+    static_assert(extent == std::dynamic_extent || extent % 4 == 0);
+
+    explicit FixedBuffer(InitOptions fillMode) requires(ExtentN
+                                                        != std::dynamic_extent)
+        : FixedBufferBase(ExtentN, fillMode)
+    {}
+    explicit FixedBuffer(size_t bufferSize, InitOptions fillMode)
+        requires(ExtentN == std::dynamic_extent)
+        : FixedBufferBase(bufferSize, fillMode)
+    {}
+
+//    auto begin() { return dataForWriting(); }
+//    auto end() { return dataForWriting() + size(); }
+//
+//    auto begin() const { return data(); }
+//    auto end() const { return data() + size(); }
+
+    QByteArray viewAsByteArray() const
+    {
+        // Ensure static_cast<int> is safe
+        static_assert(MaxBufferSize < std::numeric_limits<int>::max());
+        return QByteArray::fromRawData(static_cast<const char*>(rawData()),
+                                       static_cast<int>(size()));
+    }
+    QByteArray toBase64(QByteArray::Base64Options options) const
+    {
+        return viewAsByteArray().toBase64(options);
+    }
+
+    ElementT* dataForWriting() { return static_cast<ElementT*>(rawData()); }
+
+    ElementT* data() requires DataIsWriteable { return dataForWriting(); }
+    const ElementT* data() const
+    {
+        return static_cast<const ElementT*>(rawData());
+    }
+};
+
+// TODO: Special-case random buffers and store them in common heap?
+template <typename ElementT = uint8_t>
+inline auto getRandom(size_t bytes)
 {
-    return RandomBuffer(bufferSize);
+    return FixedBuffer<ElementT>{ bytes, FixedBufferBase::FillWithRandom };
 }
+
+template <size_t SizeN, typename ElementT = uint8_t>
+inline auto getRandom()
+{
+    return FixedBuffer<ElementT, SizeN>{ FixedBufferBase::FillWithRandom };
+}
+
+class PicklingKey
+    : public FixedBuffer<std::byte, 128, /*DataIsWriteable=*/false> {
+public:
+    using FixedBuffer::FixedBuffer;
+
+    void setupNew() { fillWithRandom(); }
+    void loadFrom(QByteArray&& keySource) { fillFrom(std::move(keySource)); }
+    static PicklingKey mock() { return PicklingKey{ Uninitialized }; }
+};
 
 #endif // Quotient_E2EE_ENABLED
 

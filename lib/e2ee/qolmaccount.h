@@ -39,10 +39,10 @@ public:
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     //! \note This needs to be called before any other action or use setupNewAccount() instead.
     [[nodiscard]] OlmErrorCode unpickle(QByteArray&& pickled,
-                                        const PicklingMode& mode);
+                                        const PicklingKey& key);
 
     //! Serialises an OlmAccount to encrypted Base64.
-    QByteArray pickle(const PicklingMode &mode);
+    QByteArray pickle(const PicklingKey& key) const;
 
     //! Returns the account's public identity keys already formatted as JSON
     IdentityKeys identityKeys() const;
@@ -108,8 +108,8 @@ private:
     QString m_deviceId;
     OlmAccount* olmData = olmDataHolder.get();
 
-    QOlmExpected<QOlmSession> createInbound(const QOlmMessage& preKeyMessage,
-        const QString& theirIdentityKey = "") const;
+    QOlmExpected<QOlmSession> createInbound(QOlmMessage preKeyMessage,
+        const QByteArray &theirIdentityKey = "") const;
 
     QString accountId() const;
 };
