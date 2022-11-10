@@ -328,7 +328,7 @@ struct JsonConverter<Omittable<T>> {
     }
     static Omittable<T> load(const QJsonValue& jv)
     {
-        if (jv.isUndefined())
+        if (jv.isUndefined() || jv.isNull())
             return none;
         return fromJson<T>(jv);
     }
