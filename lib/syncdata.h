@@ -62,7 +62,7 @@ struct JsonObjectConverter<DevicesList> {
     static void fillFrom(const QJsonObject& jo, DevicesList& rs);
 };
 
-class SyncRoomData {
+class QUOTIENT_API SyncRoomData {
 public:
     QString roomId;
     JoinState joinState;
