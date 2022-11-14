@@ -2236,7 +2236,9 @@ QString Room::postFile(const QString& plainText,
     Q_ASSERT(content != nullptr && content->fileInfo() != nullptr);
     const auto* const fileInfo = content->fileInfo();
     Q_ASSERT(fileInfo != nullptr);
-    QFileInfo localFile { fileInfo->url().toLocalFile() };
+    // This is required because toLocalFile doesn't work on android and toString doesn't work on the desktop
+    auto url = fileInfo->url().isLocalFile() ? fileInfo->url().toLocalFile() : fileInfo->url().toString();
+    QFileInfo localFile { url };
     Q_ASSERT(localFile.isFile());
 
     return d->doPostFile(
@@ -2433,15 +2435,14 @@ void Room::redactEvent(const QString& eventId, const QString& reason)
 void Room::uploadFile(const QString& id, const QUrl& localFilename,
                       const QString& overrideContentType)
 {
-    Q_ASSERT_X(localFilename.isLocalFile(), __FUNCTION__,
-               "localFilename should point at a local file");
-    auto fileName = localFilename.toLocalFile();
+    // This is required because toLocalFile doesn't work on android and toString doesn't work on the desktop
+    auto fileName = localFilename.isLocalFile() ? localFilename.toLocalFile() : localFilename.toString();
     FileSourceInfo fileMetadata;
 #ifdef Quotient_E2EE_ENABLED
     QTemporaryFile tempFile;
     if (usesEncryption()) {
         tempFile.open();
-        QFile file(localFilename.toLocalFile());
+        QFile file(fileName);
         file.open(QFile::ReadOnly);
         QByteArray data;
         std::tie(fileMetadata, data) = encryptFile(file.readAll());
