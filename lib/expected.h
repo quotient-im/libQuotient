@@ -54,18 +54,25 @@ public:
     value_type* operator->() & { return std::get_if<T>(&data); }
 
     template <class U>
-    T value_or(U&& fallback) const&
+    const T& value_or(const U& fallback) const&
     {
         if (has_value())
             return value();
-        return std::forward<U>(fallback);
+        return fallback;
     }
     template <class U>
-    T value_or(U&& fallback) &&
+    T&& value_or(U&& fallback) &&
     {
         if (has_value())
-            return value();
+            return std::move(value());
         return std::forward<U>(fallback);
+    }
+
+    T&& move_value_or(T&& fallback)
+    {
+        if (has_value())
+            return std::move(value());
+        return std::move(fallback);
     }
 
     const E& error() const& { return std::get<E>(data); }

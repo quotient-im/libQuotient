@@ -113,7 +113,6 @@ public:
     QHash<QString, QHash<QString, DeviceKeys>> deviceKeys;
     QueryKeysJob *currentQueryKeysJob = nullptr;
     bool encryptionUpdateRequired = false;
-    PicklingKey picklingKey{ PicklingKey::Uninitialized };
     Database *database = nullptr;
     QHash<QString, int> oneTimeKeysCount;
     std::vector<std::unique_ptr<EncryptedEvent>> pendingEncryptedEvents;
@@ -200,13 +199,14 @@ public:
     }
 
 #ifdef Quotient_E2EE_ENABLED
+    void saveOlmAccount();
+
     void loadSessions() {
-        olmSessions = q->database()->loadOlmSessions(picklingKey);
+        olmSessions = q->database()->loadOlmSessions();
     }
     void saveSession(const QOlmSession& session, const QString& senderKey) const
     {
-        q->database()->saveOlmSession(senderKey, session.sessionId(),
-                                      session.pickle(picklingKey),
+        q->database()->saveOlmSession(senderKey, session,
                                       QDateTime::currentDateTime());
     }
 
@@ -605,8 +605,7 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 }
 
 #ifdef Quotient_E2EE_ENABLED
-QKeychain::Error setupPicklingKey(PicklingKey& picklingKey,
-                                  const QString& userId)
+Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& userId)
 {
     // TODO: Rewrite the whole thing in an async way to get rid of nested event
     // loops; maybe move the function to Connection::Private to emit a signal
@@ -621,8 +620,12 @@ QKeychain::Error setupPicklingKey(PicklingKey& picklingKey,
     readJob.start();
     readLoop.exec();
 
+    if (readJob.error() == Error::NoError) {
+        qDebug(E2EE) << "Successfully loaded pickling key from keychain";
+        return PicklingKey::fromByteArray(readJob.binaryData());
+    }
     if (readJob.error() == Error::EntryNotFound) {
-        picklingKey.setupNew();
+        auto&& picklingKey = PicklingKey::generate();
         WritePasswordJob writeJob(qAppName());
         writeJob.setAutoDelete(false);
         writeJob.setKey(accountSettings.userId() + QStringLiteral("-Pickle"));
@@ -633,21 +636,16 @@ QKeychain::Error setupPicklingKey(PicklingKey& picklingKey,
         writeJob.start();
         writeLoop.exec();
 
-        if (writeJob.error() != Error::NoError) {
-            qCritical(E2EE) << "Could not save pickling key to keychain: "
-                            << writeJob.errorString();
-            qCritical(E2EE) << "Pickles in the database will be unencrypted";
-            picklingKey.clear();
-        }
+        if (writeJob.error() == Error::NoError)
+            return std::move(picklingKey);
+
+        qCritical(E2EE) << "Could not save pickling key to keychain: "
+                        << writeJob.errorString();
+        qCritical(E2EE) << "Pickles in the database will be unencrypted";
         return writeJob.error();
     }
-    if (readJob.error() != Error::NoError) {
-        qWarning(E2EE) << "Error loading pickling key from keychain:"
-                        << readJob.error();
-    } else {
-        qDebug(E2EE) << "Successfully loaded pickling key from keychain";
-        picklingKey.loadFrom(readJob.binaryData());
-    }
+    qWarning(E2EE) << "Error loading pickling key - please fix your keychain:"
+                    << readJob.error();
     return readJob.error();
 }
 #endif
@@ -665,28 +663,33 @@ void Connection::Private::completeSetup(const QString& mxId)
 #ifndef Quotient_E2EE_ENABLED
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
 #else // Quotient_E2EE_ENABLED
-    setupPicklingKey(picklingKey, data->userId());
-    Q_ASSERT(!picklingKey.empty());
+    auto&& maybePicklingKey = setupPicklingKey(data->userId());
+    if (!maybePicklingKey) {
+        Q_ASSERT(maybePicklingKey.has_value());
+        qCritical(E2EE) << "Could not load or initialise a pickling key, will "
+                           "use a mock key for pickling";
+    }
+    database =
+        new Database(data->userId(), data->deviceId(),
+                     maybePicklingKey.move_value_or(PicklingKey::mock()),
+                     q);
 
-    database = new Database(data->userId(), data->deviceId(), q);
-
-    // init olmAccount
     olmAccount = std::make_unique<QOlmAccount>(data->userId(), data->deviceId(), q);
-    connect(olmAccount.get(), &QOlmAccount::needsSave, q, &Connection::saveOlmAccount);
+    connect(olmAccount.get(), &QOlmAccount::needsSave, q,
+            [this] { saveOlmAccount(); });
 
     loadSessions();
 
-    if (database->accountPickle().isEmpty()) {
-        // create new account and save unpickle data
-        olmAccount->setupNewAccount();
+    if (const auto outcome = database->setupOlmAccount(*olmAccount);
+        !outcome.has_value()) {
+        // A new account has been created
         auto job = q->callApi<UploadKeysJob>(olmAccount->deviceKeys());
         connect(job, &BaseJob::failure, q, [job]{
             qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
         });
-    } else {
-        // account already existing
-        if (olmAccount->unpickle(database->accountPickle(), picklingKey) != OLM_SUCCESS)
-            qWarning(E2EE)
+    } else { // account already existing
+        if (outcome != OLM_SUCCESS)
+            qCritical(E2EE)
                 << "Could not unpickle Olm account, E2EE won't be available";
     }
 #endif // Quotient_E2EE_ENABLED
@@ -2246,17 +2249,13 @@ void Connection::encryptionUpdate(Room *room)
         }
     }
 }
-#endif
 
-void Connection::saveOlmAccount()
+void Connection::Private::saveOlmAccount()
 {
-#ifdef Quotient_E2EE_ENABLED
     qCDebug(E2EE) << "Saving olm account";
-    d->database->setAccountPickle(d->olmAccount->pickle(d->picklingKey));
-#endif
+    database->storeOlmAccount(*olmAccount);
 }
 
-#ifdef Quotient_E2EE_ENABLED
 QJsonObject Connection::decryptNotification(const QJsonObject &notification)
 {
     if (auto r = room(notification["room_id"].toString()))
@@ -2275,15 +2274,13 @@ Database* Connection::database() const
 UnorderedMap<QString, QOlmInboundGroupSession>
 Connection::loadRoomMegolmSessions(const Room* room) const
 {
-    return database()->loadMegolmSessions(room->id(), d->picklingKey);
+    return database()->loadMegolmSessions(room->id());
 }
 
 void Connection::saveMegolmSession(const Room* room,
                                    const QOlmInboundGroupSession& session) const
 {
-    database()->saveMegolmSession(room->id(), session.sessionId(),
-                                  session.pickle(d->picklingKey),
-                                  session.senderId(), session.olmSessionId());
+    database()->saveMegolmSession(room->id(), session);
 }
 
 QStringList Connection::devicesForUser(const QString& userId) const
@@ -2329,8 +2326,7 @@ std::pair<QOlmMessage::Type, QByteArray> Connection::Private::olmEncryptMessage(
     const auto& curveKey = curveKeyForUserDevice(userId, device);
     const auto& olmSession = olmSessions.at(curveKey).front();
     const auto result = olmSession.encrypt(message);
-    database->updateOlmSession(curveKey, olmSession.sessionId(),
-                               olmSession.pickle(picklingKey));
+    database->updateOlmSession(curveKey, olmSession);
     return { result.type(), result.toCiphertext() };
 }
 
@@ -2465,14 +2461,13 @@ void Connection::sendSessionKeyToDevices(
 Omittable<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(
     const QString& roomId) const
 {
-    return d->database->loadCurrentOutboundMegolmSession(roomId, d->picklingKey);
+    return d->database->loadCurrentOutboundMegolmSession(roomId);
 }
 
 void Connection::saveCurrentOutboundMegolmSession(
     const QString& roomId, const QOlmOutboundGroupSession& session) const
 {
-    d->database->saveCurrentOutboundMegolmSession(roomId, d->picklingKey,
-                                                  session);
+    d->database->saveCurrentOutboundMegolmSession(roomId, session);
 }
 
 void Connection::startKeyVerificationSession(const QString& userId, const QString& deviceId)

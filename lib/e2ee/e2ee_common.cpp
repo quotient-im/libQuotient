@@ -75,17 +75,21 @@ FixedBufferBase::FixedBufferBase(size_t bufferSize, InitOptions options)
         return;
 
     data_ = allocate(size_, options == FillWithZeros);
-
-    if (options == FillWithRandom)
-        fillWithRandom();
-}
-
-void FixedBufferBase::fillWithRandom()
-{
-    Q_ASSERT(size_ % 4 == 0); // Normally it's a power of 2 starting from 16
-    const qsizetype wordsCount = size_ / 4;
-    QRandomGenerator::system()->fillRange(reinterpret_cast<uint32_t*>(data_),
-                                          wordsCount);
+    if (options == FillWithRandom) {
+        // QRandomGenerator::fillRange works in terms of 32-bit words,
+        // and FixedBuffer happens to deal with sizes that are multiples
+        // of those (16, 32, etc.)
+        const qsizetype wordsCount = size_ / 4;
+        QRandomGenerator::system()->fillRange(
+            reinterpret_cast<uint32_t*>(data_), wordsCount);
+        if (const auto remainder = size_ % 4; Q_UNLIKELY(remainder != 0)) {
+            // Not normal; but if it happens, apply best effort
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            const auto end = static_cast<uint8_t*>(data_) + size_;
+            QRandomGenerator::system()->generate(end - remainder, end);
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        }
+    }
 }
 
 void FixedBufferBase::fillFrom(QByteArray &&source)

@@ -518,9 +518,6 @@ public:
         setUserFactory(defaultUserFactory<T>);
     }
 
-    /// Saves the olm account data to disk. Usually doesn't need to be called manually.
-    void saveOlmAccount();
-
 public Q_SLOTS:
     /// \brief Set the homeserver base URL and retrieve its login flows
     ///

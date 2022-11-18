@@ -107,7 +107,6 @@ protected:
         : data_(std::exchange(other.data_, nullptr)), size_(other.size_)
     {}
 
-    void fillWithRandom();
     void fillFrom(QByteArray&& source);
 
     void* rawData() { return data_; }
@@ -179,12 +178,22 @@ inline auto getRandom()
 
 class PicklingKey
     : public FixedBuffer<std::byte, 128, /*DataIsWriteable=*/false> {
-public:
-    using FixedBuffer::FixedBuffer;
+private:
+    // `using` would expose the constructor as its access modifier is reused too
+    explicit PicklingKey(InitOptions options) : FixedBuffer(options)
+    {
+        Q_ASSERT(options != FillWithZeros);
+    }
 
-    void setupNew() { fillWithRandom(); }
-    void loadFrom(QByteArray&& keySource) { fillFrom(std::move(keySource)); }
-    static PicklingKey mock() { return PicklingKey{ Uninitialized }; }
+public:
+    static PicklingKey generate() { return PicklingKey(FillWithRandom); }
+    static PicklingKey fromByteArray(QByteArray&& keySource)
+    {
+        PicklingKey k(Uninitialized);
+        k.fillFrom(std::move(keySource));
+        return k;
+    }
+    static PicklingKey mock() { return PicklingKey(Uninitialized); }
 };
 
 #endif // Quotient_E2EE_ENABLED
