@@ -88,13 +88,24 @@ class QUOTIENT_API FixedBufferBase {
 public:
     enum InitOptions { Uninitialized, FillWithZeros, FillWithRandom };
 
-    static constexpr auto MaxBufferSize = 1024;
-    static constexpr auto TotalSecureHeapSize = 65536;
+    static constexpr auto TotalSecureHeapSize = 65'536;
 
     auto size() const { return data_ == nullptr ? 0 : size_; }
     auto empty() const { return data_ == nullptr || size_ == 0; }
 
     void clear();
+
+    QByteArray viewAsByteArray() const
+    {
+        // Ensure static_cast<int> is safe
+        static_assert(TotalSecureHeapSize < std::numeric_limits<int>::max());
+        return QByteArray::fromRawData(reinterpret_cast<const char*>(data_),
+                                       static_cast<int>(size_));
+    }
+    QByteArray toBase64(QByteArray::Base64Options options) const
+    {
+        return viewAsByteArray().toBase64(options);
+    }
 
     Q_DISABLE_COPY(FixedBufferBase)
     FixedBufferBase& operator=(FixedBufferBase&&) = delete;
@@ -109,77 +120,48 @@ protected:
 
     void fillFrom(QByteArray&& source);
 
-    void* rawData() { return data_; }
-    const void* rawData() const { return data_; }
+    uint8_t* dataForWriting() { return data_; }
+    const uint8_t* data() const { return data_; }
 
 private:
-    void* data_ = nullptr;
+    uint8_t* data_ = nullptr;
     size_t size_ = 0;
 };
 
-template <typename ElementT = uint8_t, size_t ExtentN = std::dynamic_extent,
-          bool DataIsWriteable = true>
+template <size_t ExtentN = std::dynamic_extent, bool DataIsWriteable = true>
 class QUOTIENT_API FixedBuffer : public FixedBufferBase {
 public:
-    using element_type = ElementT;
     static constexpr auto extent = ExtentN; // Matching std::span
+    static_assert(extent == std::dynamic_extent
+                  || (extent < TotalSecureHeapSize / 2 && extent % 4 == 0));
 
-    static_assert(sizeof(ElementT) == 1);
-    static_assert(extent == std::dynamic_extent || extent % 4 == 0);
-
-    explicit FixedBuffer(InitOptions fillMode) requires(ExtentN
+    explicit FixedBuffer(InitOptions fillMode) requires(extent
                                                         != std::dynamic_extent)
         : FixedBufferBase(ExtentN, fillMode)
     {}
     explicit FixedBuffer(size_t bufferSize, InitOptions fillMode)
-        requires(ExtentN == std::dynamic_extent)
+        requires(extent == std::dynamic_extent)
         : FixedBufferBase(bufferSize, fillMode)
     {}
 
-//    auto begin() { return dataForWriting(); }
-//    auto end() { return dataForWriting() + size(); }
-//
-//    auto begin() const { return data(); }
-//    auto end() const { return data() + size(); }
-
-    QByteArray viewAsByteArray() const
-    {
-        // Ensure static_cast<int> is safe
-        static_assert(MaxBufferSize < std::numeric_limits<int>::max());
-        return QByteArray::fromRawData(static_cast<const char*>(rawData()),
-                                       static_cast<int>(size()));
-    }
-    QByteArray toBase64(QByteArray::Base64Options options) const
-    {
-        return viewAsByteArray().toBase64(options);
-    }
-
-    ElementT* dataForWriting() { return static_cast<ElementT*>(rawData()); }
-
-    ElementT* data() requires DataIsWriteable { return dataForWriting(); }
-    const ElementT* data() const
-    {
-        return static_cast<const ElementT*>(rawData());
-    }
+    using FixedBufferBase::data;
+    uint8_t* data() requires DataIsWriteable { return dataForWriting(); }
 };
 
-// TODO: Special-case random buffers and store them in common heap?
-template <typename ElementT = uint8_t>
 inline auto getRandom(size_t bytes)
 {
-    return FixedBuffer<ElementT>{ bytes, FixedBufferBase::FillWithRandom };
+    return FixedBuffer<>{ bytes, FixedBufferBase::FillWithRandom };
 }
 
-template <size_t SizeN, typename ElementT = uint8_t>
+template <size_t SizeN>
 inline auto getRandom()
 {
-    return FixedBuffer<ElementT, SizeN>{ FixedBufferBase::FillWithRandom };
+    return FixedBuffer<SizeN>{ FixedBufferBase::FillWithRandom };
 }
 
-class PicklingKey
-    : public FixedBuffer<std::byte, 128, /*DataIsWriteable=*/false> {
+class PicklingKey : public FixedBuffer<128, /*DataIsWriteable=*/false> {
 private:
-    // `using` would expose the constructor as its access modifier is reused too
+    // `using` would have exposed the constructor as it's public in the parent
     explicit PicklingKey(InitOptions options) : FixedBuffer(options)
     {
         Q_ASSERT(options != FillWithZeros);

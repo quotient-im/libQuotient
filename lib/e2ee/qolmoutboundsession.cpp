@@ -26,8 +26,7 @@ QOlmOutboundGroupSession::QOlmOutboundGroupSession()
 {
     if (const auto randomLength =
             olm_init_outbound_group_session_random_length(olmData);
-        olm_init_outbound_group_session(olmData,
-                                        getRandom<uint8_t>(randomLength).data(),
+        olm_init_outbound_group_session(olmData, getRandom(randomLength).data(),
                                         randomLength)
         == olm_error()) {
         QOLM_INTERNAL_ERROR("Failed to initialise an outbound group session");
