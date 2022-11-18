@@ -1567,9 +1567,10 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
     return {};
 #else // Quotient_E2EE_ENABLED
-    if (encryptedEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
-        qWarning(E2EE) << "Algorithm of the encrypted event with id"
-                    << encryptedEvent.id() << "is not decryptable by the current device";
+    const auto algorithm = encryptedEvent.algorithm();
+    if (!isSupportedAlgorithm(algorithm)) {
+        qWarning(E2EE) << "Algorithm" << algorithm << "of encrypted event"
+                       << encryptedEvent.id() << "is not supported";
         return {};
     }
     QString decrypted = d->groupSessionDecryptMessage(
@@ -1584,7 +1585,8 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     if (decryptedEvent->roomId() == id()) {
         return decryptedEvent;
     }
-    qCWarning(E2EE) << "Decrypted event" << encryptedEvent.id() << "not for this room; discarding.";
+    qWarning(E2EE) << "Decrypted event" << encryptedEvent.id()
+                   << "not for this room; discarding";
     return {};
 #endif // Quotient_E2EE_ENABLED
 }
@@ -2589,6 +2591,8 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
     size_t totalDecrypted = 0;
     for (auto& eptr : events)
         if (const auto& eeptr = eventCast<EncryptedEvent>(eptr)) {
+            if (eeptr->isRedacted())
+                continue;
             if (auto decrypted = q->decryptMessage(*eeptr)) {
                 ++totalDecrypted;
                 auto&& oldEvent = exchange(eptr, move(decrypted));

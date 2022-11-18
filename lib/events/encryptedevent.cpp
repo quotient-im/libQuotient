@@ -32,12 +32,7 @@ EncryptedEvent::EncryptedEvent(const QJsonObject& obj)
 
 QString EncryptedEvent::algorithm() const
 {
-    const auto algo = contentPart<QString>(AlgorithmKeyL);
-    if (!isSupportedAlgorithm(algo))
-        qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
-                       << "is not supported";
-
-    return algo;
+    return contentPart<QString>(AlgorithmKeyL);
 }
 
 RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
