@@ -317,6 +317,11 @@ public:
             };
             auto job = q->callApi<ClaimKeysJob>(hash);
             connect(job, &BaseJob::finished, q, [this, deviceId, job, senderId] {
+                static QSet<std::pair<QString, QString>> triedDevices;
+                if (triedDevices.contains({senderId, deviceId})) {
+                    return;
+                }
+                triedDevices += {senderId, deviceId};
                 qCDebug(E2EE) << "Sending dummy event to" << senderId << deviceId;
                 createOlmSession(senderId, deviceId, job->oneTimeKeys()[senderId][deviceId]);
                 q->sendToDevice(senderId, deviceId, DummyEvent(), true);
