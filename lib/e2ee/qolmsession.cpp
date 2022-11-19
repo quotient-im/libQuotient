@@ -4,7 +4,6 @@
 
 #include "qolmsession.h"
 
-#include "e2ee/qolmutils.h"
 #include "logging.h"
 
 #include <cstring>
@@ -22,25 +21,22 @@ const char* QOlmSession::lastError() const
 }
 
 
-QByteArray QOlmSession::pickle(const PicklingMode &mode) const
+QByteArray QOlmSession::pickle(const PicklingKey &key) const
 {
     QByteArray pickledBuf(olm_pickle_session_length(olmData), '\0');
-    QByteArray key = toKey(mode);
-    if (olm_pickle_session(olmData, key.data(), key.length(), pickledBuf.data(),
-                           pickledBuf.length())
+    if (olm_pickle_session(olmData, key.data(), key.size(),
+                           pickledBuf.data(), pickledBuf.length())
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to pickle an Olm session");
 
-    key.clear();
     return pickledBuf;
 }
 
 QOlmExpected<QOlmSession> QOlmSession::unpickle(QByteArray&& pickled,
-                                                const PicklingMode& mode)
+                                                const PicklingKey &key)
 {
     QOlmSession olmSession{};
-    auto key = toKey(mode);
-    if (olm_unpickle_session(olmSession.olmData, key.data(), key.length(),
+    if (olm_unpickle_session(olmSession.olmData, key.data(), key.size(),
                              pickled.data(), pickled.length())
         == olm_error()) {
         const auto errorCode = olmSession.lastErrorCode();
@@ -50,7 +46,6 @@ QOlmExpected<QOlmSession> QOlmSession::unpickle(QByteArray&& pickled,
         return errorCode;
     }
 
-    key.clear();
     return olmSession;
 }
 
@@ -63,8 +58,8 @@ QOlmMessage QOlmSession::encrypt(const QByteArray& plaintext) const
     const auto messageType = olm_encrypt_message_type(olmData);
     if (const auto randomLength = olm_encrypt_random_length(olmData);
         olm_encrypt(olmData, plaintext.data(), plaintext.length(),
-                    RandomBuffer(randomLength), randomLength, messageBuf.data(),
-                    messageMaxLength)
+                    getRandom(randomLength).data(), randomLength,
+                    messageBuf.data(), messageMaxLength)
         == olm_error()) {
         QOLM_INTERNAL_ERROR("Failed to encrypt the message");
     }

@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "qolminboundsession.h"
-#include "qolmutils.h"
 #include "../logging.h"
 
 #include <cstring>
@@ -59,12 +58,11 @@ QOlmExpected<QOlmInboundGroupSession> QOlmInboundGroupSession::importSession(
     return groupSession;
 }
 
-QByteArray QOlmInboundGroupSession::pickle(const PicklingMode& mode) const
+QByteArray QOlmInboundGroupSession::pickle(const PicklingKey& key) const
 {
     QByteArray pickledBuf(
         olm_pickle_inbound_group_session_length(olmData), '\0');
-    if (const auto key = toKey(mode);
-        olm_pickle_inbound_group_session(olmData, key.data(), key.length(),
+    if (olm_pickle_inbound_group_session(olmData, key.data(), key.size(),
                                          pickledBuf.data(), pickledBuf.length())
         == olm_error()) {
         QOLM_INTERNAL_ERROR("Failed to pickle the inbound group session");
@@ -73,19 +71,17 @@ QByteArray QOlmInboundGroupSession::pickle(const PicklingMode& mode) const
 }
 
 QOlmExpected<QOlmInboundGroupSession> QOlmInboundGroupSession::unpickle(
-    QByteArray&& pickled, const PicklingMode& mode)
+    QByteArray&& pickled, const PicklingKey& key)
 {
     QOlmInboundGroupSession groupSession{};
-    auto key = toKey(mode);
     if (olm_unpickle_inbound_group_session(groupSession.olmData, key.data(),
-                                           key.length(), pickled.data(),
+                                           key.size(), pickled.data(),
                                            pickled.size())
         == olm_error()) {
         qWarning(E2EE) << "Failed to unpickle an inbound group session:"
                        << groupSession.lastError();
         return groupSession.lastErrorCode();
     }
-    key.clear();
 
     return groupSession;
 }

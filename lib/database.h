@@ -9,10 +9,11 @@
 
 #include <QtCore/QHash>
 
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 
 namespace Quotient {
 
+class QOlmAccount;
 class QOlmSession;
 class QOlmInboundGroupSession;
 class QOlmOutboundGroupSession;
@@ -21,7 +22,8 @@ class QUOTIENT_API Database : public QObject
 {
     Q_OBJECT
 public:
-    Database(const QString& matrixId, const QString& deviceId, QObject* parent);
+    Database(const QString& userId, const QString& deviceId,
+             PicklingKey&& picklingKey, QObject* parent);
 
     int version();
     void transaction();
@@ -31,18 +33,16 @@ public:
     QSqlDatabase database();
     QSqlQuery prepareQuery(const QString& quaryString);
 
-    QByteArray accountPickle();
-    void setAccountPickle(const QByteArray &pickle);
+    void storeOlmAccount(const QOlmAccount& olmAccount);
+    Omittable<OlmErrorCode> setupOlmAccount(QOlmAccount &olmAccount);
     void clear();
-    void saveOlmSession(const QString& senderKey, const QString& sessionId,
-                        const QByteArray& pickle, const QDateTime& timestamp);
-    UnorderedMap<QString, std::vector<QOlmSession>> loadOlmSessions(
-        const PicklingMode& picklingMode);
+    void saveOlmSession(const QString& senderKey, const QOlmSession& session,
+                        const QDateTime& timestamp);
+    UnorderedMap<QString, std::vector<QOlmSession>> loadOlmSessions();
     UnorderedMap<QString, QOlmInboundGroupSession> loadMegolmSessions(
-        const QString& roomId, const PicklingMode& picklingMode);
-    void saveMegolmSession(const QString& roomId, const QString& sessionId,
-                           const QByteArray& pickle, const QString& senderId,
-                           const QString& olmSessionId);
+        const QString& roomId);
+    void saveMegolmSession(const QString& roomId,
+                           const QOlmInboundGroupSession& session);
     void addGroupSessionIndexRecord(const QString& roomId,
                                     const QString& sessionId, uint32_t index,
                                     const QString& eventId, qint64 ts);
@@ -53,12 +53,10 @@ public:
     void setOlmSessionLastReceived(const QString& sessionId,
                                    const QDateTime& timestamp);
     Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
-        const QString& roomId, const PicklingMode& picklingMode);
+        const QString& roomId);
     void saveCurrentOutboundMegolmSession(
-        const QString& roomId, const PicklingMode& picklingMode,
-        const QOlmOutboundGroupSession& session);
-    void updateOlmSession(const QString& senderKey, const QString& sessionId,
-                          const QByteArray& pickle);
+        const QString& roomId, const QOlmOutboundGroupSession& session);
+    void updateOlmSession(const QString& senderKey, const QOlmSession& session);
 
     // Returns a map UserId -> [DeviceId] that have not received key yet
     QMultiHash<QString, QString> devicesWithoutKey(
@@ -80,6 +78,8 @@ private:
     void migrateTo4();
     void migrateTo5();
 
-    QString m_matrixId;
+    QString m_userId;
+    QString m_deviceId;
+    PicklingKey m_picklingKey;
 };
 } // namespace Quotient

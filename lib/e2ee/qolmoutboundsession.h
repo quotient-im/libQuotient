@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 
 struct OlmOutboundGroupSession;
 
@@ -18,11 +18,10 @@ public:
     QOlmOutboundGroupSession();
 
     //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
-    QByteArray pickle(const PicklingMode &mode) const;
+    QByteArray pickle(const PicklingKey &key) const;
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
-    static QOlmExpected<QOlmOutboundGroupSession> unpickle(
-        QByteArray&& pickled, const PicklingMode& mode);
+    static QOlmExpected<QOlmOutboundGroupSession> unpickle(QByteArray&& pickled, const PicklingKey& key);
 
     //! Encrypts a plaintext message using the session.
     QByteArray encrypt(const QByteArray& plaintext) const;

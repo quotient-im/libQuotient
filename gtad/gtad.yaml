@@ -130,7 +130,7 @@ analyzer:
       - RoomFilter: # A structure inside Filter, same story as with *_filter.yaml
       - OneTimeKeys:
           type: OneTimeKeys
-          imports: '"e2ee/e2ee.h"'
+          imports: '"e2ee/e2ee_common.h"'
       - //: *UseOmittable
     - array:
       - string: QStringList

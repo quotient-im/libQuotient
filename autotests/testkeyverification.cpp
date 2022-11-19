@@ -8,7 +8,6 @@
 #include <QtCore/QDateTime>
 #include <e2ee/qolmaccount.h>
 #include "olm/sas.h"
-#include "e2ee/qolmutils.h"
 
 class TestKeyVerificationSession : public QObject
 {
@@ -50,7 +49,7 @@ private Q_SLOTS:
 
         auto sas = olm_sas(new std::byte[olm_sas_size()]);
         const auto randomLength = olm_create_sas_random_length(sas);
-        olm_create_sas(sas, RandomBuffer(randomLength), randomLength);
+        olm_create_sas(sas, getRandom(randomLength).data(), randomLength);
         QByteArray keyBytes(olm_sas_pubkey_length(sas), '\0');
         olm_sas_get_pubkey(sas, keyBytes.data(), keyBytes.size());
         session->handleEvent(KeyVerificationKeyEvent(transactionId, keyBytes));

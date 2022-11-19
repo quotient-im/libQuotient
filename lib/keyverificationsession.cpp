@@ -6,7 +6,6 @@
 #include "connection.h"
 #include "database.h"
 #include "e2ee/qolmaccount.h"
-#include "e2ee/qolmutils.h"
 #include "olm/sas.h"
 
 #include "events/event.h"
@@ -38,7 +37,7 @@ CStructPtr<OlmSAS> KeyVerificationSession::makeOlmData()
     auto data = makeCStruct(olm_sas, olm_sas_size, olm_clear_sas);
 
     const auto randomLength = olm_create_sas_random_length(data.get());
-    olm_create_sas(data.get(), RandomBuffer(randomLength), randomLength);
+    olm_create_sas(data.get(), getRandom(randomLength).data(), randomLength);
     return data;
 }
 
