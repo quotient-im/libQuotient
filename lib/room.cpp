@@ -134,10 +134,18 @@ public:
     QString fullyReadUntilEventId;
     TagsMap tags;
     UnorderedMap<QString, EventPtr> accountData;
-    QString prevBatch;
+    //! \brief Previous (i.e. next towards the room beginning) batch token
+    //!
+    //! "Emptiness" of this can have two forms. If prevBatch.has_value() it
+    //! means the library assumes the previous batch to exist on the server,
+    //! even though it might not know the token (hence initialisation with
+    //! a null string). If prevBatch == none it means that the server previously
+    //! reported that all events have been loaded and there's no point in
+    //! requesting further historical batches.
+    Omittable<QString> prevBatch = QString();
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
-    // Map from megolm sessionId to set of eventIds
+    //! Map from megolm sessionId to set of eventIds
     UnorderedMap<QString, QSet<QString>> undecryptedEvents;
 
     struct FileTransferPrivateInfo {
@@ -573,7 +581,7 @@ const Room::PendingEvents& Room::pendingEvents() const
 
 bool Room::allHistoryLoaded() const
 {
-    return !d->timeline.empty() && is<RoomCreateEvent>(*d->timeline.front());
+    return !d->prevBatch;
 }
 
 QString Room::name() const
@@ -1918,8 +1926,8 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     qCDebug(MAIN) << "--- Updating room" << id() << "/" << objectName();
     bool firstUpdate = d->baseState.empty();
 
-    if (d->prevBatch.isEmpty())
-        d->prevBatch = data.timelinePrevBatch;
+    if (d->prevBatch && d->prevBatch->isEmpty())
+        *d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
     Changes roomChanges {};
@@ -2388,16 +2396,25 @@ void Room::getPreviousContent(int limit, const QString& filter)
     d->getPreviousContent(limit, filter);
 }
 
-void Room::Private::getPreviousContent(int limit, const QString &filter)
+void Room::Private::getPreviousContent(int limit, const QString& filter)
 {
-    if (isJobPending(eventsHistoryJob))
+    if (!prevBatch || isJobPending(eventsHistoryJob))
         return;
 
-    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b", prevBatch,
+    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b", *prevBatch,
                                                              "", limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
-        prevBatch = eventsHistoryJob->end();
+        if (const auto newPrevBatch = eventsHistoryJob->end();
+            !newPrevBatch.isEmpty() && *prevBatch != newPrevBatch) //
+        {
+            *prevBatch = newPrevBatch;
+        } else {
+            qInfo(MESSAGES)
+                << "Room" << q->objectName() << "has loaded all history";
+            prevBatch.reset();
+        }
+
         addHistoricalMessageEvents(eventsHistoryJob->chunk());
     });
     connect(eventsHistoryJob, &QObject::destroyed, q,
