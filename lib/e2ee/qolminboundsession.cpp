@@ -30,9 +30,10 @@ QOlmExpected<QOlmInboundGroupSession> QOlmInboundGroupSession::create(
     const QByteArray& key)
 {
     QOlmInboundGroupSession groupSession{};
-    if (olm_init_inbound_group_session(
-            groupSession.olmData,
-            reinterpret_cast<const uint8_t*>(key.constData()), key.size())
+    if (olm_init_inbound_group_session(groupSession.olmData,
+                                       reinterpret_cast<const uint8_t*>(
+                                           key.constData()),
+                                       unsignedSize(key))
         == olm_error()) {
         qWarning(E2EE) << "Failed to create an inbound group session:"
                        << groupSession.lastError();
@@ -48,7 +49,7 @@ QOlmExpected<QOlmInboundGroupSession> QOlmInboundGroupSession::importSession(
     QOlmInboundGroupSession groupSession{};
     if (olm_import_inbound_group_session(
             groupSession.olmData, reinterpret_cast<const uint8_t*>(key.data()),
-            key.size())
+            unsignedSize(key))
         == olm_error()) {
         qWarning(E2EE) << "Failed to import an inbound group session:"
                        << groupSession.lastError();
@@ -60,10 +61,10 @@ QOlmExpected<QOlmInboundGroupSession> QOlmInboundGroupSession::importSession(
 
 QByteArray QOlmInboundGroupSession::pickle(const PicklingKey& key) const
 {
-    QByteArray pickledBuf(
-        olm_pickle_inbound_group_session_length(olmData), '\0');
+    const auto pickleLength = olm_pickle_inbound_group_session_length(olmData);
+    auto pickledBuf = byteArrayForOlm(pickleLength);
     if (olm_pickle_inbound_group_session(olmData, key.data(), key.size(),
-                                         pickledBuf.data(), pickledBuf.length())
+                                         pickledBuf.data(), pickleLength)
         == olm_error()) {
         QOLM_INTERNAL_ERROR("Failed to pickle the inbound group session");
     }
@@ -76,7 +77,7 @@ QOlmExpected<QOlmInboundGroupSession> QOlmInboundGroupSession::unpickle(
     QOlmInboundGroupSession groupSession{};
     if (olm_unpickle_inbound_group_session(groupSession.olmData, key.data(),
                                            key.size(), pickled.data(),
-                                           pickled.size())
+                                           unsignedSize(pickled))
         == olm_error()) {
         qWarning(E2EE) << "Failed to unpickle an inbound group session:"
                        << groupSession.lastError();
@@ -94,38 +95,31 @@ QOlmExpected<std::pair<QByteArray, uint32_t>> QOlmInboundGroupSession::decrypt(
 
     // We need to clone the message because
     // olm_decrypt_max_plaintext_length destroys the input buffer
-    QByteArray messageBuf(message.length(), '\0');
-    std::copy(message.begin(), message.end(), messageBuf.begin());
+    const auto plaintextLength = olm_group_decrypt_max_plaintext_length(
+        olmData, reinterpret_cast<uint8_t*>(QByteArray(message).data()),
+        unsignedSize(message));
+    auto plaintextBuf = byteArrayForOlm(plaintextLength);
 
-    QByteArray plaintextBuf(olm_group_decrypt_max_plaintext_length(
-                                olmData,
-                                reinterpret_cast<uint8_t*>(messageBuf.data()),
-                                messageBuf.length()),
-                            '\0');
-
-    messageBuf = QByteArray(message.length(), '\0');
-    std::copy(message.begin(), message.end(), messageBuf.begin());
-
-    const auto plaintextLen = olm_group_decrypt(
-        olmData, reinterpret_cast<uint8_t*>(messageBuf.data()),
-        messageBuf.length(), reinterpret_cast<uint8_t*>(plaintextBuf.data()),
-        plaintextBuf.length(), &messageIndex);
-    if (plaintextLen == olm_error()) {
+    const auto actualLength = olm_group_decrypt(
+        olmData, reinterpret_cast<uint8_t*>(QByteArray(message).data()),
+        unsignedSize(message), reinterpret_cast<uint8_t*>(plaintextBuf.data()),
+        plaintextLength, &messageIndex);
+    if (actualLength == olm_error()) {
         qWarning(E2EE) << "Failed to decrypt the message:" << lastError();
         return lastErrorCode();
     }
 
-    QByteArray output(plaintextLen, '\0');
-    std::memcpy(output.data(), plaintextBuf.data(), plaintextLen);
-
-    return std::make_pair(output, messageIndex);
+    // actualLength cannot be more than plainTextLength because the resulting
+    // text would overflow the allocated memory; but it can be less, in theory
+    plaintextBuf.truncate(static_cast<int>(actualLength));
+    return std::make_pair(plaintextBuf, messageIndex);
 }
 
 QOlmExpected<QByteArray> QOlmInboundGroupSession::exportSession(
     uint32_t messageIndex)
 {
     const auto keyLength = olm_export_inbound_group_session_length(olmData);
-    QByteArray keyBuf(keyLength, '\0');
+    auto keyBuf = byteArrayForOlm(keyLength);
     if (olm_export_inbound_group_session(
             olmData, reinterpret_cast<uint8_t*>(keyBuf.data()), keyLength,
             messageIndex)
@@ -144,11 +138,11 @@ uint32_t QOlmInboundGroupSession::firstKnownIndex() const
 
 QByteArray QOlmInboundGroupSession::sessionId() const
 {
-    QByteArray sessionIdBuf(olm_inbound_group_session_id_length(olmData),
-                            '\0');
+    const auto sessionIdLength = olm_inbound_group_session_id_length(olmData);
+    auto sessionIdBuf = byteArrayForOlm(sessionIdLength);
     if (olm_inbound_group_session_id(
             olmData, reinterpret_cast<uint8_t*>(sessionIdBuf.data()),
-            sessionIdBuf.length())
+            sessionIdLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to obtain the group session id");
 

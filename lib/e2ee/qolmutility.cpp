@@ -4,6 +4,8 @@
 
 #include "e2ee/qolmutility.h"
 
+#include "e2ee_common.h"
+
 #include <olm/olm.h>
 
 using namespace Quotient;
@@ -24,10 +26,10 @@ QOlmUtility::QOlmUtility()
 
 QString QOlmUtility::sha256Bytes(const QByteArray& inputBuf) const
 {
-    const auto outputLen = olm_sha256_length(olmDataHolder.get());
-    QByteArray outputBuf(outputLen, '\0');
-    olm_sha256(olmDataHolder.get(), inputBuf.data(), inputBuf.length(),
-            outputBuf.data(), outputBuf.length());
+    const auto outputLength = olm_sha256_length(olmDataHolder.get());
+    auto outputBuf = byteArrayForOlm(outputLength);
+    olm_sha256(olmDataHolder.get(), inputBuf.data(), unsignedSize(inputBuf),
+            outputBuf.data(), outputLength);
 
     return QString::fromUtf8(outputBuf);
 }
@@ -40,8 +42,8 @@ QString QOlmUtility::sha256Utf8Msg(const QString& message) const
 bool QOlmUtility::ed25519Verify(const QByteArray& key, const QByteArray& message,
                                 QByteArray signature) const
 {
-    return olm_ed25519_verify(olmDataHolder.get(), key.data(), key.size(),
-                              message.data(), message.size(), signature.data(),
-                              signature.size())
+    return olm_ed25519_verify(olmDataHolder.get(), key.data(), unsignedSize(key),
+                              message.data(), unsignedSize(message),
+                              signature.data(), unsignedSize(signature))
            == 0;
 }

@@ -12,7 +12,7 @@
 
 using namespace Quotient;
 
-QByteArray Quotient::bufferForOlm(size_t bufferSize)
+QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
 {
     if (bufferSize < std::numeric_limits<QByteArray::size_type>::max())
         return { static_cast<QByteArray::size_type>(bufferSize), '\0' };

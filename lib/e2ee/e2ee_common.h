@@ -73,7 +73,7 @@ using QOlmExpected = Expected<T, OlmErrorCode>;
 //! \brief Initialise a buffer object for use with Olm calls
 //!
 //! Qt and Olm use different size types; this causes the warning noise
-QUOTIENT_API QByteArray bufferForOlm(size_t bufferSize);
+QUOTIENT_API QByteArray byteArrayForOlm(size_t bufferSize);
 
 //! \brief Get a size of Qt container coerced to size_t
 //!

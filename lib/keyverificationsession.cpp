@@ -163,7 +163,7 @@ EmojiEntry emojiForCode(int code, const QString& language)
 void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 {
     auto eventKey = event.key().toLatin1();
-    olm_sas_set_their_key(olmData, eventKey.data(), eventKey.size());
+    olm_sas_set_their_key(olmData, eventKey.data(), unsignedSize(eventKey));
 
     if (startSentByUs) {
         const auto paddedCommitment =
@@ -194,8 +194,8 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
                                key.data(), m_remoteUserId, m_remoteDeviceId,
                                event.key(), m_transactionId)
                           .toLatin1();
-    olm_sas_generate_bytes(olmData, info.data(), info.size(), output.data(),
-                           output.size());
+    olm_sas_generate_bytes(olmData, info.data(), unsignedSize(info),
+                           output.data(), output.size());
 
     static constexpr auto x3f = std::byte{ 0x3f };
     const std::array<std::byte, 7> code{
@@ -224,29 +224,30 @@ QString KeyVerificationSession::calculateMac(const QString& input,
                                              bool verifying,
                                              const QString& keyId)
 {
-    QByteArray inputBytes = input.toLatin1();
-    QByteArray outputBytes(olm_sas_mac_length(olmData), '\0');
+    const auto inputBytes = input.toLatin1();
+    const auto macLength = olm_sas_mac_length(olmData);
+    auto macChars = byteArrayForOlm(macLength);
     const auto macInfo =
         (verifying ? "MATRIX_KEY_VERIFICATION_MAC%3%4%1%2%5%6"_ls
                    : "MATRIX_KEY_VERIFICATION_MAC%1%2%3%4%5%6"_ls)
             .arg(m_connection->userId(), m_connection->deviceId(),
                  m_remoteUserId, m_remoteDeviceId, m_transactionId, keyId)
             .toLatin1();
-    olm_sas_calculate_mac(olmData, inputBytes.data(), inputBytes.size(),
-                          macInfo.data(), macInfo.size(), outputBytes.data(),
-                          outputBytes.size());
-    return QString::fromLatin1(outputBytes.data(), outputBytes.indexOf('='));
+    olm_sas_calculate_mac(olmData, inputBytes.data(), unsignedSize(inputBytes),
+                          macInfo.data(), unsignedSize(macInfo),
+                          macChars.data(), macLength);
+    return QString::fromLatin1(macChars.data(), macChars.indexOf('='));
 }
 
 void KeyVerificationSession::sendMac()
 {
-    QString edKeyId = "ed25519:" % m_connection->deviceId();
+    QString keyId{ "ed25519:" % m_connection->deviceId() };
 
-    auto keys = calculateMac(edKeyId, false);
+    auto keys = calculateMac(keyId, false);
 
     QJsonObject mac;
-    auto key = m_connection->olmAccount()->deviceKeys().keys[edKeyId];
-    mac[edKeyId] = calculateMac(key, false, edKeyId);
+    auto key = m_connection->olmAccount()->deviceKeys().keys.value(keyId);
+    mac[keyId] = calculateMac(key, false, keyId);
 
     m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationMacEvent(m_transactionId, keys,
@@ -268,8 +269,9 @@ void KeyVerificationSession::sendDone()
 
 void KeyVerificationSession::sendKey()
 {
-    QByteArray keyBytes(olm_sas_pubkey_length(olmData), '\0');
-    olm_sas_get_pubkey(olmData, keyBytes.data(), keyBytes.size());
+    const auto pubkeyLength = olm_sas_pubkey_length(olmData);
+    auto keyBytes = byteArrayForOlm(pubkeyLength);
+    olm_sas_get_pubkey(olmData, keyBytes.data(), pubkeyLength);
     m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationKeyEvent(m_transactionId,
                                                        keyBytes),
@@ -336,14 +338,16 @@ void KeyVerificationSession::handleReady(const KeyVerificationReadyEvent& event)
 void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
 {
     if (startSentByUs) {
-        if (m_remoteUserId > m_connection->userId() || (m_remoteUserId == m_connection->userId() && m_remoteDeviceId > m_connection->deviceId())) {
+        if (m_remoteUserId > m_connection->userId()
+            || (m_remoteUserId == m_connection->userId()
+                && m_remoteDeviceId > m_connection->deviceId())) {
             return;
-        } else {
-            startSentByUs = false;
         }
+        startSentByUs = false;
     }
-    QByteArray publicKey(olm_sas_pubkey_length(olmData), '\0');
-    olm_sas_get_pubkey(olmData, publicKey.data(), publicKey.size());
+    const auto pubkeyLength = olm_sas_pubkey_length(olmData);
+    auto publicKey = byteArrayForOlm(pubkeyLength);
+    olm_sas_get_pubkey(olmData, publicKey.data(), pubkeyLength);
     const auto canonicalEvent = QString(QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact));
     auto commitment = QString(QCryptographicHash::hash((QString(publicKey) % canonicalEvent).toLatin1(), QCryptographicHash::Sha256).toBase64());
     commitment = commitment.left(commitment.indexOf('='));
@@ -362,7 +366,10 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
     const auto& key = keys.join(",");
     const QString edKeyId = "ed25519:"_ls % m_remoteDeviceId;
 
-    if (calculateMac(m_connection->edKeyForUserDevice(m_remoteUserId, m_remoteDeviceId), true, edKeyId) != event.mac()[edKeyId]) {
+    if (calculateMac(m_connection->edKeyForUserDevice(m_remoteUserId,
+                                                      m_remoteDeviceId),
+                     true, edKeyId)
+        != event.mac().value(edKeyId)) {
         cancelVerification(KEY_MISMATCH);
         return;
     }
@@ -465,31 +472,30 @@ QString KeyVerificationSession::errorToString(Error error)
 
 KeyVerificationSession::Error KeyVerificationSession::stringToError(const QString& error)
 {
-    if (error == "m.timeout"_ls) {
+    if (error == "m.timeout"_ls)
         return REMOTE_TIMEOUT;
-    } else if (error == "m.user"_ls) {
+    if (error == "m.user"_ls)
         return REMOTE_USER;
-    } else if (error == "m.unexpected_message"_ls) {
+    if (error == "m.unexpected_message"_ls)
         return REMOTE_UNEXPECTED_MESSAGE;
-    } else if (error == "m.unknown_message"_ls) {
+    if (error == "m.unknown_message"_ls)
         return REMOTE_UNEXPECTED_MESSAGE;
-    } else if (error == "m.unknown_transaction"_ls) {
+    if (error == "m.unknown_transaction"_ls)
         return REMOTE_UNKNOWN_TRANSACTION;
-    } else if (error == "m.unknown_method"_ls) {
+    if (error == "m.unknown_method"_ls)
         return REMOTE_UNKNOWN_METHOD;
-    } else if (error == "m.key_mismatch"_ls) {
+    if (error == "m.key_mismatch"_ls)
         return REMOTE_KEY_MISMATCH;
-    } else if (error == "m.user_mismatch"_ls) {
+    if (error == "m.user_mismatch"_ls)
         return REMOTE_USER_MISMATCH;
-    } else if (error == "m.invalid_message"_ls) {
+    if (error == "m.invalid_message"_ls)
         return REMOTE_INVALID_MESSAGE;
-    } else if (error == "m.accepted"_ls) {
+    if (error == "m.accepted"_ls)
         return REMOTE_SESSION_ACCEPTED;
-    } else if (error == "m.mismatched_commitment"_ls) {
+    if (error == "m.mismatched_commitment"_ls)
         return REMOTE_MISMATCHED_COMMITMENT;
-    } else if (error == "m.mismatched_sas"_ls) {
+    if (error == "m.mismatched_sas"_ls)
         return REMOTE_MISMATCHED_SAS;
-    }
     return NONE;
 }
 

@@ -85,7 +85,7 @@ void QOlmAccount::setupNewAccount()
 OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled, const PicklingKey& key)
 {
     if (olm_unpickle_account(olmData, key.data(), key.size(), pickled.data(),
-                             pickled.size())
+                             unsignedSize(pickled))
         == olm_error()) {
         // Probably log the user out since we have no way of getting to the keys
         return lastErrorCode();
@@ -95,8 +95,8 @@ OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled, const PicklingKey& key)
 
 QByteArray QOlmAccount::pickle(const PicklingKey& key) const
 {
-    const size_t pickleLength = olm_pickle_account_length(olmData);
-    QByteArray pickleBuffer(pickleLength, '\0');
+    const auto pickleLength = olm_pickle_account_length(olmData);
+    auto pickleBuffer = byteArrayForOlm(pickleLength);
     if (olm_pickle_account(olmData, key.data(), key.size(),
                            pickleBuffer.data(), pickleLength)
         == olm_error())
@@ -108,8 +108,8 @@ QByteArray QOlmAccount::pickle(const PicklingKey& key) const
 
 IdentityKeys QOlmAccount::identityKeys() const
 {
-    const size_t keyLength = olm_account_identity_keys_length(olmData);
-    QByteArray keyBuffer(keyLength, '\0');
+    const auto keyLength = olm_account_identity_keys_length(olmData);
+    auto keyBuffer = byteArrayForOlm(keyLength);
     if (olm_account_identity_keys(olmData, keyBuffer.data(), keyLength)
         == olm_error()) {
         QOLM_INTERNAL_ERROR(
@@ -125,9 +125,9 @@ IdentityKeys QOlmAccount::identityKeys() const
 QByteArray QOlmAccount::sign(const QByteArray &message) const
 {
     const auto signatureLength = olm_account_signature_length(olmData);
-    auto signatureBuffer = bufferForOlm(signatureLength);
+    auto signatureBuffer = byteArrayForOlm(signatureLength);
 
-    if (olm_account_sign(olmData, message.data(), message.length(),
+    if (olm_account_sign(olmData, message.data(), unsignedSize(message),
                          signatureBuffer.data(), signatureLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to sign a message");

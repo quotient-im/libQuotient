@@ -281,7 +281,7 @@ public:
     std::pair<EventPtr, QString> sessionDecryptMessage(const EncryptedEvent& encryptedEvent)
     {
 #ifndef Quotient_E2EE_ENABLED
-        qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
+        qWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
         return {};
 #else
         if (encryptedEvent.algorithm() != OlmV1Curve25519AesSha2AlgoKey)
@@ -291,16 +291,16 @@ public:
         const auto personalCipherObject =
             encryptedEvent.ciphertext(identityKey);
         if (personalCipherObject.isEmpty()) {
-            qCDebug(E2EE) << "Encrypted event is not for the current device";
+            qDebug(E2EE) << "Encrypted event is not for the current device";
             return {};
         }
         const auto [decrypted, olmSessionId] =
             sessionDecryptMessage(personalCipherObject,
                                   encryptedEvent.senderKey().toLatin1());
         if (decrypted.isEmpty()) {
-            qCDebug(E2EE) << "Problem with new session from senderKey:"
-                          << encryptedEvent.senderKey()
-                          << olmAccount->oneTimeKeys().keys;
+            qDebug(E2EE) << "Problem with new session from senderKey:"
+                         << encryptedEvent.senderKey()
+                         << olmAccount->oneTimeKeys().keys;
 
             auto query = database->prepareQuery("SELECT deviceId FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
             query.bindValue(":curveKey"_ls, encryptedEvent.senderKey());
@@ -316,7 +316,7 @@ public:
             };
             auto job = q->callApi<ClaimKeysJob>(hash);
             connect(job, &BaseJob::finished, q, [this, deviceId, job, senderId] {
-                qCDebug(E2EE) << "Sending dummy event to" << senderId << deviceId;
+                qDebug(E2EE) << "Sending dummy event to" << senderId << deviceId;
                 createOlmSession(senderId, deviceId, job->oneTimeKeys()[senderId][deviceId]);
                 q->sendToDevice(senderId, deviceId, DummyEvent(), true);
             });
@@ -328,9 +328,8 @@ public:
 
         if (auto sender = decryptedEvent->fullJson()[SenderKeyL].toString();
                 sender != encryptedEvent.senderId()) {
-            qCWarning(E2EE) << "Found user" << sender
-                          << "instead of sender" << encryptedEvent.senderId()
-                          << "in Olm plaintext";
+            qWarning(E2EE) << "Found user" << sender << "instead of sender"
+                           << encryptedEvent.senderId() << "in Olm plaintext";
             return {};
         }
 
@@ -338,12 +337,14 @@ public:
         query.bindValue(":curveKey", encryptedEvent.contentJson()["sender_key"].toString());
         database->execute(query);
         if (!query.next()) {
-            qCWarning(E2EE) << "Received olm message from unknown device" << encryptedEvent.contentJson()["sender_key"].toString();
+            qWarning(E2EE)
+                << "Received olm message from unknown device"
+                << encryptedEvent.contentJson()["sender_key"].toString();
             return {};
         }
         auto edKey = decryptedEvent->fullJson()["keys"]["ed25519"].toString();
         if (edKey.isEmpty() || query.value(QStringLiteral("edKey")).toString() != edKey) {
-            qCDebug(E2EE) << "Received olm message with invalid ed key";
+            qDebug(E2EE) << "Received olm message with invalid ed key";
             return {};
         }
 
@@ -351,17 +352,17 @@ public:
         const auto decryptedEventObject = decryptedEvent->fullJson();
         const auto recipient = decryptedEventObject.value("recipient"_ls).toString();
         if (recipient != data->userId()) {
-            qCDebug(E2EE) << "Found user" << recipient << "instead of us"
-                          << data->userId() << "in Olm plaintext";
+            qDebug(E2EE) << "Found user" << recipient << "instead of us"
+                         << data->userId() << "in Olm plaintext";
             return {};
         }
         const auto ourKey = decryptedEventObject.value("recipient_keys"_ls).toObject()
             .value(Ed25519Key).toString();
         if (ourKey != QString::fromUtf8(olmAccount->identityKeys().ed25519)) {
-            qCDebug(E2EE) << "Found key" << ourKey
-                          << "instead of ours own ed25519 key"
-                          << olmAccount->identityKeys().ed25519
-                          << "in Olm plaintext";
+            qDebug(E2EE) << "Found key" << ourKey
+                         << "instead of ours own ed25519 key"
+                         << olmAccount->identityKeys().ed25519
+                         << "in Olm plaintext";
             return {};
         }
 

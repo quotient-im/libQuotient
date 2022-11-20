@@ -23,9 +23,10 @@ const char* QOlmSession::lastError() const
 
 QByteArray QOlmSession::pickle(const PicklingKey &key) const
 {
-    QByteArray pickledBuf(olm_pickle_session_length(olmData), '\0');
+    const auto pickleLength = olm_pickle_session_length(olmData);
+    auto pickledBuf = byteArrayForOlm(pickleLength);
     if (olm_pickle_session(olmData, key.data(), key.size(),
-                           pickledBuf.data(), pickledBuf.length())
+                           pickledBuf.data(), unsignedSize(pickledBuf))
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to pickle an Olm session");
 
@@ -37,7 +38,7 @@ QOlmExpected<QOlmSession> QOlmSession::unpickle(QByteArray&& pickled,
 {
     QOlmSession olmSession{};
     if (olm_unpickle_session(olmSession.olmData, key.data(), key.size(),
-                             pickled.data(), pickled.length())
+                             pickled.data(), unsignedSize(pickled))
         == olm_error()) {
         const auto errorCode = olmSession.lastErrorCode();
         QOLM_FAIL_OR_LOG_X(errorCode == OLM_OUTPUT_BUFFER_TOO_SMALL,
@@ -52,12 +53,12 @@ QOlmExpected<QOlmSession> QOlmSession::unpickle(QByteArray&& pickled,
 QOlmMessage QOlmSession::encrypt(const QByteArray& plaintext) const
 {
     const auto messageMaxLength =
-        olm_encrypt_message_length(olmData, plaintext.length());
-    QByteArray messageBuf(messageMaxLength, '\0');
+        olm_encrypt_message_length(olmData, unsignedSize(plaintext));
+    auto messageBuf = byteArrayForOlm(messageMaxLength);
     // NB: The type has to be calculated before calling olm_encrypt()
     const auto messageType = olm_encrypt_message_type(olmData);
     if (const auto randomLength = olm_encrypt_random_length(olmData);
-        olm_encrypt(olmData, plaintext.data(), plaintext.length(),
+        olm_encrypt(olmData, plaintext.data(), unsignedSize(plaintext),
                     getRandom(randomLength).data(), randomLength,
                     messageBuf.data(), messageMaxLength)
         == olm_error()) {
@@ -67,44 +68,43 @@ QOlmMessage QOlmSession::encrypt(const QByteArray& plaintext) const
     return QOlmMessage(messageBuf, QOlmMessage::Type(messageType));
 }
 
-QOlmExpected<QByteArray> QOlmSession::decrypt(const QOlmMessage &message) const
+QOlmExpected<QByteArray> QOlmSession::decrypt(const QOlmMessage& message) const
 {
     const auto ciphertext = message.toCiphertext();
     const auto messageTypeValue = message.type();
 
     // We need to clone the message because
     // olm_decrypt_max_plaintext_length destroys the input buffer
-    QByteArray messageBuf(ciphertext.length(), '\0');
-    std::copy(message.begin(), message.end(), messageBuf.begin());
-
-    const auto plaintextMaxLen = olm_decrypt_max_plaintext_length(
-        olmData, messageTypeValue, messageBuf.data(), messageBuf.length());
+    const auto plaintextMaxLen =
+        olm_decrypt_max_plaintext_length(olmData, messageTypeValue,
+                                         QByteArray(ciphertext).data(),
+                                         unsignedSize(ciphertext));
     if (plaintextMaxLen == olm_error()) {
         qWarning(E2EE) << "Couldn't calculate decrypted message length:"
                        << lastError();
         return lastErrorCode();
     }
 
-    QByteArray plaintextBuf(plaintextMaxLen, '\0');
-    QByteArray messageBuf2(ciphertext.length(), '\0');
-    std::copy(message.begin(), message.end(), messageBuf2.begin());
-
-    const auto plaintextResultLen =
-        olm_decrypt(olmData, messageTypeValue, messageBuf2.data(),
-                    messageBuf2.length(), plaintextBuf.data(), plaintextMaxLen);
-    if (plaintextResultLen == olm_error()) {
+    auto plaintextBuf = byteArrayForOlm(plaintextMaxLen);
+    const auto actualLength = olm_decrypt(olmData, messageTypeValue,
+                                          QByteArray(ciphertext).data(),
+                                          unsignedSize(ciphertext),
+                                          plaintextBuf.data(), plaintextMaxLen);
+    if (actualLength == olm_error()) {
         QOLM_FAIL_OR_LOG(OLM_OUTPUT_BUFFER_TOO_SMALL,
                          "Failed to decrypt the message");
         return lastErrorCode();
     }
-    plaintextBuf.truncate(plaintextResultLen);
+    // actualLength cannot be more than plainTextLength because the resulting
+    // text would overflow the allocated memory; but it can be less, in theory
+    plaintextBuf.truncate(static_cast<int>(actualLength));
     return plaintextBuf;
 }
 
 QByteArray QOlmSession::sessionId() const
 {
     const auto idMaxLength = olm_session_id_length(olmData);
-    QByteArray idBuffer(idMaxLength, '\0');
+    auto idBuffer = byteArrayForOlm(idMaxLength);
     if (olm_session_id(olmData, idBuffer.data(), idMaxLength) == olm_error())
         QOLM_INTERNAL_ERROR("Failed to obtain Olm session id");
 
@@ -113,7 +113,7 @@ QByteArray QOlmSession::sessionId() const
 
 bool QOlmSession::hasReceivedMessage() const
 {
-    return olm_session_has_received_message(olmData);
+    return olm_session_has_received_message(olmData) != 0;
 }
 
 bool QOlmSession::matchesInboundSession(const QOlmMessage& preKeyMessage) const
@@ -122,7 +122,7 @@ bool QOlmSession::matchesInboundSession(const QOlmMessage& preKeyMessage) const
     QByteArray oneTimeKeyBuf(preKeyMessage.data());
     const auto maybeMatches =
         olm_matches_inbound_session(olmData, oneTimeKeyBuf.data(),
-                                    oneTimeKeyBuf.length());
+                                    unsignedSize(oneTimeKeyBuf));
     if (maybeMatches == olm_error())
         qWarning(E2EE) << "Error matching an inbound session:" << lastError();
 
@@ -135,8 +135,8 @@ bool QOlmSession::matchesInboundSessionFrom(
     const auto theirIdentityKeyBuf = theirIdentityKey.toUtf8();
     auto oneTimeKeyMessageBuf = preKeyMessage.toCiphertext();
     const auto maybeMatches = olm_matches_inbound_session_from(
-        olmData, theirIdentityKeyBuf.data(), theirIdentityKeyBuf.length(),
-        oneTimeKeyMessageBuf.data(), oneTimeKeyMessageBuf.length());
+        olmData, theirIdentityKeyBuf.data(), unsignedSize(theirIdentityKeyBuf),
+        oneTimeKeyMessageBuf.data(), unsignedSize(oneTimeKeyMessageBuf));
 
     if (maybeMatches == olm_error())
         qCWarning(E2EE) << "Error matching an inbound session:" << lastError();
