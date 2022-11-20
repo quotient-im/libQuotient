@@ -1948,7 +1948,7 @@ void Connection::saveState() const
     }
     {
         QJsonArray accountDataEvents {
-            Event::basicJson(QStringLiteral("m.direct"), toJson(d->directChats))
+            Event::basicJson(DirectChatEvent::TypeId, toJson(d->directChats))
         };
         for (const auto& e : d->accountData)
             accountDataEvents.append(

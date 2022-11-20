@@ -862,9 +862,9 @@ Q_SIGNALS:
     void devicesListLoaded();
 
 #ifdef Quotient_E2EE_ENABLED
-    void newKeyVerificationSession(KeyVerificationSession* session);
+    void newKeyVerificationSession(Quotient::KeyVerificationSession* session);
     void keyVerificationStateChanged(
-        const KeyVerificationSession* session,
+        const Quotient::KeyVerificationSession* session,
         Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
 #endif

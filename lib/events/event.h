@@ -240,7 +240,7 @@ inline event_ptr_tt<EventT> loadEvent(const QJsonObject& fullJson)
 //!
 //! Use this template to resolve the C++ type from the Matrix type string in
 //! \p matrixType and create an event of that type by passing all parameters
-//! to BaseEventT::basicJson().
+//! to EventT::basicJson().
 template <EventClass EventT>
 inline event_ptr_tt<EventT> loadEvent(const QString& matrixType,
                                       const auto&... otherBasicJsonParams)
