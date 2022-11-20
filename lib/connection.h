@@ -22,7 +22,7 @@
 #include <functional>
 
 #ifdef Quotient_E2EE_ENABLED
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 #include "e2ee/qolmoutboundsession.h"
 #include "keyverificationsession.h"
 #include "events/keyverificationevent.h"
@@ -319,7 +319,6 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
     Database* database() const;
-    PicklingMode picklingMode() const;
 
     UnorderedMap<QString, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;
@@ -518,9 +517,6 @@ public:
     {
         setUserFactory(defaultUserFactory<T>);
     }
-
-    /// Saves the olm account data to disk. Usually doesn't need to be called manually.
-    void saveOlmAccount();
 
 public Q_SLOTS:
     /// \brief Set the homeserver base URL and retrieve its login flows

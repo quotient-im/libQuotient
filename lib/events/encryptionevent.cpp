@@ -5,7 +5,7 @@
 #include "encryptionevent.h"
 #include "logging.h"
 
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 
 using namespace Quotient;
 

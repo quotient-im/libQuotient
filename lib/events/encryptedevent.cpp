@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "encryptedevent.h"
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 #include "logging.h"
 
 using namespace Quotient;
@@ -32,12 +32,7 @@ EncryptedEvent::EncryptedEvent(const QJsonObject& obj)
 
 QString EncryptedEvent::algorithm() const
 {
-    const auto algo = contentPart<QString>(AlgorithmKeyL);
-    if (!isSupportedAlgorithm(algo))
-        qWarning(MAIN) << "The EncryptedEvent's algorithm" << algo
-                       << "is not supported";
-
-    return algo;
+    return contentPart<QString>(AlgorithmKeyL);
 }
 
 RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const

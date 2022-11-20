@@ -362,12 +362,12 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
 void BaseJob::sendRequest()
 {
     if (status().code == Abandoned) {
-        qCDebug(d->logCat) << "Won't proceed with the abandoned request:"
-                           << d->dumpRequest();
+        // Normally sendRequest() shouldn't even be called on an abandoned job
+        qWarning(d->logCat)
+            << "Won't proceed with the abandoned request:" << d->dumpRequest();
         return;
     }
     Q_ASSERT(d->connection && status().code == Pending);
-    qCDebug(d->logCat).noquote() << "Making" << d->dumpRequest();
     d->needsToken |= d->connection->needsToken(objectName());
     emit aboutToSendRequest();
     d->sendRequest();
@@ -384,11 +384,11 @@ void BaseJob::sendRequest()
         connect(reply(), &QNetworkReply::downloadProgress, this,
                 &BaseJob::downloadProgress);
         d->timer.start(getCurrentTimeout());
-        qCInfo(d->logCat).noquote() << "Sent" << d->dumpRequest();
+        qDebug(d->logCat).noquote() << "Sent" << d->dumpRequest();
         onSentRequest(reply());
         emit sentRequest();
     } else
-        qCCritical(d->logCat).noquote()
+        qCritical(d->logCat).noquote()
             << "Request could not start:" << d->dumpRequest();
 }
 
@@ -484,7 +484,7 @@ BaseJob::Status BaseJob::checkReply(const QNetworkReply* reply) const
     if (httpCode / 100 == 2) // 2xx
     {
         if (reply->isFinished())
-            qCInfo(d->logCat).noquote() << httpCode << "<-" << d->dumpRequest();
+            qDebug(d->logCat).noquote() << httpCode << "<-" << d->dumpRequest();
         if (!checkContentType(reply->rawHeader("Content-Type"),
                               d->expectedContentTypes))
             return { UnexpectedResponseTypeWarning,

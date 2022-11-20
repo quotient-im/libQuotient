@@ -5,7 +5,6 @@
 #include "qolmoutboundsession.h"
 
 #include "logging.h"
-#include "qolmutils.h"
 
 #include <olm/olm.h>
 
@@ -27,55 +26,50 @@ QOlmOutboundGroupSession::QOlmOutboundGroupSession()
 {
     if (const auto randomLength =
             olm_init_outbound_group_session_random_length(olmData);
-        olm_init_outbound_group_session(olmData,
-                                        RandomBuffer(randomLength).bytes(),
+        olm_init_outbound_group_session(olmData, getRandom(randomLength).data(),
                                         randomLength)
         == olm_error()) {
         QOLM_INTERNAL_ERROR("Failed to initialise an outbound group session");
     }
 }
 
-QByteArray QOlmOutboundGroupSession::pickle(const PicklingMode &mode) const
+QByteArray QOlmOutboundGroupSession::pickle(const PicklingKey& key) const
 {
     const auto pickleLength =
         olm_pickle_outbound_group_session_length(olmData);
-    QByteArray pickledBuf(pickleLength, '\0');
-    auto key = toKey(mode);
-    if (olm_pickle_outbound_group_session(olmData, key.data(), key.length(),
+    auto pickledBuf = byteArrayForOlm(pickleLength);
+    if (olm_pickle_outbound_group_session(olmData, key.data(), key.size(),
                                           pickledBuf.data(), pickleLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to pickle the outbound group session");
 
-    key.clear();
     return pickledBuf;
 }
 
 QOlmExpected<QOlmOutboundGroupSession> QOlmOutboundGroupSession::unpickle(
-    QByteArray&& pickled, const PicklingMode& mode)
+    QByteArray&& pickled, const PicklingKey& key)
 {
     QOlmOutboundGroupSession groupSession{};
-    auto key = toKey(mode);
     if (olm_unpickle_outbound_group_session(groupSession.olmData, key.data(),
-                                            key.length(), pickled.data(),
-                                            pickled.length())
+                                            key.size(), pickled.data(),
+                                            unsignedSize(pickled))
         == olm_error()) {
         qWarning(E2EE) << "Failed to unpickle an outbound group session:"
                        << groupSession.lastError();
         return groupSession.lastErrorCode();
     }
 
-    key.clear();
     return groupSession;
 }
 
 QByteArray QOlmOutboundGroupSession::encrypt(const QByteArray& plaintext) const
 {
     const auto messageMaxLength =
-        olm_group_encrypt_message_length(olmData, plaintext.length());
-    QByteArray messageBuf(messageMaxLength, '\0');
+        olm_group_encrypt_message_length(olmData, unsignedSize(plaintext));
+    auto messageBuf = byteArrayForOlm(messageMaxLength);
     if (olm_group_encrypt(olmData,
                           reinterpret_cast<const uint8_t*>(plaintext.data()),
-                          plaintext.length(),
+                          unsignedSize(plaintext),
                           reinterpret_cast<uint8_t*>(messageBuf.data()),
                           messageMaxLength)
         == olm_error())
@@ -92,7 +86,7 @@ uint32_t QOlmOutboundGroupSession::sessionMessageIndex() const
 QByteArray QOlmOutboundGroupSession::sessionId() const
 {
     const auto idMaxLength = olm_outbound_group_session_id_length(olmData);
-    QByteArray idBuffer(idMaxLength, '\0');
+    auto idBuffer = byteArrayForOlm(idMaxLength);
     if (olm_outbound_group_session_id(
             olmData, reinterpret_cast<uint8_t*>(idBuffer.data()), idMaxLength)
         == olm_error())
@@ -104,7 +98,7 @@ QByteArray QOlmOutboundGroupSession::sessionId() const
 QByteArray QOlmOutboundGroupSession::sessionKey() const
 {
     const auto keyMaxLength = olm_outbound_group_session_key_length(olmData);
-    QByteArray keyBuffer(keyMaxLength, '\0');
+    auto keyBuffer = byteArrayForOlm(keyMaxLength);
     if (olm_outbound_group_session_key(
             olmData, reinterpret_cast<uint8_t*>(keyBuffer.data()), keyMaxLength)
         == olm_error())

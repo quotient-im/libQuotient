@@ -63,7 +63,7 @@
 #include <functional>
 
 #ifdef Quotient_E2EE_ENABLED
-#include "e2ee/e2ee.h"
+#include "e2ee/e2ee_common.h"
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmutility.h"
@@ -382,10 +382,10 @@ public:
         return true;
     }
 
-    QString groupSessionDecryptMessage(QByteArray cipher,
+    QString groupSessionDecryptMessage(const QByteArray& ciphertext,
                                        const QString& sessionId,
                                        const QString& eventId,
-                                       QDateTime timestamp,
+                                       const QDateTime& timestamp,
                                        const QString& senderId)
     {
         auto groupSessionIt = groupSessions.find(sessionId);
@@ -393,6 +393,7 @@ public:
             // qCWarning(E2EE) << "Unable to decrypt event" << eventId
             //               << "The sender's device has not sent us the keys for "
             //                  "this message";
+            // TODO: request the keys
             return {};
         }
         auto& senderSession = groupSessionIt->second;
@@ -400,7 +401,7 @@ public:
             qCWarning(E2EE) << "Sender from event does not match sender from session";
             return {};
         }
-        auto decryptResult = senderSession.decrypt(cipher);
+        auto decryptResult = senderSession.decrypt(ciphertext);
         if(!decryptResult) {
             qCWarning(E2EE) << "Unable to decrypt event" << eventId
             << "with matching megolm session:" << decryptResult.error();
@@ -1567,9 +1568,11 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
     return {};
 #else // Quotient_E2EE_ENABLED
-    if (encryptedEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
-        qWarning(E2EE) << "Algorithm of the encrypted event with id"
-                    << encryptedEvent.id() << "is not decryptable by the current device";
+    if (const auto algorithm = encryptedEvent.algorithm();
+        !isSupportedAlgorithm(algorithm)) //
+    {
+        qWarning(E2EE) << "Algorithm" << algorithm << "of encrypted event"
+                       << encryptedEvent.id() << "is not supported";
         return {};
     }
     QString decrypted = d->groupSessionDecryptMessage(
@@ -1584,7 +1587,8 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     if (decryptedEvent->roomId() == id()) {
         return decryptedEvent;
     }
-    qCWarning(E2EE) << "Decrypted event" << encryptedEvent.id() << "not for this room; discarding.";
+    qWarning(E2EE) << "Decrypted event" << encryptedEvent.id()
+                   << "not for this room; discarding";
     return {};
 #endif // Quotient_E2EE_ENABLED
 }
@@ -2589,6 +2593,8 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
     size_t totalDecrypted = 0;
     for (auto& eptr : events)
         if (const auto& eeptr = eventCast<EncryptedEvent>(eptr)) {
+            if (eeptr->isRedacted())
+                continue;
             if (auto decrypted = q->decryptMessage(*eeptr)) {
                 ++totalDecrypted;
                 auto&& oldEvent = exchange(eptr, move(decrypted));
