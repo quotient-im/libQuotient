@@ -125,6 +125,7 @@ public:
     UnorderedMap<QString, std::vector<QOlmSession>> olmSessions;
 
     QHash<QString, KeyVerificationSession*> verificationSessions;
+    QSet<std::pair<QString, QString>> triedDevices;
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -317,7 +318,6 @@ public:
             };
             auto job = q->callApi<ClaimKeysJob>(hash);
             connect(job, &BaseJob::finished, q, [this, deviceId, job, senderId] {
-                static QSet<std::pair<QString, QString>> triedDevices;
                 if (triedDevices.contains({senderId, deviceId})) {
                     return;
                 }
