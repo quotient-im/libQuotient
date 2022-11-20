@@ -123,6 +123,7 @@ public:
     UnorderedMap<QString, std::vector<QOlmSession>> olmSessions;
 
     QHash<QString, KeyVerificationSession*> verificationSessions;
+    QSet<std::pair<QString, QString>> triedDevices;
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -316,6 +317,10 @@ public:
             };
             auto job = q->callApi<ClaimKeysJob>(hash);
             connect(job, &BaseJob::finished, q, [this, deviceId, job, senderId] {
+                if (triedDevices.contains({senderId, deviceId})) {
+                    return;
+                }
+                triedDevices += {senderId, deviceId};
                 qDebug(E2EE) << "Sending dummy event to" << senderId << deviceId;
                 createOlmSession(senderId, deviceId, job->oneTimeKeys()[senderId][deviceId]);
                 q->sendToDevice(senderId, deviceId, DummyEvent(), true);
