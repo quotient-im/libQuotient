@@ -27,25 +27,19 @@ auto initializeSecureHeap()
 {
     const auto result =
         CRYPTO_secure_malloc_init(FixedBufferBase::TotalSecureHeapSize, 16);
-    switch (result) {
-    case 0:
-        qCritical(E2EE) << "Secure storage could not be initialised, sensitive "
-                           "data will remain in common dynamic memory";
-        break;
-    case 1:
+    if (result > 0) {
         qDebug(E2EE) << FixedBufferBase::TotalSecureHeapSize
-                     << "bytes of secure storage initialised";
-        break;
-    case 2:
-        qWarning(E2EE) << "Secure storage initialised but could not be "
-                          "protected with guard pages; sensitive data may "
-                          "be compromised by pointer over/underruns";
-        break;
-    default: Q_UNREACHABLE();
-    }
-    if (std::atexit([] { CRYPTO_secure_malloc_done(); }) != 0)
-        qWarning(E2EE)
-            << "Could not register a cleanup function for secure storage!";
+                     << "bytes of secure heap initialised";
+        if (std::atexit([] {
+                CRYPTO_secure_malloc_done();
+                qDebug(E2EE) << "Dismantled secure heap";
+            })
+            != 0)
+            qWarning(E2EE)
+                << "Could not register a cleanup function for secure heap!";
+    } else
+        qCritical(E2EE) << "Secure heap could not be initialised, sensitive "
+                           "data will remain in common dynamic memory";
     return result;
 }
 
@@ -58,10 +52,9 @@ uint8_t* allocate(size_t bytes, bool initWithZeros = false)
                                              : OPENSSL_secure_malloc(bytes));
     Q_ASSERT(CRYPTO_secure_allocated(p));
     qDebug(E2EE) << "Allocated" << CRYPTO_secure_actual_size(p)
-                 << "bytes of secure storage at" << p << "(requested" << bytes
-                 << "bytes)";
-    qDebug(E2EE) << CRYPTO_secure_used()
-                 << "/ 65536 bytes used in secure storage";
+                 << "bytes of secure heap (requested" << bytes << "bytes),"
+                 << CRYPTO_secure_used()
+                 << "/ 65536 bytes of secure heap used in total";
     return p;
 }
 
@@ -121,10 +114,9 @@ void FixedBufferBase::clear()
     if (empty())
         return;
 
-    qDebug(E2EE) << "Deallocating protected buffer at" << data_;
     Q_ASSERT(CRYPTO_secure_allocated(data_));
     OPENSSL_secure_clear_free(data_, size_);
     data_ = nullptr;
-    qDebug(E2EE) << CRYPTO_secure_used()
-                 << "/ 65536 bytes used in secure storage";
+    qDebug(E2EE) << "Deallocated" << size_ << "bytes,"
+                 << CRYPTO_secure_used() << "/ 65536 bytes of secure heap used";
 }
