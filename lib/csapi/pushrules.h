@@ -106,9 +106,20 @@ public:
 
 /*! \brief Add or change a push rule.
  *
- * This endpoint allows the creation, modification and deletion of pushers
- * for this user ID. The behaviour of this endpoint varies depending on the
- * values in the JSON body.
+ * This endpoint allows the creation and modification of user defined push
+ * rules.
+ *
+ * If a rule with the same `rule_id` already exists among rules of the same
+ * kind, it is updated with the new parameters, otherwise a new rule is
+ * created.
+ *
+ * If both `after` and `before` are provided, the new or updated rule must
+ * be the next most important rule with respect to the rule identified by
+ * `before`.
+ *
+ * If neither `after` nor `before` are provided and the rule is created, it
+ * should be added as the most important user defined rule among rules of
+ * the same kind.
  *
  * When creating push rules, they MUST be enabled by default.
  */
@@ -123,7 +134,9 @@ public:
      *   The kind of rule
      *
      * \param ruleId
-     *   The identifier for the rule.
+     *   The identifier for the rule. If the string starts with a dot ("."),
+     *   the request MUST be rejected as this is reserved for server-default
+     *   rules. Slashes ("/") and backslashes ("\\") are also not allowed.
      *
      * \param actions
      *   The action(s) to perform when the conditions for this rule are met.

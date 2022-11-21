@@ -23,8 +23,8 @@ struct RoomFilter {
     /// `state`, `timeline` or `account_data`
     QStringList rooms;
 
-    /// The events that aren't recorded in the room history, e.g. typing and
-    /// receipts, to include for rooms.
+    /// The ephemeral events to include for rooms. These are the events that
+    /// appear in the `ephemeral` property in the `/sync` response.
     RoomEventFilter ephemeral;
 
     /// Include rooms that the user has left in the sync, default false

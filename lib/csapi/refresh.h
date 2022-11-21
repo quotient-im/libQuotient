@@ -35,7 +35,7 @@ public:
      * \param refreshToken
      *   The refresh token
      */
-    explicit RefreshJob(const QString& refreshToken = {});
+    explicit RefreshJob(const QString& refreshToken);
 
     // Result properties
 

@@ -11,8 +11,7 @@ RefreshJob::RefreshJob(const QString& refreshToken)
               makePath("/_matrix/client/v3", "/refresh"), false)
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("refresh_token"),
-                         refreshToken);
+    addParam<>(_dataJson, QStringLiteral("refresh_token"), refreshToken);
     setRequestData({ _dataJson });
     addExpectedKey("access_token");
 }

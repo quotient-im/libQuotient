@@ -26,7 +26,7 @@ public:
      * interest to the caller. When `all`, all thread roots found in the room
      * are returned. When `participated`, only thread roots for threads the user
      * has [participated
-     * in](/client-server-api/#server-side-aggreagtion-of-mthread-relationships)
+     * in](/client-server-api/#server-side-aggregation-of-mthread-relationships)
      *   will be returned.
      *
      * \param limit
