@@ -9,7 +9,7 @@ defaults:
   run:
     shell: bash
 
-concurrency: ci-${{ github.ref }}
+concurrency: quotient-ci
 
 jobs:
   CI:
