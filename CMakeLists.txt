@@ -182,7 +182,7 @@ list(APPEND lib_SRCS
     lib/jobs/syncjob.h lib/jobs/syncjob.cpp
     lib/jobs/mediathumbnailjob.h lib/jobs/mediathumbnailjob.cpp
     lib/jobs/downloadfilejob.h lib/jobs/downloadfilejob.cpp
-    res.qrc
+    libquotientemojis.qrc
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS

@@ -141,10 +141,13 @@ using EmojiStore = QVector<EmojiStoreEntry>;
 
 EmojiStore loadEmojiStore()
 {
+    Q_INIT_RESOURCE(libquotientemojis);
     QFile dataFile(":/sas-emoji.json");
     dataFile.open(QFile::ReadOnly);
+    auto data = dataFile.readAll();
+    Q_CLEANUP_RESOURCE(libquotientemojis);
     return fromJson<EmojiStore>(
-        QJsonDocument::fromJson(dataFile.readAll()).array());
+        QJsonDocument::fromJson(data).array());
 }
 
 EmojiEntry emojiForCode(int code, const QString& language)
