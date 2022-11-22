@@ -2105,6 +2105,11 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
 }
 
 #ifdef Quotient_E2EE_ENABLED
+bool Connection::isQueryingKeys() const
+{
+    return d->currentQueryKeysJob != nullptr;
+}
+
 void Connection::Private::loadOutdatedUserDevices()
 {
     QHash<QString, QStringList> users;
@@ -2117,6 +2122,10 @@ void Connection::Private::loadOutdatedUserDevices()
     }
     auto queryKeysJob = q->callApi<QueryKeysJob>(users);
     currentQueryKeysJob = queryKeysJob;
+    connect(queryKeysJob, &BaseJob::failure, q, [this]() {
+        currentQueryKeysJob = nullptr;
+        Q_EMIT q->finishedQueryingKeys();
+    });
     connect(queryKeysJob, &BaseJob::success, q, [this, queryKeysJob](){
         currentQueryKeysJob = nullptr;
         const auto data = queryKeysJob->deviceKeys();
@@ -2164,6 +2173,7 @@ void Connection::Private::loadOutdatedUserDevices()
             } else
                 ++i;
         }
+        Q_EMIT q->finishedQueryingKeys();
     });
 }
 
@@ -2244,9 +2254,9 @@ void Connection::Private::loadDevicesList()
 
 }
 
-void Connection::encryptionUpdate(Room *room)
+void Connection::encryptionUpdate(Room* room, const QList<User*>& invited)
 {
-    for(const auto &user : room->users()) {
+    for(const auto &user : room->users() + invited) {
         if(!d->trackedUsers.contains(user->id())) {
             d->trackedUsers += user->id();
             d->outdatedUsers += user->id();

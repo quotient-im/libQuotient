@@ -698,7 +698,8 @@ public Q_SLOTS:
 #ifdef Quotient_E2EE_ENABLED
     void startKeyVerificationSession(const QString& userId, const QString& deviceId);
 
-    void encryptionUpdate(Room *room);
+    void encryptionUpdate(Room* room, const QList<User*>& invited = {});
+    bool isQueryingKeys() const;
 #endif
 
     static Connection* makeMockConnection(const QString& mxId);
@@ -867,6 +868,7 @@ Q_SIGNALS:
         const Quotient::KeyVerificationSession* session,
         Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
+    bool finishedQueryingKeys();
 #endif
 
 protected:
