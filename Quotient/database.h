@@ -69,6 +69,7 @@ public:
 
     bool isSessionVerified(const QString& edKey);
     void setSessionVerified(const QString& edKeyId);
+    void setMasterKeyVerified(const QString& masterKey);
 
     QString edKeyForKeyId(const QString& userId, const QString& edKeyId);
     void storeEncrypted(const QString& name, const QByteArray& key);
@@ -81,6 +82,7 @@ private:
     void migrateTo4();
     void migrateTo5();
     void migrateTo6();
+    void migrateTo7();
 
     QString m_userId;
     QString m_deviceId;

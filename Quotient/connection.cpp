@@ -1898,6 +1898,9 @@ bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
     if (olmSessionId == "BACKUP_VERIFIED"_ls) {
         return true;
     }
+    if (olmSessionId == "SELF"_ls) {
+        return true;
+    }
     query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_ls);
     query.bindValue(":sessionId"_ls, olmSessionId.toLatin1());
     database()->execute(query);
@@ -1905,19 +1908,43 @@ bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
         return false;
     }
     auto curveKey = query.value("senderKey"_ls).toString();
-    query.prepare("SELECT verified FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
+
+    query.prepare("SELECT matrixId, selfVerified, verified FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
     query.bindValue(":curveKey"_ls, curveKey);
+    database()->execute(query);
+    if (!query.next()) {
+        return false;
+    }
+    auto userId = query.value("matrixId"_ls).toString();
+    return query.value("verified"_ls).toBool() || (isUserVerified(userId) && query.value("selfVerified"_ls).toBool());
+}
+
+QString Connection::masterKeyForUser(const QString& userId) const
+{
+    auto query = database()->prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_ls);
+    query.bindValue(":userId"_ls, userId);
+    database()->execute(query);
+    return query.next() ? query.value("key"_ls).toString() : QString();
+}
+
+bool Connection::isUserVerified(const QString& userId) const
+{
+    auto query = database()->prepareQuery("SELECT verified FROM master_keys WHERE userId=:userId"_ls);
+    query.bindValue(":userId"_ls, userId);
     database()->execute(query);
     return query.next() && query.value("verified"_ls).toBool();
 }
 
 bool Connection::isVerifiedDevice(const QString& userId, const QString& deviceId) const
 {
-    auto query = database()->prepareQuery("SELECT verified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_ls);
+    auto query = database()->prepareQuery("SELECT verified, selfVerified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_ls);
     query.bindValue(":deviceId"_ls, deviceId);
     query.bindValue(":matrixId"_ls, userId);
     database()->execute(query);
-    return query.next() && query.value("verified"_ls).toBool();
+    if (!query.next()) {
+        return false;
+    }
+    return query.value("verified"_ls).toBool() || (isUserVerified(userId) && query.value("selfVerified"_ls).toBool());
 }
 
 bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const
@@ -1927,6 +1954,21 @@ bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& 
     query.bindValue(":matrixId"_ls, userId);
     database()->execute(query);
     return query.next();
+}
+
+bool Connection::hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId)
+{
+    if (d->encryptionData) {
+        return d->encryptionData->hasConflictingDeviceIdsAndCrossSigningKeys(userId);
+    }
+    return true;
+}
+
+void Connection::reloadDevices()
+{
+    if (d->encryptionData) {
+        d->encryptionData->reloadDevices();
+    }
 }
 
 Connection* Connection::makeMockConnection(const QString& mxId,

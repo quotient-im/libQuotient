@@ -9,6 +9,8 @@
 
 #include "events/encryptedevent.h"
 
+#include "events/encryptedevent.h"
+
 namespace Quotient {
 
 struct DevicesList;
@@ -38,6 +40,7 @@ namespace _impl {
         std::vector<std::unique_ptr<EncryptedEvent>> pendingEncryptedEvents{};
         bool isUploadingKeys = false;
         bool firstSync = true;
+        QHash<QString, QHash<QString, bool>> selfVerifiedDevices;
 
         void saveDevicesList();
         void loadDevicesList();
@@ -61,6 +64,7 @@ namespace _impl {
                                     QDateTime::currentDateTime());
         }
         void saveOlmAccount();
+        void reloadDevices();
 
         std::pair<QByteArray, QByteArray> sessionDecryptMessage(
             const QJsonObject& personalCipherObject,
@@ -96,12 +100,15 @@ namespace _impl {
         // get an instance from setup() instead
         ConnectionEncryptionData(Connection* connection,
                                  PicklingKey&& picklingKey);
+        bool hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId);
 
+        void handleQueryKeys(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys,
+                     const QHash<QString, CrossSigningKey>& masterKeys, const QHash<QString, CrossSigningKey>& selfSigningKeys,
+                     const QHash<QString, CrossSigningKey>& userSigningKeys);
     private:
         void consumeDevicesList(const DevicesList &devicesList);
         bool processIfVerificationEvent(const Event& evt, bool encrypted);
         void handleEncryptedToDeviceEvent(const EncryptedEvent& event);
-        void handleQueryKeys(const QueryKeysJob *job);
 
         // This function assumes that an olm session with (user, device) exists
         std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
