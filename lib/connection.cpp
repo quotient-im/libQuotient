@@ -2497,14 +2497,14 @@ void Connection::sendToDevice(const QString& targetUserId,
 bool Connection::isVerifiedSession(const QString& megolmSessionId) const
 {
     auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_ls);
-    query.bindValue(":sessionId", megolmSessionId);
+    query.bindValue(":sessionId", megolmSessionId.toLatin1());
     database()->execute(query);
     if (!query.next()) {
         return false;
     }
     auto olmSessionId = query.value("olmSessionId").toString();
     query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_ls);
-    query.bindValue(":sessionId", olmSessionId);
+    query.bindValue(":sessionId", olmSessionId.toLatin1());
     database()->execute(query);
     if (!query.next()) {
         return false;

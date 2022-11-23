@@ -348,7 +348,7 @@ void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTi
 {
     auto query = prepareQuery(QStringLiteral("UPDATE olm_sessions SET lastReceived=:lastReceived WHERE sessionId=:sessionId;"));
     query.bindValue(":lastReceived", timestamp);
-    query.bindValue(":sessionId", sessionId);
+    query.bindValue(":sessionId", sessionId.toLatin1());
     transaction();
     execute(query);
     commit();
@@ -405,7 +405,7 @@ void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::t
         query.bindValue(":userId", user);
         query.bindValue(":deviceId", device);
         query.bindValue(":identityKey", curveKey);
-        query.bindValue(":sessionId", sessionId);
+        query.bindValue(":sessionId", sessionId.toLatin1());
         query.bindValue(":i", index);
         execute(query);
     }
@@ -418,7 +418,7 @@ QMultiHash<QString, QString> Database::devicesWithoutKey(
 {
     auto query = prepareQuery(QStringLiteral("SELECT userId, deviceId FROM sent_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId"));
     query.bindValue(":roomId", roomId);
-    query.bindValue(":sessionId", sessionId);
+    query.bindValue(":sessionId", sessionId.toLatin1());
     transaction();
     execute(query);
     commit();
