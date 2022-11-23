@@ -30,6 +30,8 @@
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
+class TestCrossSigning;
+
 namespace Quotient {
 
 class Avatar;
@@ -413,6 +415,12 @@ public:
 
     void requestKeyFromDevices(
         event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
+    QString masterKeyForUser(const QString& userId) const;
+    bool isUserVerified(const QString& userId) const;
+    bool hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId);
+
+    void reloadDevices();
+
 #endif // Quotient_E2EE_ENABLED
 
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
@@ -968,8 +976,10 @@ Q_SIGNALS:
     void sessionVerified(const QString& userId, const QString& deviceId);
     bool finishedQueryingKeys();
     void secretReceived(const QString& requestId, const QString& secret);
+    void userVerified(const QString& userId);
 #endif
 
+    friend class ::TestCrossSigning;
 protected:
     //! Access the underlying ConnectionData class
     const ConnectionData* connectionData() const;
