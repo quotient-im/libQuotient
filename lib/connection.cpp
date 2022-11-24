@@ -2494,10 +2494,10 @@ void Connection::sendToDevice(const QString& targetUserId,
                   { { targetUserId, { { targetDeviceId, contentJson } } } });
 }
 
-bool Connection::isVerifiedSession(const QString& megolmSessionId) const
+bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
 {
     auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_ls);
-    query.bindValue(":sessionId", megolmSessionId.toLatin1());
+    query.bindValue(":sessionId", megolmSessionId);
     database()->execute(query);
     if (!query.next()) {
         return false;

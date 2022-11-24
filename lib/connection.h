@@ -338,7 +338,7 @@ public:
                       const Event& event, bool encrypted);
 
     /// Returns true if this megolm session comes from a verified device
-    bool isVerifiedSession(const QString& megolmSessionId) const;
+    bool isVerifiedSession(const QByteArray& megolmSessionId) const;
 
     void sendSessionKeyToDevices(const QString& roomId,
                                  const QByteArray& sessionId,
