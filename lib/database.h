@@ -50,7 +50,7 @@ public:
                                                        const QString& sessionId,
                                                        qint64 index);
     void clearRoomData(const QString& roomId);
-    void setOlmSessionLastReceived(const QString& sessionId,
+    void setOlmSessionLastReceived(const QByteArray& sessionId,
                                    const QDateTime& timestamp);
     Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
         const QString& roomId);
@@ -61,12 +61,12 @@ public:
     // Returns a map UserId -> [DeviceId] that have not received key yet
     QMultiHash<QString, QString> devicesWithoutKey(
         const QString& roomId, QMultiHash<QString, QString> devices,
-        const QString& sessionId);
+        const QByteArray& sessionId);
     // 'devices' contains tuples {userId, deviceId, curveKey}
     void setDevicesReceivedKey(
         const QString& roomId,
         const QVector<std::tuple<QString, QString, QString>>& devices,
-        const QString& sessionId, int index);
+        const QByteArray& sessionId, int index);
 
     bool isSessionVerified(const QString& edKey);
     void setSessionVerified(const QString& edKeyId);

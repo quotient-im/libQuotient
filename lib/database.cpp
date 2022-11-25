@@ -344,7 +344,7 @@ void Database::clearRoomData(const QString& roomId)
     commit();
 }
 
-void Database::setOlmSessionLastReceived(const QString& sessionId, const QDateTime& timestamp)
+void Database::setOlmSessionLastReceived(const QByteArray& sessionId, const QDateTime& timestamp)
 {
     auto query = prepareQuery(QStringLiteral("UPDATE olm_sessions SET lastReceived=:lastReceived WHERE sessionId=:sessionId;"));
     query.bindValue(":lastReceived", timestamp);
@@ -396,7 +396,7 @@ Omittable<QOlmOutboundGroupSession> Database::loadCurrentOutboundMegolmSession(
     return none;
 }
 
-void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QString& sessionId, int index)
+void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QByteArray& sessionId, int index)
 {
     transaction();
     for (const auto& [user, device, curveKey] : devices) {
@@ -414,7 +414,7 @@ void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::t
 
 QMultiHash<QString, QString> Database::devicesWithoutKey(
     const QString& roomId, QMultiHash<QString, QString> devices,
-    const QString& sessionId)
+    const QByteArray& sessionId)
 {
     auto query = prepareQuery(QStringLiteral("SELECT userId, deviceId FROM sent_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId"));
     query.bindValue(":roomId", roomId);
