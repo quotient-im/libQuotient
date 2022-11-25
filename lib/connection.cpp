@@ -380,6 +380,7 @@ public:
     void loadOutdatedUserDevices();
     void saveDevicesList();
     void loadDevicesList();
+    void handleQueryKeys(QueryKeysJob *job);
 
     // This function assumes that an olm session with (user, device) exists
     std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
@@ -2110,6 +2111,55 @@ bool Connection::isQueryingKeys() const
     return d->currentQueryKeysJob != nullptr;
 }
 
+void Connection::Private::handleQueryKeys(QueryKeysJob *job)
+{
+    const auto data = job->deviceKeys();
+    for(const auto &[user, keys] : asKeyValueRange(data)) {
+        QHash<QString, Quotient::DeviceKeys> oldDevices = deviceKeys[user];
+        deviceKeys[user].clear();
+        for(const auto &device : keys) {
+            if(device.userId != user) {
+                qCWarning(E2EE)
+                    << "mxId mismatch during device key verification:"
+                    << device.userId << user;
+                continue;
+            }
+            if (!std::all_of(device.algorithms.cbegin(),
+                            device.algorithms.cend(),
+                            isSupportedAlgorithm)) {
+                qCWarning(E2EE) << "Unsupported encryption algorithms found"
+                                << device.algorithms;
+                continue;
+            }
+            if (!verifyIdentitySignature(device, device.deviceId,
+                                        device.userId)) {
+                qCWarning(E2EE) << "Failed to verify devicekeys signature. "
+                                "Skipping this device";
+                continue;
+            }
+            if (oldDevices.contains(device.deviceId)) {
+                if (oldDevices[device.deviceId].keys["ed25519:" % device.deviceId] != device.keys["ed25519:" % device.deviceId]) {
+                    qCDebug(E2EE) << "Device reuse detected. Skipping this device";
+                    continue;
+                }
+            }
+            deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
+        }
+        outdatedUsers -= user;
+    }
+    saveDevicesList();
+
+    for(size_t i = 0; i < pendingEncryptedEvents.size();) {
+        if (isKnownCurveKey(
+                pendingEncryptedEvents[i]->fullJson()[SenderKeyL].toString(),
+                pendingEncryptedEvents[i]->contentPart<QString>("sender_key"_ls))) {
+            handleEncryptedToDeviceEvent(*pendingEncryptedEvents[i]);
+            pendingEncryptedEvents.erase(pendingEncryptedEvents.begin() + i);
+        } else
+            ++i;
+    }
+}
+
 void Connection::Private::loadOutdatedUserDevices()
 {
     QHash<QString, QStringList> users;
@@ -2122,56 +2172,10 @@ void Connection::Private::loadOutdatedUserDevices()
     }
     auto queryKeysJob = q->callApi<QueryKeysJob>(users);
     currentQueryKeysJob = queryKeysJob;
-    connect(queryKeysJob, &BaseJob::failure, q, [this]() {
-        currentQueryKeysJob = nullptr;
-        emit q->finishedQueryingKeys();
-    });
     connect(queryKeysJob, &BaseJob::success, q, [this, queryKeysJob](){
         currentQueryKeysJob = nullptr;
-        const auto data = queryKeysJob->deviceKeys();
-        for(const auto &[user, keys] : asKeyValueRange(data)) {
-            QHash<QString, Quotient::DeviceKeys> oldDevices = deviceKeys[user];
-            deviceKeys[user].clear();
-            for(const auto &device : keys) {
-                if(device.userId != user) {
-                    qCWarning(E2EE)
-                        << "mxId mismatch during device key verification:"
-                        << device.userId << user;
-                    continue;
-                }
-                if (!std::all_of(device.algorithms.cbegin(),
-                                 device.algorithms.cend(),
-                                 isSupportedAlgorithm)) {
-                    qCWarning(E2EE) << "Unsupported encryption algorithms found"
-                                    << device.algorithms;
-                    continue;
-                }
-                if (!verifyIdentitySignature(device, device.deviceId,
-                                             device.userId)) {
-                    qCWarning(E2EE) << "Failed to verify devicekeys signature. "
-                                       "Skipping this device";
-                    continue;
-                }
-                if (oldDevices.contains(device.deviceId)) {
-                    if (oldDevices[device.deviceId].keys["ed25519:" % device.deviceId] != device.keys["ed25519:" % device.deviceId]) {
-                        qCDebug(E2EE) << "Device reuse detected. Skipping this device";
-                        continue;
-                    }
-                }
-                deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
-            }
-            outdatedUsers -= user;
-        }
-        saveDevicesList();
-
-        for(size_t i = 0; i < pendingEncryptedEvents.size();) {
-            if (isKnownCurveKey(
-                    pendingEncryptedEvents[i]->fullJson()[SenderKeyL].toString(),
-                    pendingEncryptedEvents[i]->contentPart<QString>("sender_key"_ls))) {
-                handleEncryptedToDeviceEvent(*pendingEncryptedEvents[i]);
-                pendingEncryptedEvents.erase(pendingEncryptedEvents.begin() + i);
-            } else
-                ++i;
+        if (queryKeysJob->error() == BaseJob::Success) {
+            handleQueryKeys(queryKeysJob);
         }
         emit q->finishedQueryingKeys();
     });
