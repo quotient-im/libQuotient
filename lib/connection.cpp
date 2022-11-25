@@ -2173,7 +2173,7 @@ void Connection::Private::loadOutdatedUserDevices()
             } else
                 ++i;
         }
-        Q_EMIT q->finishedQueryingKeys();
+        emit q->finishedQueryingKeys();
     });
 }
 
