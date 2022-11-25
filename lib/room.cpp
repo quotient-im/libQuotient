@@ -498,7 +498,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     connectSingleShot(this, &Room::encryption, this, [this, connection](){
         connection->encryptionUpdate(this);
     });
-    connect(this, &Room::memberListChanged, this, [this, connection](){
+    connect(this, &Room::memberListChanged, this, [this, connection] {
         if(usesEncryption()) {
             connection->encryptionUpdate(this, d->usersInvited);
         }
