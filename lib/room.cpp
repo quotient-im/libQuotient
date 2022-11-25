@@ -468,7 +468,7 @@ public:
     QMultiHash<QString, QString> getDevicesWithoutKey() const
     {
         QMultiHash<QString, QString> devices;
-        for (const auto& user : q->users())
+        for (const auto& user : q->users() + usersInvited)
             for (const auto& deviceId : connection->devicesForUser(user->id()))
                 devices.insert(user->id(), deviceId);
 
@@ -498,9 +498,9 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     connectSingleShot(this, &Room::encryption, this, [this, connection](){
         connection->encryptionUpdate(this);
     });
-    connect(this, &Room::userAdded, this, [this, connection](){
+    connect(this, &Room::memberListChanged, this, [this, connection] {
         if(usesEncryption()) {
-            connection->encryptionUpdate(this);
+            connection->encryptionUpdate(this, d->usersInvited);
         }
     });
     d->groupSessions = connection->loadRoomMegolmSessions(this);
@@ -2027,11 +2027,21 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
         }
+
         // Send the session to other people
-        connection->sendSessionKeyToDevices(
-            id, currentOutboundMegolmSession->sessionId(),
-            currentOutboundMegolmSession->sessionKey(), getDevicesWithoutKey(),
-            currentOutboundMegolmSession->sessionMessageIndex());
+        if (connection->isQueryingKeys()) {
+            connectSingleShot(connection, &Connection::finishedQueryingKeys, q, [this]{
+                connection->sendSessionKeyToDevices(
+                    id, currentOutboundMegolmSession->sessionId(),
+                    currentOutboundMegolmSession->sessionKey(), getDevicesWithoutKey(),
+                    currentOutboundMegolmSession->sessionMessageIndex());
+            });
+        } else {
+            connection->sendSessionKeyToDevices(
+                id, currentOutboundMegolmSession->sessionId(),
+                currentOutboundMegolmSession->sessionKey(), getDevicesWithoutKey(),
+                currentOutboundMegolmSession->sessionMessageIndex());
+        }
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(
