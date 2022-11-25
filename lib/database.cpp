@@ -396,7 +396,10 @@ Omittable<QOlmOutboundGroupSession> Database::loadCurrentOutboundMegolmSession(
     return none;
 }
 
-void Database::setDevicesReceivedKey(const QString& roomId, const QVector<std::tuple<QString, QString, QString>>& devices, const QByteArray& sessionId, int index)
+void Database::setDevicesReceivedKey(
+    const QString& roomId,
+    const QVector<std::tuple<QString, QString, QString>>& devices,
+    const QByteArray& sessionId, uint32_t index)
 {
     transaction();
     for (const auto& [user, device, curveKey] : devices) {

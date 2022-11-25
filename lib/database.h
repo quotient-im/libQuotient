@@ -66,7 +66,7 @@ public:
     void setDevicesReceivedKey(
         const QString& roomId,
         const QVector<std::tuple<QString, QString, QString>>& devices,
-        const QByteArray& sessionId, int index);
+        const QByteArray& sessionId, uint32_t index);
 
     bool isSessionVerified(const QString& edKey);
     void setSessionVerified(const QString& edKeyId);
