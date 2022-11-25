@@ -341,10 +341,8 @@ public:
     bool isVerifiedSession(const QByteArray& megolmSessionId) const;
 
     void sendSessionKeyToDevices(const QString& roomId,
-                                 const QByteArray& sessionId,
-                                 const QByteArray& sessionKey,
-                                 const QMultiHash<QString, QString>& devices,
-                                 int index);
+                                 const QOlmOutboundGroupSession& outboundSession,
+                                 const QMultiHash<QString, QString>& devices);
 
     QJsonObject decryptNotification(const QJsonObject &notification);
     QStringList devicesForUser(const QString& userId) const;

@@ -2423,12 +2423,13 @@ QJsonObject Connection::Private::assembleEncryptedContent(
 }
 
 void Connection::sendSessionKeyToDevices(
-    const QString& roomId, const QByteArray& sessionId,
-    const QByteArray& sessionKey, const QMultiHash<QString, QString>& devices,
-    int index)
+    const QString& roomId, const QOlmOutboundGroupSession& outboundSession,
+    const QMultiHash<QString, QString>& devices)
 {
-    qDebug(E2EE) << "Sending room key to devices:" << sessionId
-                 << sessionKey.toHex();
+    const auto& sessionId = outboundSession.sessionId();
+    const auto& sessionKey = outboundSession.sessionKey();
+    const auto& index = outboundSession.sessionMessageIndex();
+    qDebug(E2EE) << "Sending room key to devices:" << sessionId << index;
     QHash<QString, QHash<QString, QString>> hash;
     for (const auto& [userId, deviceId] : asKeyValueRange(devices))
         if (!hasOlmSession(userId, deviceId)) {
@@ -2441,40 +2442,45 @@ void Connection::sendSessionKeyToDevices(
         return;
 
     auto job = callApi<ClaimKeysJob>(hash);
-    connect(job, &BaseJob::success, this, [job, this, roomId, sessionId, sessionKey, devices, index] {
-        QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
-        for (const auto oneTimeKeys = job->oneTimeKeys();
-             const auto& [targetUserId, targetDeviceId] :
-             asKeyValueRange(devices)) {
-            if (!hasOlmSession(targetUserId, targetDeviceId)
-                && !d->createOlmSession(
-                    targetUserId, targetDeviceId,
-                    oneTimeKeys[targetUserId][targetDeviceId]))
-                continue;
+    connect(
+        job, &BaseJob::success, this,
+        [job, this, roomId, sessionId, sessionKey, devices, index] {
+            QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
+            for (const auto oneTimeKeys = job->oneTimeKeys();
+                 const auto& [targetUserId, targetDeviceId] :
+                 asKeyValueRange(devices)) {
+                if (!hasOlmSession(targetUserId, targetDeviceId)
+                    && !d->createOlmSession(
+                        targetUserId, targetDeviceId,
+                        oneTimeKeys[targetUserId][targetDeviceId]))
+                    continue;
 
-            // Noisy but nice for debugging
-//            qDebug(E2EE) << "Creating the payload for" << targetUserId
-//                         << targetDeviceId << sessionId << sessionKey.toHex();
-            const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
-                                                   roomId, sessionId, sessionKey)
-                                          .fullJson();
+                // Noisy and leaks the key to logs but nice for debugging
+//                qDebug(E2EE)
+//                    << "Creating the payload for" << targetUserId
+//                    << targetDeviceId << sessionId << sessionKey.toHex();
+                const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
+                                                       roomId, sessionId,
+                                                       sessionKey)
+                                              .fullJson();
 
-            usersToDevicesToContent[targetUserId][targetDeviceId] =
-                d->assembleEncryptedContent(keyEventJson, targetUserId,
-                                          targetDeviceId);
+                usersToDevicesToContent[targetUserId][targetDeviceId] =
+                    d->assembleEncryptedContent(keyEventJson, targetUserId,
+                                                targetDeviceId);
             }
-        if (!usersToDevicesToContent.empty()) {
-            sendToDevices(EncryptedEvent::TypeId, usersToDevicesToContent);
-            QVector<std::tuple<QString, QString, QString>> receivedDevices;
-            receivedDevices.reserve(devices.size());
-            for (const auto& [user, device] : asKeyValueRange(devices))
-                receivedDevices.push_back(
-                    { user, device, d->curveKeyForUserDevice(user, device) });
+            if (!usersToDevicesToContent.empty()) {
+                sendToDevices(EncryptedEvent::TypeId, usersToDevicesToContent);
+                QVector<std::tuple<QString, QString, QString>> receivedDevices;
+                receivedDevices.reserve(devices.size());
+                for (const auto& [user, device] : asKeyValueRange(devices))
+                    receivedDevices.push_back(
+                        { user, device,
+                          d->curveKeyForUserDevice(user, device) });
 
-            database()->setDevicesReceivedKey(roomId, receivedDevices,
-                                              sessionId, index);
-        }
-    });
+                database()->setDevicesReceivedKey(roomId, receivedDevices,
+                                                  sessionId, index);
+            }
+        });
 }
 
 Omittable<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(

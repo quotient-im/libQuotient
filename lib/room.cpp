@@ -2030,17 +2030,16 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
 
         // Send the session to other people
         if (connection->isQueryingKeys()) {
-            connectSingleShot(connection, &Connection::finishedQueryingKeys, q, [this]{
-                connection->sendSessionKeyToDevices(
-                    id, currentOutboundMegolmSession->sessionId(),
-                    currentOutboundMegolmSession->sessionKey(), getDevicesWithoutKey(),
-                    currentOutboundMegolmSession->sessionMessageIndex());
-            });
+            connectSingleShot(connection, &Connection::finishedQueryingKeys, q,
+                              [this] {
+                                  connection->sendSessionKeyToDevices(
+                                      id, *currentOutboundMegolmSession,
+                                      getDevicesWithoutKey());
+                              });
         } else {
-            connection->sendSessionKeyToDevices(
-                id, currentOutboundMegolmSession->sessionId(),
-                currentOutboundMegolmSession->sessionKey(), getDevicesWithoutKey(),
-                currentOutboundMegolmSession->sessionMessageIndex());
+            connection->sendSessionKeyToDevices(id,
+                                                *currentOutboundMegolmSession,
+                                                getDevicesWithoutKey());
         }
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
