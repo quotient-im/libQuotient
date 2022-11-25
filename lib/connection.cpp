@@ -2124,7 +2124,7 @@ void Connection::Private::loadOutdatedUserDevices()
     currentQueryKeysJob = queryKeysJob;
     connect(queryKeysJob, &BaseJob::failure, q, [this]() {
         currentQueryKeysJob = nullptr;
-        Q_EMIT q->finishedQueryingKeys();
+        emit q->finishedQueryingKeys();
     });
     connect(queryKeysJob, &BaseJob::success, q, [this, queryKeysJob](){
         currentQueryKeysJob = nullptr;
