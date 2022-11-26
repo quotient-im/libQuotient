@@ -689,7 +689,8 @@ public Q_SLOTS:
                                    const UsersToDevicesToContent& contents);
 
     /** \deprecated This method is experimental and may be removed any time */
-    SendMessageJob* sendMessage(const QString& roomId, const RoomEvent& event);
+    [[deprecated]] SendMessageJob* sendMessage(const QString& roomId,
+                                               const RoomEvent& event);
 
     /** \deprecated Do not use this directly, use Room::leaveRoom() instead */
     virtual LeaveRoomJob* leaveRoom(Room* room);
