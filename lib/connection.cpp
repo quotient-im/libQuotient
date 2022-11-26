@@ -380,7 +380,7 @@ public:
     void loadOutdatedUserDevices();
     void saveDevicesList();
     void loadDevicesList();
-    void handleQueryKeys(QueryKeysJob *job);
+    void handleQueryKeys(const QueryKeysJob* job);
 
     // This function assumes that an olm session with (user, device) exists
     std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
@@ -2111,15 +2111,15 @@ bool Connection::isQueryingKeys() const
     return d->currentQueryKeysJob != nullptr;
 }
 
-void Connection::Private::handleQueryKeys(QueryKeysJob *job)
+void Connection::Private::handleQueryKeys(const QueryKeysJob* job)
 {
-    const auto data = job->deviceKeys();
-    for(const auto &[user, keys] : asKeyValueRange(data)) {
+    const auto newDeviceKeys = job->deviceKeys();
+    for (const auto& [user, keys] : asKeyValueRange(newDeviceKeys)) {
         QHash<QString, Quotient::DeviceKeys> oldDevices = deviceKeys[user];
         deviceKeys[user].clear();
         for(const auto &device : keys) {
             if(device.userId != user) {
-                qCWarning(E2EE)
+                qWarning(E2EE)
                     << "mxId mismatch during device key verification:"
                     << device.userId << user;
                 continue;
@@ -2127,19 +2127,21 @@ void Connection::Private::handleQueryKeys(QueryKeysJob *job)
             if (!std::all_of(device.algorithms.cbegin(),
                             device.algorithms.cend(),
                             isSupportedAlgorithm)) {
-                qCWarning(E2EE) << "Unsupported encryption algorithms found"
-                                << device.algorithms;
+                qWarning(E2EE) << "Unsupported encryption algorithms found"
+                               << device.algorithms;
                 continue;
             }
             if (!verifyIdentitySignature(device, device.deviceId,
                                         device.userId)) {
-                qCWarning(E2EE) << "Failed to verify devicekeys signature. "
-                                "Skipping this device";
+                qWarning(E2EE) << "Failed to verify devicekeys signature. "
+                                  "Skipping this device";
                 continue;
             }
             if (oldDevices.contains(device.deviceId)) {
-                if (oldDevices[device.deviceId].keys["ed25519:" % device.deviceId] != device.keys["ed25519:" % device.deviceId]) {
-                    qCDebug(E2EE) << "Device reuse detected. Skipping this device";
+                if (oldDevices[device.deviceId].keys["ed25519:" % device.deviceId]
+                    != device.keys["ed25519:" % device.deviceId]) {
+                    qDebug(E2EE)
+                        << "Device reuse detected. Skipping this device";
                     continue;
                 }
             }
@@ -2149,15 +2151,20 @@ void Connection::Private::handleQueryKeys(QueryKeysJob *job)
     }
     saveDevicesList();
 
-    for(size_t i = 0; i < pendingEncryptedEvents.size();) {
-        if (isKnownCurveKey(
-                pendingEncryptedEvents[i]->fullJson()[SenderKeyL].toString(),
-                pendingEncryptedEvents[i]->contentPart<QString>("sender_key"_ls))) {
-            handleEncryptedToDeviceEvent(*pendingEncryptedEvents[i]);
-            pendingEncryptedEvents.erase(pendingEncryptedEvents.begin() + i);
-        } else
-            ++i;
-    }
+    // A completely faithful code would call std::partition() with bare
+    // isKnownCurveKey(), then handleEncryptedToDeviceEvent() on each event
+    // with the known key, and then std::erase()... but
+    // handleEncryptedToDeviceEvent() doesn't have side effects on the handled
+    // events so a small corner-cutting should be fine.
+    std::erase_if(pendingEncryptedEvents,
+                  [this](const event_ptr_tt<EncryptedEvent>& pendingEvent) {
+                      if (!isKnownCurveKey(
+                              pendingEvent->fullJson()[SenderKeyL].toString(),
+                              pendingEvent->contentPart<QString>(SenderKeyKeyL)))
+                          return false;
+                      handleEncryptedToDeviceEvent(*pendingEvent);
+                      return true;
+                  });
 }
 
 void Connection::Private::loadOutdatedUserDevices()
@@ -2208,11 +2215,11 @@ void Connection::Private::saveDevicesList()
         "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey, verified) "
         "SELECT :matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey, :verified WHERE NOT EXISTS(SELECT 1 FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId);"
         ));
-    for (const auto& user : deviceKeys.keys()) {
-        for (const auto& device : deviceKeys[user]) {
+    for (const auto& [user, devices] : asKeyValueRange(deviceKeys)) {
+        for (const auto& device : devices) {
             auto keys = device.keys.keys();
-            auto curveKeyId = keys[0].startsWith(QLatin1String("curve")) ? keys[0] : keys[1];
-            auto edKeyId = keys[0].startsWith(QLatin1String("ed")) ? keys[0] : keys[1];
+            auto curveKeyId = keys[0].startsWith("curve"_ls) ? keys[0] : keys[1];
+            auto edKeyId = keys[0].startsWith("ed"_ls) ? keys[0] : keys[1];
 
             query.bindValue(":matrixId", user);
             query.bindValue(":deviceId", device.deviceId);
@@ -2258,9 +2265,9 @@ void Connection::Private::loadDevicesList()
 
 }
 
-void Connection::encryptionUpdate(Room* room, const QList<User*>& invited)
+void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
 {
-    for(const auto &user : room->users() + invited) {
+    for (const auto& user : room->users() + invited) {
         if(!d->trackedUsers.contains(user->id())) {
             d->trackedUsers += user->id();
             d->outdatedUsers += user->id();
@@ -2275,14 +2282,14 @@ void Connection::Private::saveOlmAccount()
     database->storeOlmAccount(*olmAccount);
 }
 
-QJsonObject Connection::decryptNotification(const QJsonObject &notification)
+QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
     if (auto r = room(notification["room_id"].toString()))
         if (auto event =
                 loadEvent<EncryptedEvent>(notification["event"].toObject()))
             if (const auto decrypted = r->decryptMessage(*event))
                 return decrypted->fullJson();
-    return QJsonObject();
+    return {};
 }
 
 Database* Connection::database() const
@@ -2304,7 +2311,7 @@ void Connection::saveMegolmSession(const Room* room,
 
 QStringList Connection::devicesForUser(const QString& userId) const
 {
-    return d->deviceKeys[userId].keys();
+    return d->deviceKeys.value(userId).keys();
 }
 
 QString Connection::Private::curveKeyForUserDevice(const QString& userId,

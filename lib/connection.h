@@ -696,7 +696,7 @@ public Q_SLOTS:
 #ifdef Quotient_E2EE_ENABLED
     void startKeyVerificationSession(const QString& userId, const QString& deviceId);
 
-    void encryptionUpdate(Room* room, const QList<User*>& invited = {});
+    void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
     bool isQueryingKeys() const;
 #endif
 
