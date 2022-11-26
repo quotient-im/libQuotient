@@ -348,6 +348,7 @@ public:
     QStringList devicesForUser(const QString& userId) const;
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
+    Q_INVOKABLE QString nextBatchToken() const;
     Q_INVOKABLE int millisToReconnect() const;
 
     Q_INVOKABLE void getTurnServers();
@@ -365,6 +366,9 @@ public:
             return dbg.nospace() << v.id << '/' << v.status;
         }
     };
+
+    /// Find out if capabilites are still loading from the server
+    Q_INVOKABLE bool loadingCapabilities() const;
 
     /// Get the room version recommended by the server
     /** Only works after server capabilities have been loaded.
@@ -490,6 +494,9 @@ public:
      */
     Q_INVOKABLE QByteArray generateTxnId() const;
 
+    /// Convert an mxc: URL into a CS API URL
+    Q_INVOKABLE QUrl makeMediaUrl(QUrl mxcUrl) const;
+
     /// Set a room factory function
     static void setRoomFactory(room_factory_t f);
 
@@ -569,18 +576,12 @@ public Q_SLOTS:
     /// Explicitly request capabilities from the server
     void reloadCapabilities();
 
-    /// Find out if capabilites are still loading from the server
-    bool loadingCapabilities() const;
-
     void logout();
 
     void sync(int timeout = -1);
     void syncLoop(int timeout = 30000);
 
     void stopSync();
-    QString nextBatchToken() const;
-
-    Q_INVOKABLE QUrl makeMediaUrl(QUrl mxcUrl) const;
 
     virtual MediaThumbnailJob*
     getThumbnail(const QString& mediaId, QSize requestedSize,
