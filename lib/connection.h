@@ -695,7 +695,8 @@ public Q_SLOTS:
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
 #ifdef Quotient_E2EE_ENABLED
-    void startKeyVerificationSession(const QString& userId, const QString& deviceId);
+    KeyVerificationSession* startKeyVerificationSession(const QString& userId,
+                                                        const QString& deviceId);
 
     void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
     bool isQueryingKeys() const;

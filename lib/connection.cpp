@@ -117,6 +117,8 @@ public:
     QHash<QString, int> oneTimeKeysCount;
     std::vector<std::unique_ptr<EncryptedEvent>> pendingEncryptedEvents;
     void handleEncryptedToDeviceEvent(const EncryptedEvent& event);
+    template <typename... ArgTs>
+    KeyVerificationSession* setupKeyVerificationSession(ArgTs&&... sessionArgs);
     bool processIfVerificationEvent(const Event &evt, bool encrypted);
 
     // A map from SenderKey to vector of InboundSession
@@ -1043,15 +1045,11 @@ bool Connection::Private::processIfVerificationEvent(const Event& evt,
 {
     return switchOnType(evt,
         [this, encrypted](const KeyVerificationRequestEvent& reqEvt) {
-            const auto sessionIter = verificationSessions.insert(
-                reqEvt.transactionId(),
-                new KeyVerificationSession(reqEvt.fullJson()["sender"].toString(), reqEvt, q, encrypted));
-            emit q->newKeyVerificationSession(*sessionIter);
+            setupKeyVerificationSession(reqEvt.fullJson()["sender"].toString(),
+                                        reqEvt, q, encrypted);
             return true;
         },
-        [](const KeyVerificationDoneEvent&) {
-            return true;
-        },
+        [](const KeyVerificationDoneEvent&) { return true; },
         [this](const KeyVerificationEvent& kvEvt) {
             if (auto* const session =
                 verificationSessions.value(kvEvt.transactionId())) {
@@ -2502,11 +2500,25 @@ void Connection::saveCurrentOutboundMegolmSession(
     d->database->saveCurrentOutboundMegolmSession(roomId, session);
 }
 
-void Connection::startKeyVerificationSession(const QString& userId, const QString& deviceId)
+template <typename... ArgTs>
+KeyVerificationSession* Connection::Private::setupKeyVerificationSession(
+    ArgTs&&... sessionArgs)
 {
-    auto* const session = new KeyVerificationSession(userId, deviceId, this);
-    d->verificationSessions.insert(session->transactionId(), session);
-    emit newKeyVerificationSession(session);
+    auto session =
+        new KeyVerificationSession(std::forward<ArgTs>(sessionArgs)...);
+    verificationSessions.insert(session->transactionId(), session);
+    connect(session, &QObject::destroyed, q,
+            [this, txnId = session->transactionId()] {
+                verificationSessions.remove(txnId);
+            });
+    emit q->newKeyVerificationSession(session);
+    return session;
+}
+
+KeyVerificationSession* Connection::startKeyVerificationSession(
+    const QString& userId, const QString& deviceId)
+{
+    return d->setupKeyVerificationSession(userId, deviceId, this);
 }
 
 void Connection::sendToDevice(const QString& targetUserId,

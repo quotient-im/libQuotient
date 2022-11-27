@@ -20,7 +20,7 @@ private Q_SLOTS:
         auto deviceId = QStringLiteral("DEFABC");
         auto connection = Connection::makeMockConnection("@carl:localhost"_ls);
         const auto transactionId = "other_transaction_id"_ls;
-        auto session = new KeyVerificationSession("@alice:localhost"_ls, "ABCDEF"_ls, connection);
+        auto session = connection->startKeyVerificationSession("@alice:localhost"_ls, "ABCDEF"_ls);
         session->sendRequest();
         QVERIFY(session->state() == KeyVerificationSession::WAITINGFORREADY);
         session->handleEvent(KeyVerificationReadyEvent(transactionId, "ABCDEF"_ls, {SasV1Method}));
