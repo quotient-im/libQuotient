@@ -346,6 +346,7 @@ public:
 
     QJsonObject decryptNotification(const QJsonObject &notification);
     QStringList devicesForUser(const QString& userId) const;
+    Q_INVOKABLE bool isQueryingKeys() const;
 #endif // Quotient_E2EE_ENABLED
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE QString nextBatchToken() const;
@@ -699,7 +700,6 @@ public Q_SLOTS:
                                                         const QString& deviceId);
 
     void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
-    bool isQueryingKeys() const;
 #endif
 
     static Connection* makeMockConnection(const QString& mxId);
