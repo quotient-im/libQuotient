@@ -362,9 +362,8 @@ void TestOlmAccount::claimKeys()
 
     const auto currentDevice = bobDevices[bob->deviceId()];
 
-    // Verify signature.
-    QVERIFY(verifyIdentitySignature(currentDevice, bob->deviceId(),
-                                    bob->userId()));
+    QVERIFY(QOlmUtility().verifyIdentitySignature(currentDevice, bob->deviceId(),
+                                                  bob->userId()));
     // Retrieve the identity key for the current device.
     const auto& bobEd25519 =
         bobDevices.value(bob->deviceId()).keys["ed25519:" + bob->deviceId()];

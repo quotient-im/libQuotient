@@ -206,8 +206,8 @@ public:
                           { userId, QJsonObject { { "ed25519:"_ls % deviceId,
                                                     QString(signature) } } } } } }
     {}
-    explicit SignedOneTimeKey(const QJsonObject& jo = {})
-        : payload(jo)
+    explicit SignedOneTimeKey(QJsonObject jo = {})
+        : payload(std::move(jo))
     {}
 
     //! Unpadded Base64-encoded 32-byte Curve25519 public key

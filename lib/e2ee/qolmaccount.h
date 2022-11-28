@@ -114,13 +114,4 @@ private:
     QString accountId() const;
 };
 
-QUOTIENT_API bool verifyIdentitySignature(const DeviceKeys& deviceKeys,
-                                          const QString& deviceId,
-                                          const QString& userId);
-
-//! checks if the signature is signed by the signing_key
-QUOTIENT_API bool ed25519VerifySignature(const QString& signingKey,
-                                         const QJsonObject& obj,
-                                         const QString& signature);
-
 } // namespace Quotient

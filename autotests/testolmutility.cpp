@@ -54,23 +54,19 @@ void TestOlmUtility::verifySignedOneTimeKey()
     aliceOlm.generateOneTimeKeys(1);
     auto keys = aliceOlm.oneTimeKeys();
 
-    auto firstKey = *keys.curve25519().begin();
-    auto msgObj = QJsonObject({{"key", firstKey}});
-    auto sig = aliceOlm.sign(msgObj);
-
-    auto msg = QJsonDocument(msgObj).toJson(QJsonDocument::Compact);
+    auto firstKey = *keys.curve25519().constBegin();
+    auto msg = toCanonicalJson(SignedOneTimeKey({{"key", firstKey}}));
+    auto sig = aliceOlm.sign(msg);
 
     auto utilityBuf = new uint8_t[olm_utility_size()];
     auto utility = olm_utility(utilityBuf);
 
 
-    QByteArray signatureBuf1(sig.length(), '\0');
-    std::copy(sig.begin(), sig.end(), signatureBuf1.begin());
-
-    auto res =
-        olm_ed25519_verify(utility, aliceOlm.identityKeys().ed25519.data(),
-                           aliceOlm.identityKeys().ed25519.size(), msg.data(),
-                           msg.size(), sig.data(), sig.size());
+    auto res = olm_ed25519_verify(utility,
+                                  aliceOlm.identityKeys().ed25519.constData(),
+                                  unsignedSize(aliceOlm.identityKeys().ed25519),
+                                  msg.constData(), unsignedSize(msg),
+                                  QByteArray(sig).data(), unsignedSize(sig));
 
     QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
     QCOMPARE(res, 0);
@@ -78,11 +74,10 @@ void TestOlmUtility::verifySignedOneTimeKey()
     delete[](reinterpret_cast<uint8_t *>(utility));
 
     QOlmUtility utility2;
-    auto res2 = utility2.ed25519Verify(aliceOlm.identityKeys().ed25519, msg,
-                                       signatureBuf1);
-
-    //QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
+    auto res2 =
+        utility2.ed25519Verify(aliceOlm.identityKeys().ed25519, msg, sig);
     QVERIFY(res2);
+    QCOMPARE(utility2.lastErrorCode(), OLM_SUCCESS);
 }
 
 void TestOlmUtility::validUploadKeysRequest()
@@ -120,9 +115,11 @@ void TestOlmUtility::validUploadKeysRequest()
 
     DeviceKeys deviceKeys = alice.deviceKeys();
     QCOMPARE(QJsonDocument(toJson(deviceKeys)).toJson(QJsonDocument::Compact),
-            QJsonDocument(body).toJson(QJsonDocument::Compact));
+             QJsonDocument(body).toJson(QJsonDocument::Compact));
 
-    QVERIFY(verifyIdentitySignature(fromJson<DeviceKeys>(body), deviceId, userId));
-    QVERIFY(verifyIdentitySignature(deviceKeys, deviceId, userId));
+    QOlmUtility verifier;
+    QVERIFY(verifier.verifyIdentitySignature(fromJson<DeviceKeys>(body),
+                                             deviceId, userId));
+    QVERIFY(verifier.verifyIdentitySignature(deviceKeys, deviceId, userId));
 }
 QTEST_GUILESS_MAIN(TestOlmUtility)

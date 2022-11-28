@@ -126,6 +126,7 @@ public:
 
     QHash<QString, KeyVerificationSession*> verificationSessions;
     QSet<std::pair<QString, QString>> triedDevices;
+    QOlmUtility verifier{};
 #endif
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
@@ -2129,7 +2130,7 @@ void Connection::Private::handleQueryKeys(const QueryKeysJob* job)
                                << device.algorithms;
                 continue;
             }
-            if (!verifyIdentitySignature(device, device.deviceId,
+            if (!verifier.verifyIdentitySignature(device, device.deviceId,
                                         device.userId)) {
                 qWarning(E2EE) << "Failed to verify devicekeys signature. "
                                   "Skipping this device";
@@ -2358,7 +2359,6 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
                                            const QString& targetDeviceId,
                                            const OneTimeKeys& oneTimeKeyObject)
 {
-    static QOlmUtility verifier;
     qDebug(E2EE) << "Creating a new session for" << targetUserId
                  << targetDeviceId;
     if (oneTimeKeyObject.isEmpty()) {

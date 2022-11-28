@@ -4,6 +4,8 @@
 
 #include "e2ee/qolmutility.h"
 
+#include "csapi/definitions/device_keys.h"
+
 #include "e2ee_common.h"
 
 #include <olm/olm.h>
@@ -24,26 +26,37 @@ QOlmUtility::QOlmUtility()
         makeCStruct(olm_utility, olm_utility_size, olm_clear_utility))
 {}
 
-QString QOlmUtility::sha256Bytes(const QByteArray& inputBuf) const
+QByteArray QOlmUtility::sha256Bytes(const QByteArray& inputBuf) const
 {
     const auto outputLength = olm_sha256_length(olmDataHolder.get());
     auto outputBuf = byteArrayForOlm(outputLength);
-    olm_sha256(olmDataHolder.get(), inputBuf.data(), unsignedSize(inputBuf),
-            outputBuf.data(), outputLength);
+    if (olm_sha256(olmDataHolder.get(), inputBuf.data(), unsignedSize(inputBuf),
+                   outputBuf.data(), outputLength)
+        != OLM_SUCCESS)
+        QOLM_INTERNAL_ERROR_X("Failed to calculate SHA256 sum", lastError());
 
-    return QString::fromUtf8(outputBuf);
+    return outputBuf;
 }
 
-QString QOlmUtility::sha256Utf8Msg(const QString& message) const
-{
-    return sha256Bytes(message.toUtf8());
-}
-
-bool QOlmUtility::ed25519Verify(const QByteArray& key, const QByteArray& message,
+bool QOlmUtility::ed25519Verify(const QByteArray& key,
+                                const QByteArray& canonicalJson,
                                 QByteArray signature) const
 {
     return olm_ed25519_verify(olmDataHolder.get(), key.data(), unsignedSize(key),
-                              message.data(), unsignedSize(message),
+                              canonicalJson.data(), unsignedSize(canonicalJson),
                               signature.data(), unsignedSize(signature))
            == 0;
+}
+
+bool QOlmUtility::verifyIdentitySignature(const DeviceKeys& deviceKeys,
+                                          const QString& deviceId,
+                                          const QString& userId) const
+{
+    const auto signKeyId = "ed25519:" + deviceId;
+    const auto signature = deviceKeys.signatures[userId][signKeyId];
+    if (signature.isEmpty())
+        return false;
+
+    return ed25519Verify(deviceKeys.keys[signKeyId].toLatin1(),
+                         toCanonicalJson(deviceKeys), signature.toLatin1());
 }

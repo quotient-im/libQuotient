@@ -279,36 +279,4 @@ void QOlmAccount::markKeysAsPublished()
     emit needsSave();
 }
 
-bool Quotient::verifyIdentitySignature(const DeviceKeys& deviceKeys,
-                                       const QString& deviceId,
-                                       const QString& userId)
-{
-    const auto signKeyId = "ed25519:" + deviceId;
-    const auto signingKey = deviceKeys.keys[signKeyId];
-    const auto signature = deviceKeys.signatures[userId][signKeyId];
-
-    return ed25519VerifySignature(signingKey, toCanonicalJson(deviceKeys),
-                                  signature);
-}
-
-bool Quotient::ed25519VerifySignature(const QString& signingKey,
-                                      const QJsonObject& obj,
-                                      const QString& signature)
-{
-    if (signature.isEmpty())
-        return false;
-
-    QJsonObject obj1 = obj;
-
-    obj1.remove("unsigned");
-    obj1.remove("signatures");
-
-    auto canonicalJson = QJsonDocument(obj1).toJson(QJsonDocument::Compact);
-
-    QByteArray signingKeyBuf = signingKey.toUtf8();
-    QOlmUtility utility;
-    auto signatureBuf = signature.toUtf8();
-    return utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
-}
-
 QString QOlmAccount::accountId() const { return m_userId % '/' % m_deviceId; }

@@ -12,6 +12,8 @@ struct OlmUtility;
 
 namespace Quotient {
 
+struct DeviceKeys;
+
 //! Allows you to make use of crytographic hashing via SHA-2 and
 //! verifying ed25519 signatures.
 class QUOTIENT_API QOlmUtility
@@ -19,19 +21,26 @@ class QUOTIENT_API QOlmUtility
 public:
     QOlmUtility();
 
-    //! Returns a sha256 of the supplied byte slice.
-    QString sha256Bytes(const QByteArray& inputBuf) const;
 
-    //! Convenience function that converts the UTF-8 message
-    //! to bytes and then calls `sha256Bytes()`, returning its output.
-    QString sha256Utf8Msg(const QString& message) const;
+    //! Get a base64-encoded sha256 sum of the supplied byte slice
+    QByteArray sha256Bytes(const QByteArray& inputBuf) const;
 
-    //! Verify a ed25519 signature.
-    //! \param key QByteArray The public part of the ed25519 key that signed the message.
-    //! \param message QByteArray The message that was signed.
-    //! \param signature QByteArray The signature of the message.
-    bool ed25519Verify(const QByteArray& key, const QByteArray& message,
+    //! \brief Verify a ed25519 signature
+    //!
+    //! \param key The public part of the ed25519 key that signed the message
+    //! \param canonicalJson The JSON that was signed
+    //! \param signature The signature of the message
+    bool ed25519Verify(const QByteArray& key, const QByteArray& canonicalJson,
                        QByteArray signature) const;
+
+    //! \brief Verify the device using the given device and user id
+    //!
+    //! This is a convenience function extracting the necessary key and
+    //! signature from \p deviceKeys and using them to verify (the canonical
+    //! part of) \p deviceKeys. \sa ed25519Verify \return same as in
+    //! ed25519Verify()
+    bool verifyIdentitySignature(const DeviceKeys& deviceKeys,
+                                 const QString& deviceId, const QString& userId) const;
 
     OlmErrorCode lastErrorCode() const;
     const char* lastError() const;
