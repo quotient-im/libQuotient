@@ -287,7 +287,8 @@ bool Quotient::verifyIdentitySignature(const DeviceKeys& deviceKeys,
     const auto signingKey = deviceKeys.keys[signKeyId];
     const auto signature = deviceKeys.signatures[userId][signKeyId];
 
-    return ed25519VerifySignature(signingKey, toJson(deviceKeys), signature);
+    return ed25519VerifySignature(signingKey, toCanonicalJson(deviceKeys),
+                                  signature);
 }
 
 bool Quotient::ed25519VerifySignature(const QString& signingKey,

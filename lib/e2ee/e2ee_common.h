@@ -233,19 +233,20 @@ public:
     //! Whether the key is a fallback key
     bool isFallback() const { return payload["fallback"_ls].toBool(); }
     auto toJson() const { return payload; }
-    auto toJsonForVerification() const
-    {
-        auto json = payload;
-        json.remove("signatures"_ls);
-        json.remove("unsigned"_ls);
-        return QJsonDocument(json).toJson(QJsonDocument::Compact);
-    }
 
 private:
     QJsonObject payload;
 };
 
 using OneTimeKeys = QHash<QString, std::variant<QString, SignedOneTimeKey>>;
+
+inline QByteArray toCanonicalJson(const auto& payload)
+{
+    auto json = toJson(payload);
+    json.remove("signatures"_ls);
+    json.remove("unsigned"_ls);
+    return QJsonDocument(json).toJson(QJsonDocument::Compact);
+}
 
 } // namespace Quotient
 
