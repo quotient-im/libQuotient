@@ -20,7 +20,6 @@ const char* QOlmSession::lastError() const
     return olm_session_last_error(olmData);
 }
 
-
 QByteArray QOlmSession::pickle(const PicklingKey &key) const
 {
     const auto pickleLength = olm_pickle_session_length(olmData);
