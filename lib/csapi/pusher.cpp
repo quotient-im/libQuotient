@@ -20,8 +20,9 @@ GetPushersJob::GetPushersJob()
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
                              const QString& appId, const QString& appDisplayName,
                              const QString& deviceDisplayName,
-                             const QString& lang, const PusherData& data,
-                             const QString& profileTag, Omittable<bool> append)
+                             const QString& profileTag, const QString& lang,
+                             const Omittable<PusherData>& data,
+                             Omittable<bool> append)
     : BaseJob(HttpVerb::Post, QStringLiteral("PostPusherJob"),
               makePath("/_matrix/client/v3", "/pushers/set"))
 {
@@ -29,12 +30,13 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind,
     addParam<>(_dataJson, QStringLiteral("pushkey"), pushkey);
     addParam<>(_dataJson, QStringLiteral("kind"), kind);
     addParam<>(_dataJson, QStringLiteral("app_id"), appId);
-    addParam<>(_dataJson, QStringLiteral("app_display_name"), appDisplayName);
-    addParam<>(_dataJson, QStringLiteral("device_display_name"),
-               deviceDisplayName);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("app_display_name"),
+                         appDisplayName);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("device_display_name"),
+                         deviceDisplayName);
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("profile_tag"), profileTag);
-    addParam<>(_dataJson, QStringLiteral("lang"), lang);
-    addParam<>(_dataJson, QStringLiteral("data"), data);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("lang"), lang);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("data"), data);
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("append"), append);
     setRequestData({ _dataJson });
 }

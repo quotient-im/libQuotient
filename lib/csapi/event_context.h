@@ -31,7 +31,10 @@ public:
      *   The event to get context around.
      *
      * \param limit
-     *   The maximum number of events to return. Default: 10.
+     *   The maximum number of context events to return. The limit applies
+     *   to the sum of the `events_before` and `events_after` arrays. The
+     *   requested event ID is always returned in `event` even if `limit` is
+     *   0. Defaults to 10.
      *
      * \param filter
      *   A JSON `RoomEventFilter` to filter the returned events with. The

@@ -26,7 +26,7 @@ public:
     /*! \brief Get an OpenID token object to verify the requester's identity.
      *
      * \param userId
-     *   The user to request and OpenID token for. Should be the user who
+     *   The user to request an OpenID token for. Should be the user who
      *   is authenticated for the request.
      *
      * \param body

@@ -23,7 +23,7 @@ public:
      * \param receiptType
      *   The type of receipt to send. This can also be `m.fully_read` as an
      *   alternative to
-     * [`/read_makers`](/client-server-api/#post_matrixclientv3roomsroomidread_markers).
+     * [`/read_markers`](/client-server-api/#post_matrixclientv3roomsroomidread_markers).
      *
      *   Note that `m.fully_read` does not appear under `m.receipt`: this
      * endpoint effectively calls `/read_markers` internally when presented with

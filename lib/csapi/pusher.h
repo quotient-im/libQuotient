@@ -107,14 +107,20 @@ struct JsonObjectConverter<GetPushersJob::Pusher> {
  * This endpoint allows the creation, modification and deletion of
  * [pushers](/client-server-api/#push-notifications) for this user ID. The
  * behaviour of this endpoint varies depending on the values in the JSON body.
+ *
+ * If `kind` is not `null`, the pusher with this `app_id` and `pushkey`
+ * for this user is updated, or it is created if it doesn't exist. If
+ * `kind` is `null`, the pusher with this `app_id` and `pushkey` for this
+ * user is deleted.
  */
 class QUOTIENT_API PostPusherJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// A dictionary of information for the pusher implementation
-    /// itself. If `kind` is `http`, this should contain `url`
-    /// which is the URL to use to send notifications to.
+    /// Required if `kind` is not `null`. A dictionary of information
+    /// for the pusher implementation itself. If `kind` is `http`,
+    /// this should contain `url` which is the URL to use to send
+    /// notifications to.
     struct PusherData {
         /// Required if `kind` is `http`. The URL to use to send
         /// notifications to. MUST be an HTTPS URL with a path of
@@ -157,25 +163,26 @@ public:
      *   If the `kind` is `"email"`, this is `"m.email"`.
      *
      * \param appDisplayName
-     *   A string that will allow the user to identify what application
-     *   owns this pusher.
+     *   Required if `kind` is not `null`. A string that will allow the
+     *   user to identify what application owns this pusher.
      *
      * \param deviceDisplayName
-     *   A string that will allow the user to identify what device owns
-     *   this pusher.
-     *
-     * \param lang
-     *   The preferred language for receiving notifications (e.g. 'en'
-     *   or 'en-US').
-     *
-     * \param data
-     *   A dictionary of information for the pusher implementation
-     *   itself. If `kind` is `http`, this should contain `url`
-     *   which is the URL to use to send notifications to.
+     *   Required if `kind` is not `null`. A string that will allow the
+     *   user to identify what device owns this pusher.
      *
      * \param profileTag
      *   This string determines which set of device specific rules this
      *   pusher executes.
+     *
+     * \param lang
+     *   Required if `kind` is not `null`. The preferred language for
+     *   receiving notifications (e.g. 'en' or 'en-US').
+     *
+     * \param data
+     *   Required if `kind` is not `null`. A dictionary of information
+     *   for the pusher implementation itself. If `kind` is `http`,
+     *   this should contain `url` which is the URL to use to send
+     *   notifications to.
      *
      * \param append
      *   If true, the homeserver should add another pusher with the
@@ -185,10 +192,12 @@ public:
      *   users. The default is `false`.
      */
     explicit PostPusherJob(const QString& pushkey, const QString& kind,
-                           const QString& appId, const QString& appDisplayName,
-                           const QString& deviceDisplayName,
-                           const QString& lang, const PusherData& data,
+                           const QString& appId,
+                           const QString& appDisplayName = {},
+                           const QString& deviceDisplayName = {},
                            const QString& profileTag = {},
+                           const QString& lang = {},
+                           const Omittable<PusherData>& data = none,
                            Omittable<bool> append = none);
 };
 
