@@ -324,7 +324,7 @@ template <typename T>
 struct JsonConverter<Omittable<T>> {
     static QJsonValue dump(const Omittable<T>& from)
     {
-        return from.has_value() ? toJson(from.value()) : QJsonValue();
+        return from.has_value() ? toJson(*from) : QJsonValue();
     }
     static Omittable<T> load(const QJsonValue& jv)
     {
