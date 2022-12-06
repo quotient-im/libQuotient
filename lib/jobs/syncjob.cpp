@@ -14,14 +14,11 @@ SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
-    if (!filter.isEmpty())
-        query.addQueryItem(QStringLiteral("filter"), filter);
-    if (!presence.isEmpty())
-        query.addQueryItem(QStringLiteral("set_presence"), presence);
+    addParam<IfNotEmpty>(query, QStringLiteral("filter"), filter);
+    addParam<IfNotEmpty>(query, QStringLiteral("set_presence"), presence);
     if (timeout >= 0)
         query.addQueryItem(QStringLiteral("timeout"), QString::number(timeout));
-    if (!since.isEmpty())
-        query.addQueryItem(QStringLiteral("since"), since);
+    addParam<IfNotEmpty>(query, QStringLiteral("since"), since);
     setRequestQuery(query);
 
     setMaxRetries(std::numeric_limits<int>::max());
