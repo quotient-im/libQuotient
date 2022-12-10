@@ -252,7 +252,7 @@ public:
                     baseState[{ evt.matrixType(), evt.stateKey() }] = move(eptr);
                 }
             }
-            if (events.size() > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+            if (events.size() > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
                 qCDebug(PROFILER)
                     << "Updated" << q->objectName() << "room state from"
                     << events.size() << "event(s) in" << et;
@@ -1724,7 +1724,7 @@ void Room::Private::removeMemberFromMap(User* u)
         // may come rather expensive for larger rooms.
         QElapsedTimer et;
         auto it = std::find(membersMap.cbegin(), membersMap.cend(), u);
-        if (et.nsecsElapsed() > profilerMinNsecs() / 10)
+        if (et.nsecsElapsed() > ProfilerMinNsecs / 10)
             qCDebug(MEMBERS) << "...done in" << et;
         if (it != membersMap.cend()) {
             // The assert (still) does more harm than good, it seems
@@ -2628,7 +2628,7 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
             } else
                 undecryptedEvents[eeptr->sessionId()] += eeptr->id();
         }
-    if (totalDecrypted > 5 || et.nsecsElapsed() >= profilerMinNsecs())
+    if (totalDecrypted > 5 || et.nsecsElapsed() >= ProfilerMinNsecs)
         qDebug(PROFILER) << "Decrypted" << totalDecrypted << "events in" << et;
 #endif
 }
@@ -2964,7 +2964,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     }
 
     Q_ASSERT(timeline.size() == timelineSize + totalInserted);
-    if (totalInserted > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+    if (totalInserted > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
         qCDebug(PROFILER) << "Added" << totalInserted << "new event(s) to"
                           << q->objectName() << "in" << et;
     return roomChanges;
@@ -3006,7 +3006,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 
     addRelations(from, historyEdge());
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
-    if (insertedSize > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+    if (insertedSize > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
         qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to"
                           << q->objectName() << "in" << et;
 
@@ -3244,7 +3244,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                     d->usersTyping.append(user(userId));
 
             if (d->usersTyping.size() > 3
-                || et.nsecsElapsed() >= profilerMinNsecs())
+                || et.nsecsElapsed() >= ProfilerMinNsecs)
                 qDebug(PROFILER)
                     << "Processing typing events from" << users.size()
                     << "user(s) in" << objectName() << "took" << et;
@@ -3286,7 +3286,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                 }
             }
             if (updatedUserIds.size() > 10
-                || et.nsecsElapsed() >= profilerMinNsecs())
+                || et.nsecsElapsed() >= ProfilerMinNsecs)
                 qDebug(PROFILER)
                     << "Processing" << updatedUserIds.size()
                     << "non-local receipt(s) on" << receiptsJson.size()

@@ -22,7 +22,7 @@ EventStats EventStats::fromRange(const Room* room, const Room::rev_iter_t& from,
                                              == Notification::Highlight;
                        return acc;
                    });
-    if (et.nsecsElapsed() > profilerMinNsecs() / 10)
+    if (et.nsecsElapsed() > ProfilerMinNsecs / 10)
         qCDebug(PROFILER).nospace()
             << "Event statistics collection over index range [" << from->index()
             << "," << (to - 1)->index() << "] took " << et;

@@ -236,7 +236,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     }
     if (!unresolvedRoomIds.empty())
         qCWarning(MAIN) << "Unresolved rooms:" << unresolvedRoomIds.join(',');
-    if (totalRooms > 9 || et.nsecsElapsed() >= profilerMinNsecs())
+    if (totalRooms > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
         qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
                           << totalRooms << "room(s)," << totalEvents
                           << "event(s) in" << et;

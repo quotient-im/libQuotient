@@ -47,16 +47,13 @@ inline QDebug terse(QDebug dbg)
     return dbg.verbosity(QDebug::MinimumVerbosity);
 }
 
-inline qint64 profilerMinNsecs()
-{
-    return
+constexpr qint64 ProfilerMinNsecs =
 #ifdef PROFILER_LOG_USECS
         PROFILER_LOG_USECS
 #else
         200
 #endif
         * 1000;
-}
 } // namespace Quotient
 
 /**
