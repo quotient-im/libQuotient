@@ -73,7 +73,6 @@
 
 using namespace Quotient;
 using namespace std::placeholders;
-using std::move;
 #if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
 using std::llround;
 #endif
@@ -87,10 +86,12 @@ public:
     using members_map_t = QMultiHash<QString, User*>;
 
     Private(Connection* c, QString id_, JoinState initialJoinState)
-        : q(nullptr), connection(c), id(move(id_)), joinState(initialJoinState)
+        : connection(c)
+        , id(std::move(id_))
+        , joinState(initialJoinState)
     {}
 
-    Room* q;
+    Room* q = nullptr;
 
     Connection* connection;
     QString id;
@@ -249,7 +250,8 @@ public:
                 Q_ASSERT(evt.isStateEvent());
                 if (auto change = q->processStateEvent(evt); change) {
                     changes |= change;
-                    baseState[{ evt.matrixType(), evt.stateKey() }] = move(eptr);
+                    baseState[{ evt.matrixType(), evt.stateKey() }] =
+                        std::move(eptr);
                 }
             }
             if (events.size() > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
@@ -747,7 +749,7 @@ Omittable<QString> Room::Private::setLastReadReceipt(const QString& userId,
             eventIdReadUsers.erase(oldEventReadUsersIt);
     }
     eventIdReadUsers[newReceipt.eventId].insert(userId);
-    storedReceipt = move(newReceipt);
+    storedReceipt = std::move(newReceipt);
 
     {
         auto dbg = qDebug(EPHEMERAL); // NB: qCDebug can't be used like that
@@ -773,8 +775,8 @@ Room::Changes Room::Private::setLocalLastReadReceipt(const rev_iter_t& newMarker
                                                      ReadReceipt newReceipt,
                                                      bool deferStatsUpdate)
 {
-    auto prevEventId =
-        setLastReadReceipt(connection->userId(), newMarker, move(newReceipt));
+    auto prevEventId = setLastReadReceipt(connection->userId(), newMarker,
+                                          std::move(newReceipt));
     if (!prevEventId)
         return Change::None;
     Changes changes = Change::Other;
@@ -1340,7 +1342,7 @@ void Room::setTags(TagsMap newTags, ActionScope applyOn)
             r->setTags(newTags, ActionScope::ThisRoomOnly);
     }
 
-    d->setTags(move(newTags));
+    d->setTags(std::move(newTags));
     connection()->callApi<SetAccountDataPerRoomJob>(
         localUser()->id(), id(), TagEvent::TypeId,
         Quotient::toJson(TagEvent::content_type { d->tags }));
@@ -1363,7 +1365,7 @@ void Room::Private::setTags(TagsMap&& newTags)
                 newTags.insert(adjustedTag, newTags.take(k));
         }
 
-    tags = move(newTags);
+    tags = std::move(newTags);
     qCDebug(STATE) << "Room" << q->objectName() << "is tagged with"
                    << q->tagNames().join(QStringLiteral(", "));
     emit q->tagsChanged();
@@ -1770,8 +1772,8 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
             makeErrorStr(*e, "Event is already in the timeline; "
                              "incoming events were not properly deduplicated"));
         const auto& ti = placement == Older
-                             ? timeline.emplace_front(move(e), --index)
-                             : timeline.emplace_back(move(e), ++index);
+                             ? timeline.emplace_front(std::move(e), --index)
+                             : timeline.emplace_back(std::move(e), ++index);
         eventsIndex.insert(eId, index);
         if (auto n = q->checkForNotifications(ti); n.type != Notification::None)
             notifications.insert(eId, n);
@@ -1933,14 +1935,14 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     Changes roomChanges {};
     // The order of calculation is important - don't merge the lines!
     roomChanges |= d->updateStateFrom(data.state);
-    roomChanges |= d->setSummary(move(data.summary));
-    roomChanges |= d->addNewMessageEvents(move(data.timeline));
+    roomChanges |= d->setSummary(std::move(data.summary));
+    roomChanges |= d->addNewMessageEvents(std::move(data.timeline));
 
     for (auto&& ephemeralEvent : data.ephemeral)
-        roomChanges |= processEphemeralEvent(move(ephemeralEvent));
+        roomChanges |= processEphemeralEvent(std::move(ephemeralEvent));
 
     for (auto&& event : data.accountData)
-        roomChanges |= processAccountDataEvent(move(event));
+        roomChanges |= processAccountDataEvent(std::move(event));
 
     roomChanges |= d->updateStatsFromSyncData(data, fromCache);
 
@@ -1997,7 +1999,7 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
         event->setSender(connection->userId());
     auto* pEvent = std::to_address(event);
     emit q->pendingEventAboutToAdd(pEvent);
-    unsyncedEvents.emplace_back(move(event));
+    unsyncedEvents.emplace_back(std::move(event));
     emit q->pendingEventAdded();
     return pEvent;
 }
@@ -2205,7 +2207,7 @@ QString Room::postReaction(const QString& eventId, const QString& key)
 
 QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
 {
-    const auto txnId = addAsPending(move(msgEvent))->transactionId();
+    const auto txnId = addAsPending(std::move(msgEvent))->transactionId();
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
     q->uploadFile(txnId, localUrl);
@@ -2623,8 +2625,8 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
                 continue;
             if (auto decrypted = q->decryptMessage(*eeptr)) {
                 ++totalDecrypted;
-                auto&& oldEvent = exchange(eptr, move(decrypted));
-                eptr->setOriginalEvent(::move(oldEvent));
+                auto&& oldEvent = exchange(eptr, std::move(decrypted));
+                eptr->setOriginalEvent(std::move(oldEvent));
             } else
                 undecryptedEvents[eeptr->sessionId()] += eeptr->id();
         }
@@ -3314,7 +3316,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
     // efficient; maaybe do it another day
     if (!currentData || currentData->contentJson() != event->contentJson()) {
         emit accountDataAboutToChange(event->matrixType());
-        currentData = move(event);
+        currentData = std::move(event);
         qCDebug(STATE) << "Updated account data of type"
                        << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());

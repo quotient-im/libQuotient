@@ -143,7 +143,7 @@ SyncData::SyncData(const QString& cacheFileName)
                         << "is required; discarding the cache";
 }
 
-SyncDataList SyncData::takeRoomData() { return move(roomData); }
+SyncDataList SyncData::takeRoomData() { return std::move(roomData); }
 
 QString SyncData::fileNameForRoom(QString roomId)
 {

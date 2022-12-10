@@ -24,11 +24,10 @@
 #include <functional>
 
 using namespace Quotient;
-using std::move;
 
 class User::Private {
 public:
-    Private(QString userId) : id(move(userId)), hueF(stringToHueF(id)) { }
+    Private(QString userId) : id(std::move(userId)), hueF(stringToHueF(id)) { }
 
     QString id;
     qreal hueF;
@@ -46,7 +45,7 @@ public:
 decltype(User::Private::otherAvatars) User::Private::otherAvatars {};
 
 User::User(QString userId, Connection* connection)
-    : QObject(connection), d(makeImpl<Private>(move(userId)))
+    : QObject(connection), d(makeImpl<Private>(std::move(userId)))
 {
     setObjectName(id());
     if (connection->userId() == id()) {
@@ -123,7 +122,7 @@ void User::rename(const QString& newName, Room* r)
         auto content = maybeEvt->content();
         if (content.membership == Membership::Join) {
             content.displayName = sanitized(newName);
-            r->setState<RoomMemberEvent>(id(), move(content));
+            r->setState<RoomMemberEvent>(id(), std::move(content));
             // The state will be updated locally after it arrives with sync
             return;
         }

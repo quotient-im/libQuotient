@@ -10,7 +10,6 @@
 #include <QtCore/QFileInfo>
 
 using namespace Quotient::EventContent;
-using std::move;
 
 QJsonObject Base::toJson() const
 {
@@ -30,10 +29,10 @@ FileInfo::FileInfo(const QFileInfo& fi)
 
 FileInfo::FileInfo(FileSourceInfo sourceInfo, qint64 payloadSize,
                    const QMimeType& mimeType, QString originalFilename)
-    : source(move(sourceInfo))
+    : source(std::move(sourceInfo))
     , mimeType(mimeType)
     , payloadSize(payloadSize)
-    , originalName(move(originalFilename))
+    , originalName(std::move(originalFilename))
 {
     if (!isValid())
         qCWarning(MESSAGES)
@@ -44,12 +43,12 @@ FileInfo::FileInfo(FileSourceInfo sourceInfo, qint64 payloadSize,
 
 FileInfo::FileInfo(FileSourceInfo sourceInfo, const QJsonObject& infoJson,
                    QString originalFilename)
-    : source(move(sourceInfo))
+    : source(std::move(sourceInfo))
     , originalInfoJson(infoJson)
     , mimeType(
           QMimeDatabase().mimeTypeForName(infoJson["mimetype"_ls].toString()))
     , payloadSize(fromJson<qint64>(infoJson["size"_ls]))
-    , originalName(move(originalFilename))
+    , originalName(std::move(originalFilename))
 {
     if (!mimeType.isValid())
         mimeType = QMimeDatabase().mimeTypeForData(QByteArray());
@@ -83,13 +82,13 @@ ImageInfo::ImageInfo(const QFileInfo& fi, QSize imageSize)
 ImageInfo::ImageInfo(FileSourceInfo sourceInfo, qint64 fileSize,
                      const QMimeType& type, QSize imageSize,
                      const QString& originalFilename)
-    : FileInfo(move(sourceInfo), fileSize, type, originalFilename)
+    : FileInfo(std::move(sourceInfo), fileSize, type, originalFilename)
     , imageSize(imageSize)
 {}
 
 ImageInfo::ImageInfo(FileSourceInfo sourceInfo, const QJsonObject& infoJson,
                      const QString& originalFilename)
-    : FileInfo(move(sourceInfo), infoJson, originalFilename)
+    : FileInfo(std::move(sourceInfo), infoJson, originalFilename)
     , imageSize(infoJson["w"_ls].toInt(), infoJson["h"_ls].toInt())
 {}
 

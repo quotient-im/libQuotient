@@ -81,7 +81,7 @@ HashT remove_if(HashT& hashMap, Pred pred)
 class Connection::Private {
 public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)
-        : data(move(connection))
+        : data(std::move(connection))
     {}
 
     Connection* q = nullptr;

@@ -57,7 +57,7 @@ public:
     // Used for event redaction
     RoomEventPtr replaceEvent(RoomEventPtr&& other)
     {
-        return std::exchange(evt, move(other));
+        return std::exchange(evt, std::move(other));
     }
 
     /// Store arbitrary data with the event item
