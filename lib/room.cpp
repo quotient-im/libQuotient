@@ -238,8 +238,7 @@ public:
         return evt;
     }
 
-    template <typename EventArrayT>
-    Changes updateStateFrom(EventArrayT&& events)
+    Changes updateStateFrom(StateEvents&& events)
     {
         Changes changes {};
         if (!events.empty()) {
@@ -1934,7 +1933,7 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
 
     Changes roomChanges {};
     // The order of calculation is important - don't merge the lines!
-    roomChanges |= d->updateStateFrom(data.state);
+    roomChanges |= d->updateStateFrom(std::move(data.state));
     roomChanges |= d->setSummary(std::move(data.summary));
     roomChanges |= d->addNewMessageEvents(std::move(data.timeline));
 
