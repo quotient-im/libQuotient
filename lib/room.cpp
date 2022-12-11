@@ -98,7 +98,6 @@ public:
     JoinState joinState;
     RoomSummary summary = { none, 0, none };
     /// The state of the room at timeline position before-0
-    /// \sa timelineBase
     UnorderedMap<StateEventKey, StateEventPtr> baseState;
     /// State event stubs - events without content, just type and state key
     static decltype(baseState) stubbedState;
@@ -209,8 +208,6 @@ public:
     // without any updates.
     QString calculateDisplayname() const;
 
-    /// A point in the timeline corresponding to baseState
-    rev_iter_t timelineBase() const { return q->findInTimeline(-1); }
     rev_iter_t historyEdge() const { return timeline.crend(); }
     Timeline::const_iterator syncEdge() const { return timeline.cend(); }
 
