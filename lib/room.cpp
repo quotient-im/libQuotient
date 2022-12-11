@@ -244,7 +244,7 @@ public:
         if (!events.empty()) {
             QElapsedTimer et;
             et.start();
-            for (auto&& eptr : events) {
+            for (auto&& eptr : std::move(events)) {
                 const auto& evt = *eptr;
                 Q_ASSERT(evt.isStateEvent());
                 if (auto change = q->processStateEvent(evt); change) {
