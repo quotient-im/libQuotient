@@ -23,10 +23,11 @@ or
 For general discussion, feel free to use our Matrix room:
 [#quotient:matrix.org](https://matrix.to/#/#quotient:matrix.org).
 
-If you're new to the project (or FLOSS in general),
-[issues tagged as easy](https://github.com/quotient-im/libQuotient/labels/easy)
-are smaller tasks that don't require much knowledge about the project.
-You are welcome aboard!
+If you're new to the project (or FLOSS in general), here's 
+[the list of issues](https://github.com/quotient-im/libQuotient/labels/good%20first%20issue)
+that we consider simple enough for starters - they don't require much knowledge
+about the project and should be relatively straightforward (but not necessarily
+quick to fix). Welcome aboard!
 
 ### Pull requests and different branches recommended
 
@@ -123,24 +124,25 @@ Markdown). In practice, as long as libQuotient is hosted at GitHub,
 [GFM (GitHub-flavoured Markdown)](https://help.github.com/articles/github-flavored-markdown/)
 is used to show those files in a browser, so it's fine to use its extensions.
 In particular, you can mark code snippets with the programming language used;
-blank lines separate paragraphs, newlines inside a paragraph do *not* force a line break.
+blank lines separate paragraphs, newlines inside a paragraph do *not* force
+a line break.
 
-Beware - this is *not* the same markdown algorithm used by GitHub when it
-renders issue or pull comments; in those cases
+Be mindful that this is *not* the same (albeit similar) markdown algorithm used
+by GitHub when it renders issue or pull comments; in those cases
 [newlines in paragraph-like content are considered as real line breaks](https://help.github.com/articles/writing-on-github/);
 unfortunately this other algorithm is *also* called GitHub-flavoured markdown.
-(Yes, it'd be better if there were different names for different things.)
+(Yes, it would be better if there were different names for different things.)
 
 In your markdown, please don't use tab characters and avoid "bare" URLs.
 In a hyperlink, the link text and URL should be on the same line.
-While historically we didn't care about the line length in markdown texts
-(and more often than not put the whole paragraph into one line), this is no more
-recommended; instead, try to use 80-character limit (similar to the limit for
-C/C++ code) _except hyperlinks_ - wrapping breaks them.
+Both in C/C++ code comments and Markdown documents, try to keep your lines
+within the 80-character limit _except hyperlinks_ (wrapping breaks them). Some
+historical text may not follow that rule - feel free to reformat those parts
+when you edit them.
 
 Do not use trailing two spaces for line breaks, since these cannot be seen
 and may be silently removed by some tools. If, for whatever reason, a blank line
-is not an option, use <tt>&lt;br&nbsp;/&gt;</tt> (an HTML break).
+is not an option, use <tt>&lt;br/&gt;</tt> (an HTML line break).
 
 ## End of TL;DR
 
@@ -153,9 +155,23 @@ The code should strive to be DRY (don't repeat yourself), clear, and obviously
 correct (i.e. buildable). Some technical debt is inevitable,
 just don't bankrupt us with it. Refactoring is welcome.
 
-### Code style and formatting
+### C++ feature set
 
-As of Quotient 0.7, the C++ standard for newly written code is C++20.
+As of Quotient 0.7, the C++ standard for newly written code is C++20. Since none
+of the supported compilers (GCC 11, Clang 11, Apple Clang 12, MSVC 19.30 - see
+also the pre-requeisites in [README](./README.md)) can handle the entire C++20
+feature set, we have to stick with a subset. Most notably:
+
+- `std::bind_front`, ranges, `std::format`, `std::source_location` can't be used
+  yet;
+- while concepts and constraints as a language feature is there, some library
+  concepts are not available (`std::derived_from`, in particular);
+- `std::string` and `std::vector` are not constexpr.
+
+[This page at cppreference.com](https://en.cppreference.com/w/cpp/compiler_support#cpp20)
+can be used to check whether a given feature is there.
+
+### Code style and formatting
 
 The code style is defined by `.clang-format`, and in general, all C++ files
 should follow it. Files with minor deviations from the defined style are still
@@ -167,14 +183,14 @@ Notable things from .clang-format:
 * 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
   spot the code abusing these - thank you for fixing it.
 * Prefer keeping lines within 80 characters. Slight overflows are ok only
-  if that helps readability.
-  
+  if that helps readability. Ideally, just use `.clang-format` to format lines.
+
 Additionally:
-* Please don't make "hypocritical structs" with protected or private members.
-  In general, `struct` is used to denote a plain-old-data structure, rather
-  than data+behaviour. If you need access control or are adding yet another
-  non-trivial (construction, assignment) member function to a `struct`,
-  just make it a `class` instead.
+* Do not use `struct` next to protected or private members; try to use it
+  with plain-old-data structures, with maybe just a function or two among public
+  members. If you need access control or are adding yet another non-trivial
+  (construction, assignment) member function to a `struct`, make it a `class`
+  instead.
 * For newly created classes, keep to
   [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three) -
   make sure to read about the rule of zero if you haven't before, it's not
@@ -202,19 +218,36 @@ Additionally:
 * Always use `QVector` instead of `QList` unless Qt's own API uses it - see the
   [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
   for details. With Qt 6, these two become the same type matching what used
-  to be `QVector` in Qt 5. Unfortunately, since QVector becomes an alias in Qt 6
-  that comes with some breakage in template code; the fix usually boils down
-  to specifying template parameter of `QVector` explicitly.
+  to be `QVector` in Qt 5.
+
+  (Note: unfortunately, QVector is a type alias in Qt 6 and that breaks
+  templated code because type deduction doesn't work with aliases. This breakage
+  will go away in C++23 but we are far from that yet; in the meantime, the fix
+  boils down to specifying the template parameter of `QVector` explicitly.)
 
 ### API conventions
 
-Calls, data structures and other symbols not intended for use by clients
-should _not_ be exposed in (public) .h files, unless they are necessary
-to declare other public symbols. In particular, this involves private members
-(functions, typedefs, or variables) in public classes; use pimpl idiom to hide
-implementation details as much as possible. `_impl` namespace is reserved for
-definitions that should not be used by clients and are not covered by
-API guarantees.
+All non-inline symbols (functions, classes/structs, even namespace-level static
+variables) that are intended for use in client code must be declared with
+`QUOTIENT_API` macro (the macro itself is defined in the dedicated
+`quotient_export.h` file). This is concerned with symbols visibility in
+dynamic/shared libraries: the macro marks these symbols for exporting in
+the library symbol table. Without that clients will get, usually, linkage errors
+(but in some cases, only obscure runtime errors, such as split-brained singleton
+instances) once they attempt to use those symbols. You only need to use
+the macro on the namespace level; inner symbols (member functions, e.g.) are
+exported if their class is exported.
+
+On the other hand - it sounds obvious but calls, data structures and other
+symbols _not_ intended for usage in client code should _not_ be exposed in
+(public) .h files, unless they are necessary to declare other public symbols.
+In particular, this involves private members (functions, typedefs, or variables)
+in public classes; use pimpl idiom to hide implementation details as much
+as possible. This is to make it easier to change the inside machinery without
+breaking the API and ABI stability guarantees within a single major version.
+For cases when a definition has to be in the header file but should not be used
+in client code, use `_impl` namespace - anything in that namespace is
+not covered by API guarantees.
 
 Note: As of Quotient 0.7, all header files of libQuotient are considered public;
 this may change eventually.
@@ -223,21 +256,21 @@ this may change eventually.
 
 Whenever you add a new call to the library API that you expect to be used
 from client code, make sure to supply a proper doc-comment along with the call.
-Quotient uses the Doxygen style; some legacy code may use Javadoc style but it
-is not encouraged any more. Some parts are not documented at all;
-adding doc-comments to them is highly encouraged and is a great first-time
-contribution.
+Quotient uses the Doxygen C++-styled doc-comments (`//!`, `\brief`); some legacy
+code may use Javadoc (`/** ... */`, `@brief`) or C-styled Doxygen (`/*! ... */`)
+but that is not encouraged any more. Some parts are not documented at all;
+adding doc-comments to them and/or converting the existing ones to the assumed
+style is highly encouraged; it's also a nice and easy first-time contribution.
 
 Use `\brief` for the summary, and follow with details after
 an empty doc-comment line, using `\param`, `\return` etc. as necessary.
 
-For in-code comments, the advice is as follows:
+When commenting in-code:
 * Don't restate what's happening in the code unless it's not really obvious.
   We assume the readers to have some command of C++ and Qt. If your code is
   not obvious, consider making it clearer itself before commenting.
-* That said, both C++ and Qt have their arcane features and dark corners,
-  and we don't want to limit anybody who feels they have a case for
-  variadic templates, raw literals, and so on. Use your experience to figure
+* That said, both C++ and Qt have their arcane/novel features and dark corners,
+  and education of code readers is a great thing. Use your experience to figure
   what might be less well-known to readers and comment such cases: leave
   references to web pages, Quotient wiki etc.
 * Make sure to document not so much "what" but more "why" certain code is done
@@ -258,10 +291,10 @@ accompanied by a respective test in `autotests/` and/or in Quotest.
 
 To add a test to autotests:
 - In a new .cpp file in `autotests/`, define a test class derived from
-  QObject with `private Q_SLOTS:` section having the member functions called
-  for testing. If you feel more comfortable using a header file to define
-  the class, feel free to do so. If you're new to Qt Test framework, use
-  existing tests as a guidance.
+  QObject and write tests as member functions in its `private slots:` section.
+  If you feel more comfortable using a header file to define the class, that's
+  also fine but not necessary. If you're new to Qt Test framework, use existing
+  tests as a guidance.
 - Add a `quotient_add_test` macro call with your test to
   `autotests/CMakeLists.txt`
 
@@ -275,8 +308,8 @@ To add a test to Quotest:
   to check for the test outcome and complete the test (be mindful that
   `FINISH_TEST` always `return`s, not only in case of error). ALL (even failing)
   branches should conclude with a `FINISH_TEST` (or `FAIL_TEST` that is
-  a shortcut for a failing `FINISH_TEST`) invocation, unless you intend to have
-  a "DID NOT FINISH" message in the logs in certain conditions.
+  a shortcut for a failing `FINISH_TEST`) invocation, unless you want the test
+  to fail with a "DID NOT FINISH" message in the logs under certain conditions.
 
 The `TestManager` class sets up some basic test fixture to help you with testing;
 notably, the tests can rely on having an initialised `Room` object with loaded
@@ -285,21 +318,26 @@ for tests to go async, which is not something Qt Test is easy with (and this
 is why Quotest doesn't directly use Qt Test but rather fetches a few ideas
 from it).
 
-### Security, privacy, and performance
+### Security and privacy
 
-Pay attention to security, and work *with*, not against, the usual security hardening practices (however few in C++).
+Pay attention to security, and work *with*, not against, the usual security
+hardening practices.
 
 `char *` and similar unchecked C-style read/write arrays are forbidden - use
 Qt containers or at the very least `std::array<>` instead. Where you see fit
 (usually with data structures), try to use smart pointers, especially
 `std::unique_ptr<>`, instead of bare pointers. When dealing with `QObject`s,
-use the parent-child ownership semantics exercised by Qt (this in turn is
-preferred to using smart pointers). If you find a particular use case where
-the strict semantic of unique pointers doesn't help and a shared pointer
-is necessary, feel free to step up with the working code and it will be
-considered for inclusion.
+organise them in parent-child trees and let Qt manage object lifecycles
+for you (this in turn is preferred to using smart pointers). If you find
+a particular use case where the strict semantic of unique pointers doesn't help
+and a shared pointer is necessary, feel free to step up with the working code
+and it will be considered for inclusion.
 
-Exercise the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) where reasonable and appropriate. Prefer less-coupled cohesive code.
+Exercise the
+[principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege)
+where reasonable and appropriate. Prefer internally cohesive code while avoiding
+too much external coupling (such as calling into a bunch of classes at several
+points).
 
 Protect private information, in particular passwords and email addresses.
 Absolutely _don't_ spill around this information in logs, and only display
@@ -311,6 +349,8 @@ but that's pretty much it), and ensure that third parties can't use interactions
 for tracking. Matrix protocols evolve towards decoupling
 the personally identifiable information from user activity entirely - follow
 this trend.
+
+### Performance
 
 We want the software to have decent performance for users even on weaker
 machines. At the same time we keep libQuotient single-threaded as much
@@ -344,28 +384,27 @@ if you're on Linux/macOS).
 
 ### Generated C++ code for CS API
 The code in `lib/csapi`, `lib/identity` and `lib/application-service`, although
-it resides in Git, is actually generated from the official Swagger/OpenAPI
+stored in Git, is actually generated from the official Matrix Client-Server API
 definition files. If you're unhappy with something in there and want to improve
-the code, you have to understand the way these files are produced and setup
-some additional tooling. The shortest possible procedure resembling
-the below text can be found in .github/workflows/ci.yml (our CI configuration
-tests regeneration of those files). As described below, there is also a handy
-build target for CMake.
+that, you have to understand the way these files are produced and setup some
+additional tooling. The shortest possible procedure resembling the below text
+can be found in .github/workflows/ci.yml (regeneration of those files is tested
+in CI). As described below, there is also a handy build target for CMake.
 
 #### Why generate the code at all?
 Because otherwise we have to do monkey business of writing boilerplate code,
 with the same patterns, types etc., literally, for every single API endpoint,
 and one of libQuotient authors got fed up with it at some point in time.
-By then about 15 job classes were written; the entire API is about 100 endpoints
-and counting. Besides, the existing jobs had to be updated according to changes
-in CS API that have been, and will keep, coming. Other considerations can be
-found in [this talk about API description languages](https://youtu.be/W5TmRozH-rg)
-that also briefly touches on GTAD.
+By then about 15 job classes have been written; the whole API is about 100
+endpoints, with new ones added and some existing changed in each Matrix protocol
+version. Other considerations can be found in
+[this talk about API description languages](https://youtu.be/W5TmRozH-rg)
+that also briefly touches on GTAD - the tool written for the purpose.
 
 #### Prerequisites for CS API code generation
-1. Get the source code of GTAD and its dependencies. Recent libQuotient
-   includes GTAD as a submodule so you can get everything you need by updating
-   gtad/gtad submodule in libQuotient sources:
+1. Get the source code of GTAD and its dependencies. Since version 0.7, 
+   libQuotient includes GTAD as a submodule so you can get everything you need
+   by updating gtad/gtad submodule in libQuotient sources:
    `git submodule update --init --recursive gtad/gtad`.
 
    You can also just clone GTAD sources to keep them separate from libQuotient:
@@ -391,12 +430,12 @@ that also briefly touches on GTAD.
 #### Generating CS API contents
 1. Pass additional configuration to CMake when configuring libQuotient:
    `-DMATRIX_SPEC_PATH=/path/to/matrix-spec/ -DGTAD_PATH=/path/to/gtad`.
-   Note that `MATRIX_SPEC_PATH` should lead to the repo while `GTAD_PATH` should
-   have the path to GTAD binary. If you need to specify where your clang-format
-   is (see the previous section) add `-DCLANG_FORMAT=/path/to/clang-format` to
-   the line above. If everything's right, the detected locations will be
-   mentioned in CMake output and will trigger configuration of an additional
-   build target called `update-api`.
+   Note that `MATRIX_SPEC_PATH` should lead to the _repo_ (not the API folder)
+   while `GTAD_PATH` should have the path to GTAD _binary_. If you need
+   to specify where your clang-format is (see the previous section) add
+   `-DCLANG_FORMAT=/path/to/clang-format` to the line above. If everything's
+   right, the detected locations will be mentioned in CMake output and
+   an additional build target called `update-api` will be configured.
 2. Generate the code: `cmake --build <your build dir> --target update-api`.
    Building this target will create (overwriting without warning) source files
    in `lib/csapi`, `lib/identity`, `lib/application-service` for all YAML files
@@ -404,7 +443,9 @@ that also briefly touches on GTAD.
    dependencies.
 
 #### Changing generated code
-See the more detailed description of what GTAD is and how it works in the documentation on GTAD in its source repo. Only parts specific for libQuotient are described here.
+See the more detailed description of what GTAD is and how it works in
+the documentation on GTAD in its source repo. Only parts specific for
+libQuotient are described here.
 
 GTAD uses the following three kinds of sources:
 1. OpenAPI files. Each file is treated as a separate source (unlike
@@ -425,50 +466,36 @@ see its `mustache:` section. Adventurous souls that would like to figure
 what's going on in these files should speak up in the Quotient room -
 I (Kitsune) will be very glad to help you out.
 
-The types map in `gtad.yaml` is the central switchboard when it comes to matching OpenAPI types with C++ (and Qt) ones. It uses the following type attributes aside from pretty obvious "imports:":
-* `avoidCopy` - this attribute defines whether a const ref should be used instead of a value. For basic types like int this is obviously unnecessary; but compound types like `QVector` should rather be taken by reference when possible.
-* `moveOnly` - some types are not copyable at all and must be moved instead (an obvious example is anything "tainted" with a member of type `std::unique_ptr<>`).
-* `useOmittable` - wrap types that have no value with "null" semantics (i.e. number types and custom-defined data structures) into a special `Omittable<>` template defined in `converters.h`, a drop-in upgrade over `std::optional`.
-* `omittedValue` - an alternative for `useOmittable`, just provide a value used for an omitted parameter. This is used for bool parameters which normally are considered false if omitted (or they have an explicit default value, passed in the "official" GTAD's `defaultValue` variable).
-* `initializer` - this is a _partial_ (see GTAD and Mustache documentation for explanations but basically it's a variable that is a Mustache template itself) that specifies how exactly a default value should be passed to the parameter. E.g., the default value for a `QString` parameter is enclosed into `QStringLiteral`.
+The `types` map in `gtad.yaml` defines a mapping from OpenAPI types to C++/Qt.
+It uses the following type attributes aside from pretty obvious `imports:`:
+* `avoidCopy` - this attribute defines whether a const ref should be used
+  instead of a value. For basic types like int this is obviously unnecessary;
+  but compound types like `QVector` should rather be taken by reference when
+  possible.
+* `moveOnly` - some types are not copyable at all and must be moved instead
+  (an obvious example is any structure that uses, directly or indirectly,
+  `std::unique_ptr<>`).
+* `useOmittable` - wrap types that have no value with "null" semantics
+  (i.e. number types and custom-defined data structures) into a special
+  `Omittable<>` template defined in `converters.h`, a drop-in upgrade over
+  `std::optional`.
+* `omittedValue` - an alternative for `useOmittable`, just provide a value used
+  for an omitted parameter. This is used for bool parameters which normally are
+  considered false if omitted (or they have an explicit default value, passed
+  in the "official" GTAD's `defaultValue` variable).
+* `initializer` - this is a _partial_ (see GTAD and Mustache documentation for
+  explanations but basically it's a variable that is a Mustache template itself)
+  that specifies how exactly a default value should be passed to the parameter.
+  E.g., the default value for a `QString` parameter is enclosed into
+  `QStringLiteral`.
 
-Instead of relying on the event structure definition in the OpenAPI files, `gtad.yaml` uses pointers to libQuotient's event structures: `EventPtr`, `RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents` and `StateEvents` containers. When there's no way to figure the type from the definition, an opaque `QJsonObject` is used, leaving the conversion to the library and/or client code.
-
-## How to check proposed changes before submitting them
-
-Checking the code on at least one configuration is essential; if you only have
-a hasty fix that doesn't even compile, better make an issue and put a link to
-your commit or gist into it (with an explanation what it is about and why).
-
-### Standard checks
-
-The warnings configuration applied when using CMake can be found in
-`CMakeLists.txt`. Most warnings triggered by that configuration are not formally
-considered errors (the compiler will keep going) but please treat them as such.
-If you want to be cautious, you can use the following line for your IDE's Clang
-analyzer code model to enable as many compiler warnings as reasonable (that
-does not include `clang-tidy`/`clazy` warnings - see below on those):
-`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-string-conversion -Wno-return-std-move-in-c++11`.
-
-### Continuous Integration
-
-We use CI to check buildability and smoke-testing on Linux (GCC, Clang),
-MacOS (Clang), and Windows (MSVC). Every PR will go through these, and you'll
-see the traffic lights from them on the PR page. If your PR fails
-on any platform double-check that it's not your code causing it - and fix
-(or ask how to fix if you don't know) if it is.
-
-### Other tools
-
-Recent versions of Qt Creator and CLion can automatically run your code through
-clang-tidy. The source code contains `.clang-tidy` file with the recommended
-set of checks that doesn't give too many false positives.
-
-Qt Creator in addition knows about clazy, a Qt-aware static analysis tool that
-hunts for Qt-specific issues that are easy to overlook otherwise, such as
-possible unintended copying of a Qt container. Most of clazy checks are relevant
-to our code, except:
-`fully-qualified-moc-types,overloaded-signal,qstring-comparison-to-implicit-char,foreach,non-pod-global-static,qstring-allocations,jni-signatures,qt4-qstring-from-array`.
+Instead of relying on the event structure definition in the OpenAPI files,
+`gtad.yaml` uses pointers to libQuotient's event structures: `EventPtr`,
+`RoomEventPtr` and `StateEventPtr`. Respectively, arrays of events, when
+encountered in OpenAPI definitions, are converted to `Events`, `RoomEvents`
+and `StateEvents` containers. When there's no way to figure the type from
+the definition, an opaque `QJsonObject` is used, leaving the conversion
+to the library and/or client code.
 
 ### Submitting API changes
 
@@ -478,6 +505,7 @@ the way. The recommended sequence depends on whether or not you have to
 [write a Matrix Spec Change aka MSC](https://matrix.org/docs/spec/proposals).
 Usually you have to, unless your API changes keep API semantics intact.
 In that case:
+
 1. Submit an MSC before submitting changes to the API definition files and
    libQuotient.
 2. The MSC gets reviewed by the Spec Core Team. This can be a lengthy process
@@ -503,23 +531,70 @@ of 2 PRs: one to `https://github.com/matrix-org/matrix-spec` ("spec PR") and one
 to libQuotient (with the same guidance about putting generated and non-generated
 files in different commits).
 
+
+## How to check proposed changes before submitting them
+
+Checking the code on at least one configuration is essential; if you only have
+a hasty fix that doesn't even compile, better make an issue and put a link to
+your commit or gist into it (with an explanation what it is about and why).
+
+### Compiler warnings
+
+The warnings configuration applied when using CMake can be found in
+`CMakeLists.txt`. Most warnings triggered by that configuration are not formally
+considered errors (the compiler will keep going) but please treat them as such.
+
+If you want the IDE to be _really_ picky about your code you can use
+the following line for the Clang analyzer code model to enable most compiler
+warnings while keeping the number of false positives at bay (that does not
+include `clang-tidy`/`clazy` warnings - see below on those):
+`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-string-conversion -Wno-return-std-move-in-c++11`.
+
+### Static analysis tools
+
+Recent versions of Qt Creator and CLion can automatically run your code through
+clang-tidy. The source code contains `.clang-tidy` file with the recommended
+set of checks that doesn't give too many false positives.
+
+Qt Creator in addition knows about clazy, a Qt-aware static analysis tool that
+hunts for Qt-specific issues that are easy to overlook otherwise, such as
+possible unintended copying of a Qt container. Most of clazy checks are relevant
+to our code; here's the configuration line the author of this text is using:
+`level2,no-foreach,no-non-pod-global-static,no-range-loop-reference,no-ctor-missing-parent-argument,no-missing-qobject-macro,no-jni-signatures,no-qt-keywords,no-qt4-qstring-from-array`
+
+### Continuous Integration
+
+We use CI to check buildability and smoke-testing on Linux (GCC, Clang),
+MacOS (Clang), and Windows (MSVC). Every PR will go through these, and you'll
+see the traffic lights from them on the PR page. If your PR fails
+on any platform double-check that it's not your code causing it - and fix
+(or ask how to fix if you don't know) if it is.
+
 ## Git commit messages
 
 When writing git commit messages, try to follow the guidelines in
 [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/):
 
-1.  Separate subject from body with a blank line
-2.  Be reasonable on the subject line length, because this is what we see in commit logs. Try to fit in 50 characters whenever possible.
-3.  Capitalize the subject line
-4.  Do not end the subject line with a period
-5.  Use the imperative mood in the subject line (*command* form)
-  (we don't always practice this ourselves but let's try).
-6.  Use the body to explain what and why vs. how
-    (git tracks how it was changed in detail, don't repeat that). Sometimes a quick overview of "how" is acceptable if a commit is huge - but maybe split a commit into smaller ones, to begin with?
+1.  Separate subject from body with a blank line.
+2.  Be reasonable on the subject line length, because this is what we see in
+    commit logs that are constrained in horizontal space. Try to fit in
+    50 characters whenever possible.
+3.  Capitalize the subject line.
+4.  Do not end the subject line with a period.
+5.  Aim to use the imperative mood in the subject line (*command* form).
+6.  Use the body to explain what and why vs. how (git tracks how it was changed
+    in detail, don't repeat that). Sometimes a quick overview of "how" is 
+    acceptable if a commit is huge - but maybe split a commit into smaller ones,
+    to begin with?
 
 ## Reuse (libraries, frameworks, etc.)
 
-C++ is unfortunately not very coherent about SDK/package management, and we try to keep building the library as easy as possible. Because of that we are very conservative about adding dependencies to libQuotient. That relates to additional Qt components and even more to other libraries. Fortunately, even the Qt components now in use (Qt Core and Network) are very feature-rich and provide plenty of ready-made stuff.
+C++ is unfortunately not very coherent about SDK/package management, and we try
+to keep building the library as easy as possible. Because of that we are very
+conservative about adding dependencies to libQuotient. That relates
+to additional Qt components and even more to other libraries. Fortunately, even
+the Qt components now in use (Qt Core and Network) are very feature-rich and
+provide plenty of ready-made stuff.
 
 Some cases need additional explanation:
 * Before rolling out your own super-optimised container or algorithm written
@@ -534,11 +609,13 @@ Some cases need additional explanation:
   don't have KDE frameworks installed (some even oppose installing those) -
   libQuotient caters to them too.
 * Never forget that libQuotient is aimed to be a non-visual library;
-  QtGui in dependencies is only driven by (entirely offscreen) dealing with
+  QtGui in dependencies is only there to allow (entirely offscreen) handling of
   QImages. While there's a bunch of visual code (in C++ and QML) shared
   between Quotient-enabled _applications_, this is likely to end up
   in a separate (Quotient-backed) library, rather than libQuotient itself.
 
 ## Attribution
 
-This text is based on CONTRIBUTING.md from CII Best Practices Badge project, which is a collective work of its contributors (many thanks!). The text itself is licensed under CC-BY-4.0.
+This text is based on CONTRIBUTING.md from CII Best Practices Badge project,
+which is a collective work of its contributors (many thanks!). The text itself
+is licensed under CC-BY-4.0.
