@@ -281,8 +281,8 @@ quotient.<category>.<level>=<flag>
 where
 - `<category>` is one of: `main`, `jobs`, `jobs.sync`, `jobs.thumbnail`,
   `events`, `events.state` (covering both the "usual" room state and account
-  data), `events.messages`, `events.ephemeral`, `database`, `e2ee` and
-  `profiler` (you can always find the full list in `lib/logging.cpp`);
+  data), `events.members`, `events.messages`, `events.ephemeral`, `database`,
+  `e2ee` and `profiler` - you can always find the full list in `lib/logging.cpp`;
 - `<level>` is one of `debug`, `info`, and `warning`;
 - `<flag>` is either `true` or `false`.
 
