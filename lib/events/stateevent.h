@@ -24,7 +24,7 @@ public:
     //! constructors and calls in, e.g., RoomStateView don't include it.
     static constexpr auto needsStateKey = false;
 
-    explicit StateEvent(Type type, const QString& stateKey = {},
+    explicit StateEvent(event_type_t type, const QString& stateKey = {},
                         const QJsonObject& contentJson = {});
 
     //! Make a minimal correct Matrix state event JSON

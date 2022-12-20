@@ -265,7 +265,6 @@ struct JsonConverter<event_ptr_tt<EventT>>
 
 class QUOTIENT_API Event {
 public:
-    using Type = event_type_t;
     static inline EventMetaType<Event> BaseMetaType { "Event" };
     virtual const AbstractEventMetaType& metaType() const
     {
@@ -289,7 +288,7 @@ public:
     //! For generic/unknown events it will contain a descriptive/generic string
     //! defined by the respective base event type (that can be empty).
     //! \sa matrixType
-    Type type() const { return metaType().matrixId; }
+    auto type() const { return metaType().matrixId; }
 
     //! \brief Exact Matrix type stored in JSON
     //!
@@ -477,9 +476,9 @@ public:
         return MetaType;                                                 \
     }                                                                    \
     [[deprecated("Use " #CppType_ "::TypeId directly instead")]]         \
-    static constexpr const char* matrixTypeId() { return MatrixType_; }  \
+    static constexpr auto matrixTypeId() { return MatrixType_; }         \
     [[deprecated("Use " #CppType_ "::TypeId directly instead")]]         \
-    static event_type_t typeId() { return TypeId; }                      \
+    static auto typeId() { return TypeId; }                              \
     // End of macro
 
 //! \deprecated This is the old name for what is now known as QUO_EVENT
