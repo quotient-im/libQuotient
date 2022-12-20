@@ -87,7 +87,7 @@ EmptyLineBeforeAccessModifier: LogicalBlock
 #FixNamespaceComments: false # See ShortNamespaces below
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex:    '^<Qt.+/'
+  - Regex:    '^<Qt.+(/.+)?'
     Priority: 24
   - Regex:    '^<'
     Priority: 32
