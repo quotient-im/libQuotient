@@ -2,12 +2,15 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+#include "olm/sas.h"
 
 #include <QTest>
-#include "testutils.h"
 #include <QtCore/QDateTime>
+
+#include <Quotient/connection.h>
 #include <Quotient/e2ee/qolmaccount.h>
-#include "olm/sas.h"
+
+using namespace Quotient;
 
 class TestKeyVerificationSession : public QObject
 {
