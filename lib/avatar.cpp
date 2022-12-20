@@ -19,7 +19,7 @@ using std::move;
 
 class Avatar::Private {
 public:
-    explicit Private(QUrl url = {}) : _url(move(url)) {}
+    explicit Private(QUrl url = {}) : _url(std::move(url)) {}
     ~Private()
     {
         if (isJobPending(_thumbnailRequest))
@@ -56,13 +56,13 @@ Avatar::Avatar(QUrl url) : d(makeImpl<Private>(std::move(url))) {}
 QImage Avatar::get(Connection* connection, int dimension,
                    get_callback_t callback) const
 {
-    return d->get(connection, { dimension, dimension }, move(callback));
+    return d->get(connection, { dimension, dimension }, std::move(callback));
 }
 
 QImage Avatar::get(Connection* connection, int width, int height,
                    get_callback_t callback) const
 {
-    return d->get(connection, { width, height }, move(callback));
+    return d->get(connection, { width, height }, std::move(callback));
 }
 
 bool Avatar::upload(Connection* connection, const QString& fileName,
@@ -70,7 +70,7 @@ bool Avatar::upload(Connection* connection, const QString& fileName,
 {
     if (isJobPending(d->_uploadRequest))
         return false;
-    return d->upload(connection->uploadFile(fileName), move(callback));
+    return d->upload(connection->uploadFile(fileName), std::move(callback));
 }
 
 bool Avatar::upload(Connection* connection, QIODevice* source,
@@ -78,7 +78,7 @@ bool Avatar::upload(Connection* connection, QIODevice* source,
 {
     if (isJobPending(d->_uploadRequest) || !source->isReadable())
         return false;
-    return d->upload(connection->uploadContent(source), move(callback));
+    return d->upload(connection->uploadContent(source), std::move(callback));
 }
 
 QString Avatar::mediaId() const { return d->_url.authority() + d->_url.path(); }
@@ -109,7 +109,7 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
         if (isJobPending(_thumbnailRequest))
             _thumbnailRequest->abandon();
         if (callback)
-            callbacks.emplace_back(move(callback));
+            callbacks.emplace_back(std::move(callback));
         _thumbnailRequest = connection->getThumbnail(_url, size);
         QObject::connect(_thumbnailRequest, &MediaThumbnailJob::success,
                          _thumbnailRequest, [this] {

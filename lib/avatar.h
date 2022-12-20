@@ -18,6 +18,7 @@ public:
     explicit Avatar();
     explicit Avatar(QUrl url);
 
+    // TODO: use std::move_only_function once C++23 is here
     using get_callback_t = std::function<void()>;
     using upload_callback_t = std::function<void(QUrl)>;
 
