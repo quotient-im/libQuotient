@@ -536,7 +536,8 @@ inline bool is(const Event& e)
 {
     // Protect against accidental putting QUO_*EVENT to a private section
     static_assert(requires { &EventT::metaType; },
-                  "Event class doesn't have a public metaType() override");
+                  "Event class doesn't have a public metaType() override - "
+                  "did you misplace the QUO_*EVENT macro?");
     if constexpr (requires { EventT::MetaType; }) {
         return &e.metaType() == &EventT::MetaType;
     } else {
