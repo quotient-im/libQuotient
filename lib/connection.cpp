@@ -2366,8 +2366,8 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
                        << targetDeviceId;
         return false;
     }
-    auto* signedOneTimeKey = std::get_if<SignedOneTimeKey>(
-        std::to_address(oneTimeKeyObject.begin()));
+    auto* signedOneTimeKey =
+        std::get_if<SignedOneTimeKey>(&*oneTimeKeyObject.begin());
     if (!signedOneTimeKey) {
         qWarning(E2EE) << "No signed one time key for" << targetUserId
                        << targetDeviceId;
