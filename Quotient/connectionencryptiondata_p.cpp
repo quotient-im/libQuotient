@@ -752,7 +752,7 @@ ConnectionEncryptionData::ConnectionEncryptionData(Connection* connection,
                                                    PicklingKey&& picklingKey)
     : q(connection)
     , olmAccount(q->userId(), q->deviceId())
-    , database(q->userId(), q->deviceId(), std::move(picklingKey), q)
+    , database(q->userId(), q->deviceId(), std::move(picklingKey))
     , olmSessions(database.loadOlmSessions())
 {
     QObject::connect(&olmAccount, &QOlmAccount::needsSave, q,

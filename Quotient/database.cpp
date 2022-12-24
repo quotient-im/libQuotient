@@ -20,9 +20,8 @@
 using namespace Quotient;
 
 Database::Database(const QString& userId, const QString& deviceId,
-                   PicklingKey&& picklingKey, QObject* parent)
-    : QObject(parent)
-    , m_userId(userId)
+                   PicklingKey&& picklingKey)
+    : m_userId(userId)
     , m_deviceId(deviceId)
     , m_picklingKey(std::move(picklingKey))
 {
