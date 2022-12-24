@@ -30,8 +30,8 @@ public:
     void commit();
     QSqlQuery execute(const QString &queryString);
     QSqlQuery execute(QSqlQuery &query);
-    QSqlDatabase database();
-    QSqlQuery prepareQuery(const QString& quaryString);
+    QSqlDatabase database() const;
+    QSqlQuery prepareQuery(const QString& quaryString) const;
 
     void storeOlmAccount(const QOlmAccount& olmAccount);
     Omittable<OlmErrorCode> setupOlmAccount(QOlmAccount &olmAccount);

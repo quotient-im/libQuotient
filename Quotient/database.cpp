@@ -315,12 +315,12 @@ std::pair<QString, qint64> Database::groupSessionIndexRecord(const QString& room
     return {query.value("eventId"_ls).toString(), query.value("ts"_ls).toLongLong()};
 }
 
-QSqlDatabase Database::database()
+QSqlDatabase Database::database() const
 {
     return QSqlDatabase::database("Quotient_"_ls + m_userId);
 }
 
-QSqlQuery Database::prepareQuery(const QString& queryString)
+QSqlQuery Database::prepareQuery(const QString& queryString) const
 {
     QSqlQuery query(database());
     query.prepare(queryString);
