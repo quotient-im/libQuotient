@@ -2640,30 +2640,29 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
 RoomEventPtr makeRedacted(const RoomEvent& target,
                           const RedactionEvent& redaction)
 {
-    auto originalJson = target.fullJson();
+    // clang-format puts them in a single column...
     // clang-format off
     static const QStringList keepKeys {
         EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey,
-        QStringLiteral("hashes"), QStringLiteral("signatures"),
-        QStringLiteral("depth"), QStringLiteral("prev_events"),
-        QStringLiteral("prev_state"), QStringLiteral("auth_events"),
-        QStringLiteral("origin"), QStringLiteral("origin_server_ts"),
-        QStringLiteral("membership") };
+        "hashes"_ls, "signatures"_ls, "depth"_ls, "prev_events"_ls,
+        "prev_state"_ls, "auth_events"_ls, "origin"_ls, "origin_server_ts"_ls,
+        "membership"_ls };
     // clang-format on
 
-    static const std::pair<event_type_t, QStringList> keepContentKeysMap[]{
-        { RoomMemberEvent::TypeId, { QStringLiteral("membership") } },
-        { RoomCreateEvent::TypeId, { QStringLiteral("creator") } },
-        { RoomPowerLevelsEvent::TypeId,
-          { QStringLiteral("ban"), QStringLiteral("events"),
-            QStringLiteral("events_default"), QStringLiteral("kick"),
-            QStringLiteral("redact"), QStringLiteral("state_default"),
-            QStringLiteral("users"), QStringLiteral("users_default") } },
-        // TODO: Replace with RoomJoinRules::TypeId etc. once available
-        { "m.room.join_rules"_ls, { QStringLiteral("join_rule") } },
-        { "m.room.history_visibility"_ls,
-          { QStringLiteral("history_visibility") } }
-    };
+    static const auto keepContentKeysMap =
+        std::to_array<std::pair<event_type_t, QStringList>>(
+            { { RoomMemberEvent::TypeId,
+                { "membership"_ls, "join_authorised_via_users_server"_ls } },
+              { RoomCreateEvent::TypeId, { "creator"_ls } },
+              { RoomPowerLevelsEvent::TypeId,
+                { "ban"_ls, "events"_ls, "events_default"_ls, "kick"_ls,
+                  "redact"_ls, "state_default"_ls, "users"_ls,
+                  "users_default"_ls } },
+              // TODO: Replace with RoomJoinRules::TypeId etc. once available
+              { "m.room.join_rules"_ls, { "join_rule"_ls, "allow"_ls } },
+              { "m.room.history_visibility"_ls, { "history_visibility"_ls } } });
+
+    auto originalJson = target.fullJson();
     for (auto it = originalJson.begin(); it != originalJson.end();) {
         if (!keepKeys.contains(it.key()))
             it = originalJson.erase(it); // TODO: shred the value
