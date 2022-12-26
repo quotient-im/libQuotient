@@ -79,6 +79,7 @@ jobs:
         version: ${{ matrix.qt-version }}
         cache: true
         cache-key-prefix: Qt
+        tools: 'tools_ninja'
 
     - name: Setup build environment
       run: |
@@ -106,6 +107,7 @@ jobs:
         echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/Qt-${{ matrix.qt-version }}/${{ matrix.compiler }}" >>$GITHUB_ENV
 
         CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                    -DCMAKE_MAKE_PROGRAM=$IQTA_TOOLS/Ninja/ninja \
                     -DBUILD_SHARED_LIBS=${{ runner.os == 'Linux' }} \
                     -DCMAKE_INSTALL_PREFIX=~/.local \
                     -DCMAKE_PREFIX_PATH=~/.local \
@@ -128,10 +130,6 @@ jobs:
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
 
-    - name: Install Ninja (macOS/Windows)
-      if: ${{ !startsWith(matrix.os, 'ubuntu') }}
-      uses: seanmiddleditch/gha-setup-ninja@v3
-
     - name: Install dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
@@ -139,7 +137,7 @@ jobs:
             EXTRA_DEPS="libssl-dev libolm-dev"
             echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
         fi
-        sudo apt-get -qq install ninja-build valgrind $EXTRA_DEPS
+        sudo apt-get -qq install valgrind $EXTRA_DEPS
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
