@@ -19,14 +19,14 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ ubuntu-22.04, macos-11 ]
-        qt-version: [ '6.4.1', '5.15.2' ]
+        qt-version: [ '6.4', '5.15' ]
         compiler: [ '' ] # LLVM/Clang by default
         # Not using binary values here, to make the job captions more readable
         e2ee: [ '' ]
         update-api: [ '', update-api ]
         static-analysis: [ '' ]
         exclude:
-        - qt-version: '6.4.1'
+        - qt-version: '6.4'
           update-api: update-api # Generated code is not specific to Qt version
         - os: ubuntu-22.04
           e2ee: e2ee # Will be re-added with static analysis below
@@ -35,31 +35,31 @@ jobs:
           e2ee: e2ee
         include:
         - os: windows-2019
-          qt-version: '5.15.2'
+          qt-version: '5.15'
           compiler: MSVC
         - os: ubuntu-22.04
-          qt-version: '5.15.2'
+          qt-version: '5.15'
           e2ee: e2ee
           static-analysis: codeql
         - os: ubuntu-22.04
-          qt-version: '5.15.2'
+          qt-version: '5.15'
           compiler: GCC
           e2ee: e2ee
           static-analysis: sonar
         - os: ubuntu-22.04
-          qt-version: '5.15.2'
+          qt-version: '5.15'
           compiler: GCC
           e2ee: e2ee
           update-api: update-api
         - os: ubuntu-22.04
-          qt-version: '5.15.2'
+          qt-version: '5.15'
           update-api: update-api
         - os: windows-2019
-          qt-version: '6.4.1'
+          qt-version: '6.4'
           compiler: MSVC
           # e2ee: e2ee # TODO
         - os: windows-2019
-          qt-version: '5.15.2'
+          qt-version: '5.15'
           compiler: MSVC
           update-api: update-api
 
@@ -74,7 +74,7 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v3.0.0
       with:
-        version: ${{ matrix.qt-version }}
+        version: '${{ matrix.qt-version }}.*'
         cache: true
         cache-key-prefix: Qt
         tools: 'tools_ninja'
