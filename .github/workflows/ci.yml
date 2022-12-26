@@ -19,14 +19,14 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ ubuntu-22.04, macos-11 ]
-        qt-version: [ '6.3.1', '5.15.2' ]
-        compiler: [ LLVM ]
+        qt-version: [ '6.4.1', '5.15.2' ]
+        compiler: [ '' ] # LLVM/Clang by default
         # Not using binary values here, to make the job captions more readable
-        e2ee: [ '', e2ee ]
+        e2ee: [ '' ]
         update-api: [ '', update-api ]
         static-analysis: [ '' ]
         exclude:
-        - qt-version: '6.3.1'
+        - qt-version: '6.4.1'
           update-api: update-api # Generated code is not specific to Qt version
         - os: ubuntu-22.04
           e2ee: e2ee # Will be re-added with static analysis below
@@ -39,7 +39,6 @@ jobs:
           compiler: MSVC
         - os: ubuntu-22.04
           qt-version: '5.15.2'
-          compiler: LLVM
           e2ee: e2ee
           static-analysis: codeql
         - os: ubuntu-22.04
@@ -54,10 +53,9 @@ jobs:
           update-api: update-api
         - os: ubuntu-22.04
           qt-version: '5.15.2'
-          compiler: LLVM
           update-api: update-api
         - os: windows-2019
-          qt-version: '6.3.1'
+          qt-version: '6.4.1'
           compiler: MSVC
           # e2ee: e2ee # TODO
         - os: windows-2019
@@ -104,7 +102,7 @@ jobs:
             VERSION="$(git describe --all --contains)-ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
         fi
 
-        echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/Qt-${{ matrix.qt-version }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/Qt-${{ matrix.qt-version }}/${{ matrix.compiler != '' && matrix.compiler || 'LLVM' }}" >>$GITHUB_ENV
 
         CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                     -DCMAKE_MAKE_PROGRAM=$IQTA_TOOLS/Ninja/ninja \
