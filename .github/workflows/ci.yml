@@ -30,13 +30,14 @@ jobs:
           update-api: update-api # Generated code is not specific to Qt version
         - os: ubuntu-22.04
           e2ee: e2ee # Will be re-added with static analysis below
-        # TODO: Enable E2EE on Windows and macOS
+        # TODO: Enable E2EE on macOS
         - os: macos-11
           e2ee: e2ee
         include:
         - os: windows-2019
           qt-version: '5.15'
           compiler: MSVC
+          e2ee: e2ee
         - os: ubuntu-22.04
           qt-version: '5.15'
           e2ee: e2ee
@@ -57,7 +58,7 @@ jobs:
         - os: windows-2019
           qt-version: '6.4'
           compiler: MSVC
-          # e2ee: e2ee # TODO
+          e2ee: e2ee
         - os: windows-2019
           qt-version: '5.15'
           compiler: MSVC
@@ -77,7 +78,7 @@ jobs:
         version: '${{ matrix.qt-version }}.*'
         cache: true
         cache-key-prefix: Qt
-        tools: 'tools_ninja'
+        tools: "tools_ninja${{ !startsWith(matrix.os, 'macos') && ' tools_openssl_x64' || '' }}"
 
     - name: Setup build environment
       run: |
@@ -112,6 +113,10 @@ jobs:
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
                     -DBUILD_WITH_QT6=${{ startsWith(matrix.qt-version, '6') }}"
 
+        if [ '${{ startsWith(matrix.os, 'macos') }}' == 'false' ]; then
+            CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSL/*/"
+        fi
+
         if [ '${{ matrix.static-analysis }}' == 'sonar' ]; then
             mkdir -p $HOME/.sonar
             CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=--coverage"
@@ -132,10 +137,9 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         if [ -n "${{ matrix.e2ee }}" ]; then
-            EXTRA_DEPS="libssl-dev libolm-dev"
             echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
         fi
-        sudo apt-get -qq install valgrind $EXTRA_DEPS
+        sudo apt-get -qq install valgrind
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -163,6 +167,14 @@ jobs:
         git clone -b v0.13.2 https://github.com/frankosterfeld/qtkeychain.git
         cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
+
+    - name: Build and install Olm
+      if: matrix.e2ee
+      run: |
+        cd ..
+        git clone https://gitlab.matrix.org/matrix-org/olm.git
+        cmake -S olm -B olm/build $CMAKE_ARGS
+        cmake --build olm/build --target install
 
     - name: Get CS API definitions; clone and build GTAD
       if: matrix.update-api
