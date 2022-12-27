@@ -30,9 +30,6 @@ jobs:
           update-api: update-api # Generated code is not specific to Qt version
         - os: ubuntu-22.04
           e2ee: e2ee # Will be re-added with static analysis below
-        # TODO: Enable E2EE on macOS
-        - os: macos-11
-          e2ee: e2ee
         include:
         - os: windows-2019
           qt-version: '5.15'
@@ -80,6 +77,14 @@ jobs:
         cache-key-prefix: Qt
         tools: "tools_ninja${{ !startsWith(matrix.os, 'macos') && ' tools_openssl_x64' || '' }}"
 
+    - name: Install other dependencies (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: sudo apt-get -qq install valgrind
+
+    - name: Install other dependencies (macOS)
+      if: startsWith(matrix.os, 'macos') && matrix.e2ee
+      run: brew install openssl
+
     - name: Setup build environment
       run: |
         if [ '${{ matrix.compiler }}' == 'GCC' ]; then
@@ -113,8 +118,13 @@ jobs:
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
                     -DBUILD_WITH_QT6=${{ startsWith(matrix.qt-version, '6') }}"
 
-        if [ '${{ startsWith(matrix.os, 'macos') }}' == 'false' ]; then
-            CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSL/*/"
+        if [ -n "${{ matrix.e2ee }}" ]; then
+            echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN/E2EE" >>$GITHUB_ENV
+            if [ '${{ startsWith(matrix.os, 'macos') }}' == 'true' ]; then
+                CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=`brew --prefix openssl@1.1`"
+            else
+                CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSL/*/"
+            fi
         fi
 
         if [ '${{ matrix.static-analysis }}' == 'sonar' ]; then
@@ -132,14 +142,6 @@ jobs:
 
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
-
-    - name: Install dependencies (Linux)
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        if [ -n "${{ matrix.e2ee }}" ]; then
-            echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
-        fi
-        sudo apt-get -qq install valgrind
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
@@ -186,7 +188,7 @@ jobs:
         echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_SPEC_PATH=${{ runner.workspace }}/matrix-spec \
                                      -DGTAD_PATH=${{ runner.workspace }}/build/gtad/gtad" \
              >>$GITHUB_ENV
-        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with API files regeneration" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with regenerated API files" >>$GITHUB_ENV
 
     - name: Initialize CodeQL tools
       if: matrix.static-analysis == 'codeql'
