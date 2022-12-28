@@ -18,51 +18,37 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-22.04, macos-11 ]
-        qt-version: [ '6.3.1', '5.15.2' ]
-        compiler: [ LLVM ]
+        os: [ ubuntu-22.04, macos-11, windows-2019 ]
+        qt-version: [ '6.4', '5.15' ]
+        override-compiler: [ '', GCC ] # Defaults: MSVC on Windows, Clang elsewhere
         # Not using binary values here, to make the job captions more readable
-        e2ee: [ '', e2ee ]
-        update-api: [ '', update-api ]
-        static-analysis: [ '' ]
-        exclude:
-        - qt-version: '6.3.1'
-          update-api: update-api # Generated code is not specific to Qt version
-        - os: ubuntu-22.04
-          e2ee: e2ee # Will be re-added with static analysis below
-        # TODO: Enable E2EE on Windows and macOS
+        e2ee: [ e2ee, '' ]
+        update-api: [ '' ]
+        exclude: # Drop less important combinations to lower the jobs number
+        - qt-version: '5.15'
+          e2ee: ''
+        - qt-version: '5.15'
+          override-compiler: GCC
         - os: macos-11
-          e2ee: e2ee
+          override-compiler: GCC
+        - os: windows-2019
+          override-compiler: GCC
         include:
-        - os: windows-2019
-          qt-version: '5.15.2'
-          compiler: MSVC
-        - os: ubuntu-22.04
-          qt-version: '5.15.2'
-          compiler: LLVM
+        - os: ubuntu-22.04 # Overrides the existing job
+          qt-version: '6.4'
           e2ee: e2ee
-          static-analysis: codeql
-        - os: ubuntu-22.04
-          qt-version: '5.15.2'
-          compiler: GCC
-          e2ee: e2ee
+          override-compiler: GCC
           static-analysis: sonar
-        - os: ubuntu-22.04
-          qt-version: '5.15.2'
-          compiler: GCC
+        - os: ubuntu-22.04 # Overrides the existing job
+          qt-version: '5.15'
           e2ee: e2ee
           update-api: update-api
+          static-analysis: codeql
+          # NB ^: Valgrind is enabled with GCC but doesn't like CodeQL
+          #       instrumentation; so don't use CodeQL with GCC for now
         - os: ubuntu-22.04
-          qt-version: '5.15.2'
-          compiler: LLVM
-          update-api: update-api
-        - os: windows-2019
-          qt-version: '6.3.1'
-          compiler: MSVC
-          # e2ee: e2ee # TODO
-        - os: windows-2019
-          qt-version: '5.15.2'
-          compiler: MSVC
+          qt-version: '5.15'
+          override-compiler: GCC
           update-api: update-api
 
     env:
@@ -76,13 +62,22 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v3.0.0
       with:
-        version: ${{ matrix.qt-version }}
+        version: '${{ matrix.qt-version }}.*'
         cache: true
         cache-key-prefix: Qt
+        tools: "tools_ninja${{ !startsWith(matrix.os, 'macos') && ' tools_openssl_x64' || '' }}"
+
+    - name: Install other dependencies (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: sudo apt-get -qq install valgrind
+
+    - name: Install other dependencies (macOS)
+      if: startsWith(matrix.os, 'macos') && matrix.e2ee
+      run: brew install openssl
 
     - name: Setup build environment
       run: |
-        if [ '${{ matrix.compiler }}' == 'GCC' ]; then
+        if [ '${{ matrix.override-compiler }}' == 'GCC' ]; then
             echo "CC=gcc" >>$GITHUB_ENV
             echo "CXX=g++" >>$GITHUB_ENV
             if [ '${{ startsWith(matrix.qt-version, '5') }}' == 'true' ]; then
@@ -103,20 +98,35 @@ jobs:
             VERSION="$(git describe --all --contains)-ci${{ github.run_number }}-$(git rev-parse --short HEAD)"
         fi
 
-        echo "QUOTEST_ORIGIN=$VERSION @ ${{ runner.os }}/Qt-${{ matrix.qt-version }}/${{ matrix.compiler }}" >>$GITHUB_ENV
+        QUOTEST_ORIGIN="$VERSION @ ${{ runner.os }}/Qt-${{ matrix.qt-version }}"
+        if [ -n '${{ matrix.override-compiler }}' ]; then
+            QUOTEST_ORIGIN="$QUOTEST_ORIGIN/${{ matrix.override-compiler }}"
+        fi
 
         CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                    -DCMAKE_MAKE_PROGRAM=$IQTA_TOOLS/Ninja/ninja \
                     -DBUILD_SHARED_LIBS=${{ runner.os == 'Linux' }} \
                     -DCMAKE_INSTALL_PREFIX=~/.local \
                     -DCMAKE_PREFIX_PATH=~/.local \
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
                     -DBUILD_WITH_QT6=${{ startsWith(matrix.qt-version, '6') }}"
 
+        if [ -n '${{ matrix.e2ee }}' ]; then
+            QUOTEST_ORIGIN="$QUOTEST_ORIGIN/E2EE"
+            if [ '${{ startsWith(runner.os, 'mac') }}' == 'true' ]; then
+                CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=`brew --prefix openssl@1.1`"
+            else
+                CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSL/*/"
+            fi
+        fi
+
         if [ '${{ matrix.static-analysis }}' == 'sonar' ]; then
             mkdir -p $HOME/.sonar
             CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_FLAGS=--coverage"
         fi
+
         echo "CMAKE_ARGS=$CMAKE_ARGS" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN" >>$GITHUB_ENV
 
         if [[ '${{ runner.os }}' != 'Windows' ]]; then
             BIN_DIR=/bin
@@ -128,22 +138,9 @@ jobs:
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
 
-    - name: Install Ninja (macOS/Windows)
-      if: ${{ !startsWith(matrix.os, 'ubuntu') }}
-      uses: seanmiddleditch/gha-setup-ninja@v3
-
-    - name: Install dependencies (Linux)
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        if [ -n "${{ matrix.e2ee }}" ]; then
-            EXTRA_DEPS="libssl-dev libolm-dev"
-            echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with E2EE" >>$GITHUB_ENV
-        fi
-        sudo apt-get -qq install ninja-build valgrind $EXTRA_DEPS
-
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
-      if: matrix.compiler == 'MSVC'
+      if: startsWith(matrix.os, 'windows')
       with:
         arch: x64
 
@@ -168,6 +165,14 @@ jobs:
         cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
 
+    - name: Build and install Olm
+      if: matrix.e2ee
+      run: |
+        cd ..
+        git clone https://gitlab.matrix.org/matrix-org/olm.git
+        cmake -S olm -B olm/build $CMAKE_ARGS
+        cmake --build olm/build --target install
+
     - name: Get CS API definitions; clone and build GTAD
       if: matrix.update-api
       run: |
@@ -178,7 +183,7 @@ jobs:
         echo "CMAKE_ARGS=$CMAKE_ARGS -DMATRIX_SPEC_PATH=${{ runner.workspace }}/matrix-spec \
                                      -DGTAD_PATH=${{ runner.workspace }}/build/gtad/gtad" \
              >>$GITHUB_ENV
-        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with API files regeneration" >>$GITHUB_ENV
+        echo "QUOTEST_ORIGIN=$QUOTEST_ORIGIN with regenerated API files" >>$GITHUB_ENV
 
     - name: Initialize CodeQL tools
       if: matrix.static-analysis == 'codeql'
