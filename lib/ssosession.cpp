@@ -10,6 +10,7 @@
 #include <QtNetwork/QTcpSocket>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringBuilder>
+#include <QNetworkProxy>
 
 using namespace Quotient;
 
@@ -22,9 +23,11 @@ public:
         , connection(connection)
     {
         auto* server = new QTcpServer(q);
+        // User might apply an application level proxy and we don't need them here.
+        server->setProxy(QNetworkProxy::NoProxy);
         if (!server->listen())
             qCritical(MAIN)
-                << "Could not open the port, SSO callback won't work";
+                << "Could not open the port, SSO callback won't work:" << server->errorString();
         // The "/returnToApplication" part is just a hint for the end-user,
         // the callback will work without it equally well.
         callbackUrl = QStringLiteral("http://localhost:%1/returnToApplication")
