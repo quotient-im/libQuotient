@@ -2632,26 +2632,30 @@ void Room::Private::dropExtraneousEvents(RoomEvents& events) const
 void Room::Private::decryptIncomingEvents(RoomEvents& events)
 {
 #ifdef Quotient_E2EE_ENABLED
-    if (connection->encryptionEnabled()) {
-        QElapsedTimer et;
-        et.start();
-        size_t totalDecrypted = 0;
-        for (auto& eptr : events)
-            if (const auto& eeptr = eventCast<EncryptedEvent>(eptr)) {
-                if (eeptr->isRedacted())
-                    continue;
-                if (auto decrypted = q->decryptMessage(*eeptr)) {
-                    ++totalDecrypted;
-                    auto&& oldEvent = eventCast<EncryptedEvent>(
+    if (!connection->encryptionEnabled())
+        return;
+    if (!q->usesEncryption())
+        return; // If the room doesn't use encryption now, it never did
+
+    QElapsedTimer et;
+    et.start();
+    size_t totalDecrypted = 0;
+    for (auto& eptr : events) {
+        if (eptr->isRedacted())
+            continue;
+        if (const auto& eeptr = eventCast<EncryptedEvent>(eptr)) {
+            if (auto decrypted = q->decryptMessage(*eeptr)) {
+                ++totalDecrypted;
+                auto&& oldEvent = eventCast<EncryptedEvent>(
                         std::exchange(eptr, std::move(decrypted)));
-                    eptr->setOriginalEvent(std::move(oldEvent));
-                } else
-                    undecryptedEvents[eeptr->sessionId()] += eeptr->id();
-            }
-        if (totalDecrypted > 5 || et.nsecsElapsed() >= ProfilerMinNsecs)
-            qDebug(PROFILER)
-                << "Decrypted" << totalDecrypted << "events in" << et;
+                eptr->setOriginalEvent(std::move(oldEvent));
+            } else
+                undecryptedEvents[eeptr->sessionId()] += eeptr->id();
+        }
     }
+    if (totalDecrypted > 5 || et.nsecsElapsed() >= ProfilerMinNsecs)
+        qDebug(PROFILER)
+            << "Decrypted" << totalDecrypted << "events in" << et;
 #endif
 }
 
