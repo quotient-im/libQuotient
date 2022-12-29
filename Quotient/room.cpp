@@ -1631,11 +1631,10 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
             auto& ti = d->timeline[Timeline::size_type(*pIdx - minTimelineIndex())];
             if (auto encryptedEvent = ti.viewAs<EncryptedEvent>()) {
                 if (auto decrypted = decryptMessage(*encryptedEvent)) {
-                    // The reference will survive the pointer being moved
-                    auto& decryptedEvent = *decrypted;
-                    auto oldEvent = ti.replaceEvent(std::move(decrypted));
-                    decryptedEvent.setOriginalEvent(std::move(oldEvent));
-                    emit replacedEvent(ti.event(), decryptedEvent.originalEvent());
+                    auto&& oldEvent = eventCast<EncryptedEvent>(
+                        ti.replaceEvent(std::move(decrypted)));
+                    ti->setOriginalEvent(std::move(oldEvent));
+                    emit replacedEvent(ti.event(), ti->originalEvent());
                     d->undecryptedEvents[roomKeyEvent.sessionId()] -= eventId;
                 }
             }
@@ -2629,7 +2628,8 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
                 continue;
             if (auto decrypted = q->decryptMessage(*eeptr)) {
                 ++totalDecrypted;
-                auto&& oldEvent = exchange(eptr, std::move(decrypted));
+                auto&& oldEvent = eventCast<EncryptedEvent>(
+                    std::exchange(eptr, std::move(decrypted)));
                 eptr->setOriginalEvent(std::move(oldEvent));
             } else
                 undecryptedEvents[eeptr->sessionId()] += eeptr->id();

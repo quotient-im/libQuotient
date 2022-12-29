@@ -9,6 +9,7 @@
 
 namespace Quotient {
 class RedactionEvent;
+class EncryptedEvent;
 
 // That check could look into Event and find most stuff already deleted...
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
@@ -51,8 +52,8 @@ public:
     void addId(const QString& newId);
 
 #ifdef Quotient_E2EE_ENABLED
-    void setOriginalEvent(event_ptr_tt<RoomEvent>&& originalEvent);
-    const RoomEvent* originalEvent() const { return _originalEvent.get(); }
+    void setOriginalEvent(event_ptr_tt<EncryptedEvent>&& originalEvent);
+    const EncryptedEvent* originalEvent() const { return _originalEvent.get(); }
     const QJsonObject encryptedJson() const;
 #endif
 
@@ -66,7 +67,7 @@ private:
     event_ptr_tt<RedactionEvent> _redactedBecause;
 
 #ifdef Quotient_E2EE_ENABLED
-    event_ptr_tt<RoomEvent> _originalEvent;
+    event_ptr_tt<EncryptedEvent> _originalEvent;
 #endif
 };
 using RoomEventPtr = event_ptr_tt<RoomEvent>;

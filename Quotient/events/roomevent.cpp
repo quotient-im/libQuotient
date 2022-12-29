@@ -5,6 +5,9 @@
 
 #include <Quotient/logging.h>
 #include "redactionevent.h"
+#ifdef Quotient_E2EE_ENABLED
+#include "encryptedevent.h"
+#endif
 
 using namespace Quotient;
 
@@ -83,7 +86,7 @@ void RoomEvent::dumpTo(QDebug dbg) const
 }
 
 #ifdef Quotient_E2EE_ENABLED
-void RoomEvent::setOriginalEvent(event_ptr_tt<RoomEvent>&& originalEvent)
+void RoomEvent::setOriginalEvent(event_ptr_tt<EncryptedEvent>&& originalEvent)
 {
     _originalEvent = std::move(originalEvent);
 }
