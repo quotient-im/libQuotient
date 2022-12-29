@@ -7,10 +7,10 @@
 
 namespace Quotient {
 
-constexpr inline auto CiphertextKeyL = "ciphertext"_ls;
-constexpr inline auto SenderKeyKeyL = "sender_key"_ls;
-constexpr inline auto DeviceIdKeyL = "device_id"_ls;
-constexpr inline auto SessionIdKeyL = "session_id"_ls;
+constexpr inline auto CiphertextKey = "ciphertext"_ls;
+constexpr inline auto SenderKeyKey = "sender_key"_ls;
+constexpr inline auto DeviceIdKey = "device_id"_ls;
+constexpr inline auto SessionIdKey = "session_id"_ls;
 
 /*
  * While the specification states:
@@ -49,19 +49,19 @@ public:
     QString algorithm() const;
     QByteArray ciphertext() const
     {
-        return contentPart<QString>(CiphertextKeyL).toLatin1();
+        return contentPart<QString>(CiphertextKey).toLatin1();
     }
     QJsonObject ciphertext(const QString& identityKey) const
     {
-        return contentPart<QJsonObject>(CiphertextKeyL)
+        return contentPart<QJsonObject>(CiphertextKey)
             .value(identityKey)
             .toObject();
     }
-    QString senderKey() const { return contentPart<QString>(SenderKeyKeyL); }
+    QString senderKey() const { return contentPart<QString>(SenderKeyKey); }
 
     /* device_id and session_id are required with Megolm */
-    QString deviceId() const { return contentPart<QString>(DeviceIdKeyL); }
-    QString sessionId() const { return contentPart<QString>(SessionIdKeyL); }
+    QString deviceId() const { return contentPart<QString>(DeviceIdKey); }
+    QString sessionId() const { return contentPart<QString>(SessionIdKey); }
     RoomEventPtr createDecrypted(const QString &decrypted) const;
 
     void setRelation(const QJsonObject& relation);

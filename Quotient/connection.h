@@ -129,6 +129,7 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
     Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
+    Q_PROPERTY(bool encryptionEnabled READ encryptionEnabled WRITE enableEncryption NOTIFY encryptionChanged)
 
 public:
     using UsersToDevicesToContent = QHash<QString, QHash<QString, QJsonObject>>;
@@ -315,8 +316,10 @@ public:
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;
+    [[deprecated("Use database()->loadCurrentOutboundMegolmSession()")]]
     Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
         const QString& roomId) const;
+    [[deprecated("Use database()->saveCurrentOutboundMegolmSession()")]]
     void saveCurrentOutboundMegolmSession(
         const QString& roomId, const QOlmOutboundGroupSession& session) const;
 
@@ -391,6 +394,26 @@ public:
     //! This is often not the case when SSO is enabled.
     //! \sa loadingCapabilities
     bool canChangePassword() const;
+
+    //! \brief Check whether encryption is enabled on this connection
+    //!
+    //! There are two conditions for encryption to be enabled:
+    //! 1) the library must be compiled with Quotient_E2EE_ENABLED;
+    //! 2) encryption should be switched on explicitly with enableEncryption()
+    //!
+    //! The reason for the latter is E2EE still being in beta state as of 0.7,
+    //! so clients are strongly advised to keep E2EE off by default and warn
+    //! users opting in that their E2EE things may fall apart, leak etc.
+    //!
+    //! \sa enableEncryption
+    bool encryptionEnabled() const;
+
+    //! \brief Enable or disable encryption on this connection
+    //!
+    //! \note This has no effect if the library is compiled without E2EE support
+    //!
+    //! \sa encryptionEnabled
+    void enableEncryption(bool enable);
 
     //! \brief Load room state from a previously saved file
     //!
@@ -712,7 +735,8 @@ public Q_SLOTS:
     void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
 #endif
 
-    static Connection* makeMockConnection(const QString& mxId);
+    static Connection* makeMockConnection(const QString& mxId,
+                                          bool enableEncryption = E2EE_Enabled);
 
 Q_SIGNALS:
     //! \brief Initial server resolution has failed
@@ -863,6 +887,9 @@ Q_SIGNALS:
     void lazyLoadingChanged();
     void turnServersChanged(const QJsonObject& servers);
     void devicesListLoaded();
+
+    //! Encryption has been enabled or disabled
+    void encryptionChanged(bool enabled);
 
 #ifdef Quotient_E2EE_ENABLED
     void newKeyVerificationSession(Quotient::KeyVerificationSession* session);

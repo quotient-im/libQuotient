@@ -561,10 +561,10 @@ inline bool is(const Event& e)
 //! the event it must outlive the downcast pointer to keep it from dangling.
 template <EventClass EventT, typename BasePtrT>
 inline auto eventCast(const BasePtrT& eptr)
-    -> decltype(static_cast<EventT*>(&*eptr))
+    -> decltype(static_cast<EventT*>(std::to_address(eptr)))
 {
     return eptr && is<std::decay_t<EventT>>(*eptr)
-               ? static_cast<EventT*>(&*eptr)
+               ? static_cast<EventT*>(std::to_address(eptr))
                : nullptr;
 }
 
