@@ -22,7 +22,9 @@ public:
         , connection(connection)
     {
         auto* server = new QTcpServer(q);
-        server->listen();
+        if (!server->listen())
+            qCritical(MAIN)
+                << "Could not open the port, SSO callback won't work";
         // The "/returnToApplication" part is just a hint for the end-user,
         // the callback will work without it equally well.
         callbackUrl = QStringLiteral("http://localhost:%1/returnToApplication")
