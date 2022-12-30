@@ -69,7 +69,9 @@ jobs:
 
     - name: Install other dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
-      run: sudo apt-get -qq install valgrind
+      run: |
+        sudo apt-get -qq install valgrind gnome-keyring
+        gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
 
     - name: Install other dependencies (macOS)
       if: startsWith(matrix.os, 'macos') && matrix.e2ee
