@@ -98,7 +98,7 @@ public:
                          const std::optional<LoginFlow> &flow = none);
     template <typename... LoginArgTs>
     void loginToServer(LoginArgTs&&... loginArgs);
-    void completeSetup(const QString &mxId);
+    void completeSetup(const QString &mxId, bool mock = false);
     void removeRoom(const QString& roomId);
 
     void consumeRoomData(SyncDataList&& roomDataList, bool fromCache);

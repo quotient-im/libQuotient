@@ -48,10 +48,6 @@ User::User(QString userId, Connection* connection)
     : QObject(connection), d(makeImpl<Private>(std::move(userId)))
 {
     setObjectName(id());
-    if (connection->userId() == id()) {
-        // Load profile information for local user.
-        load();
-    }
 }
 
 Connection* User::connection() const

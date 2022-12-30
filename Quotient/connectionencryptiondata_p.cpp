@@ -21,8 +21,14 @@
 using namespace Quotient;
 using namespace Quotient::_impl;
 
-Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& id)
+Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& id,
+                                                         bool mock)
 {
+    if (mock) {
+        qInfo(E2EE) << "Using a mock pickling key";
+        return PicklingKey::mock();
+    }
+
     // TODO: Rewrite the whole thing in an async way to get rid of nested event
     // loops
     using namespace QKeychain;
@@ -41,9 +47,9 @@ Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& id)
             qDebug(E2EE) << "Successfully loaded pickling key from keychain";
             return PicklingKey::fromByteArray(std::move(data));
         }
-        qCritical(E2EE) << "The loaded pickling key for" << id << "has length"
-                        << data.size() << "but the library expected"
-                        << PicklingKey::extent;
+        qCritical(E2EE) << "The loaded pickling key for" << id
+                        << "has length" << data.size()
+                        << "but the library expected" << PicklingKey::extent;
         return Error::OtherError;
     }
     if (readJob.error() == Error::EntryNotFound) {
@@ -71,9 +77,9 @@ Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& id)
 }
 
 Omittable<std::unique_ptr<ConnectionEncryptionData>>
-ConnectionEncryptionData::setup(Connection* connection)
+ConnectionEncryptionData::setup(Connection* connection, bool mock)
 {
-    if (auto&& maybePicklingKey = setupPicklingKey(connection->userId())) {
+    if (auto&& maybePicklingKey = setupPicklingKey(connection->userId(), mock)) {
         auto&& encryptionData = std::make_unique<ConnectionEncryptionData>(
             connection, std::move(*maybePicklingKey));
         if (const auto outcome = encryptionData->database.setupOlmAccount(

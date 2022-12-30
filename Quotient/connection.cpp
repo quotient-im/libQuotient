@@ -315,10 +315,11 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
     });
 }
 
-void Connection::Private::completeSetup(const QString& mxId)
+void Connection::Private::completeSetup(const QString& mxId, bool mock)
 {
     data->setUserId(mxId);
-    q->user(); // Creates a User object for the local user
+    if (!mock)
+        q->user()->load(); // Load the local user's profile
     q->setObjectName(data->userId() % u'/' % data->deviceId());
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
@@ -326,14 +327,15 @@ void Connection::Private::completeSetup(const QString& mxId)
     Accounts.add(q);
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
 
-    static auto callOnce [[maybe_unused]] =
-        (qInfo(MAIN) << "End-to-end encryption (E2EE) support is"
-                     << (E2EE_Enabled ? "on" : "off"),
+    static auto callOnce [[maybe_unused]] = //
+        (qInfo(MAIN) << "The library is built"
+                     << (E2EE_Enabled ? "with" : "without")
+                     << "end-to-end encryption (E2EE)",
          0);
 #ifdef Quotient_E2EE_ENABLED
     if (useEncryption) {
         if (auto&& maybeEncryptionData =
-                _impl::ConnectionEncryptionData::setup(q)) {
+                _impl::ConnectionEncryptionData::setup(q, mock)) {
             encryptionData = std::move(*maybeEncryptionData);
         } else {
             Q_ASSERT(false);
@@ -347,7 +349,8 @@ void Connection::Private::completeSetup(const QString& mxId)
 
     emit q->stateChanged();
     emit q->connected();
-    q->reloadCapabilities();
+    if (!mock)
+        q->reloadCapabilities();
 }
 
 void Connection::Private::checkAndConnect(const QString& userId,
@@ -1873,6 +1876,6 @@ Connection* Connection::makeMockConnection(const QString& mxId,
 {
     auto* c = new Connection;
     c->enableEncryption(enableEncryption);
-    c->d->completeSetup(mxId);
+    c->d->completeSetup(mxId, true);
     return c;
 }
