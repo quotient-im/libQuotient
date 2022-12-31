@@ -115,8 +115,9 @@ void FixedBufferBase::clear()
         return;
 
     Q_ASSERT(CRYPTO_secure_allocated(data_));
+    const auto actualSize = OPENSSL_secure_actual_size(data_);
     OPENSSL_secure_clear_free(data_, size_);
     data_ = nullptr;
-    qDebug(E2EE) << "Deallocated" << size_ << "bytes,"
+    qDebug(E2EE) << "Deallocated" << actualSize << "bytes,"
                  << CRYPTO_secure_used() << "/ 65536 bytes of secure heap used";
 }
