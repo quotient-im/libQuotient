@@ -385,8 +385,7 @@ void TestOlmAccount::claimKeys()
     for (const auto& claimedKey : asKeyValueRange(claimedDeviceKeys)) {
         if (!claimedKey.first.startsWith(SignedCurve25519Key))
             continue;
-        if (auto signedKey = std::get_if<SignedOneTimeKey>(&claimedKey.second))
-            QVERIFY(signedKey->key() == bobEd25519);
+        QVERIFY(std::holds_alternative<SignedOneTimeKey>(claimedKey.second));
     }
 }
 
