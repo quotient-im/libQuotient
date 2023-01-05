@@ -25,11 +25,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
     "MinSizeRel" "RelWithDebInfo")
 endif()
-if (CMAKE_BUILD_TYPE)
-    message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-endif(CMAKE_BUILD_TYPE)
-
-message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 include(CheckCXXCompilerFlag)
 if (MSVC)
     add_compile_options(/EHsc /W4
@@ -77,8 +72,6 @@ endif(WIN32)
 set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
         "${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDEDIR_INIT}" CACHE PATH
         "directory to install ${PROJECT_NAME} include files to")
-message(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "  Header files will be installed to ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}")
 
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
@@ -95,7 +88,6 @@ endif()
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
 find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
-message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
 find_package(${Qt}Keychain REQUIRED)
 
@@ -107,9 +99,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         URL "https://gitlab.matrix.org/matrix-org/olm"
         TYPE REQUIRED
     )
-    if (Olm_FOUND)
-        message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
-    endif()
 
     find_package(OpenSSL 1.1.0 REQUIRED)
     set_package_properties(OpenSSL PROPERTIES
@@ -117,11 +106,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         URL "https://www.openssl.org/"
         TYPE REQUIRED
     )
-    if (OpenSSL_FOUND)
-        message(STATUS "Using OpenSSL ${OPENSSL_VERSION} at ${OPENSSL_INCLUDE_DIR}")
-    endif()
 endif()
-
 
 # Set up source files
 list(APPEND lib_SRCS
@@ -320,21 +305,23 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${QTKEYCHAIN_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
+if (Qt STREQUAL Qt5) # See #483
+    target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
+endif()
+set(FIND_DEPS "find_dependency(${Qt}Keychain)") # For QuotientConfig.cmake.in
+
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm
         OpenSSL::Crypto
         OpenSSL::SSL
         ${Qt}::Sql)
-    set(FIND_DEPS "find_dependency(Olm)
+    set(FIND_DEPS "${FIND_DEPS}
+    find_dependency(Olm)
     find_dependency(OpenSSL)
-    find_dependency(${Qt}Sql)") # For QuotientConfig.cmake.in
-endif()
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${QTKEYCHAIN_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
-
-if (Qt STREQUAL Qt5) # See #483
-    target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
+    find_dependency(${Qt}Sql)")
 endif()
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
@@ -392,6 +379,21 @@ if (UNIX AND NOT APPLE)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
 
+message(STATUS)
+message(STATUS "== libQuotient ${PROJECT_VERSION} configuration summary ==")
+message(STATUS)
+if (CMAKE_BUILD_TYPE)
+    message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+endif(CMAKE_BUILD_TYPE)
+message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
+message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "  Header files install prefix: ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}")
+message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
+message(STATUS "Using QtKeychain ${${Qt}Keychain_VERSION} at ${${Qt}Keychain_DIR}")
+if (${PROJECT_NAME}_ENABLE_E2EE)
+    message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
+    message(STATUS "Using OpenSSL libcrypto ${OPENSSL_VERSION} at ${OPENSSL_CRYPTO_LIBRARY}")
+endif()
 message(STATUS)
 feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES
                 FATAL_ON_MISSING_REQUIRED_PACKAGES)
