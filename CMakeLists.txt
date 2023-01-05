@@ -330,7 +330,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     find_dependency(${Qt}Sql)") # For QuotientConfig.cmake.in
 endif()
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${QTKEYCHAIN_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${QTKEYCHAIN_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
 
 if (Qt STREQUAL Qt5) # See #483
