@@ -98,6 +98,7 @@ get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 
 find_package(${Qt}Keychain REQUIRED)
+message(STATUS "Using QtKeychain ${${Qt}Keychain_VERSION} at ${${Qt}Keychain_DIR}")
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
@@ -320,21 +321,23 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${QTKEYCHAIN_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
+if (Qt STREQUAL Qt5) # See #483
+    target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
+endif()
+set(FIND_DEPS "find_dependency(${Qt}Keychain)") # For QuotientConfig.cmake.in
+
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${PROJECT_NAME} Olm::Olm
         OpenSSL::Crypto
         OpenSSL::SSL
         ${Qt}::Sql)
-    set(FIND_DEPS "find_dependency(Olm)
+    set(FIND_DEPS "${FIND_DEPS}
+    find_dependency(Olm)
     find_dependency(OpenSSL)
-    find_dependency(${Qt}Sql)") # For QuotientConfig.cmake.in
-endif()
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${QTKEYCHAIN_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
-
-if (Qt STREQUAL Qt5) # See #483
-    target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
+    find_dependency(${Qt}Sql)")
 endif()
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
