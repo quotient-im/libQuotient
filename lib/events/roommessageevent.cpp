@@ -49,7 +49,7 @@ struct MsgTypeDesc {
     TypedBase* (*maker)(const QJsonObject&);
 };
 
-const std::vector<MsgTypeDesc> msgTypes = {
+constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
     { TextTypeKey, MsgType::Text, make<TextContent> },
     { EmoteTypeKey, MsgType::Emote, make<TextContent> },
     { NoticeTypeKey, MsgType::Notice, make<TextContent> },
@@ -58,7 +58,7 @@ const std::vector<MsgTypeDesc> msgTypes = {
     { "m.location"_ls, MsgType::Location, make<LocationContent> },
     { "m.video"_ls, MsgType::Video, make<VideoContent> },
     { "m.audio"_ls, MsgType::Audio, make<AudioContent> }
-};
+});
 
 QString msgTypeToJson(MsgType enumType)
 {
