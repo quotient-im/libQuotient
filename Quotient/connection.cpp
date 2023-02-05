@@ -210,7 +210,11 @@ void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
             d->completeSetup(job->userId());
         });
         connect(job, &BaseJob::failure, this, [this, job] {
-            emit loginError(job->errorString(), job->rawDataSample());
+            if (job->error() == BaseJob::StatusCode::NetworkError)
+                emit networkError(job->errorString(), job->rawDataSample(),
+                                  job->maxRetries(), -1);
+            else
+                emit loginError(job->errorString(), job->rawDataSample());
         });
     });
 }
