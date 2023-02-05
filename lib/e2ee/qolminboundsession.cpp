@@ -112,7 +112,7 @@ QOlmExpected<std::pair<QByteArray, uint32_t>> QOlmInboundGroupSession::decrypt(
     // actualLength cannot be more than plainTextLength because the resulting
     // text would overflow the allocated memory; but it can be less, in theory
     plaintextBuf.truncate(static_cast<int>(actualLength));
-    return std::make_pair(plaintextBuf, messageIndex);
+    return std::pair{ plaintextBuf, messageIndex };
 }
 
 QOlmExpected<QByteArray> QOlmInboundGroupSession::exportSession(

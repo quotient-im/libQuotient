@@ -141,9 +141,9 @@ inline std::pair<InputIt, ForwardIt> findFirstOf(InputIt first, InputIt last,
     for (; first != last; ++first)
         for (auto it = sFirst; it != sLast; ++it)
             if (pred(*first, *it))
-                return std::make_pair(first, it);
+                return { first, it };
 
-    return std::make_pair(last, sLast);
+    return { last, sLast };
 }
 
 //! \brief An owning implementation pointer

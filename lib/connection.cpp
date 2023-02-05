@@ -220,8 +220,7 @@ public:
     {
         const auto expectedMessage = session.decrypt(message);
         if (expectedMessage) {
-            const auto result =
-                std::make_pair(*expectedMessage, session.sessionId());
+            const std::pair result { *expectedMessage, session.sessionId() };
             andThen();
             return result;
         }
