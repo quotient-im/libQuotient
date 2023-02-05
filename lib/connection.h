@@ -10,6 +10,7 @@
 #include "util.h"
 
 #include "csapi/create_room.h"
+#include "csapi/knocking.h"
 #include "csapi/login.h"
 
 #include "events/accountdataevents.h"
@@ -657,6 +658,9 @@ public Q_SLOTS:
     virtual JoinRoomJob* joinRoom(const QString& roomAlias,
                                   const QStringList& serverNames = {});
 
+    virtual KnockRoomJob* knockRoom(const QString& roomAlias,
+                                    const QStringList& serverNames = {},
+                                    const QString& reason = {});
     //! \brief Send /forget to the server and delete room locally
     //!
     //! This method is in Connection, not in Room, since it's a
