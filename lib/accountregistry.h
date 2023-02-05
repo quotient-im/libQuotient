@@ -5,7 +5,6 @@
 #pragma once
 
 #include "quotient_export.h"
-#include "settings.h"
 
 #include <QtCore/QAbstractListModel>
 
@@ -14,10 +13,6 @@
 #else
 #    include <qt5keychain/keychain.h>
 #endif
-
-namespace QKeychain {
-class ReadPasswordJob;
-}
 
 namespace Quotient {
 class Connection;
@@ -74,6 +69,7 @@ public:
     QStringList accountsLoading() const;
 
     void invokeLogin();
+
 Q_SIGNALS:
     void accountCountChanged();
     void accountsLoadingChanged();

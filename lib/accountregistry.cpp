@@ -5,6 +5,8 @@
 #include "accountregistry.h"
 
 #include "connection.h"
+#include "settings.h"
+
 #include <QtCore/QCoreApplication>
 
 using namespace Quotient;
@@ -85,11 +87,12 @@ void AccountRegistry::invokeLogin()
     const auto accounts = SettingsGroup("Accounts").childGroups();
     for (const auto& accountId : accounts) {
         AccountSettings account { accountId };
-        m_accountsLoading += accountId;
-        emit accountsLoadingChanged();
 
         if (account.homeserver().isEmpty())
             continue;
+
+        m_accountsLoading += accountId;
+        emit accountsLoadingChanged();
 
         auto accessTokenLoadingJob =
             loadAccessTokenFromKeychain(account.userId());
@@ -98,6 +101,8 @@ void AccountRegistry::invokeLogin()
                     if (accessTokenLoadingJob->error()
                         != QKeychain::Error::NoError) {
                         emit keychainError(accessTokenLoadingJob->error());
+                        m_accountsLoading.removeAll(accountId);
+                        emit accountsLoadingChanged();
                         return;
                     }
 
