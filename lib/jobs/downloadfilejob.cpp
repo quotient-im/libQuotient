@@ -14,7 +14,7 @@
 #endif
 
 using namespace Quotient;
-class DownloadFileJob::Private {
+class Q_DECL_HIDDEN DownloadFileJob::Private {
 public:
     Private() : tempFile(new QTemporaryFile()) {}
 

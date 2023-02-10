@@ -25,7 +25,7 @@
 
 using namespace Quotient;
 
-class User::Private {
+class Q_DECL_HIDDEN User::Private {
 public:
     Private(QString userId) : id(std::move(userId)), hueF(stringToHueF(id)) { }
 

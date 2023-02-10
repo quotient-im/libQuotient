@@ -79,7 +79,7 @@ using std::llround;
 
 enum EventsPlacement : int { Older = -1, Newer = 1 };
 
-class Room::Private {
+class Q_DECL_HIDDEN Room::Private {
 public:
     /// Map of user names to users
     /** User names potentially duplicate, hence QMultiHash. */
