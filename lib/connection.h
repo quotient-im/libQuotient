@@ -288,6 +288,15 @@ public:
     Q_INVOKABLE Quotient::Room* roomByAlias(
         const QString& roomAlias,
         Quotient::JoinStates states = JoinState::Invite | JoinState::Join) const;
+
+    //! \brief Map an alias to a room ID on the server.
+    //!
+    //! \note This is different to Room::setLocalAliases as that can only
+    //!       get the room to publish an alias that is already mapped.
+    //! \sa Room::setLocalAliases
+    Q_INVOKABLE void mapAlias(const QString& roomId, const QString& alias);
+    //! Unmap an alias from a room ID on the server.
+    Q_INVOKABLE void unmapAlias(const QString& alias);
     //! \brief Update the internal map of room aliases to IDs
     //!
     //! This is used to maintain the internal index of room aliases.

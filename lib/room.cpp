@@ -2306,9 +2306,27 @@ void Room::setName(const QString& newName)
     setState<RoomNameEvent>(newName);
 }
 
+void Room::mapAlias(const QString& alias) const
+{
+    connection()->mapAlias(id(), alias);
+}
+
 void Room::setCanonicalAlias(const QString& newAlias)
 {
-    setState<RoomCanonicalAliasEvent>(newAlias, altAliases());
+    QString oldCanonicalAlias = canonicalAlias();
+    QStringList newAltAliases = altAliases();
+    // Set the old canonical alias as an alt alias.
+    if (!oldCanonicalAlias.isEmpty()) {
+        newAltAliases.append(oldCanonicalAlias);
+    }
+    // If the new canonical alias is already a published alt alias remove it
+    // otherwise it will be in both lists. The server doesn't prevent this so we
+    // need to handle it.
+    if (newAltAliases.contains(newAlias)) {
+        newAltAliases.removeAll(newAlias);
+    }
+
+    setState<RoomCanonicalAliasEvent>(newAlias, newAltAliases);
 }
 
 void Room::setPinnedEvents(const QStringList& events)
@@ -2317,7 +2335,14 @@ void Room::setPinnedEvents(const QStringList& events)
 }
 void Room::setLocalAliases(const QStringList& aliases)
 {
-    setState<RoomCanonicalAliasEvent>(canonicalAlias(), aliases);
+    // If one of the new alt aliases is the current canonical alias set it to ""
+    // otherwise it will be in both lists. The server doesn't prevent this so we
+    // need to handle it.
+    QString currentCanonicalAlias = canonicalAlias();
+    if (aliases.contains(currentCanonicalAlias)) {
+        currentCanonicalAlias = "";
+    }
+    setState<RoomCanonicalAliasEvent>(currentCanonicalAlias, aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
