@@ -14,9 +14,9 @@ using namespace Quotient;
 #define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME)                  \
     NetworkAccessManager::instance()->ignoreSslErrors(true);                   \
     auto VAR = std::make_shared<Connection>();                                 \
-    (VAR)->resolveServer("@" USERNAME ":localhost:1234");                      \
+    (VAR)->resolveServer("@" USERNAME ":localhost:1234"_ls);                      \
     connect((VAR).get(), &Connection::loginFlowsChanged, this, [=] {           \
-        (VAR)->loginWithPassword((USERNAME), SECRET, DEVICE_NAME, "");         \
+        (VAR)->loginWithPassword(USERNAME, SECRET, DEVICE_NAME, QString());         \
     });                                                                        \
     connect((VAR).get(), &Connection::networkError, [](const QString& error) { \
         QWARN(qUtf8Printable(error));                                          \

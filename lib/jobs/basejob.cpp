@@ -154,7 +154,7 @@ public:
         static const std::array verbs { "GET"_ls, "PUT"_ls, "POST"_ls,
                                         "DELETE"_ls };
         const auto verbWord = verbs.at(size_t(verb));
-        return verbWord % ' '
+        return verbWord % QLatin1Char(' ')
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
                         : makeRequestUrl(connection->baseUrl(), apiEndpoint)
                               .toString());
@@ -168,7 +168,7 @@ inline bool isHex(QChar c)
 
 QByteArray BaseJob::encodeIfParam(const QString& paramPart)
 {
-    const auto percentIndex = paramPart.indexOf('%');
+    const auto percentIndex = paramPart.indexOf(QLatin1Char('%'));
     if (percentIndex != -1 && paramPart.size() > percentIndex + 2
         && isHex(paramPart[percentIndex + 1])
         && isHex(paramPart[percentIndex + 2])) {
@@ -289,7 +289,7 @@ void BaseJob::Private::sendRequest()
     QNetworkRequest req { makeRequestUrl(connection->baseUrl(), apiEndpoint,
                                          requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
-        req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+        req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_ls);
     if (needsToken)
         req.setRawHeader("Authorization",
                          QByteArray("Bearer ") + connection->accessToken());
@@ -340,7 +340,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
         else if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
             && d->requestData.source()
             && !d->requestData.source()->isReadable()) {
-            setStatus(FileError, "Request data not ready");
+            setStatus(FileError, "Request data not ready"_ls);
         }
         Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
         if (Q_LIKELY(status().code == Unprepared)) {
@@ -414,12 +414,12 @@ void BaseJob::gotReply()
             const auto& responseObject = jsonData();
             QByteArrayList missingKeys;
             for (const auto& k: expectedKeys())
-                if (!responseObject.contains(k))
+                if (!responseObject.contains(QString::fromUtf8(k)))
                     missingKeys.push_back(k);
             if (!missingKeys.empty())
                 statusSoFar = { IncorrectResponse,
                                 tr("Required JSON keys missing: ")
-                                    + missingKeys.join() };
+                                    + QString::fromUtf8(missingKeys.join()) };
         }
         setStatus(statusSoFar);
         if (!status().good()) // Bad JSON in a "good" reply: bail out
@@ -456,9 +456,8 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
         auto patternParts = pattern.split('/');
         Q_ASSERT_X(patternParts.size() <= 2, __FUNCTION__,
                    qPrintable(
-                       "BaseJob: Expected content type should have up to two"
-                       " /-separated parts; violating pattern: "
-                       + pattern));
+                       "BaseJob: Expected content type should have up to two /-separated parts; violating pattern: "_ls
+                       + QString::fromUtf8(pattern)));
 
         if (ctype.split('/').front() == patternParts.front()
             && patternParts.back() == "*")
@@ -488,7 +487,7 @@ BaseJob::Status BaseJob::checkReply(const QNetworkReply* reply) const
         if (!checkContentType(reply->rawHeader("Content-Type"),
                               d->expectedContentTypes))
             return { UnexpectedResponseTypeWarning,
-                     "Unexpected content type of the response" };
+                     "Unexpected content type of the response"_ls };
         return NoError;
     }
     if (reply->isFinished())
@@ -517,7 +516,7 @@ BaseJob::Status BaseJob::prepareError(Status currentStatus)
     // of if's below will fall through retaining the current status)
     const auto& errorJson = jsonData();
     const auto errCode = errorJson.value("errcode"_ls).toString();
-    if (error() == TooManyRequests || errCode == "M_LIMIT_EXCEEDED") {
+    if (error() == TooManyRequests || errCode == "M_LIMIT_EXCEEDED"_ls) {
         QString msg = tr("Too many requests");
         int64_t retryAfterMs = errorJson.value("retry_after_ms"_ls).toInt(-1);
         if (retryAfterMs >= 0)
@@ -530,21 +529,21 @@ BaseJob::Status BaseJob::prepareError(Status currentStatus)
         return { TooManyRequests, msg };
     }
 
-    if (errCode == "M_CONSENT_NOT_GIVEN") {
+    if (errCode == "M_CONSENT_NOT_GIVEN"_ls) {
         d->errorUrl = QUrl(errorJson.value("consent_uri"_ls).toString());
         return { UserConsentRequired };
     }
-    if (errCode == "M_UNSUPPORTED_ROOM_VERSION"
-        || errCode == "M_INCOMPATIBLE_ROOM_VERSION")
+    if (errCode == "M_UNSUPPORTED_ROOM_VERSION"_ls
+        || errCode == "M_INCOMPATIBLE_ROOM_VERSION"_ls)
         return { UnsupportedRoomVersion,
                  errorJson.contains("room_version"_ls)
                      ? tr("Requested room version: %1")
                            .arg(errorJson.value("room_version"_ls).toString())
                      : errorJson.value("error"_ls).toString() };
-    if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM")
+    if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM"_ls)
         return { CannotLeaveRoom,
                  tr("It's not allowed to leave a server notices room") };
-    if (errCode == "M_USER_DEACTIVATED")
+    if (errCode == "M_USER_DEACTIVATED"_ls)
         return { UserDeactivated };
 
     // Not localisable on the client side
@@ -612,7 +611,7 @@ void BaseJob::finishJob()
             qCWarning(d->logCat).nospace()
                 << this << ": retry #" << d->retriesTaken << " in "
                 << retryIn.count() << " s";
-            setStatus(Pending, "Pending retry");
+            setStatus(Pending, "Pending retry"_ls);
             d->retryTimer.start(retryIn);
             emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
             return;
@@ -686,7 +685,7 @@ const QByteArray& BaseJob::rawData() const { return d->rawResponse; }
 
 QString BaseJob::rawDataSample(int bytesAtMost) const
 {
-    auto data = rawData(bytesAtMost);
+    auto data = QString::fromUtf8(rawData(bytesAtMost));
     Q_ASSERT(data.size() <= d->rawResponse.size());
     return data.size() == d->rawResponse.size()
                ? data
@@ -776,7 +775,7 @@ void BaseJob::setStatus(Status s)
 
     if (!s.message.isEmpty() && d->connection
         && !d->connection->accessToken().isEmpty())
-        s.message.replace(d->connection->accessToken(), "(REDACTED)");
+        s.message.replace(QString::fromUtf8(d->connection->accessToken()), "(REDACTED)"_ls);
     if (!s.good())
         qCWarning(d->logCat) << this << "status" << s;
     d->status = std::move(s);
@@ -803,7 +802,7 @@ void BaseJob::abandon()
 
 void BaseJob::timeout()
 {
-    setStatus(Timeout, "The job has timed out");
+    setStatus(Timeout, "The job has timed out"_ls);
     finishJob();
 }
 

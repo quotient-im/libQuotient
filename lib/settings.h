@@ -4,6 +4,7 @@
 #pragma once
 
 #include "quotient_export.h"
+#include "util.h"
 
 #include <QtCore/QSettings>
 #include <QtCore/QUrl>
@@ -136,7 +137,7 @@ class QUOTIENT_API AccountSettings : public SettingsGroup {
                    WRITE setEncryptionAccountPickle)
 public:
     explicit AccountSettings(const QString& accountId, QObject* parent = nullptr)
-        : SettingsGroup("Accounts/" + accountId, parent)
+        : SettingsGroup("Accounts/"_ls + accountId, parent)
     {}
 
     QString userId() const;

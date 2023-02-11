@@ -33,7 +33,7 @@ public:
     mutable unsigned int txnCounter = 0;
     const qint64 txnBase = QDateTime::currentMSecsSinceEpoch();
 
-    QString id() const { return userId + '/' + deviceId; }
+    QString id() const { return userId + QLatin1Char('/') + deviceId; }
 
     using job_queue_t = std::queue<QPointer<BaseJob>>;
     std::array<job_queue_t, 2> jobs; // 0 - foreground, 1 - background
@@ -93,7 +93,7 @@ void ConnectionData::submit(BaseJob* job)
 
 void ConnectionData::limitRate(std::chrono::milliseconds nextCallAfter)
 {
-    qCDebug(MAIN) << "Jobs for" << (d->userId + "/" + d->deviceId)
+    qCDebug(MAIN) << "Jobs for" << (d->userId + "/"_ls + d->deviceId)
                   << "suspended for" << nextCallAfter.count() << "ms";
     d->rateLimiter.start(nextCallAfter);
 }

@@ -147,9 +147,9 @@ public:
 
     bool cacheState = true;
     bool cacheToBinary =
-        SettingsGroup("libQuotient").get("cache_type",
-                 SettingsGroup("libQMatrixClient").get<QString>("cache_type"))
-        != "json";
+        SettingsGroup("libQuotient"_ls).get("cache_type"_ls,
+                 SettingsGroup("libQMatrixClient"_ls).get<QString>("cache_type"_ls))
+        != "json"_ls;
     bool lazyLoading = false;
 
     /** \brief Check the homeserver and resolve it if needed, before connecting
@@ -198,7 +198,7 @@ public:
     }
     QString topLevelStatePath() const
     {
-        return q->stateCacheDir().filePath("state.json");
+        return q->stateCacheDir().filePath("state.json"_ls);
     }
 
 #ifdef Quotient_E2EE_ENABLED
@@ -220,7 +220,7 @@ public:
     {
         const auto expectedMessage = session.decrypt(message);
         if (expectedMessage) {
-            const std::pair result { *expectedMessage, session.sessionId() };
+            const std::pair result { QString::fromUtf8(*expectedMessage), QString::fromUtf8(session.sessionId()) };
             andThen();
             return result;
         }
@@ -243,9 +243,9 @@ public:
         QOlmMessage message {
             personalCipherObject.value(BodyKeyL).toString().toLatin1(), msgType
         };
-        for (const auto& session : olmSessions[senderKey])
+        for (const auto& session : olmSessions[QString::fromUtf8(senderKey)])
             if (msgType == QOlmMessage::General
-                || session.matchesInboundSessionFrom(senderKey, message)) {
+                || session.matchesInboundSessionFrom(QString::fromUtf8(senderKey), message)) {
                 return doDecryptMessage(session, message, [this, &session] {
                     q->database()->setOlmSessionLastReceived(
                         session.sessionId(), QDateTime::currentDateTime());
@@ -274,8 +274,8 @@ public:
         }
         return doDecryptMessage(
             newSession, message, [this, &senderKey, &newSession] {
-                saveSession(newSession, senderKey);
-                olmSessions[senderKey].push_back(std::move(newSession));
+                saveSession(newSession, QString::fromUtf8(senderKey));
+                olmSessions[QString::fromUtf8(senderKey)].push_back(std::move(newSession));
             });
     }
 #endif
@@ -291,7 +291,7 @@ public:
 
         const auto identityKey = olmAccount->identityKeys().curve25519;
         const auto personalCipherObject =
-            encryptedEvent.ciphertext(identityKey);
+            encryptedEvent.ciphertext(QString::fromUtf8(identityKey));
         if (personalCipherObject.isEmpty()) {
             qDebug(E2EE) << "Encrypted event is not for the current device";
             return {};
@@ -340,15 +340,15 @@ public:
         }
 
         auto query = database->prepareQuery(QStringLiteral("SELECT edKey FROM tracked_devices WHERE curveKey=:curveKey;"));
-        query.bindValue(":curveKey", encryptedEvent.contentJson()["sender_key"].toString());
+        query.bindValue(":curveKey"_ls, encryptedEvent.contentJson()["sender_key"_ls].toString());
         database->execute(query);
         if (!query.next()) {
             qWarning(E2EE)
                 << "Received olm message from unknown device"
-                << encryptedEvent.contentJson()["sender_key"].toString();
+                << encryptedEvent.contentJson()["sender_key"_ls].toString();
             return {};
         }
-        auto edKey = decryptedEvent->fullJson()["keys"]["ed25519"].toString();
+        auto edKey = decryptedEvent->fullJson()["keys"_ls]["ed25519"_ls].toString();
         if (edKey.isEmpty() || query.value(QStringLiteral("edKey")).toString() != edKey) {
             qDebug(E2EE) << "Received olm message with invalid ed key";
             return {};
@@ -451,7 +451,7 @@ void Connection::resolveServer(const QString& mxid)
         d->resolverJob->abandon();
 
     auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
-    maybeBaseUrl.setScheme("https"); // Instead of the Qt-default "http"
+    maybeBaseUrl.setScheme("https"_ls); // Instead of the Qt-default "http"
     if (maybeBaseUrl.isEmpty() || !maybeBaseUrl.isValid()) {
         emit resolveError(tr("%1 is not a valid homeserver address")
                               .arg(maybeBaseUrl.toString()));
@@ -522,7 +522,7 @@ void Connection::loginWithPassword(const QString& userId,
 {
     d->checkAndConnect(userId, [=,this] {
         d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
-                         password, /*token*/ "", deviceId, initialDeviceName);
+                         password, /*token*/ QString(), deviceId, initialDeviceName);
     }, LoginFlows::Password);
 }
 
@@ -538,8 +538,8 @@ void Connection::loginWithToken(const QByteArray& loginToken,
 {
     Q_ASSERT(d->data->baseUrl().isValid() && d->loginFlows.contains(LoginFlows::Token));
     d->loginToServer(LoginFlows::Token.type,
-                     none /*user is encoded in loginToken*/, "" /*password*/,
-                     loginToken, deviceId, initialDeviceName);
+                     none /*user is encoded in loginToken*/, QString() /*password*/,
+                     QString::fromUtf8(loginToken), deviceId, initialDeviceName);
 }
 
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
@@ -662,7 +662,7 @@ void Connection::Private::completeSetup(const QString& mxId)
 {
     data->setUserId(mxId);
     q->user(); // Creates a User object for the local user
-    q->setObjectName(data->userId() % '/' % data->deviceId());
+    q->setObjectName(data->userId() % QLatin1Char('/') % data->deviceId());
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
@@ -715,7 +715,7 @@ void Connection::Private::checkAndConnect(const QString& userId,
         return;
     }
     // Not good to go, try to ascertain the homeserver URL and flows
-    if (userId.startsWith('@') && userId.indexOf(':') != -1) {
+    if (userId.startsWith(QLatin1Char('@')) && userId.indexOf(QLatin1Char(':')) != -1) {
         q->resolveServer(userId);
         if (flow)
             connectSingleShot(q, &Connection::loginFlowsChanged, q,
@@ -759,7 +759,7 @@ void Connection::logout()
             || d->logoutJob->error() == BaseJob::ContentAccessError) {
             if (d->syncLoopConnection)
                 disconnect(d->syncLoopConnection);
-            SettingsGroup("Accounts").remove(userId());
+            SettingsGroup("Accounts"_ls).remove(userId());
             d->dropAccessToken();
             emit loggedOut();
             deleteLater();
@@ -979,7 +979,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                 if (is<IgnoredUsersEvent>(accountEvent))
                     qCDebug(MAIN)
                         << "Users ignored by" << data->userId() << "updated:"
-                        << QStringList(q->ignoredUsers().values()).join(',');
+                        << QStringList(q->ignoredUsers().values()).join(QLatin1Char(','));
 
                 auto& currentData = accountData[accountEvent.matrixType()];
                 // A polymorphic event-specific comparison might be a bit
@@ -1044,7 +1044,7 @@ bool Connection::Private::processIfVerificationEvent(const Event& evt,
 {
     return switchOnType(evt,
         [this, encrypted](const KeyVerificationRequestEvent& reqEvt) {
-            setupKeyVerificationSession(reqEvt.fullJson()["sender"].toString(),
+            setupKeyVerificationSession(reqEvt.fullJson()["sender"_ls].toString(),
                                         reqEvt, q, encrypted);
             return true;
         },
@@ -1160,16 +1160,16 @@ LeaveRoomJob* Connection::leaveRoom(Room* room)
 
 inline auto splitMediaId(const QString& mediaId)
 {
-    auto idParts = mediaId.split('/');
+    auto idParts = mediaId.split(QLatin1Char('/'));
     Q_ASSERT_X(idParts.size() == 2, __FUNCTION__,
-               qPrintable("'" % mediaId
-                          % "' doesn't look like 'serverName/localMediaId'"));
+               qPrintable("'"_ls % mediaId
+                          % "' doesn't look like 'serverName/localMediaId'"_ls));
     return idParts;
 }
 
 QUrl Connection::makeMediaUrl(QUrl mxcUrl) const
 {
-    Q_ASSERT(mxcUrl.scheme() == "mxc");
+    Q_ASSERT(mxcUrl.scheme() == "mxc"_ls);
     QUrlQuery q(mxcUrl.query());
     q.addQueryItem(QStringLiteral("user_id"), userId());
     mxcUrl.setQuery(q);
@@ -1429,21 +1429,21 @@ SendToDeviceJob* Connection::sendToDevices(
     const QString& eventType, const UsersToDevicesToContent& contents)
 {
     return callApi<SendToDeviceJob>(BackgroundRequest, eventType,
-                                    generateTxnId(), contents);
+                                    QString::fromUtf8(generateTxnId()), contents);
 }
 
 SendMessageJob* Connection::sendMessage(const QString& roomId,
                                         const RoomEvent& event)
 {
     const auto txnId = event.transactionId().isEmpty() ? generateTxnId()
-                                                       : event.transactionId();
-    return callApi<SendMessageJob>(roomId, event.matrixType(), txnId,
+                                                       : event.transactionId().toLatin1();
+    return callApi<SendMessageJob>(roomId, event.matrixType(), QString::fromUtf8(txnId),
                                    event.contentJson());
 }
 
 QUrl Connection::homeserver() const { return d->data->baseUrl(); }
 
-QString Connection::domain() const { return userId().section(':', 1); }
+QString Connection::domain() const { return userId().section(QLatin1Char(':'), 1); }
 
 bool Connection::isUsable() const { return !loginFlows().isEmpty(); }
 
@@ -1526,7 +1526,7 @@ User* Connection::user(const QString& uId)
         return v;
     // Before creating a user object, check that the user id is well-formed
     // (it's faster to just do a lookup above before validation)
-    if (!uId.startsWith('@') || serverPart(uId).isEmpty()) {
+    if (!uId.startsWith(QLatin1Char('@')) || serverPart(uId).isEmpty()) {
         qCCritical(MAIN) << "Malformed userId:" << uId;
         return nullptr;
     }
@@ -1997,13 +1997,13 @@ void Connection::loadState()
 
 QString Connection::stateCachePath() const
 {
-    return stateCacheDir().path() % '/';
+    return stateCacheDir().path() % QLatin1Char('/');
 }
 
 QDir Connection::stateCacheDir() const
 {
     auto safeUserId = userId();
-    safeUserId.replace(':', '_');
+    safeUserId.replace(QLatin1Char(':'), QLatin1Char('_'));
     return cacheLocation(safeUserId);
 }
 
@@ -2135,8 +2135,8 @@ void Connection::Private::handleQueryKeys(const QueryKeysJob* job)
                 continue;
             }
             if (oldDevices.contains(device.deviceId)) {
-                if (oldDevices[device.deviceId].keys["ed25519:" % device.deviceId]
-                    != device.keys["ed25519:" % device.deviceId]) {
+                if (oldDevices[device.deviceId].keys["ed25519:"_ls % device.deviceId]
+                    != device.keys["ed25519:"_ls % device.deviceId]) {
                     qDebug(E2EE)
                         << "Device reuse detected. Skipping this device";
                     continue;
@@ -2194,7 +2194,7 @@ void Connection::Private::saveDevicesList()
     query.prepare(QStringLiteral(
         "INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"));
     for (const auto& user : trackedUsers) {
-        query.bindValue(":matrixId", user);
+        query.bindValue(":matrixId"_ls, user);
         q->database()->execute(query);
     }
 
@@ -2203,7 +2203,7 @@ void Connection::Private::saveDevicesList()
     query.prepare(QStringLiteral(
         "INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"));
     for (const auto& user : outdatedUsers) {
-        query.bindValue(":matrixId", user);
+        query.bindValue(":matrixId"_ls, user);
         q->database()->execute(query);
     }
 
@@ -2218,14 +2218,14 @@ void Connection::Private::saveDevicesList()
             auto curveKeyId = keys[0].startsWith("curve"_ls) ? keys[0] : keys[1];
             auto edKeyId = keys[0].startsWith("ed"_ls) ? keys[0] : keys[1];
 
-            query.bindValue(":matrixId", user);
-            query.bindValue(":deviceId", device.deviceId);
-            query.bindValue(":curveKeyId", curveKeyId);
-            query.bindValue(":curveKey", device.keys[curveKeyId]);
-            query.bindValue(":edKeyId", edKeyId);
-            query.bindValue(":edKey", device.keys[edKeyId]);
+            query.bindValue(":matrixId"_ls, user);
+            query.bindValue(":deviceId"_ls, device.deviceId);
+            query.bindValue(":curveKeyId"_ls, curveKeyId);
+            query.bindValue(":curveKey"_ls, device.keys[curveKeyId]);
+            query.bindValue(":edKeyId"_ls, edKeyId);
+            query.bindValue(":edKey"_ls, device.keys[edKeyId]);
             // If the device gets saved here, it can't be verified
-            query.bindValue(":verified", false);
+            query.bindValue(":verified"_ls, false);
 
             q->database()->execute(query);
         }
@@ -2250,12 +2250,12 @@ void Connection::Private::loadDevicesList()
     query = q->database()->prepareQuery(QStringLiteral("SELECT * FROM tracked_devices;"));
     q->database()->execute(query);
     while(query.next()) {
-        deviceKeys[query.value("matrixId").toString()][query.value("deviceId").toString()] = DeviceKeys {
-            query.value("matrixId").toString(),
-            query.value("deviceId").toString(),
-            { "m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"},
-            {{query.value("curveKeyId").toString(), query.value("curveKey").toString()},
-             {query.value("edKeyId").toString(), query.value("edKey").toString()}},
+        deviceKeys[query.value("matrixId"_ls).toString()][query.value("deviceId"_ls).toString()] = DeviceKeys {
+            query.value("matrixId"_ls).toString(),
+            query.value("deviceId"_ls).toString(),
+            { "m.olm.v1.curve25519-aes-sha2"_ls, "m.megolm.v1.aes-sha2"_ls},
+            {{query.value("curveKeyId"_ls).toString(), query.value("curveKey"_ls).toString()},
+             {query.value("edKeyId"_ls).toString(), query.value("edKey"_ls).toString()}},
              {} // Signatures are not saved/loaded as they are not needed after initial validation
         };
     }
@@ -2281,9 +2281,9 @@ void Connection::Private::saveOlmAccount()
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
-    if (auto r = room(notification["room_id"].toString()))
+    if (auto r = room(notification["room_id"_ls].toString()))
         if (auto event =
-                loadEvent<EncryptedEvent>(notification["event"].toObject()))
+                loadEvent<EncryptedEvent>(notification["event"_ls].toObject()))
             if (const auto decrypted = r->decryptMessage(*event))
                 return decrypted->fullJson();
     return {};
@@ -2314,13 +2314,13 @@ QStringList Connection::devicesForUser(const QString& userId) const
 QString Connection::Private::curveKeyForUserDevice(const QString& userId,
                                                    const QString& device) const
 {
-    return deviceKeys[userId][device].keys["curve25519:" % device];
+    return deviceKeys[userId][device].keys["curve25519:"_ls % device];
 }
 
 QString Connection::edKeyForUserDevice(const QString& userId,
                                        const QString& deviceId) const
 {
-    return d->deviceKeys[userId][deviceId].keys["ed25519:" % deviceId];
+    return d->deviceKeys[userId][deviceId].keys["ed25519:"_ls % deviceId];
 }
 
 bool Connection::Private::isKnownCurveKey(const QString& userId,
@@ -2329,8 +2329,8 @@ bool Connection::Private::isKnownCurveKey(const QString& userId,
     auto query = database->prepareQuery(
         QStringLiteral("SELECT * FROM tracked_devices WHERE matrixId=:matrixId "
                        "AND curveKey=:curveKey"));
-    query.bindValue(":matrixId", userId);
-    query.bindValue(":curveKey", curveKey);
+    query.bindValue(":matrixId"_ls, userId);
+    query.bindValue(":curveKey"_ls, curveKey);
     database->execute(query);
     return query.next();
 }
@@ -2394,8 +2394,8 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
                         << recipientCurveKey << session.error();
         return false;
     }
-    saveSession(*session, recipientCurveKey);
-    olmSessions[recipientCurveKey].push_back(std::move(*session));
+    saveSession(*session, QString::fromUtf8(recipientCurveKey));
+    olmSessions[QString::fromUtf8(recipientCurveKey)].push_back(std::move(*session));
     return true;
 }
 
@@ -2408,7 +2408,7 @@ QJsonObject Connection::Private::assembleEncryptedContent(
     payloadJson.insert("keys"_ls,
                        QJsonObject{
                            { Ed25519Key,
-                             QString(olmAccount->identityKeys().ed25519) } });
+                             QString::fromUtf8(olmAccount->identityKeys().ed25519) } });
     payloadJson.insert("recipient"_ls, targetUserId);
     payloadJson.insert(
         "recipient_keys"_ls,
@@ -2420,9 +2420,9 @@ QJsonObject Connection::Private::assembleEncryptedContent(
     QJsonObject encrypted {
         { curveKeyForUserDevice(targetUserId, targetDeviceId),
           QJsonObject { { "type"_ls, type },
-                        { "body"_ls, QString(cipherText) } } }
+                        { "body"_ls, QString::fromUtf8(cipherText) } } }
     };
-    return EncryptedEvent(encrypted, olmAccount->identityKeys().curve25519)
+    return EncryptedEvent(encrypted, QString::fromUtf8(olmAccount->identityKeys().curve25519))
         .contentJson();
 }
 
@@ -2464,8 +2464,8 @@ void Connection::sendSessionKeyToDevices(
 //                    << "Creating the payload for" << targetUserId
 //                    << targetDeviceId << sessionId << sessionKey.toHex();
                 const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
-                                                       roomId, sessionId,
-                                                       sessionKey)
+                                                       roomId, QString::fromUtf8(sessionId),
+                                                       QString::fromUtf8(sessionKey))
                                               .fullJson();
 
                 usersToDevicesToContent[targetUserId][targetDeviceId] =
@@ -2535,23 +2535,23 @@ void Connection::sendToDevice(const QString& targetUserId,
 bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
 {
     auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_ls);
-    query.bindValue(":sessionId", megolmSessionId);
+    query.bindValue(":sessionId"_ls, megolmSessionId);
     database()->execute(query);
     if (!query.next()) {
         return false;
     }
-    auto olmSessionId = query.value("olmSessionId").toString();
+    auto olmSessionId = query.value("olmSessionId"_ls).toString();
     query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_ls);
-    query.bindValue(":sessionId", olmSessionId.toLatin1());
+    query.bindValue(":sessionId"_ls, olmSessionId.toLatin1());
     database()->execute(query);
     if (!query.next()) {
         return false;
     }
     auto curveKey = query.value("senderKey"_ls).toString();
     query.prepare("SELECT verified FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
-    query.bindValue(":curveKey", curveKey);
+    query.bindValue(":curveKey"_ls, curveKey);
     database()->execute(query);
-    return query.next() && query.value("verified").toBool();
+    return query.next() && query.value("verified"_ls).toBool();
 }
 #endif
 

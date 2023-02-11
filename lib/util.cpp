@@ -70,7 +70,7 @@ QString Quotient::prettyPrint(const QString& plainText)
 {
     auto pt = plainText.toHtmlEscaped();
     linkifyUrls(pt);
-    pt.replace('\n', QStringLiteral("<br/>"));
+    pt.replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
     return QStringLiteral("<span style='white-space:pre-wrap'>") + pt
            + QStringLiteral("</span>");
 }
@@ -78,8 +78,8 @@ QString Quotient::prettyPrint(const QString& plainText)
 QString Quotient::cacheLocation(const QString& dirName)
 {
     const QString cachePath =
-        QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % '/'
-        % dirName % '/';
+        QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % QLatin1Char('/')
+        % dirName % QLatin1Char('/');
     QDir dir;
     if (!dir.exists(cachePath))
         dir.mkpath(cachePath);
@@ -107,8 +107,8 @@ static const auto ServerPartRegEx = QStringLiteral(
 
 QString Quotient::serverPart(const QString& mxId)
 {
-    static QString re = "^[@!#$+].*?:(" // Localpart and colon
-                        % ServerPartRegEx % ")$";
+    static QString re = "^[@!#$+].*?:("_ls // Localpart and colon
+                        % ServerPartRegEx % ")$"_ls;
     static QRegularExpression parser(
         re,
         QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits

@@ -116,7 +116,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
             newContentJson.insert(MsgTypeKey, jsonMsgType);
             json.insert(QStringLiteral("m.new_content"), newContentJson);
             json[MsgTypeKey] = jsonMsgType;
-            json[BodyKeyL] = "* " + plainBody;
+            json[BodyKeyL] = QString("* "_ls + plainBody);
             return json;
         }
     }
@@ -146,19 +146,19 @@ TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
     auto mimeType = QMimeDatabase().mimeTypeForFile(file);
     if (!asGenericFile) {
         auto mimeTypeName = mimeType.name();
-        if (mimeTypeName.startsWith("image/"))
+        if (mimeTypeName.startsWith("image/"_ls))
             return new ImageContent(localUrl, file.size(), mimeType,
                                     QImageReader(filePath).size(),
                                     file.fileName());
 
         // duration can only be obtained asynchronously and can only be reliably
         // done by starting to play the file. Left for a future implementation.
-        if (mimeTypeName.startsWith("video/"))
+        if (mimeTypeName.startsWith("video/"_ls))
             return new VideoContent(localUrl, file.size(), mimeType,
                                     QMediaResource(localUrl).resolution(),
                                     file.fileName());
 
-        if (mimeTypeName.startsWith("audio/"))
+        if (mimeTypeName.startsWith("audio/"_ls))
             return new AudioContent(localUrl, file.size(), mimeType,
                                     file.fileName());
     }
@@ -218,7 +218,7 @@ QString RoomMessageEvent::plainBody() const
 QMimeType RoomMessageEvent::mimeType() const
 {
     static const auto PlainTextMimeType =
-        QMimeDatabase().mimeTypeForName("text/plain");
+        QMimeDatabase().mimeTypeForName("text/plain"_ls);
     return _content ? _content->type() : PlainTextMimeType;
 }
 
@@ -250,7 +250,7 @@ QString RoomMessageEvent::replacedEvent() const
 
 bool RoomMessageEvent::isReplaced() const
 {
-    return unsignedPart<QJsonObject>("m.relations"_ls).contains(u"m.replace");
+    return unsignedPart<QJsonObject>("m.relations"_ls).contains("m.replace"_ls);
 }
 
 QString RoomMessageEvent::replacedBy() const
@@ -265,11 +265,11 @@ QString RoomMessageEvent::replacedBy() const
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
 {
     auto name = mimeType.name();
-    return name.startsWith("image/")
+    return name.startsWith("image/"_ls)
                ? QStringLiteral("m.image")
-               : name.startsWith("video/")
+               : name.startsWith("video/"_ls)
                      ? QStringLiteral("m.video")
-                     : name.startsWith("audio/") ? QStringLiteral("m.audio")
+                     : name.startsWith("audio/"_ls) ? QStringLiteral("m.audio")
                                                  : QStringLiteral("m.file");
 }
 
@@ -290,15 +290,15 @@ TextContent::TextContent(QString text, const QString& contentType,
     , relatesTo(std::move(relatesTo))
 {
     if (contentType == HtmlContentTypeId)
-        mimeType = QMimeDatabase().mimeTypeForName("text/html");
+        mimeType = QMimeDatabase().mimeTypeForName("text/html"_ls);
 }
 
 TextContent::TextContent(const QJsonObject& json)
     : relatesTo(fromJson<Omittable<EventRelation>>(json[RelatesToKey]))
 {
     QMimeDatabase db;
-    static const auto PlainTextMimeType = db.mimeTypeForName("text/plain");
-    static const auto HtmlMimeType = db.mimeTypeForName("text/html");
+    static const auto PlainTextMimeType = db.mimeTypeForName("text/plain"_ls);
+    static const auto HtmlMimeType = db.mimeTypeForName("text/html"_ls);
 
     const auto actualJson = isReplacement(relatesTo)
                                 ? json.value("m.new_content"_ls).toObject()
@@ -320,7 +320,7 @@ void TextContent::fillJson(QJsonObject &json) const
 {
     static const auto FormatKey = QStringLiteral("format");
 
-    if (mimeType.inherits("text/html")) {
+    if (mimeType.inherits("text/html"_ls)) {
         json.insert(FormatKey, HtmlContentTypeId);
         json.insert(FormattedBodyKey, body);
     }
@@ -335,7 +335,7 @@ void TextContent::fillJson(QJsonObject &json) const
                                 { EventIdKeyL, relatesTo->eventId } });
         if (relatesTo->type == EventRelation::ReplacementType) {
             QJsonObject newContentJson;
-            if (mimeType.inherits("text/html")) {
+            if (mimeType.inherits("text/html"_ls)) {
                 newContentJson.insert(FormatKey, HtmlContentTypeId);
                 newContentJson.insert(FormattedBodyKey, body);
             }

@@ -33,7 +33,7 @@ QDebug Quotient::operator<<(QDebug dbg, const RoomSummary& rs)
     if (rs.invitedMemberCount)
         sl << QStringLiteral("invited: %1").arg(*rs.invitedMemberCount);
     if (rs.heroes)
-        sl << QStringLiteral("heroes: [%1]").arg(rs.heroes->join(','));
+        sl << QStringLiteral("heroes: [%1]").arg(rs.heroes->join(QLatin1Char(',')));
     dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
     return dbg;
 }
@@ -105,9 +105,9 @@ QDebug Quotient::operator<<(QDebug dbg, const DevicesList& devicesList)
     QDebugStateSaver _(dbg);
     QStringList sl;
     if (!devicesList.changed.isEmpty())
-        sl << QStringLiteral("changed: %1").arg(devicesList.changed.join(", "));
+        sl << QStringLiteral("changed: %1").arg(devicesList.changed.join(", "_ls));
     if (!devicesList.left.isEmpty())
-        sl << QStringLiteral("left %1").arg(devicesList.left.join(", "));
+        sl << QStringLiteral("left %1").arg(devicesList.left.join(", "_ls));
     dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
     return dbg;
 }
@@ -136,7 +136,7 @@ SyncData::SyncData(const QString& cacheFileName)
     auto actualVersion =
         json.value("cache_version"_ls).toObject().value("major"_ls).toInt();
     if (actualVersion == requiredVersion)
-        parseJson(json, cacheFileInfo.absolutePath() + '/');
+        parseJson(json, cacheFileInfo.absolutePath() + QLatin1Char('/'));
     else
         qCWarning(MAIN) << "Major version of the cache file is" << actualVersion
                         << "but" << requiredVersion
@@ -147,8 +147,8 @@ SyncDataList SyncData::takeRoomData() { return std::move(roomData); }
 
 QString SyncData::fileNameForRoom(QString roomId)
 {
-    roomId.replace(':', '_');
-    return roomId + ".json";
+    roomId.replace(QLatin1Char(':'), QLatin1Char('_'));
+    return roomId + ".json"_ls;
 }
 
 Events SyncData::takePresenceData() { return std::move(presenceData); }
@@ -201,8 +201,8 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     fromJson(json.value("device_one_time_keys_count"_ls),
              deviceOneTimeKeysCount_);
 
-    if(json.contains("device_lists")) {
-        fromJson(json.value("device_lists"), devicesList);
+    if(json.contains("device_lists"_ls)) {
+        fromJson(json.value("device_lists"_ls), devicesList);
     }
 
     auto rooms = json.value("rooms"_ls).toObject();
@@ -235,7 +235,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
         totalRooms += rs.size();
     }
     if (!unresolvedRoomIds.empty())
-        qCWarning(MAIN) << "Unresolved rooms:" << unresolvedRoomIds.join(',');
+        qCWarning(MAIN) << "Unresolved rooms:" << unresolvedRoomIds.join(QLatin1Char(','));
     if (totalRooms > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
         qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
                           << totalRooms << "room(s)," << totalEvents

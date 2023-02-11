@@ -150,9 +150,9 @@ public:
         : KeyVerificationAcceptEvent(basicJson(
             TypeId, { { "transaction_id"_ls, transactionId },
                       { "method"_ls, SasV1Method },
-                      { "key_agreement_protocol"_ls, "curve25519-hkdf-sha256" },
-                      { "hash"_ls, "sha256" },
-                      { "message_authentication_code"_ls, "hkdf-hmac-sha256" },
+                      { "key_agreement_protocol"_ls, "curve25519-hkdf-sha256"_ls },
+                      { "hash"_ls, "sha256"_ls },
+                      { "message_authentication_code"_ls, "hkdf-hmac-sha256"_ls },
                       { "short_authentication_string"_ls,
                         QJsonArray{ "decimal"_ls, "emoji"_ls, } },
                       { "commitment"_ls, commitment } }))

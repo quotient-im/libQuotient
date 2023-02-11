@@ -16,7 +16,7 @@ QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
 MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
                                      const QString& mediaId, QSize requestedSize)
     : GetContentThumbnailJob(serverName, mediaId, requestedSize.width(),
-                             requestedSize.height(), "scale")
+                             requestedSize.height(), "scale"_ls)
 {
     setLoggingCategory(THUMBNAILJOB);
 }

@@ -18,7 +18,7 @@ EncryptedEvent::EncryptedEvent(const QByteArray& ciphertext,
                                const QString& senderKey,
                                const QString& deviceId, const QString& sessionId)
     : RoomEvent(basicJson(TypeId, { { AlgorithmKeyL, MegolmV1AesSha2AlgoKey },
-                                    { CiphertextKeyL, QString(ciphertext) },
+                                    { CiphertextKeyL, QString::fromUtf8(ciphertext) },
                                     { DeviceIdKeyL, deviceId },
                                     { SenderKeyKeyL, senderKey },
                                     { SessionIdKeyL, sessionId } }))
@@ -38,20 +38,20 @@ QString EncryptedEvent::algorithm() const
 RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
 {
     auto eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
-    eventObject["event_id"] = id();
-    eventObject["sender"] = senderId();
-    eventObject["origin_server_ts"] = originTimestamp().toMSecsSinceEpoch();
+    eventObject["event_id"_ls] = id();
+    eventObject["sender"_ls] = senderId();
+    eventObject["origin_server_ts"_ls] = originTimestamp().toMSecsSinceEpoch();
     if (const auto relatesToJson = contentPart<QJsonObject>("m.relates_to"_ls);
         !relatesToJson.isEmpty()) {
-        auto content = eventObject["content"].toObject();
-        content["m.relates_to"] = relatesToJson;
-        eventObject["content"] = content;
+        auto content = eventObject["content"_ls].toObject();
+        content["m.relates_to"_ls] = relatesToJson;
+        eventObject["content"_ls] = content;
     }
     if (const auto redactsJson = unsignedPart<QString>("redacts"_ls);
         !redactsJson.isEmpty()) {
-        auto unsign = eventObject["unsigned"].toObject();
-        unsign["redacts"] = redactsJson;
-        eventObject["unsigned"] = unsign;
+        auto unsign = eventObject["unsigned"_ls].toObject();
+        unsign["redacts"_ls] = redactsJson;
+        eventObject["unsigned"_ls] = unsign;
     }
     return loadEvent<RoomEvent>(eventObject);
 }
@@ -59,6 +59,6 @@ RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
 void EncryptedEvent::setRelation(const QJsonObject& relation)
 {
     auto content = contentJson();
-    content["m.relates_to"] = relation;
-    editJson()["content"] = content;
+    content["m.relates_to"_ls] = relation;
+    editJson()["content"_ls] = content;
 }

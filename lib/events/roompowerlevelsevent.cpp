@@ -33,7 +33,7 @@ QJsonObject PowerLevelsEventContent::toJson() const
     o.insert(QStringLiteral("users"), Quotient::toJson(users));
     o.insert(QStringLiteral("users_default"), usersDefault);
     o.insert(QStringLiteral("notifications"),
-             QJsonObject { { "room", notifications.room } });
+             QJsonObject { { "room"_ls, notifications.room } });
     return o;
 }
 

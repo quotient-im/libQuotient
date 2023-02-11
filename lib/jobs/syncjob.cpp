@@ -27,7 +27,7 @@ SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
 SyncJob::SyncJob(const QString& since, const Filter& filter, int timeout,
                  const QString& presence)
     : SyncJob(since,
-              QJsonDocument(toJson(filter)).toJson(QJsonDocument::Compact),
+              QString::fromUtf8(QJsonDocument(toJson(filter)).toJson(QJsonDocument::Compact)),
               timeout, presence)
 {}
 
@@ -40,6 +40,6 @@ BaseJob::Status SyncJob::prepareResult()
     Q_ASSERT(d.unresolvedRooms().isEmpty());
     qCCritical(MAIN).noquote() << "Rooms missing after processing sync "
                                   "response, possibly a bug in SyncData: "
-                               << d.unresolvedRooms().join(',');
+                               << d.unresolvedRooms().join(QLatin1Char(','));
     return IncorrectResponse;
 }

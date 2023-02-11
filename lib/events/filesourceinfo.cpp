@@ -64,7 +64,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
                               | QByteArray::OmitTrailingEquals);
     auto iv = getRandom<16>();
     JWK key = {
-        "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, kBase64, true
+        "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromUtf8(kBase64), true
     };
 
     int length = -1;
@@ -86,7 +86,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
                     .toBase64(QByteArray::OmitTrailingEquals);
     auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
     EncryptedFileMetadata efm = {
-        {}, key, ivBase64, { { QStringLiteral("sha256"), hash } }, "v2"_ls
+        {}, key, QString::fromUtf8(ivBase64), { { QStringLiteral("sha256"), QString::fromUtf8(hash) } }, "v2"_ls
     };
     return { efm, cipherText };
 #else

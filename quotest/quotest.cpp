@@ -152,7 +152,7 @@ private:
 void TestSuite::doTest(const QByteArray& testName)
 {
     clog << "Starting: " << testName.constData() << endl;
-    QMetaObject::invokeMethod(this, testName, Qt::DirectConnection,
+    QMetaObject::invokeMethod(this, testName.constData(), Qt::DirectConnection,
                               Q_ARG(TestToken, testName));
 }
 
@@ -173,13 +173,13 @@ void TestSuite::finishTest(const TestToken& token, bool condition,
     if (condition) {
         clog << item << " successful" << endl;
         if (targetRoom)
-            targetRoom->postMessage(origin % ": " % item % " successful",
+            targetRoom->postMessage(origin % ": "_ls % QString::fromUtf8(item) % " successful"_ls,
                                     MessageEventType::Notice);
     } else {
         clog << item << " FAILED at " << file << ":" << line << endl;
         if (targetRoom)
-            targetRoom->postPlainText(origin % ": " % item % " FAILED at "
-                                      % file % ", line " % QString::number(line));
+            targetRoom->postPlainText(origin % ": "_ls % QString::fromUtf8(item) % " FAILED at "_ls
+                                      % QString::fromUtf8(file) % ", line "_ls % QString::number(line));
     }
 
     emit finishedItem(item, condition);
@@ -190,11 +190,11 @@ TestManager::TestManager(int& argc, char** argv)
 {
     Q_ASSERT(argc >= 5);
     clog << "Connecting to Matrix as " << argv[1] << endl;
-    c->loginWithPassword(argv[1], argv[2], argv[3]);
-    targetRoomName = argv[4];
+    c->loginWithPassword(QString::fromUtf8(argv[1]), QString::fromUtf8(argv[2]), QString::fromUtf8(argv[3]));
+    targetRoomName = QString::fromUtf8(argv[4]);
     clog << "Test room name: " << argv[4] << endl;
     if (argc > 5) {
-        origin = argv[5];
+        origin = QString::fromUtf8(argv[5]);
         clog << "Origin for the test message: " << origin.toStdString() << endl;
     }
 
@@ -231,7 +231,7 @@ TestManager::TestManager(int& argc, char** argv)
 void TestManager::setupAndRun()
 {
     Q_ASSERT(!c->homeserver().isEmpty() && c->homeserver().isValid());
-    Q_ASSERT(c->domain() == c->userId().section(':', 1));
+    Q_ASSERT(c->domain() == c->userId().section(QLatin1Char(':'), 1));
     clog << "Connected, server: "
          << c->homeserver().toDisplayString().toStdString() << endl;
     clog << "Access token: " << c->accessToken().toStdString() << endl;
@@ -312,7 +312,7 @@ void TestManager::doTests()
                 if (auto i = running.indexOf(itemName); i != -1)
                     (condition ? succeeded : failed).push_back(running.takeAt(i));
                 else
-                    Q_ASSERT_X(false, itemName,
+                    Q_ASSERT_X(false, itemName.constData(),
                                "Test item is not in running state");
                 if (running.empty()) {
                     clog << "All tests finished" << endl;
@@ -346,7 +346,7 @@ TEST_IMPL(loadMembers)
 
 TEST_IMPL(sendMessage)
 {
-    auto txnId = targetRoom->postPlainText("Hello, " % origin % " is here");
+    auto txnId = targetRoom->postPlainText("Hello, "_ls % origin % " is here"_ls);
     if (!validatePendingEvent<RoomMessageEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
@@ -423,7 +423,7 @@ TEST_IMPL(sendFile)
     const auto tfName = tfi.fileName();
     clog << "Sending file " << tfName.toStdString() << endl;
     const auto txnId = targetRoom->postFile(
-        "Test file", new EventContent::FileContent(tfi));
+        "Test file"_ls, new EventContent::FileContent(tfi));
     if (!validatePendingEvent<RoomMessageEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         tf->deleteLater();
@@ -448,7 +448,7 @@ TEST_IMPL(sendFile)
             if (id != txnId)
                 return false;
 
-            targetRoom->postPlainText(origin % ": File upload failed: " % error);
+            targetRoom->postPlainText(origin % ": File upload failed: "_ls % error);
             tf->deleteLater();
             FAIL_TEST();
         });
@@ -564,7 +564,7 @@ TEST_IMPL(sendCustomEvent)
 
 TEST_IMPL(setTopic)
 {
-    const auto newTopic = connection()->generateTxnId(); // Just a way to make
+    const auto newTopic = QString::fromUtf8(connection()->generateTxnId()); // Just a way to make
                                                          // a unique id
     targetRoom->setTopic(newTopic);
     connectUntil(targetRoom, &Room::topicChanged, this,
@@ -584,7 +584,7 @@ TEST_IMPL(changeName)
 {
     connectSingleShot(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
         auto* const localUser = connection()->user();
-        const auto& newName = connection()->generateTxnId(); // See setTopic()
+        const auto& newName = QString::fromUtf8(connection()->generateTxnId()); // See setTopic()
         clog << "Renaming the user to " << newName.toStdString()
              << " in the target room" << endl;
         localUser->rename(newName, targetRoom);
@@ -628,13 +628,13 @@ TEST_IMPL(changeName)
 TEST_IMPL(showLocalUsername)
 {
     auto* const localUser = connection()->user();
-    FINISH_TEST(!localUser->name().contains("@"));
+    FINISH_TEST(!localUser->name().contains("@"_ls));
 }
 
 TEST_IMPL(sendAndRedact)
 {
     clog << "Sending a message to redact" << endl;
-    auto txnId = targetRoom->postPlainText(origin % ": message to redact");
+    auto txnId = targetRoom->postPlainText(origin % ": message to redact"_ls);
     if (txnId.isEmpty())
         FAIL_TEST();
 
@@ -779,7 +779,7 @@ TEST_IMPL(visitResources)
             clog << "Checking " << uriString.toStdString()
                  << " -> " << uri.toDisplayString().toStdString() << endl;
             if (auto matrixToUrl = uri.toUrl(Uri::MatrixToUri).toDisplayString();
-                !matrixToUrl.startsWith("https://matrix.to/#/")) {
+                !matrixToUrl.startsWith("https://matrix.to/#/"_ls)) {
                 clog << "Incorrect matrix.to representation:"
                      << matrixToUrl.toStdString() << endl;
             }
@@ -829,8 +829,8 @@ TEST_IMPL(visitResources)
         clog << "Bare sigil URI test failed" << endl;
         FAIL_TEST();
     }
-    QUrl invalidUrl { "https://" };
-    invalidUrl.setAuthority("---:@@@");
+    QUrl invalidUrl { "https://"_ls };
+    invalidUrl.setAuthority("---:@@@"_ls);
     const Uri matrixUriFromInvalidUrl { invalidUrl },
         invalidMatrixUri { QStringLiteral("matrix:&invalid@") };
     if (matrixUriFromInvalidUrl.isEmpty() || matrixUriFromInvalidUrl.isValid()) {
@@ -853,45 +853,45 @@ TEST_IMPL(visitResources)
     Q_ASSERT(!eventId.isEmpty());
 
     const QStringList roomUris {
-        roomId, "matrix:roomid/" + roomId.mid(1),
-        "https://matrix.to/#/%21"/*`!`*/ + roomId.mid(1),
-        roomAlias, "matrix:room/" + roomAlias.mid(1),
-        "matrix:r/" + roomAlias.mid(1),
-        "https://matrix.to/#/" + roomAlias,
+        roomId, "matrix:roomid/"_ls + roomId.mid(1),
+        "https://matrix.to/#/%21"_ls/*`!`*/ + roomId.mid(1),
+        roomAlias, "matrix:room/"_ls + roomAlias.mid(1),
+        "matrix:r/"_ls + roomAlias.mid(1),
+        "https://matrix.to/#/"_ls + roomAlias,
     };
-    const QStringList userUris { userId, "matrix:user/" + userId.mid(1),
-                                 "matrix:u/" + userId.mid(1),
-                                 "https://matrix.to/#/" + userId };
+    const QStringList userUris { userId, "matrix:user/"_ls + userId.mid(1),
+                                 "matrix:u/"_ls + userId.mid(1),
+                                 "https://matrix.to/#/"_ls + userId };
     const QStringList eventUris {
-        "matrix:room/" + roomAlias.mid(1) + "/event/" + eventId.mid(1),
-        "matrix:r/" + roomAlias.mid(1) + "/e/" + eventId.mid(1),
-        "https://matrix.to/#/" + roomId + '/' + eventId
+        "matrix:room/"_ls + roomAlias.mid(1) + "/event/"_ls + eventId.mid(1),
+        "matrix:r/"_ls + roomAlias.mid(1) + "/e/"_ls + eventId.mid(1),
+        "https://matrix.to/#/"_ls + roomId + QLatin1Char('/') + eventId
     };
     // Check that reserved characters are correctly processed.
     static const auto& joinRoomAlias =
         QStringLiteral("##/?.@\"unjoined:example.org");
     static const auto& encodedRoomAliasNoSigil =
-        QUrl::toPercentEncoding(joinRoomAlias.mid(1), ":");
-    static const QString joinQuery { "?action=join" };
+        QString::fromUtf8(QUrl::toPercentEncoding(joinRoomAlias.mid(1), QByteArrayLiteral(":")));
+    static const QString joinQuery { "?action=join"_ls };
     // These URIs are not supposed to be actually joined (and even exist,
     // as yet) - only to be syntactically correct
     static const QStringList joinByAliasUris {
         Uri(joinRoomAlias.toUtf8(), {}, joinQuery.mid(1)).toDisplayString(),
-        "matrix:room/" + encodedRoomAliasNoSigil + joinQuery,
-        "matrix:r/" + encodedRoomAliasNoSigil + joinQuery,
-        "https://matrix.to/#/%23"/*`#`*/ + encodedRoomAliasNoSigil + joinQuery,
-        "https://matrix.to/#/%23" + joinRoomAlias.mid(1) /* unencoded */ + joinQuery
+        "matrix:room/"_ls + encodedRoomAliasNoSigil + joinQuery,
+        "matrix:r/"_ls + encodedRoomAliasNoSigil + joinQuery,
+        "https://matrix.to/#/%23"_ls/*`#`*/ + encodedRoomAliasNoSigil + joinQuery,
+        "https://matrix.to/#/%23"_ls + joinRoomAlias.mid(1) /* unencoded */ + joinQuery
     };
     static const auto& joinRoomId = QStringLiteral("!anyid:example.org");
-    static const QStringList viaServers { "matrix.org", "example.org" };
+    static const QStringList viaServers { "matrix.org"_ls, "example.org"_ls };
     static const auto viaQuery =
         std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,
                         [](const QString& q, const QString& s) {
-                            return q + "&via=" + s;
+                            return q + "&via="_ls + s;
                         });
     static const QStringList joinByIdUris {
-        "matrix:roomid/" + joinRoomId.mid(1) + viaQuery,
-        "https://matrix.to/#/" + joinRoomId + viaQuery
+        "matrix:roomid/"_ls + joinRoomId.mid(1) + viaQuery,
+        "https://matrix.to/#/"_ls + joinRoomId + viaQuery
     };
     // If any test breaks, the breaking call will return true, and further
     // execution will be cut by ||'s short-circuiting
@@ -914,7 +914,7 @@ bool checkPrettyPrint(
 {
     bool result = true;
     for (const auto& [test, etalon] : tests) {
-        const auto is = prettyPrint(test).toStdString();
+        const auto is = prettyPrint(QString::fromUtf8(test)).toStdString();
         const auto shouldBe = std::string("<span style='white-space:pre-wrap'>")
                               + etalon + "</span>";
         if (is == shouldBe)
@@ -962,28 +962,28 @@ void TestManager::conclude()
     room->setTopic({});
     room->localUser()->rename({});
 
-    QString succeededRec { QString::number(succeeded.size()) % " of "
+    QString succeededRec { QString::number(succeeded.size()) % " of "_ls
                            % QString::number(succeeded.size() + failed.size()
                                              + running.size())
-                           % " tests succeeded" };
-    QString plainReport = origin % ": Testing complete, " % succeededRec;
-    QString color = failed.empty() && running.empty() ? "00AA00" : "AA0000";
-    QString htmlReport = origin % ": <strong><font data-mx-color='#" % color
-                         % "' color='#" % color
-                         % "'>Testing complete</font></strong>, " % succeededRec;
+                           % " tests succeeded"_ls };
+    QString plainReport = origin % ": Testing complete, "_ls % succeededRec;
+    QString color = failed.empty() && running.empty() ? "00AA00"_ls : "AA0000"_ls;
+    QString htmlReport = origin % ": <strong><font data-mx-color='#"_ls % color
+                         % "' color='#"_ls % color
+                         % "'>Testing complete</font></strong>, "_ls % succeededRec;
     if (!failed.empty()) {
         QByteArray failedList;
         for (const auto& f : qAsConst(failed))
             failedList += ' ' + f;
-        plainReport += "\nFAILED:" + failedList;
-        htmlReport += "<br><strong>Failed:</strong>" + failedList;
+        plainReport += "\nFAILED:"_ls + QString::fromUtf8(failedList);
+        htmlReport += "<br><strong>Failed:</strong>"_ls + QString::fromUtf8(failedList);
     }
     if (!running.empty()) {
         QByteArray dnfList;
         for (const auto& r : qAsConst(running))
             dnfList += ' ' + r;
-        plainReport += "\nDID NOT FINISH:" + dnfList;
-        htmlReport += "<br><strong>Did not finish:</strong>" + dnfList;
+        plainReport += "\nDID NOT FINISH:"_ls + QString::fromUtf8(dnfList);
+        htmlReport += "<br><strong>Did not finish:</strong>"_ls + QString::fromUtf8(dnfList);
     }
 
     auto txnId = room->postHtmlText(plainReport, htmlReport);

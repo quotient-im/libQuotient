@@ -90,7 +90,7 @@ void SsoSession::Private::processCallback()
         return;
     }
     const auto& QueryItemName = QStringLiteral("loginToken");
-    QUrlQuery query { QUrl(requestParts[1]).query() };
+    QUrlQuery query { QUrl(QString::fromUtf8(requestParts[1])).query() };
     if (!query.hasQueryItem(QueryItemName)) {
         onError("400 Bad Request", tr("No login token in SSO callback"));
         return;
@@ -131,6 +131,6 @@ void SsoSession::Private::onError(const QByteArray& code,
     sendHttpResponse(code, "<h3>" + errorMsg.toUtf8() + "</h3>");
     // [kitsune] Yeah, I know, dirty. Maybe the "right" way would be to have
     // an intermediate signal but that seems just a fight for purity.
-    emit connection->loginError(errorMsg, requestData);
+    emit connection->loginError(errorMsg, QString::fromUtf8(requestData));
     socket->disconnectFromHost();
 }

@@ -55,7 +55,7 @@ void TestOlmUtility::verifySignedOneTimeKey()
     auto keys = aliceOlm.oneTimeKeys();
 
     auto firstKey = *keys.curve25519().begin();
-    auto msgObj = QJsonObject({{"key", firstKey}});
+    auto msgObj = QJsonObject({{"key"_ls, firstKey}});
     auto sig = aliceOlm.sign(msgObj);
 
     auto msg = QJsonDocument(msgObj).toJson(QJsonDocument::Compact);
@@ -72,7 +72,7 @@ void TestOlmUtility::verifySignedOneTimeKey()
                            aliceOlm.identityKeys().ed25519.size(), msg.data(),
                            msg.size(), sig.data(), sig.size());
 
-    QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
+    QCOMPARE(QString::fromUtf8(olm_utility_last_error(utility)), "SUCCESS"_ls);
     QCOMPARE(res, 0);
 
     delete[](reinterpret_cast<uint8_t *>(utility));
@@ -98,20 +98,20 @@ void TestOlmUtility::validUploadKeysRequest()
 
     QJsonObject body
     {
-        {"algorithms", QJsonArray{"m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"}},
-        {"user_id", userId},
-        {"device_id", deviceId},
-        {"keys",
+        {"algorithms"_ls, QJsonArray{"m.olm.v1.curve25519-aes-sha2"_ls, "m.megolm.v1.aes-sha2"_ls}},
+        {"user_id"_ls, userId},
+        {"device_id"_ls, deviceId},
+        {"keys"_ls,
             QJsonObject{
                 {QStringLiteral("curve25519:") + deviceId, QString::fromUtf8(alice.identityKeys().curve25519)},
                 {QStringLiteral("ed25519:") + deviceId, QString::fromUtf8(alice.identityKeys().ed25519)}
             }
         },
-        {"signatures",
+        {"signatures"_ls,
             QJsonObject{
                 {userId,
                     QJsonObject{
-                        {"ed25519:" + deviceId, QString::fromUtf8(idSig)}
+                        {"ed25519:"_ls + deviceId, QString::fromUtf8(idSig)}
                     }
                 }
             }

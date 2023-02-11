@@ -69,18 +69,18 @@ QStringList Settings::childGroups() const
 
 void SettingsGroup::setValue(const QString& key, const QVariant& value)
 {
-    Settings::setValue(groupPath + '/' + key, value);
+    Settings::setValue(groupPath + QLatin1Char('/') + key, value);
 }
 
 bool SettingsGroup::contains(const QString& key) const
 {
-    return Settings::contains(groupPath + '/' + key);
+    return Settings::contains(groupPath + QLatin1Char('/') + key);
 }
 
 QVariant SettingsGroup::value(const QString& key,
                               const QVariant& defaultValue) const
 {
-    return Settings::value(groupPath + '/' + key, defaultValue);
+    return Settings::value(groupPath + QLatin1Char('/') + key, defaultValue);
 }
 
 QString SettingsGroup::group() const { return groupPath; }
@@ -99,7 +99,7 @@ void SettingsGroup::remove(const QString& key)
 {
     QString fullKey { groupPath };
     if (!key.isEmpty())
-        fullKey += "/" + key;
+        fullKey += QLatin1Char('/') + key;
     Settings::remove(fullKey);
 }
 
@@ -126,7 +126,7 @@ void AccountSettings::setHomeserver(const QUrl& url)
     setValue(HomeserverKey, url.toString());
 }
 
-QString AccountSettings::userId() const { return group().section('/', -1); }
+QString AccountSettings::userId() const { return group().section(QLatin1Char('/'), -1); }
 
 void AccountSettings::clearAccessToken()
 {
@@ -138,13 +138,13 @@ void AccountSettings::clearAccessToken()
 
 QByteArray AccountSettings::encryptionAccountPickle()
 {
-    return value("encryption_account_pickle", "").toByteArray();
+    return value("encryption_account_pickle"_ls, QString()).toByteArray();
 }
 
 void AccountSettings::setEncryptionAccountPickle(
     const QByteArray& encryptionAccountPickle)
 {
-    setValue("encryption_account_pickle", encryptionAccountPickle);
+    setValue("encryption_account_pickle"_ls, encryptionAccountPickle);
 }
 
 void AccountSettings::clearEncryptionAccountPickle()

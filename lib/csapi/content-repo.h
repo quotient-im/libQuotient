@@ -69,12 +69,15 @@ public:
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    QString contentType() const { return reply()->rawHeader("Content-Type"); }
+    QString contentType() const
+    {
+        return QString::fromUtf8(reply()->rawHeader("Content-Type"));
+    }
 
     /// The name of the file that was previously uploaded, if set.
     QString contentDisposition() const
     {
-        return reply()->rawHeader("Content-Disposition");
+        return QString::fromUtf8(reply()->rawHeader("Content-Disposition"));
     }
 
     /// The content that was previously uploaded.
@@ -123,13 +126,16 @@ public:
     // Result properties
 
     /// The content type of the file that was previously uploaded.
-    QString contentType() const { return reply()->rawHeader("Content-Type"); }
+    QString contentType() const
+    {
+        return QString::fromUtf8(reply()->rawHeader("Content-Type"));
+    }
 
     /// The `fileName` requested or the name of the file that was previously
     /// uploaded, if set.
     QString contentDisposition() const
     {
-        return reply()->rawHeader("Content-Disposition");
+        return QString::fromUtf8(reply()->rawHeader("Content-Disposition"));
     }
 
     /// The content that was previously uploaded.
@@ -188,7 +194,10 @@ public:
     // Result properties
 
     /// The content type of the thumbnail.
-    QString contentType() const { return reply()->rawHeader("Content-Type"); }
+    QString contentType() const
+    {
+        return QString::fromUtf8(reply()->rawHeader("Content-Type"));
+    }
 
     /// A thumbnail of the requested content.
     QIODevice* data() { return reply(); }
