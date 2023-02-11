@@ -14,7 +14,7 @@
 
 using namespace Quotient;
 
-class SsoSession::Private {
+class Q_DECL_HIDDEN SsoSession::Private {
 public:
     Private(SsoSession* q, QString initialDeviceName = {},
             QString deviceId = {}, Connection* connection = nullptr)

@@ -15,7 +15,7 @@
 
 using namespace Quotient;
 
-class NetworkAccessManager::Private {
+class Q_DECL_HIDDEN NetworkAccessManager::Private {
 public:
     explicit Private(NetworkAccessManager* q)
         : q(q)

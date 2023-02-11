@@ -78,7 +78,7 @@ HashT remove_if(HashT& hashMap, Pred pred)
     return removals;
 }
 
-class Connection::Private {
+class Q_DECL_HIDDEN Connection::Private {
 public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)
         : data(std::move(connection))

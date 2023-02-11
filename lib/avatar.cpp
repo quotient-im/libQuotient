@@ -17,7 +17,7 @@
 using namespace Quotient;
 using std::move;
 
-class Avatar::Private {
+class Q_DECL_HIDDEN Avatar::Private {
 public:
     explicit Private(QUrl url = {}) : _url(std::move(url)) {}
     ~Private()

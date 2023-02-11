@@ -13,7 +13,7 @@
 
 using namespace Quotient;
 
-class MxcReply::Private
+class Q_DECL_HIDDEN MxcReply::Private
 {
 public:
     explicit Private(QNetworkReply* r = nullptr)

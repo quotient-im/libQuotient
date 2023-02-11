@@ -60,7 +60,7 @@ QDebug BaseJob::Status::dumpToLog(QDebug dbg) const
     return dbg << ": " << message;
 }
 
-class BaseJob::Private {
+class Q_DECL_HIDDEN BaseJob::Private {
 public:
     struct JobTimeoutConfig {
         seconds jobTimeout;
