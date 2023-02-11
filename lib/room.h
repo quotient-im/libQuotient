@@ -837,15 +837,23 @@ public Q_SLOTS:
                                      const QJsonObject& contentJson);
     void setName(const QString& newName);
 
-    //! \brief Map an alias to this room on the server.
+    //! \brief Map an alias to this room on the user's current server.
     //!
-    //! \note This is different to setLocalAliases as that can only
-    //!       get the room to publish an alias that is already mapped.
-    //! \sa setLocalAliases
+    //! Convenience function to call Connection::mapAlias with this room's ID
+    //! \sa Connection::mapAlias
     Q_INVOKABLE void mapAlias(const QString& alias) const;
+    //! \brief Publish the given alias as the room's canonical alias.
+    //!
+    //! The alias that is published must already have been mapped to the room
+    //! on the server.
+    //! \sa Room::mapAlias
     Q_INVOKABLE void setCanonicalAlias(const QString& newAlias);
     void setPinnedEvents(const QStringList& events);
-    /// Set room aliases on the user's current server
+    /// \brief Publish list of alt aliases for the room on the user's current server.
+    //!
+    //! The aliases that are published must already have been mapped to the room
+    //! on the server.
+    //! \sa Room::mapAlias
     Q_INVOKABLE void setLocalAliases(const QStringList& aliases);
     void setTopic(const QString& newTopic);
 
