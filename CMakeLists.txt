@@ -47,6 +47,8 @@ else()
             add_compile_options(-Wno-${FLAG})
         endif()
     endforeach ()
+    # disable exceptions by default, not used in most parts here and saves about 10% binary size
+    add_compile_options(-fno-exceptions)
 endif()
 
 if (WIN32)
