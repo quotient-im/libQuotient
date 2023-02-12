@@ -7,7 +7,7 @@
 
 namespace Quotient {
 
-static constexpr auto SasV1Method = "m.sas.v1"_ls;
+constexpr inline auto SasV1Method = "m.sas.v1"_ls;
 
 class QUOTIENT_API KeyVerificationEvent : public Event {
 public:

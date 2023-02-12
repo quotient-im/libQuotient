@@ -7,8 +7,8 @@
 
 namespace Quotient {
 
-[[maybe_unused]] constexpr auto RelatesToKey = "m.relates_to"_ls;
-[[maybe_unused]] constexpr auto RelTypeKey = "rel_type"_ls;
+constexpr inline auto RelatesToKey = "m.relates_to"_ls;
+constexpr inline auto RelTypeKey = "rel_type"_ls;
 
 struct QUOTIENT_API EventRelation {
     using reltypeid_t = QLatin1String;
