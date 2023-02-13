@@ -29,16 +29,16 @@ inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
 
 // === Standard Matrix key names and basicEventJson() ===
 
-constexpr auto TypeKeyL = "type"_ls;
-constexpr auto BodyKeyL = "body"_ls;
-constexpr auto ContentKeyL = "content"_ls;
-constexpr auto EventIdKeyL = "event_id"_ls;
-constexpr auto SenderKeyL = "sender"_ls;
-constexpr auto RoomIdKeyL = "room_id"_ls;
-constexpr auto UnsignedKeyL = "unsigned"_ls;
-constexpr auto RedactedCauseKeyL = "redacted_because"_ls;
-constexpr auto PrevContentKeyL = "prev_content"_ls;
-constexpr auto StateKeyKeyL = "state_key"_ls;
+constexpr inline auto TypeKeyL = "type"_ls;
+constexpr inline auto BodyKeyL = "body"_ls;
+constexpr inline auto ContentKeyL = "content"_ls;
+constexpr inline auto EventIdKeyL = "event_id"_ls;
+constexpr inline auto SenderKeyL = "sender"_ls;
+constexpr inline auto RoomIdKeyL = "room_id"_ls;
+constexpr inline auto UnsignedKeyL = "unsigned"_ls;
+constexpr inline auto RedactedCauseKeyL = "redacted_because"_ls;
+constexpr inline auto PrevContentKeyL = "prev_content"_ls;
+constexpr inline auto StateKeyKeyL = "state_key"_ls;
 const QString TypeKey { TypeKeyL };
 const QString BodyKey { BodyKeyL };
 const QString ContentKey { ContentKeyL };
@@ -516,7 +516,7 @@ public:
 /// in camelCase, no quotes (an identifier, not a literal).
 #define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_,  \
                             JsonKey_)                                        \
-    constexpr auto Name_##ContentKey = JsonKey_##_ls;                        \
+    constexpr inline auto Name_##ContentKey = JsonKey_##_ls;                 \
     class QUOTIENT_API Name_                                                 \
         : public EventTemplate<                                              \
               Name_, Base_,                                                  \

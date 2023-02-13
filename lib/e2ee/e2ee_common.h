@@ -22,20 +22,20 @@
 
 namespace Quotient {
 
-constexpr auto AlgorithmKeyL = "algorithm"_ls;
-constexpr auto RotationPeriodMsKeyL = "rotation_period_ms"_ls;
-constexpr auto RotationPeriodMsgsKeyL = "rotation_period_msgs"_ls;
+constexpr inline auto AlgorithmKeyL = "algorithm"_ls;
+constexpr inline auto RotationPeriodMsKeyL = "rotation_period_ms"_ls;
+constexpr inline auto RotationPeriodMsgsKeyL = "rotation_period_msgs"_ls;
 
-constexpr auto AlgorithmKey = "algorithm"_ls;
-constexpr auto RotationPeriodMsKey = "rotation_period_ms"_ls;
-constexpr auto RotationPeriodMsgsKey = "rotation_period_msgs"_ls;
+constexpr inline auto AlgorithmKey = "algorithm"_ls;
+constexpr inline auto RotationPeriodMsKey = "rotation_period_ms"_ls;
+constexpr inline auto RotationPeriodMsgsKey = "rotation_period_msgs"_ls;
 
-constexpr auto Ed25519Key = "ed25519"_ls;
-constexpr auto Curve25519Key = "curve25519"_ls;
-constexpr auto SignedCurve25519Key = "signed_curve25519"_ls;
+constexpr inline auto Ed25519Key = "ed25519"_ls;
+constexpr inline auto Curve25519Key = "curve25519"_ls;
+constexpr inline auto SignedCurve25519Key = "signed_curve25519"_ls;
 
-constexpr auto OlmV1Curve25519AesSha2AlgoKey = "m.olm.v1.curve25519-aes-sha2"_ls;
-constexpr auto MegolmV1AesSha2AlgoKey = "m.megolm.v1.aes-sha2"_ls;
+constexpr inline auto OlmV1Curve25519AesSha2AlgoKey = "m.olm.v1.curve25519-aes-sha2"_ls;
+constexpr inline auto MegolmV1AesSha2AlgoKey = "m.megolm.v1.aes-sha2"_ls;
 
 constexpr std::array SupportedAlgorithms { OlmV1Curve25519AesSha2AlgoKey,
                                            MegolmV1AesSha2AlgoKey };

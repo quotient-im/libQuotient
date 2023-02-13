@@ -6,9 +6,9 @@
 #include "event.h"
 
 namespace Quotient {
-constexpr auto FavouriteTag [[maybe_unused]] = "m.favourite"_ls;
-constexpr auto LowPriorityTag [[maybe_unused]] = "m.lowpriority"_ls;
-constexpr auto ServerNoticeTag [[maybe_unused]] = "m.server_notice"_ls;
+constexpr inline auto FavouriteTag = "m.favourite"_ls;
+constexpr inline auto LowPriorityTag = "m.lowpriority"_ls;
+constexpr inline auto ServerNoticeTag = "m.server_notice"_ls;
 
 struct TagRecord {
     Omittable<float> order = none;

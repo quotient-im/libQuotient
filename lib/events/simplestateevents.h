@@ -8,7 +8,7 @@
 
 namespace Quotient {
 #define DEFINE_SIMPLE_STATE_EVENT(Name_, TypeId_, ValueType_, ContentKey_)   \
-    constexpr auto Name_##Key = #ContentKey_##_ls;                           \
+    constexpr inline auto Name_##Key = #ContentKey_##_ls;                    \
     class QUOTIENT_API Name_                                                 \
         : public KeylessStateEventBase<                                      \
               Name_, EventContent::SingleKeyValue<ValueType_, Name_##Key>> { \
@@ -25,7 +25,7 @@ DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
 DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages",
                           QStringList, pinnedEvents)
 
-constexpr auto RoomAliasesEventKey = "aliases"_ls;
+constexpr inline auto RoomAliasesEventKey = "aliases"_ls;
 class QUOTIENT_API RoomAliasesEvent
     : public KeyedStateEventBase<
           RoomAliasesEvent,
