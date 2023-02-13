@@ -103,8 +103,8 @@ void TestOlmUtility::validUploadKeysRequest()
         {"device_id"_ls, deviceId},
         {"keys"_ls,
             QJsonObject{
-                {QStringLiteral("curve25519:") + deviceId, QString::fromUtf8(alice.identityKeys().curve25519)},
-                {QStringLiteral("ed25519:") + deviceId, QString::fromUtf8(alice.identityKeys().ed25519)}
+                {QString(QStringLiteral("curve25519:") + deviceId), QString::fromUtf8(alice.identityKeys().curve25519)},
+                {QString(QStringLiteral("ed25519:") + deviceId), QString::fromUtf8(alice.identityKeys().ed25519)}
             }
         },
         {"signatures"_ls,
