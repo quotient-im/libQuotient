@@ -450,7 +450,7 @@ namespace _impl {
 
     inline void addTo(QUrlQuery& q, const QString& k, const QUrl& v)
     {
-        q.addQueryItem(k, QString::fromUtf8(v.toEncoded()));
+        q.addQueryItem(k, QString::fromLatin1(v.toEncoded()));
     }
 
     inline void addTo(QUrlQuery& q, const QString& k, const QStringList& vals)
@@ -535,7 +535,7 @@ inline auto toSnakeCase(QLatin1String s)
     for (auto it = result.begin(); it != result.end(); ++it)
         if (it->isUpper()) {
             const auto offset = static_cast<int>(it - result.begin());
-            result.insert(offset, QLatin1Char('_')); // NB: invalidates iterators
+            result.insert(offset, u'_'); // NB: invalidates iterators
             it = result.begin() + offset + 1;
             *it = it->toLower();
         }

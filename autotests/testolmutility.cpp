@@ -72,7 +72,7 @@ void TestOlmUtility::verifySignedOneTimeKey()
                            aliceOlm.identityKeys().ed25519.size(), msg.data(),
                            msg.size(), sig.data(), sig.size());
 
-    QCOMPARE(QString::fromUtf8(olm_utility_last_error(utility)), "SUCCESS"_ls);
+    QCOMPARE(olm_utility_last_error_code(utility), OLM_SUCCESS);
     QCOMPARE(res, 0);
 
     delete[](reinterpret_cast<uint8_t *>(utility));

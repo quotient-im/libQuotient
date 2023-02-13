@@ -29,10 +29,10 @@ Database::Database(const QString& userId, const QString& deviceId,
     auto db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
                                         "Quotient_"_ls + m_userId);
     auto dbDir = m_userId;
-    dbDir.replace(QLatin1Char(':'), QLatin1Char('_'));
+    dbDir.replace(u':', u'_');
     const QString databasePath{ QStandardPaths::writableLocation(
                                     QStandardPaths::AppDataLocation)
-                                % QLatin1Char('/') % dbDir };
+                                % u'/' % dbDir };
     QDir(databasePath).mkpath("."_ls);
     db.setDatabaseName(databasePath + "/quotient_%1.db3"_ls.arg(m_deviceId));
     db.open(); // Further accessed via database()

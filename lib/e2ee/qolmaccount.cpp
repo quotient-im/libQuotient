@@ -225,10 +225,10 @@ DeviceKeys QOlmAccount::deviceKeys() const
         .userId = m_userId,
         .deviceId = m_deviceId,
         .algorithms = Algorithms,
-        .keys{ { "curve25519:"_ls + m_deviceId, QString::fromUtf8(idKeys.curve25519) },
-               { "ed25519:"_ls + m_deviceId, QString::fromUtf8(idKeys.ed25519) } },
+        .keys{ { "curve25519:"_ls + m_deviceId, QString::fromLatin1(idKeys.curve25519) },
+               { "ed25519:"_ls + m_deviceId, QString::fromLatin1(idKeys.ed25519) } },
         .signatures{
-            { m_userId, { { "ed25519:"_ls + m_deviceId, QString::fromUtf8(signIdentityKeys()) } } } }
+            { m_userId, { { "ed25519:"_ls + m_deviceId, QString::fromLatin1(signIdentityKeys()) } } } }
     };
 }
 
@@ -310,4 +310,4 @@ bool Quotient::ed25519VerifySignature(const QString& signingKey,
     return utility.ed25519Verify(signingKeyBuf, canonicalJson, signatureBuf);
 }
 
-QString QOlmAccount::accountId() const { return m_userId % QLatin1Char('/') % m_deviceId; }
+QString QOlmAccount::accountId() const { return m_userId % u'/' % m_deviceId; }
