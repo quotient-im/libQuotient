@@ -887,7 +887,7 @@ TEST_IMPL(visitResources)
     static const auto viaQuery =
         std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,
                         [](const QString& q, const QString& s) {
-                            return q + "&via="_ls + s;
+                            return QString(q + "&via="_ls + s);
                         });
     static const QStringList joinByIdUris {
         "matrix:roomid/"_ls + joinRoomId.mid(1) + viaQuery,
