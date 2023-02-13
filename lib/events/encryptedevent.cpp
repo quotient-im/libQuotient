@@ -18,7 +18,7 @@ EncryptedEvent::EncryptedEvent(const QByteArray& ciphertext,
                                const QString& senderKey,
                                const QString& deviceId, const QString& sessionId)
     : RoomEvent(basicJson(TypeId, { { AlgorithmKeyL, MegolmV1AesSha2AlgoKey },
-                                    { CiphertextKeyL, QString::fromUtf8(ciphertext) },
+                                    { CiphertextKeyL, QString::fromLatin1(ciphertext) },
                                     { DeviceIdKeyL, deviceId },
                                     { SenderKeyKeyL, senderKey },
                                     { SessionIdKeyL, sessionId } }))

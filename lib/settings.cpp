@@ -69,18 +69,18 @@ QStringList Settings::childGroups() const
 
 void SettingsGroup::setValue(const QString& key, const QVariant& value)
 {
-    Settings::setValue(groupPath + QLatin1Char('/') + key, value);
+    Settings::setValue(groupPath + u'/' + key, value);
 }
 
 bool SettingsGroup::contains(const QString& key) const
 {
-    return Settings::contains(groupPath + QLatin1Char('/') + key);
+    return Settings::contains(groupPath + u'/' + key);
 }
 
 QVariant SettingsGroup::value(const QString& key,
                               const QVariant& defaultValue) const
 {
-    return Settings::value(groupPath + QLatin1Char('/') + key, defaultValue);
+    return Settings::value(groupPath + u'/' + key, defaultValue);
 }
 
 QString SettingsGroup::group() const { return groupPath; }
@@ -99,7 +99,7 @@ void SettingsGroup::remove(const QString& key)
 {
     QString fullKey { groupPath };
     if (!key.isEmpty())
-        fullKey += QLatin1Char('/') + key;
+        fullKey += u'/' + key;
     Settings::remove(fullKey);
 }
 
@@ -126,7 +126,7 @@ void AccountSettings::setHomeserver(const QUrl& url)
     setValue(HomeserverKey, url.toString());
 }
 
-QString AccountSettings::userId() const { return group().section(QLatin1Char('/'), -1); }
+QString AccountSettings::userId() const { return group().section(u'/', -1); }
 
 void AccountSettings::clearAccessToken()
 {

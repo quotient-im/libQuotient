@@ -174,7 +174,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
                                      QCryptographicHash::Sha256)
                 .toBase64();
         const QLatin1String unpaddedCommitment(paddedCommitment.constData(),
-                                               QString::fromUtf8(paddedCommitment).indexOf(QLatin1Char('=')));
+                                               QString::fromLatin1(paddedCommitment).indexOf(u'='));
         if (unpaddedCommitment != m_commitment) {
             qCWarning(E2EE) << "Commitment mismatch; aborting verification";
             cancelVerification(MISMATCHED_COMMITMENT);
@@ -194,7 +194,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 
     const auto info = infoTemplate
                           .arg(m_connection->userId(), m_connection->deviceId(),
-                               QString::fromUtf8(key.data()), m_remoteUserId, m_remoteDeviceId,
+                               QString::fromLatin1(key.data()), m_remoteUserId, m_remoteDeviceId,
                                event.key(), m_transactionId)
                           .toLatin1();
     olm_sas_generate_bytes(olmData, info.data(), unsignedSize(info),
@@ -214,7 +214,7 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
     const auto uiLanguages = QLocale().uiLanguages();
     const auto preferredLanguage = uiLanguages.isEmpty()
                                        ? QString()
-                                       : uiLanguages.front().section(QLatin1Char('-'), 0, 0);
+                                       : uiLanguages.front().section(u'-', 0, 0);
     for (const auto& c : code)
         m_sasEmojis += emojiForCode(std::to_integer<int>(c), preferredLanguage);
 
@@ -277,7 +277,7 @@ void KeyVerificationSession::sendKey()
     olm_sas_get_pubkey(olmData, keyBytes.data(), pubkeyLength);
     m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationKeyEvent(m_transactionId,
-                                                       QString::fromUtf8(keyBytes)),
+                                                       QString::fromLatin1(keyBytes)),
                                m_encrypted);
 }
 
@@ -352,8 +352,8 @@ void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
     auto publicKey = byteArrayForOlm(pubkeyLength);
     olm_sas_get_pubkey(olmData, publicKey.data(), pubkeyLength);
     const auto canonicalEvent = QString::fromUtf8(QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact));
-    auto commitment = QString::fromUtf8(QCryptographicHash::hash((QString::fromUtf8(publicKey) % canonicalEvent).toLatin1(), QCryptographicHash::Sha256).toBase64());
-    commitment = commitment.left(commitment.indexOf(QLatin1Char('=')));
+    auto commitment = QString::fromLatin1(QCryptographicHash::hash((QString::fromLatin1(publicKey) % canonicalEvent).toLatin1(), QCryptographicHash::Sha256).toBase64());
+    commitment = commitment.left(commitment.indexOf(u'='));
 
     m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationAcceptEvent(m_transactionId,

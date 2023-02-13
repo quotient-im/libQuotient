@@ -111,7 +111,7 @@ void TestOlmUtility::validUploadKeysRequest()
             QJsonObject{
                 {userId,
                     QJsonObject{
-                        {"ed25519:"_ls + deviceId, QString::fromUtf8(idSig)}
+                        {"ed25519:"_ls + deviceId, QString::fromLatin1(idSig)}
                     }
                 }
             }

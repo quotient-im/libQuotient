@@ -149,9 +149,9 @@ QByteArray QOlmAccount::signIdentityKeys() const
         { "user_id"_ls, m_userId },
         { "device_id"_ls, m_deviceId },
         { "keys"_ls, QJsonObject{ { QStringLiteral("curve25519:") + m_deviceId,
-                                 QString::fromUtf8(keys.curve25519) },
+                                 QString::fromLatin1(keys.curve25519) },
                                { QStringLiteral("ed25519:") + m_deviceId,
-                                 QString::fromUtf8(keys.ed25519) } } } });
+                                 QString::fromLatin1(keys.ed25519) } } } });
 }
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const

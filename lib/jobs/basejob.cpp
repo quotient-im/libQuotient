@@ -154,7 +154,7 @@ public:
         static const std::array verbs { "GET"_ls, "PUT"_ls, "POST"_ls,
                                         "DELETE"_ls };
         const auto verbWord = verbs.at(size_t(verb));
-        return verbWord % QLatin1Char(' ')
+        return verbWord % u' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
                         : makeRequestUrl(connection->baseUrl(), apiEndpoint)
                               .toString());
@@ -168,7 +168,7 @@ inline bool isHex(QChar c)
 
 QByteArray BaseJob::encodeIfParam(const QString& paramPart)
 {
-    const auto percentIndex = paramPart.indexOf(QLatin1Char('%'));
+    const auto percentIndex = paramPart.indexOf(u'%');
     if (percentIndex != -1 && paramPart.size() > percentIndex + 2
         && isHex(paramPart[percentIndex + 1])
         && isHex(paramPart[percentIndex + 2])) {
@@ -414,12 +414,12 @@ void BaseJob::gotReply()
             const auto& responseObject = jsonData();
             QByteArrayList missingKeys;
             for (const auto& k: expectedKeys())
-                if (!responseObject.contains(QString::fromUtf8(k)))
+                if (!responseObject.contains(QString::fromLatin1(k)))
                     missingKeys.push_back(k);
             if (!missingKeys.empty())
                 statusSoFar = { IncorrectResponse,
                                 tr("Required JSON keys missing: ")
-                                    + QString::fromUtf8(missingKeys.join()) };
+                                    + QString::fromLatin1(missingKeys.join()) };
         }
         setStatus(statusSoFar);
         if (!status().good()) // Bad JSON in a "good" reply: bail out
@@ -457,7 +457,7 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
         Q_ASSERT_X(patternParts.size() <= 2, __FUNCTION__,
                    qPrintable(
                        "BaseJob: Expected content type should have up to two /-separated parts; violating pattern: "_ls
-                       + QString::fromUtf8(pattern)));
+                       + QString::fromLatin1(pattern)));
 
         if (ctype.split('/').front() == patternParts.front()
             && patternParts.back() == "*")

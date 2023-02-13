@@ -76,11 +76,11 @@ QString User::id() const { return d->id; }
 
 bool User::isGuest() const
 {
-    Q_ASSERT(!d->id.isEmpty() && d->id.startsWith(QLatin1Char('@')));
+    Q_ASSERT(!d->id.isEmpty() && d->id.startsWith(u'@'));
     auto it = std::find_if_not(d->id.cbegin() + 1, d->id.cend(),
                                [](QChar c) { return c.isDigit(); });
     Q_ASSERT(it != d->id.cend());
-    return *it == QLatin1Char(':');
+    return *it == u':';
 }
 
 int User::hue() const { return int(hueF() * 359); }
@@ -182,7 +182,7 @@ QString User::displayname(const Room* room) const
 QString User::fullName(const Room* room) const
 {
     const auto displayName = name(room);
-    return displayName.isEmpty() ? id() : (displayName % " ("_ls % id() % QLatin1Char(')'));
+    return displayName.isEmpty() ? id() : (displayName % " ("_ls % id() % u')');
 }
 
 const Avatar& User::avatarObject(const Room* room) const

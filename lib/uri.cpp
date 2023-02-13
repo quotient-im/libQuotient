@@ -72,7 +72,7 @@ static inline auto encodedPath(const QUrl& url)
 static QString pathSegment(const QUrl& url, int which)
 {
     return QUrl::fromPercentEncoding(
-        encodedPath(url).section(QLatin1Char('/'), which, which).toUtf8());
+        encodedPath(url).section(u'/', which, which).toUtf8());
 }
 
 static auto decodeFragmentPart(QStringView part)
@@ -103,7 +103,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
     if (scheme() == "matrix"_ls) {
         // Check sanity as per https://github.com/matrix-org/matrix-doc/pull/2312
         const auto& urlPath = encodedPath(*this);
-        const auto& splitPath = urlPath.split(QLatin1Char('/'));
+        const auto& splitPath = urlPath.split(u'/');
         switch (splitPath.size()) {
         case 2:
             break;

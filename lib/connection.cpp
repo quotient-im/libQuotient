@@ -243,9 +243,9 @@ public:
         QOlmMessage message {
             personalCipherObject.value(BodyKeyL).toString().toLatin1(), msgType
         };
-        for (const auto& session : olmSessions[QString::fromUtf8(senderKey)])
+        for (const auto& session : olmSessions[QString::fromLatin1(senderKey)])
             if (msgType == QOlmMessage::General
-                || session.matchesInboundSessionFrom(QString::fromUtf8(senderKey), message)) {
+                || session.matchesInboundSessionFrom(QString::fromLatin1(senderKey), message)) {
                 return doDecryptMessage(session, message, [this, &session] {
                     q->database()->setOlmSessionLastReceived(
                         session.sessionId(), QDateTime::currentDateTime());
@@ -274,8 +274,8 @@ public:
         }
         return doDecryptMessage(
             newSession, message, [this, &senderKey, &newSession] {
-                saveSession(newSession, QString::fromUtf8(senderKey));
-                olmSessions[QString::fromUtf8(senderKey)].push_back(std::move(newSession));
+                saveSession(newSession, QString::fromLatin1(senderKey));
+                olmSessions[QString::fromLatin1(senderKey)].push_back(std::move(newSession));
             });
     }
 #endif
@@ -291,7 +291,7 @@ public:
 
         const auto identityKey = olmAccount->identityKeys().curve25519;
         const auto personalCipherObject =
-            encryptedEvent.ciphertext(QString::fromUtf8(identityKey));
+            encryptedEvent.ciphertext(QString::fromLatin1(identityKey));
         if (personalCipherObject.isEmpty()) {
             qDebug(E2EE) << "Encrypted event is not for the current device";
             return {};
@@ -662,7 +662,7 @@ void Connection::Private::completeSetup(const QString& mxId)
 {
     data->setUserId(mxId);
     q->user(); // Creates a User object for the local user
-    q->setObjectName(data->userId() % QLatin1Char('/') % data->deviceId());
+    q->setObjectName(data->userId() % u'/' % data->deviceId());
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
@@ -715,7 +715,7 @@ void Connection::Private::checkAndConnect(const QString& userId,
         return;
     }
     // Not good to go, try to ascertain the homeserver URL and flows
-    if (userId.startsWith(QLatin1Char('@')) && userId.indexOf(QLatin1Char(':')) != -1) {
+    if (userId.startsWith(u'@') && userId.indexOf(u':') != -1) {
         q->resolveServer(userId);
         if (flow)
             connectSingleShot(q, &Connection::loginFlowsChanged, q,
@@ -979,7 +979,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                 if (is<IgnoredUsersEvent>(accountEvent))
                     qCDebug(MAIN)
                         << "Users ignored by" << data->userId() << "updated:"
-                        << QStringList(q->ignoredUsers().values()).join(QLatin1Char(','));
+                        << QStringList(q->ignoredUsers().values()).join(u',');
 
                 auto& currentData = accountData[accountEvent.matrixType()];
                 // A polymorphic event-specific comparison might be a bit
@@ -1160,7 +1160,7 @@ LeaveRoomJob* Connection::leaveRoom(Room* room)
 
 inline auto splitMediaId(const QString& mediaId)
 {
-    auto idParts = mediaId.split(QLatin1Char('/'));
+    auto idParts = mediaId.split(u'/');
     Q_ASSERT_X(idParts.size() == 2, __FUNCTION__,
                qPrintable("'"_ls % mediaId
                           % "' doesn't look like 'serverName/localMediaId'"_ls));
@@ -1429,7 +1429,7 @@ SendToDeviceJob* Connection::sendToDevices(
     const QString& eventType, const UsersToDevicesToContent& contents)
 {
     return callApi<SendToDeviceJob>(BackgroundRequest, eventType,
-                                    QString::fromUtf8(generateTxnId()), contents);
+                                    QString::fromLatin1(generateTxnId()), contents);
 }
 
 SendMessageJob* Connection::sendMessage(const QString& roomId,
@@ -1437,13 +1437,13 @@ SendMessageJob* Connection::sendMessage(const QString& roomId,
 {
     const auto txnId = event.transactionId().isEmpty() ? generateTxnId()
                                                        : event.transactionId().toLatin1();
-    return callApi<SendMessageJob>(roomId, event.matrixType(), QString::fromUtf8(txnId),
+    return callApi<SendMessageJob>(roomId, event.matrixType(), QString::fromLatin1(txnId),
                                    event.contentJson());
 }
 
 QUrl Connection::homeserver() const { return d->data->baseUrl(); }
 
-QString Connection::domain() const { return userId().section(QLatin1Char(':'), 1); }
+QString Connection::domain() const { return userId().section(u':', 1); }
 
 bool Connection::isUsable() const { return !loginFlows().isEmpty(); }
 
@@ -1526,7 +1526,7 @@ User* Connection::user(const QString& uId)
         return v;
     // Before creating a user object, check that the user id is well-formed
     // (it's faster to just do a lookup above before validation)
-    if (!uId.startsWith(QLatin1Char('@')) || serverPart(uId).isEmpty()) {
+    if (!uId.startsWith(u'@') || serverPart(uId).isEmpty()) {
         qCCritical(MAIN) << "Malformed userId:" << uId;
         return nullptr;
     }
@@ -1997,13 +1997,13 @@ void Connection::loadState()
 
 QString Connection::stateCachePath() const
 {
-    return stateCacheDir().path() % QLatin1Char('/');
+    return stateCacheDir().path() % u'/';
 }
 
 QDir Connection::stateCacheDir() const
 {
     auto safeUserId = userId();
-    safeUserId.replace(QLatin1Char(':'), QLatin1Char('_'));
+    safeUserId.replace(u':', u'_');
     return cacheLocation(safeUserId);
 }
 
@@ -2394,8 +2394,8 @@ bool Connection::Private::createOlmSession(const QString& targetUserId,
                         << recipientCurveKey << session.error();
         return false;
     }
-    saveSession(*session, QString::fromUtf8(recipientCurveKey));
-    olmSessions[QString::fromUtf8(recipientCurveKey)].push_back(std::move(*session));
+    saveSession(*session, QString::fromLatin1(recipientCurveKey));
+    olmSessions[QString::fromLatin1(recipientCurveKey)].push_back(std::move(*session));
     return true;
 }
 
@@ -2408,7 +2408,7 @@ QJsonObject Connection::Private::assembleEncryptedContent(
     payloadJson.insert("keys"_ls,
                        QJsonObject{
                            { Ed25519Key,
-                             QString::fromUtf8(olmAccount->identityKeys().ed25519) } });
+                             QString::fromLatin1(olmAccount->identityKeys().ed25519) } });
     payloadJson.insert("recipient"_ls, targetUserId);
     payloadJson.insert(
         "recipient_keys"_ls,
@@ -2420,9 +2420,9 @@ QJsonObject Connection::Private::assembleEncryptedContent(
     QJsonObject encrypted {
         { curveKeyForUserDevice(targetUserId, targetDeviceId),
           QJsonObject { { "type"_ls, type },
-                        { "body"_ls, QString::fromUtf8(cipherText) } } }
+                        { "body"_ls, QString::fromLatin1(cipherText) } } }
     };
-    return EncryptedEvent(encrypted, QString::fromUtf8(olmAccount->identityKeys().curve25519))
+    return EncryptedEvent(encrypted, QString::fromLatin1(olmAccount->identityKeys().curve25519))
         .contentJson();
 }
 
@@ -2464,8 +2464,8 @@ void Connection::sendSessionKeyToDevices(
 //                    << "Creating the payload for" << targetUserId
 //                    << targetDeviceId << sessionId << sessionKey.toHex();
                 const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
-                                                       roomId, QString::fromUtf8(sessionId),
-                                                       QString::fromUtf8(sessionKey))
+                                                       roomId, QString::fromLatin1(sessionId),
+                                                       QString::fromLatin1(sessionKey))
                                               .fullJson();
 
                 usersToDevicesToContent[targetUserId][targetDeviceId] =

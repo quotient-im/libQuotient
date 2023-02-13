@@ -231,7 +231,7 @@ TestManager::TestManager(int& argc, char** argv)
 void TestManager::setupAndRun()
 {
     Q_ASSERT(!c->homeserver().isEmpty() && c->homeserver().isValid());
-    Q_ASSERT(c->domain() == c->userId().section(QLatin1Char(':'), 1));
+    Q_ASSERT(c->domain() == c->userId().section(u':', 1));
     clog << "Connected, server: "
          << c->homeserver().toDisplayString().toStdString() << endl;
     clog << "Access token: " << c->accessToken().toStdString() << endl;
@@ -865,7 +865,7 @@ TEST_IMPL(visitResources)
     const QStringList eventUris {
         "matrix:room/"_ls + roomAlias.mid(1) + "/event/"_ls + eventId.mid(1),
         "matrix:r/"_ls + roomAlias.mid(1) + "/e/"_ls + eventId.mid(1),
-        "https://matrix.to/#/"_ls + roomId + QLatin1Char('/') + eventId
+        "https://matrix.to/#/"_ls + roomId + u'/' + eventId
     };
     // Check that reserved characters are correctly processed.
     static const auto& joinRoomAlias =

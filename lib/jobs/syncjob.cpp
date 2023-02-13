@@ -40,6 +40,6 @@ BaseJob::Status SyncJob::prepareResult()
     Q_ASSERT(d.unresolvedRooms().isEmpty());
     qCCritical(MAIN).noquote() << "Rooms missing after processing sync "
                                   "response, possibly a bug in SyncData: "
-                               << d.unresolvedRooms().join(QLatin1Char(','));
+                               << d.unresolvedRooms().join(u',');
     return IncorrectResponse;
 }

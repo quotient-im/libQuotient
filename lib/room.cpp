@@ -376,7 +376,7 @@ public:
         auto expectedMegolmSession = QOlmInboundGroupSession::create(sessionKey);
         Q_ASSERT(expectedMegolmSession.has_value());
         auto&& megolmSession = *expectedMegolmSession;
-        if (QString::fromUtf8(megolmSession.sessionId()) != sessionId) {
+        if (QString::fromLatin1(megolmSession.sessionId()) != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
         }
@@ -416,10 +416,10 @@ public:
         const auto& [content, index] = *decryptResult;
         const auto& [recordEventId, ts] =
             q->connection()->database()->groupSessionIndexRecord(
-                q->id(), QString::fromUtf8(senderSession.sessionId()), index);
+                q->id(), QString::fromLatin1(senderSession.sessionId()), index);
         if (recordEventId.isEmpty()) {
             q->connection()->database()->addGroupSessionIndexRecord(
-                q->id(), QString::fromUtf8(senderSession.sessionId()), index, eventId,
+                q->id(), QString::fromLatin1(senderSession.sessionId()), index, eventId,
                 timestamp.toMSecsSinceEpoch());
         } else {
             if ((eventId != recordEventId)
@@ -458,7 +458,7 @@ public:
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 
-        addInboundGroupSession(QString::fromUtf8(currentOutboundMegolmSession->sessionId()),
+        addInboundGroupSession(QString::fromLatin1(currentOutboundMegolmSession->sessionId()),
                                currentOutboundMegolmSession->sessionKey(),
                                q->localUser()->id(), "SELF"_ls);
     }
@@ -1282,7 +1282,7 @@ TagRecord Room::tag(const QString& name) const { return d->tags.value(name); }
 
 std::pair<bool, QString> validatedTag(QString name)
 {
-    if (name.isEmpty() || name.indexOf(QLatin1Char('.'), 1) != -1)
+    if (name.isEmpty() || name.indexOf(u'.', 1) != -1)
         return { false, name };
 
     qCWarning(MAIN) << "The tag" << name
@@ -1426,7 +1426,7 @@ QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
         fileName = u.fileName();
     }
     if (fileName.isEmpty())
-        return safeFileName(fileInfo->mediaId()).replace(QLatin1Char('.'), QLatin1Char('-')) % QLatin1Char('.')
+        return safeFileName(fileInfo->mediaId()).replace(u'.', u'-') % u'.'
                % fileInfo->mimeType.preferredSuffix();
 
     if (QSysInfo::productType() == "windows"_ls) {
@@ -1436,7 +1436,7 @@ QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
                             [&fileName](const QString& s) {
                                 return fileName.endsWith(s);
                             }))
-            return fileName % QLatin1Char('.') % fileInfo->mimeType.preferredSuffix();
+            return fileName % u'.' % fileInfo->mimeType.preferredSuffix();
     }
     return fileName;
 }
@@ -1805,7 +1805,7 @@ QString Room::roomMembername(const QString& userId) const
 
 inline QString makeFullUserName(const QString& displayName, const QString& mxId)
 {
-    return displayName % " ("_ls % mxId % QLatin1Char(')');
+    return displayName % " ("_ls % mxId % u')';
 }
 
 QString Room::disambiguatedMemberName(const QString& mxId) const
@@ -1988,7 +1988,7 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
 RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
-        event->setTransactionId(QString::fromUtf8(connection->generateTxnId()));
+        event->setTransactionId(QString::fromLatin1(connection->generateTxnId()));
     if (event->roomId().isEmpty())
         event->setRoomId(id);
     if (event->senderId().isEmpty())
@@ -2046,9 +2046,9 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
         encryptedEvent = makeEvent<EncryptedEvent>(
-            encrypted, QString::fromUtf8(connection->olmAccount()->identityKeys().curve25519),
-            connection->deviceId(), QString::fromUtf8(currentOutboundMegolmSession->sessionId()));
-        encryptedEvent->setTransactionId(QString::fromUtf8(connection->generateTxnId()));
+            encrypted, QString::fromLatin1(connection->olmAccount()->identityKeys().curve25519),
+            connection->deviceId(), QString::fromLatin1(currentOutboundMegolmSession->sessionId()));
+        encryptedEvent->setTransactionId(QString::fromLatin1(connection->generateTxnId()));
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
         if(pEvent->contentJson().contains("m.relates_to"_ls)) {
@@ -2530,12 +2530,12 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
         filePath =
-            fileInfo->url().path().mid(1) % QLatin1Char('_') % d->fileNameToDownload(event);
+            fileInfo->url().path().mid(1) % u'_' % d->fileNameToDownload(event);
 
         if (filePath.size() > 200) // If too long, elide in the middle
             filePath.replace(128, filePath.size() - 192, "---"_ls);
 
-        filePath = QDir::tempPath() % QLatin1Char('/') % filePath;
+        filePath = QDir::tempPath() % u'/' % filePath;
         qDebug(MAIN) << "File path:" << filePath;
     }
     DownloadFileJob *job = nullptr;
@@ -3526,9 +3526,9 @@ bool MemberSorter::operator()(User* u1, User* u2) const
 bool MemberSorter::operator()(User* u1, QStringView u2name) const
 {
     auto n1 = room->disambiguatedMemberName(u1->id());
-    if (n1.startsWith(QLatin1Char('@')))
+    if (n1.startsWith(u'@'))
         n1.remove(0, 1);
-    const auto n2 = u2name.mid(u2name.startsWith(QLatin1Char('@')) ? 1 : 0)
+    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)
 #if QT_VERSION_MAJOR < 6
         .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
 #endif

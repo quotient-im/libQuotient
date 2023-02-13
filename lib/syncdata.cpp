@@ -33,7 +33,7 @@ QDebug Quotient::operator<<(QDebug dbg, const RoomSummary& rs)
     if (rs.invitedMemberCount)
         sl << QStringLiteral("invited: %1").arg(*rs.invitedMemberCount);
     if (rs.heroes)
-        sl << QStringLiteral("heroes: [%1]").arg(rs.heroes->join(QLatin1Char(',')));
+        sl << QStringLiteral("heroes: [%1]").arg(rs.heroes->join(u','));
     dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
     return dbg;
 }
@@ -136,7 +136,7 @@ SyncData::SyncData(const QString& cacheFileName)
     auto actualVersion =
         json.value("cache_version"_ls).toObject().value("major"_ls).toInt();
     if (actualVersion == requiredVersion)
-        parseJson(json, cacheFileInfo.absolutePath() + QLatin1Char('/'));
+        parseJson(json, cacheFileInfo.absolutePath() + u'/');
     else
         qCWarning(MAIN) << "Major version of the cache file is" << actualVersion
                         << "but" << requiredVersion
@@ -147,7 +147,7 @@ SyncDataList SyncData::takeRoomData() { return std::move(roomData); }
 
 QString SyncData::fileNameForRoom(QString roomId)
 {
-    roomId.replace(QLatin1Char(':'), QLatin1Char('_'));
+    roomId.replace(u':', u'_');
     return roomId + ".json"_ls;
 }
 
@@ -235,7 +235,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
         totalRooms += rs.size();
     }
     if (!unresolvedRoomIds.empty())
-        qCWarning(MAIN) << "Unresolved rooms:" << unresolvedRoomIds.join(QLatin1Char(','));
+        qCWarning(MAIN) << "Unresolved rooms:" << unresolvedRoomIds.join(u',');
     if (totalRooms > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
         qCDebug(PROFILER) << "*** SyncData::parseJson(): batch with"
                           << totalRooms << "room(s)," << totalEvents
