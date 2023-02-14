@@ -280,7 +280,7 @@ public:
     static QJsonObject basicJson(const QString& matrixType,
                                  const QJsonObject& content)
     {
-        return { { TypeKey, matrixType }, { ContentKey, content } };
+        return { { TypeKeyL, matrixType }, { ContentKeyL, content } };
     }
 
     //! \brief Event Matrix type, as identified by its metatype object

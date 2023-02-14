@@ -32,9 +32,9 @@ public:
                                  const QString& stateKey = {},
                                  const QJsonObject& contentJson = {})
     {
-        return { { TypeKey, matrixTypeId },
-                 { StateKeyKey, stateKey },
-                 { ContentKey, contentJson } };
+        return { { TypeKeyL, matrixTypeId },
+                 { StateKeyKeyL, stateKey },
+                 { ContentKeyL, contentJson } };
     }
 
     QString replacedState() const;
@@ -94,7 +94,7 @@ public:
         : StateEvent(EventT::TypeId, stateKey)
         , _content { std::forward<ContentParamTs>(contentParams)... }
     {
-        editJson().insert(ContentKey, toJson(_content));
+        editJson().insert(ContentKeyL, toJson(_content));
     }
 
     const ContentT& content() const { return _content; }

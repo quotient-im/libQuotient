@@ -112,7 +112,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                    && textContent->relatesTo->type
                           == EventRelation::ReplacementType) {
             auto newContentJson = json.take("m.new_content"_ls).toObject();
-            newContentJson.insert(BodyKey, plainBody);
+            newContentJson.insert(BodyKeyL, plainBody);
             newContentJson.insert(MsgTypeKey, jsonMsgType);
             json.insert(QStringLiteral("m.new_content"), newContentJson);
             json[MsgTypeKey] = jsonMsgType;
@@ -121,7 +121,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
         }
     }
     json.insert(MsgTypeKey, jsonMsgType);
-    json.insert(BodyKey, plainBody);
+    json.insert(BodyKeyL, plainBody);
     return json;
 }
 
@@ -330,9 +330,9 @@ void TextContent::fillJson(QJsonObject &json) const
             relatesTo->type == EventRelation::ReplyType
                 ? QJsonObject { { relatesTo->type,
                                   QJsonObject {
-                                      { EventIdKey, relatesTo->eventId } } } }
+                                      { EventIdKeyL, relatesTo->eventId } } } }
                 : QJsonObject { { RelTypeKey, relatesTo->type },
-                                { EventIdKey, relatesTo->eventId } });
+                                { EventIdKeyL, relatesTo->eventId } });
         if (relatesTo->type == EventRelation::ReplacementType) {
             QJsonObject newContentJson;
             if (mimeType.inherits("text/html")) {
