@@ -654,7 +654,7 @@ Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& userId)
         return writeJob.error();
     }
     qWarning(E2EE) << "Error loading pickling key - please fix your keychain:"
-                    << readJob.error();
+                    << readJob.errorString();
     return readJob.error();
 }
 #endif
