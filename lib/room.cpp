@@ -2643,7 +2643,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     // clang-format puts them in a single column...
     // clang-format off
     static const QStringList keepKeys {
-        EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey,
+        EventIdKeyL, TypeKeyL, RoomIdKeyL, SenderKeyL, StateKeyKeyL,
         "hashes"_ls, "signatures"_ls, "depth"_ls, "prev_events"_ls,
         "prev_state"_ls, "auth_events"_ls, "origin"_ls, "origin_server_ts"_ls,
         "membership"_ls };
@@ -2683,7 +2683,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
             else
                 ++it;
         }
-        originalJson.insert(ContentKey, content);
+        originalJson.insert(ContentKeyL, content);
     }
     auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
     unsignedData[RedactedCauseKeyL] = redaction.fullJson();
@@ -2765,7 +2765,7 @@ RoomEventPtr makeReplaced(const RoomEvent& target,
     auto relations = unsignedData.take("m.relations"_ls).toObject();
     relations["m.replace"_ls] = replacement.id();
     unsignedData.insert(QStringLiteral("m.relations"), relations);
-    originalJson.insert(UnsignedKey, unsignedData);
+    originalJson.insert(UnsignedKeyL, unsignedData);
 
     return loadEvent<RoomEvent>(originalJson);
 }

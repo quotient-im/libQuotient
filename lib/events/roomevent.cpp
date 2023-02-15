@@ -51,19 +51,19 @@ QString RoomEvent::stateKey() const
 
 void RoomEvent::setRoomId(const QString& roomId)
 {
-    editJson().insert(RoomIdKey, roomId);
+    editJson().insert(RoomIdKeyL, roomId);
 }
 
 void RoomEvent::setSender(const QString& senderId)
 {
-    editJson().insert(SenderKey, senderId);
+    editJson().insert(SenderKeyL, senderId);
 }
 
 void RoomEvent::setTransactionId(const QString& txnId)
 {
     auto unsignedData = fullJson()[UnsignedKeyL].toObject();
     unsignedData.insert(QStringLiteral("transaction_id"), txnId);
-    editJson().insert(UnsignedKey, unsignedData);
+    editJson().insert(UnsignedKeyL, unsignedData);
     Q_ASSERT(transactionId() == txnId);
 }
 
@@ -71,7 +71,7 @@ void RoomEvent::addId(const QString& newId)
 {
     Q_ASSERT(id().isEmpty());
     Q_ASSERT(!newId.isEmpty());
-    editJson().insert(EventIdKey, newId);
+    editJson().insert(EventIdKeyL, newId);
     qCDebug(EVENTS) << "Event txnId -> id:" << transactionId() << "->" << id();
     Q_ASSERT(id() == newId);
 }
