@@ -309,17 +309,20 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${QTKEYCHAIN_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
 if (Qt STREQUAL Qt5) # See #483
-    target_link_libraries(${PROJECT_NAME} ${Qt}::Multimedia)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${Qt}::Multimedia)
 endif()
 set(FIND_DEPS "find_dependency(${Qt}Keychain)") # For QuotientConfig.cmake.in
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
-    target_link_libraries(${PROJECT_NAME} Olm::Olm
-        OpenSSL::Crypto
-        OpenSSL::SSL
-        ${Qt}::Sql)
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC
+            Olm::Olm
+            ${Qt}::Sql
+        PRIVATE
+            OpenSSL::Crypto
+    )
     set(FIND_DEPS "${FIND_DEPS}
     find_dependency(Olm)
     find_dependency(OpenSSL)
