@@ -364,7 +364,7 @@ void TestOlmAccount::claimKeys()
 
     // Retrieve the identity key for the current device to check after claiming
     const auto& bobEd25519 = bobDevices.value(bob->deviceId())
-                                 .keys.value("ed25519:"_ls + bob->deviceId());
+                                 .keys.value("ed25519:%1"_ls.arg(bob->deviceId()));
 
     const QHash<QString, QHash<QString, QString>> oneTimeKeys{
         { bob->userId(), { { bob->deviceId(), SignedCurve25519Key } } }
