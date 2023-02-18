@@ -308,8 +308,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${QTKEYCHAIN_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui ${QTKEYCHAIN_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${PROJECT_NAME} PRIVATE ${Qt}::Multimedia)
 endif()
