@@ -129,8 +129,6 @@ public:
         return q->stateCacheDir().filePath("state.json"_ls);
     }
 
-    std::pair<EventPtr, QString> sessionDecryptMessage(const EncryptedEvent& encryptedEvent);
-
     void saveAccessTokenToKeychain() const;
     void dropAccessToken();
 };

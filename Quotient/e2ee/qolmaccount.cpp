@@ -141,9 +141,9 @@ QByteArray QOlmAccount::sign(const QJsonObject &message) const
 QByteArray QOlmAccount::signIdentityKeys() const
 {
     const auto keys = identityKeys();
+    static const auto& Algorithms = toJson(SupportedAlgorithms);
     return sign(QJsonObject{
-        { "algorithms"_ls, QJsonArray{ "m.olm.v1.curve25519-aes-sha2"_ls,
-                                    "m.megolm.v1.aes-sha2"_ls } },
+        { "algorithms"_ls, Algorithms },
         { "user_id"_ls, m_userId },
         { "device_id"_ls, m_deviceId },
         { "keys"_ls,
@@ -215,8 +215,8 @@ OlmErrorCode QOlmAccount::removeOneTimeKeys(const QOlmSession& session)
 
 DeviceKeys QOlmAccount::deviceKeys() const
 {
-    static QStringList Algorithms(SupportedAlgorithms.cbegin(),
-                                  SupportedAlgorithms.cend());
+    static const QStringList Algorithms(SupportedAlgorithms.cbegin(),
+                                        SupportedAlgorithms.cend());
 
     const auto idKeys = identityKeys();
     return DeviceKeys{

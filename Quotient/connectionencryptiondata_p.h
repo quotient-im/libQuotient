@@ -64,7 +64,9 @@ namespace _impl {
             database.storeOlmAccount(olmAccount);
         }
 
-        std::pair<QByteArray, QByteArray> sessionDecryptMessage(const QJsonObject& personalCipherObject, const QByteArray &senderKey);
+        std::pair<QByteArray, QByteArray> sessionDecryptMessage(
+            const QJsonObject& personalCipherObject,
+            const QByteArray& senderKey);
         std::pair<EventPtr, QByteArray> sessionDecryptMessage(
             const EncryptedEvent& encryptedEvent);
 

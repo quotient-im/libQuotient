@@ -180,23 +180,24 @@ void ConnectionEncryptionData::loadDevicesList()
         outdatedUsers += query.value(0).toString();
     }
 
+    static const QStringList Algorithms{ SupportedAlgorithms.cbegin(),
+                                         SupportedAlgorithms.cend() };
     query =
         database.prepareQuery(QStringLiteral("SELECT * FROM tracked_devices;"));
     database.execute(query);
     while (query.next()) {
-        deviceKeys[query.value("matrixId"_ls).toString()]
-                  [query.value("deviceId"_ls).toString()] = DeviceKeys{
-                      query.value("matrixId"_ls).toString(),
-                      query.value("deviceId"_ls).toString(),
-                      { SupportedAlgorithms.cbegin(),
-                        SupportedAlgorithms.cend() },
-                      { { query.value("curveKeyId"_ls).toString(),
-                          query.value("curveKey"_ls).toString() },
-                        { query.value("edKeyId"_ls).toString(),
-                          query.value("edKey"_ls).toString() } },
-                      {} // Signatures are not saved/loaded as they are not
-                         // needed after initial validation
-                  };
+        deviceKeys[query.value("matrixId"_ls).toString()].insert(
+            query.value("deviceId"_ls).toString(),
+            {
+                .userId = query.value("matrixId"_ls).toString(),
+                .deviceId = query.value("deviceId"_ls).toString(),
+                .algorithms = Algorithms,
+                .keys{ { query.value("curveKeyId"_ls).toString(),
+                         query.value("curveKey"_ls).toString() },
+                       { query.value("edKeyId"_ls).toString(),
+                         query.value("edKey"_ls).toString() } },
+                .signatures{} // not needed after initial validation so not saved
+            });
     }
 }
 
@@ -394,12 +395,17 @@ void ConnectionEncryptionData::handleQueryKeys(const QueryKeysJob* job)
                                   "Skipping this device";
                 continue;
             }
-            const auto keyId = "ed25519:"_ls + device.deviceId;
             if (const auto oldDeviceKeys = oldDevices.value(device.deviceId);
-                !oldDeviceKeys.deviceId.isEmpty() // i.e. a keys object is found
-                && oldDeviceKeys.keys[keyId] != device.keys[keyId]) {
-                qDebug(E2EE) << "Device reuse detected. Skipping this device";
-                continue;
+                !oldDeviceKeys.deviceId.isEmpty()) // We've seen this device...
+            {
+                if (const auto keyId = "ed25519:"_ls + device.deviceId;
+                    oldDeviceKeys.keys[keyId] != device.keys[keyId])
+                    // ...but its keys that came now are not the same
+                {
+                    qDebug(E2EE)
+                        << "Device reuse detected. Skipping this device";
+                    continue;
+                }
             }
             deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
         }
