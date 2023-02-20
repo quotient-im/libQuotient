@@ -14,14 +14,14 @@
 # to borrow from the WebKit style. The values for such settings try to but
 # are not guaranteed to coincide with the latest version of the WebKit style.
 
-# This file assumes ClangFormat 12 or newer
+# This file assumes ClangFormat 13 or newer
 
 ---
 Language: Cpp
 BasedOnStyle: WebKit
 #AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
-#AlignArrayOfStructures: None # ClangFormat 13
+#AlignArrayOfStructures: None # As of ClangFormat 14, Left doesn't work well
 #AlignConsecutiveMacros: None
 #AlignConsecutiveAssignments: None
 #AlignConsecutiveDeclarations: None
@@ -49,7 +49,7 @@ AlwaysBreakTemplateDeclarations: Yes
 BraceWrapping:
 #  AfterCaseLabel:  false
 #  AfterClass:      false
-  AfterControlStatement: Never # Switch to MultiLine with ClangFormat 14 (https://bugs.llvm.org/show_bug.cgi?id=47936)
+#  AfterControlStatement: Never
 #  AfterEnum:       false
   AfterFunction:   true
 #  AfterNamespace:  false
@@ -58,7 +58,7 @@ BraceWrapping:
 #  AfterExternBlock: false
 #  BeforeCatch:     false
 #  BeforeElse:      false
-#  BeforeLambdaBody: false # Blows up lambdas vertically, even if they become _very_ readable
+#  BeforeLambdaBody: false # 'true' blows up lambdas vertically, even if they become _very_ readable
 #  BeforeWhile:     false
 #  IndentBraces:    false
   SplitEmptyFunction: false
@@ -74,7 +74,7 @@ BreakBeforeBraces: Custom
 #BreakConstructorInitializers: BeforeComma
 #BreakStringLiterals: true
 ColumnLimit: 80
-#QualifierAlignment: Leave # ClangFormat 14?
+#QualifierAlignment: Leave # ClangFormat 14 - except 'Leave', updates whole files
 #CompactNamespaces: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 #ConstructorInitializerIndentWidth: 4
@@ -84,7 +84,7 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: true
 #DerivePointerAlignment: false
 #EmptyLineAfterAccessModifier: Never # ClangFormat 14
 EmptyLineBeforeAccessModifier: LogicalBlock
-#FixNamespaceComments: false # See ShortNamespaces below
+FixNamespaceComments: true
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex:    '^<Qt.+(/.+)?'
@@ -101,7 +101,7 @@ IncludeCategories:
     Priority: 1
 IncludeIsMainRegex: '(_test)?$'
 #IncludeIsMainSourceRegex: ''
-#IndentAccessModifiers: false # ClangFormat 13
+#IndentAccessModifiers: false
 #IndentCaseLabels: false
 #IndentCaseBlocks: false
 IndentGotoLabels: false
@@ -111,7 +111,7 @@ IndentRequires: true
 #IndentWidth: 4
 #IndentWrappedFunctionNames: false
 KeepEmptyLinesAtTheStartOfBlocks: false
-#LambdaBodyIndentation: Signature # ClangFormat 13
+#LambdaBodyIndentation: Signature
 #MacroBlockBegin: ''
 #MacroBlockEnd:   ''
 #MaxEmptyLinesToKeep: 1
@@ -128,9 +128,9 @@ PenaltyReturnTypeOnItsOwnLine: 200
 #PenaltyIndentedWhitespace: 0
 #PointerAlignment: Left
 #PPIndentWidth: -1
-#ReferenceAlignment: Pointer # ClangFormat 13
+#ReferenceAlignment: Pointer
 #ReflowComments: true
-#ShortNamespaceLines: 1 # ClangFormat 13 - to use with FixNamespaceComments
+ShortNamespaceLines: 20
 #SortIncludes: true
 #SortUsingDeclarations: true
 #SpaceAfterCStyleCast: false
@@ -155,11 +155,11 @@ SpaceAroundPointerQualifiers: After
 SpaceInEmptyBlock: false
 #SpaceInEmptyParentheses: false
 #SpacesBeforeTrailingComments: 1
-#SpacesInAngles: false # 'Never' since ClangFormat 13
+#SpacesInAngles: Never # 'false' before ClangFormat 13
 #SpacesInConditionalStatement: false
 SpacesInContainerLiterals: false
 #SpacesInCStyleCastParentheses: false
-#SpacesInLineCommentPrefix: # ClangFormat 13
+#SpacesInLineCommentPrefix:
 #  Minimum:         1
 #  Maximum:         -1
 #SpacesInParentheses: false
