@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "jobs/basejob.h"
+#include "../jobs/basejob.h"
 
 namespace Quotient {
 

@@ -4,10 +4,10 @@
 
 #pragma once
 
+#include "../jobs/basejob.h"
+
 #include "csapi/definitions/auth_data.h"
 #include "csapi/definitions/cross_signing_key.h"
-
-#include "jobs/basejob.h"
 
 namespace Quotient {
 

@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include "../jobs/basejob.h"
+
 #include "csapi/../application-service/definitions/location.h"
 #include "csapi/../application-service/definitions/protocol.h"
 #include "csapi/../application-service/definitions/user.h"
-
-#include "jobs/basejob.h"
 
 namespace Quotient {
 

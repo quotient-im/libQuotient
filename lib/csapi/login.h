@@ -4,10 +4,10 @@
 
 #pragma once
 
+#include "../jobs/basejob.h"
+
 #include "csapi/definitions/user_identifier.h"
 #include "csapi/definitions/wellknown/full.h"
-
-#include "jobs/basejob.h"
 
 namespace Quotient {
 

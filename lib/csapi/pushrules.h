@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include "../jobs/basejob.h"
+
 #include "csapi/definitions/push_condition.h"
 #include "csapi/definitions/push_rule.h"
 #include "csapi/definitions/push_ruleset.h"
-
-#include "jobs/basejob.h"
 
 namespace Quotient {
 

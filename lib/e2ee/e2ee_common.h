@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "converters.h"
+#include "../converters.h"
 
 #include <QtCore/QMetaType>
 #include <QtCore/QStringBuilder>
@@ -13,7 +13,7 @@
 #include <array>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "expected.h"
+#    include "../expected.h"
 
 #    include <olm/error.h>
 #    include <span>

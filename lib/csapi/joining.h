@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "csapi/definitions/third_party_signed.h"
+#include "../jobs/basejob.h"
 
-#include "jobs/basejob.h"
+#include "csapi/definitions/third_party_signed.h"
 
 namespace Quotient {
 

@@ -5,9 +5,9 @@
 #pragma once
 
 #include "requestdata.h"
-#include "logging.h"
-#include "converters.h" // Common for csapi/ headers even though not used here
-#include "quotient_common.h" // For DECL_DEPRECATED_ENUMERATOR
+#include "../logging.h"
+#include "../converters.h" // Common for csapi/ headers even though not used here
+#include "../quotient_common.h" // For DECL_DEPRECATED_ENUMERATOR
 
 #include <QtCore/QObject>
 #include <QtCore/QStringBuilder>

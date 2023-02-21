@@ -4,12 +4,11 @@
 
 #pragma once
 
+#include "../e2ee/e2ee_common.h"
+#include "../jobs/basejob.h"
+
 #include "csapi/definitions/cross_signing_key.h"
 #include "csapi/definitions/device_keys.h"
-
-#include "e2ee/e2ee_common.h"
-
-#include "jobs/basejob.h"
 
 namespace Quotient {
 

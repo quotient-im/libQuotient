@@ -87,16 +87,17 @@ analyzer:
         +on:
         - /state_event.yaml$/:
             type: StateEventPtr
-            imports: '"events/stateevent.h"'
+            imports: '"../events/stateevent.h"'
         - /(room|client)_event.yaml$/:
             type: RoomEventPtr
-            imports: '"events/roomevent.h"'
+            imports: '"../events/roomevent.h"'
         - /event(_without_room_id)?.yaml$/:
             type: EventPtr
-            imports: '"events/event.h"'
+            imports: '"../events/event.h"'
       - +set:
           # This renderer applies to everything actually $ref'ed
           # (not substituted)
+          # TODO this would need to go up as many levels first as we are currently nested (for the file we are generating, not for $ref!)
           _importRenderer: '"{{#segments}}{{_}}{{#_join}}/{{/_join}}{{/segments}}.h"'
         +on:
         - '/^(\./)?definitions/request_email_validation.yaml$/':
@@ -130,7 +131,7 @@ analyzer:
       - RoomFilter: # A structure inside Filter, same story as with *_filter.yaml
       - OneTimeKeys:
           type: OneTimeKeys
-          imports: '"e2ee/e2ee_common.h"'
+          imports: '"../e2ee/e2ee_common.h"'
       - //: *UseOmittable
     - array:
       - string: QStringList
@@ -139,7 +140,7 @@ analyzer:
         - /^Notification|Result|ChildRoomsChunk$/: "std::vector<{{1}}>"
         - /^StrippedChildStateEvent$|state_event.yaml$/:
             type: StateEvents
-            imports: '"events/stateevent.h"' # For StrippedChildStateEvent
+            imports: '"../events/stateevent.h"' # For StrippedChildStateEvent
         - /(room|client)_event.yaml$/: RoomEvents
         - /event(_without_room_id)?.yaml$/: Events
       - //: "QVector<{{1}}>"

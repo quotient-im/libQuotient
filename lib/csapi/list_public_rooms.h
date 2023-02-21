@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "csapi/definitions/public_rooms_response.h"
+#include "../jobs/basejob.h"
 
-#include "jobs/basejob.h"
+#include "csapi/definitions/public_rooms_response.h"
 
 namespace Quotient {
 

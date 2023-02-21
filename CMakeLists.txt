@@ -75,6 +75,12 @@ set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
         "${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDEDIR_INIT}" CACHE PATH
         "directory to install ${PROJECT_NAME} include files to")
 
+if (${PROJECT_NAME}_INSTALL_INCLUDEDIR STREQUAL ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+    set(LEGACY_INCLUDE_SEARCH_PATH ${${PROJECT_NAME}_INSTALL_INCLUDEDIR})
+else()
+    message("Not using namespaced include install layout, this is deprecated")
+endif()
+
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -305,7 +311,8 @@ endif ()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-    $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${LEGACY_INCLUDE_SEARCH_PATH}> # TODO this should be added manually in the cmake config file, behind a consumer-controlled switch
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
@@ -343,7 +350,6 @@ endif()
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
         LIBRARY RUNTIME
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
 )
 install(DIRECTORY lib/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")

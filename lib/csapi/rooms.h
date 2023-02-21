@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "events/roomevent.h"
-#include "events/stateevent.h"
-#include "jobs/basejob.h"
+#include "../events/roomevent.h"
+#include "../events/stateevent.h"
+#include "../jobs/basejob.h"
 
 namespace Quotient {
 

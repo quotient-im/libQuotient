@@ -4,10 +4,10 @@
 
 #pragma once
 
+#include "../jobs/basejob.h"
+
 #include "csapi/definitions/auth_data.h"
 #include "csapi/definitions/client_device.h"
-
-#include "jobs/basejob.h"
 
 namespace Quotient {
 

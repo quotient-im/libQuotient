@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "csapi/definitions/sync_filter.h"
+#include "../jobs/basejob.h"
 
-#include "jobs/basejob.h"
+#include "csapi/definitions/sync_filter.h"
 
 namespace Quotient {
 

@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include "csapi/definitions/room_event_filter.h"
+#include "../events/roomevent.h"
+#include "../events/stateevent.h"
+#include "../jobs/basejob.h"
 
-#include "events/roomevent.h"
-#include "events/stateevent.h"
-#include "jobs/basejob.h"
+#include "csapi/definitions/room_event_filter.h"
 
 namespace Quotient {
 
