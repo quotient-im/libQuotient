@@ -14,6 +14,7 @@
 #include "room.h"
 #include "settings.h"
 #include "user.h"
+#include "slidingsyncdata.h"
 
 // NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
 #include "moc_connection.cpp" // NOLINT(bugprone-suspicious-include)
@@ -32,6 +33,7 @@
 #include "events/directchatevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
+#include "jobs/slidingsyncjob.h"
 #include "jobs/syncjob.h"
 
 #ifdef Quotient_E2EE_ENABLED
@@ -436,18 +438,28 @@ void Connection::sync(int timeout)
     }
 
     d->syncTimeout = timeout;
-    Filter filter;
-    filter.room.timeline.limit.emplace(100);
-    filter.room.state.lazyLoadMembers.emplace(d->lazyLoading);
-    auto job = d->syncJob =
-        callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter,
-                         timeout);
-    connect(job, &SyncJob::success, this, [this, job] {
-        onSyncSuccess(job->takeData());
-        d->syncJob = nullptr;
-        emit syncDone();
-    });
-    connect(job, &SyncJob::retryScheduled, this,
+    bool slidingSync = true; //TODO integrate;
+    BaseJob *job = nullptr;
+    if (slidingSync) {
+        job = d->slidingSyncJob = callApi<SlidingSyncJob>(BackgroundRequest, generateTxnId(), d->nextPos);
+        connect(job, &SyncJob::success, this, [this, job] {
+            onSlidingSyncSuccess(static_cast<SlidingSyncJob *>(job)->takeData());
+            d->slidingSyncJob = nullptr;
+            qWarning() << "slidingsyncdone";
+            emit syncDone();
+        });
+    } else {
+        Filter filter;
+        filter.room.timeline.limit.emplace(100);
+        filter.room.state.lazyLoadMembers.emplace(d->lazyLoading);
+        job = d->syncJob = callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter, timeout);
+        connect(job, &SyncJob::success, this, [this, job] {
+            onSyncSuccess(static_cast<SyncJob *>(job)->takeData());
+            d->syncJob = nullptr;
+            emit syncDone();
+        });
+    }
+    connect(job, &BaseJob::retryScheduled, this,
             [this, job](int retriesTaken, int nextInMilliseconds) {
                 emit networkError(job->errorString(), job->rawDataSample(),
                                   retriesTaken, nextInMilliseconds);
@@ -553,6 +565,52 @@ void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
                     r->updateData(std::move(rd), fromCache);
                 },
                 Qt::QueuedConnection);
+        }
+    }
+}
+
+void Connection::onSlidingSyncSuccess(SlidingSyncData&& data, bool fromCache)
+{
+    d->nextPos = data.pos;
+#ifdef Quotient_E2EE_ENABLED
+    if (d->encryptionData) {
+        //d->encryptionData->onSyncSuccess(data);
+    }
+#endif
+    //d->consumeToDeviceEvents(data.takeToDeviceEvents());
+    //d->data->setLastEvent(data.nextBatch());
+    d->consumeSlidingRoomData(data.takeRoomData());
+    //d->consumeAccountData(data.takeAccountData());
+    //d->consumePresenceData(data.takePresenceData());
+#ifdef Quotient_E2EE_ENABLED
+    //if(d->encryptionData && d->encryptionData->encryptionUpdateRequired) {
+    //    d->encryptionData->loadOutdatedUserDevices();
+    //    d->encryptionData->encryptionUpdateRequired = false;
+    //}
+#endif
+    Q_UNUSED(std::move(data)) // Tell static analysers `data` is consumed now
+}
+
+void Connection::Private::consumeSlidingRoomData(SlidingRoomsData&& roomData)
+{
+    for (auto&& room: roomData) {
+        /*const auto forgetIdx = roomIdsToForget.indexOf(roomData.roomId);
+        if (forgetIdx != -1) {
+            roomIdsToForget.removeAt(forgetIdx);
+            if (roomData.joinState == JoinState::Leave) {
+                qDebug(MAIN)
+                    << "Room" << roomData.roomId
+                    << "has been forgotten, ignoring /sync response for it";
+                continue;
+            }
+            qWarning(MAIN) << "Room" << roomData.roomId
+                           << "has just been forgotten but /sync returned it in"
+                           << terse << roomData.joinState
+                           << "state - suspiciously fast turnaround";
+        }*/
+        if (auto* r = q->provideRoom(room.id, JoinState::Join)) { // TODO joinstate?
+            pendingStateRoomIds.removeOne(room.id);
+            r->updateSlidingData(std::move(room));
         }
     }
 }
@@ -1565,6 +1623,10 @@ void Connection::saveState() const
 
 void Connection::loadState()
 {
+    bool slidingSync = true; //TODO integrate
+    if (slidingSync) {
+        return;
+    }
     if (!d->cacheState)
         return;
 
@@ -1582,7 +1644,9 @@ void Connection::loadState()
     // TODO: to handle load failures, instead of the above block:
     // 1. Do initial sync on failed rooms without saving the nextBatch token
     // 2. Do the sync across all rooms as normal
-    onSyncSuccess(std::move(sync), true);
+    if (!slidingSync) {
+        onSyncSuccess(std::move(sync), true);
+    }
     qCDebug(PROFILER) << "*** Cached state for" << userId() << "loaded in" << et;
 }
 

@@ -8,6 +8,7 @@
 #include "connectiondata.h"
 #include "settings.h"
 #include "syncdata.h"
+#include "slidingsyncdata.h"
 
 #include "csapi/capabilities.h"
 #include "csapi/logout.h"
@@ -54,6 +55,7 @@ public:
     UnorderedMap<QString, EventPtr> accountData;
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
+    QString nextPos;
 
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
@@ -72,6 +74,7 @@ public:
     QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;
 
     SyncJob* syncJob = nullptr;
+    SlidingSyncJob* slidingSyncJob = nullptr;
     QPointer<LogoutJob> logoutJob = nullptr;
 
     bool cacheState = true;
@@ -105,6 +108,7 @@ public:
     void removeRoom(const QString& roomId);
 
     void consumeRoomData(SyncDataList&& roomDataList, bool fromCache);
+    void consumeSlidingRoomData(SlidingRoomsData&& roomDataList);
     void consumeAccountData(Events&& accountDataEvents);
     void consumePresenceData(Events&& presenceData);
     void consumeToDeviceEvents(Events&& toDeviceEvents);

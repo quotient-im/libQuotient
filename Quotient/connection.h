@@ -38,6 +38,8 @@ class ConnectionData;
 class RoomEvent;
 
 class SyncJob;
+class SlidingSyncJob;
+class SlidingSyncData;
 class SyncData;
 class RoomMessagesJob;
 class PostReceiptJob;
@@ -932,6 +934,7 @@ protected:
 
     //! Process sync data from a successful sync request
     void onSyncSuccess(SyncData&& data, bool fromCache = false);
+    void onSlidingSyncSuccess(SlidingSyncData&& data, bool fromCache = false);
 
 protected Q_SLOTS:
     void syncLoopIteration();

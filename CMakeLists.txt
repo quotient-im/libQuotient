@@ -186,6 +186,8 @@ list(APPEND lib_SRCS
     Quotient/jobs/syncjob.h Quotient/jobs/syncjob.cpp
     Quotient/jobs/mediathumbnailjob.h Quotient/jobs/mediathumbnailjob.cpp
     Quotient/jobs/downloadfilejob.h Quotient/jobs/downloadfilejob.cpp
+    Quotient/jobs/slidingsyncjob.h Quotient/jobs/slidingsyncjob.cpp
+    Quotient/slidingsyncdata.h Quotient/slidingsyncdata.cpp
     libquotientemojis.qrc
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)

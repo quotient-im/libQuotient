@@ -52,6 +52,7 @@
 #include "events/typingevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
+#include "jobs/slidingsyncjob.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -148,6 +149,7 @@ public:
     QPointer<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
     UnorderedMap<QString, QSet<QString>> undecryptedEvents;
+    QString slidingName;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -590,6 +592,9 @@ bool Room::allHistoryLoaded() const
 
 QString Room::name() const
 {
+    if (!d->slidingName.isEmpty()) {
+        return d->slidingName;
+    }
     return currentState().content<RoomNameEvent>().value;
 }
 
@@ -1966,6 +1971,50 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
 
         // And now test for changes that can occur from /sync or otherwise
         d->postprocessChanges(roomChanges, !fromCache);
+    }
+    if (firstUpdate)
+        emit baseStateLoaded();
+    qCDebug(MAIN) << "--- Finished updating room" << id() << "/" << objectName();
+}
+
+void Room::updateSlidingData(SlidingSyncRoom&& data)
+{
+    qCDebug(MAIN) << "--- Updating room" << id() << "/" << objectName();
+    bool firstUpdate = d->baseState.empty();
+
+    //if (d->prevBatch && d->prevBatch->isEmpty()) // TODO
+    //    *d->prevBatch = data.timelinePrevBatch;
+    setJoinState(JoinState::Join); // TODO
+
+    Changes roomChanges {};
+    // The order of calculation is important - don't merge the lines!
+    roomChanges |= d->updateStateFrom(std::move(data.requiredState));
+    //roomChanges |= d->setSummary(std::move(data.summary));
+    roomChanges |= d->addNewMessageEvents(std::move(data.timeline));
+
+    const auto oldName = d->slidingName;
+    d->slidingName = data.name;
+    Q_EMIT displaynameChanged(this, oldName);
+
+    //for (auto&& ephemeralEvent : data.ephemeral)
+    //    roomChanges |= processEphemeralEvent(std::move(ephemeralEvent));
+
+    //for (auto&& event : data.accountData)
+    //    roomChanges |= processAccountDataEvent(std::move(event));
+
+    //roomChanges |= d->updateStatsFromSyncData(data, fromCache);
+
+    if (roomChanges != 0) {
+        // First test for changes that can only come from /sync calls and not
+        // other interactions (/members, /messages etc.)
+        if ((roomChanges & Change::Topic) > 0)
+            emit topicChanged();
+
+        if ((roomChanges & Change::RoomNames) > 0)
+            emit namesChanged(this);
+
+        // And now test for changes that can occur from /sync or otherwise
+        d->postprocessChanges(roomChanges, false);
     }
     if (firstUpdate)
         emit baseStateLoaded();

@@ -57,7 +57,7 @@ void JsonObjectConverter<RoomSummary>::fillFrom(const QJsonObject& jo,
 }
 
 template <typename EventsArrayT, typename StrT>
-inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
+static inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
 {
     return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_ls));
 }
@@ -161,6 +161,7 @@ std::pair<int, int> SyncData::cacheVersion()
 {
     return { MajorCacheVersion, 2 };
 }
+
 
 DevicesList SyncData::takeDevicesList() { return std::move(devicesList); }
 
