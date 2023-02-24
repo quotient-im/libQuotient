@@ -376,7 +376,7 @@ public:
         auto expectedMegolmSession = QOlmInboundGroupSession::create(sessionKey);
         Q_ASSERT(expectedMegolmSession.has_value());
         auto&& megolmSession = *expectedMegolmSession;
-        if (megolmSession.sessionId() != sessionId) {
+        if (QString::fromLatin1(megolmSession.sessionId()) != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
         }
@@ -416,10 +416,10 @@ public:
         const auto& [content, index] = *decryptResult;
         const auto& [recordEventId, ts] =
             q->connection()->database()->groupSessionIndexRecord(
-                q->id(), senderSession.sessionId(), index);
+                q->id(), QString::fromLatin1(senderSession.sessionId()), index);
         if (recordEventId.isEmpty()) {
             q->connection()->database()->addGroupSessionIndexRecord(
-                q->id(), senderSession.sessionId(), index, eventId,
+                q->id(), QString::fromLatin1(senderSession.sessionId()), index, eventId,
                 timestamp.toMSecsSinceEpoch());
         } else {
             if ((eventId != recordEventId)
@@ -428,7 +428,7 @@ public:
                 return {};
             }
         }
-        return content;
+        return QString::fromUtf8(content);
     }
 
     bool shouldRotateMegolmSession() const
@@ -458,7 +458,7 @@ public:
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 
-        addInboundGroupSession(currentOutboundMegolmSession->sessionId(),
+        addInboundGroupSession(QString::fromLatin1(currentOutboundMegolmSession->sessionId()),
                                currentOutboundMegolmSession->sessionKey(),
                                q->localUser()->id(), "SELF"_ls);
     }
@@ -922,7 +922,7 @@ void Room::setReadReceipt(const QString& atEventId)
             d->setLocalLastReadReceipt(historyEdge(), { atEventId })) {
         connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
                                               QStringLiteral("m.read"),
-                                              QUrl::toPercentEncoding(atEventId));
+                                              QString::fromUtf8(QUrl::toPercentEncoding(atEventId)));
         d->postprocessChanges(changes);
     } else
         qCDebug(EPHEMERAL) << "The new read receipt for" << localUser()->id()
@@ -1094,7 +1094,7 @@ void Room::Private::getAllMembers()
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
-        id, connection->nextBatchToken(), "join");
+        id, connection->nextBatchToken(), "join"_ls);
     auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
     connect(allMembersJob, &BaseJob::success, q, [this, nextIndex] {
         Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
@@ -1282,12 +1282,12 @@ TagRecord Room::tag(const QString& name) const { return d->tags.value(name); }
 
 std::pair<bool, QString> validatedTag(QString name)
 {
-    if (name.isEmpty() || name.indexOf('.', 1) != -1)
+    if (name.isEmpty() || name.indexOf(u'.', 1) != -1)
         return { false, name };
 
     qCWarning(MAIN) << "The tag" << name
                     << "doesn't follow the CS API conventions";
-    name.prepend("u.");
+    name.prepend("u."_ls);
     qCWarning(MAIN) << "Using " << name << "instead";
 
     return { true, name };
@@ -1319,8 +1319,8 @@ void Room::removeTag(const QString& name)
         d->tags.remove(name);
         emit tagsChanged();
         connection()->callApi<DeleteRoomTagJob>(localUser()->id(), id(), name);
-    } else if (!name.startsWith("u."))
-        removeTag("u." + name);
+    } else if (!name.startsWith("u."_ls))
+        removeTag("u."_ls + name);
     else
         qCWarning(MAIN) << "Tag" << name << "on room" << objectName()
                        << "not found, nothing to remove";
@@ -1387,16 +1387,16 @@ QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
 {
     auto url = connection()->makeMediaUrl(mxcUrl);
     QUrlQuery q(url.query());
-    Q_ASSERT(q.hasQueryItem("user_id"));
-    q.addQueryItem("room_id", id());
-    q.addQueryItem("event_id", eventId);
+    Q_ASSERT(q.hasQueryItem("user_id"_ls));
+    q.addQueryItem("room_id"_ls, id());
+    q.addQueryItem("event_id"_ls, eventId);
     url.setQuery(q);
     return url;
 }
 
 QString safeFileName(QString rawName)
 {
-    return rawName.replace(QRegularExpression("[/\\<>|\"*?:]"), "_");
+    return rawName.replace(QRegularExpression("[/\\<>|\"*?:]"_ls), "_"_ls);
 }
 
 const RoomMessageEvent*
@@ -1426,17 +1426,17 @@ QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
         fileName = u.fileName();
     }
     if (fileName.isEmpty())
-        return safeFileName(fileInfo->mediaId()).replace('.', '-') % '.'
+        return safeFileName(fileInfo->mediaId()).replace(u'.', u'-') % u'.'
                % fileInfo->mimeType.preferredSuffix();
 
-    if (QSysInfo::productType() == "windows") {
+    if (QSysInfo::productType() == "windows"_ls) {
         if (const auto& suffixes = fileInfo->mimeType.suffixes();
             !suffixes.isEmpty()
             && std::none_of(suffixes.begin(), suffixes.end(),
                             [&fileName](const QString& s) {
                                 return fileName.endsWith(s);
                             }))
-            return fileName % '.' % fileInfo->mimeType.preferredSuffix();
+            return fileName % u'.' % fileInfo->mimeType.preferredSuffix();
     }
     return fileName;
 }
@@ -1805,7 +1805,7 @@ QString Room::roomMembername(const QString& userId) const
 
 inline QString makeFullUserName(const QString& displayName, const QString& mxId)
 {
-    return displayName % " (" % mxId % ')';
+    return displayName % " ("_ls % mxId % u')';
 }
 
 QString Room::disambiguatedMemberName(const QString& mxId) const
@@ -1988,7 +1988,7 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
 RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
-        event->setTransactionId(connection->generateTxnId());
+        event->setTransactionId(QString::fromLatin1(connection->generateTxnId()));
     if (event->roomId().isEmpty())
         event->setRoomId(id);
     if (event->senderId().isEmpty())
@@ -2046,9 +2046,9 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         connection->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
         encryptedEvent = makeEvent<EncryptedEvent>(
-            encrypted, connection->olmAccount()->identityKeys().curve25519,
-            connection->deviceId(), currentOutboundMegolmSession->sessionId());
-        encryptedEvent->setTransactionId(connection->generateTxnId());
+            encrypted, QString::fromLatin1(connection->olmAccount()->identityKeys().curve25519),
+            connection->deviceId(), QString::fromLatin1(currentOutboundMegolmSession->sessionId()));
+        encryptedEvent->setTransactionId(QString::fromLatin1(connection->generateTxnId()));
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
         if(pEvent->contentJson().contains("m.relates_to"_ls)) {
@@ -2103,7 +2103,7 @@ void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
                           << "could not be sent";
         return;
     }
-    it->setSendingFailed(call ? call->statusCaption() % ": " % call->errorString()
+    it->setSendingFailed(call ? call->statusCaption() % ": "_ls % call->errorString()
                               : tr("The call could not be started"));
     emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
 }
@@ -2408,8 +2408,8 @@ void Room::Private::getPreviousContent(int limit, const QString& filter)
     if (!prevBatch || isJobPending(eventsHistoryJob))
         return;
 
-    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b", *prevBatch,
-                                                             "", limit, filter);
+    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b"_ls, *prevBatch,
+                                                             QString(), limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         if (const auto newPrevBatch = eventsHistoryJob->end();
@@ -2456,8 +2456,8 @@ void Room::unban(const QString& userId)
 
 void Room::redactEvent(const QString& eventId, const QString& reason)
 {
-    connection()->callApi<RedactEventJob>(id(), QUrl::toPercentEncoding(eventId),
-                                          connection()->generateTxnId(), reason);
+    connection()->callApi<RedactEventJob>(id(), eventId,
+                                          QString::fromLatin1(connection()->generateTxnId()), reason);
 }
 
 void Room::uploadFile(const QString& id, const QUrl& localFilename,
@@ -2530,12 +2530,12 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
         filePath =
-            fileInfo->url().path().mid(1) % '_' % d->fileNameToDownload(event);
+            fileInfo->url().path().mid(1) % u'_' % d->fileNameToDownload(event);
 
         if (filePath.size() > 200) // If too long, elide in the middle
-            filePath.replace(128, filePath.size() - 192, "---");
+            filePath.replace(128, filePath.size() - 192, "---"_ls);
 
-        filePath = QDir::tempPath() % '/' % filePath;
+        filePath = QDir::tempPath() % u'/' % filePath;
         qDebug(MAIN) << "File path:" << filePath;
     }
     DownloadFileJob *job = nullptr;
@@ -2753,10 +2753,10 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
 RoomEventPtr makeReplaced(const RoomEvent& target,
                           const RoomMessageEvent& replacement)
 {
-    const auto& targetReply = target.contentPart<QJsonObject>("m.relates_to");
+    const auto& targetReply = target.contentPart<QJsonObject>("m.relates_to"_ls);
     auto newContent = replacement.contentPart<QJsonObject>("m.new_content"_ls);
     if (!targetReply.empty()) {
-        newContent["m.relates_to"] = targetReply;
+        newContent["m.relates_to"_ls] = targetReply;
     }
     auto originalJson = target.fullJson();
     originalJson[ContentKeyL] = newContent;
@@ -2764,7 +2764,7 @@ RoomEventPtr makeReplaced(const RoomEvent& target,
     auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
     auto relations = unsignedData.take("m.relations"_ls).toObject();
     relations["m.replace"_ls] = replacement.id();
-    unsignedData.insert(QStringLiteral("m.relations"), relations);
+    unsignedData.insert("m.relations"_ls, relations);
     originalJson.insert(UnsignedKeyL, unsignedData);
 
     return loadEvent<RoomEvent>(originalJson);
@@ -3526,9 +3526,9 @@ bool MemberSorter::operator()(User* u1, User* u2) const
 bool MemberSorter::operator()(User* u1, QStringView u2name) const
 {
     auto n1 = room->disambiguatedMemberName(u1->id());
-    if (n1.startsWith('@'))
+    if (n1.startsWith(u'@'))
         n1.remove(0, 1);
-    const auto n2 = u2name.mid(u2name.startsWith('@') ? 1 : 0)
+    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)
 #if QT_VERSION_MAJOR < 6
         .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
 #endif

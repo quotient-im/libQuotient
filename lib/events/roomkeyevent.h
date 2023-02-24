@@ -15,10 +15,10 @@ public:
     explicit RoomKeyEvent(const QString& algorithm, const QString& roomId,
                           const QString& sessionId, const QString& sessionKey)
         : Event(basicJson(TypeId, {
-                                      { "algorithm", algorithm },
-                                      { "room_id", roomId },
-                                      { "session_id", sessionId },
-                                      { "session_key", sessionKey },
+                                      { "algorithm"_ls, algorithm },
+                                      { "room_id"_ls, roomId },
+                                      { "session_id"_ls, sessionId },
+                                      { "session_key"_ls, sessionKey },
                                   }))
     {}
 

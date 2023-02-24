@@ -25,7 +25,7 @@ public:
                                      const QNetworkRequest& outerRequest,
                                      Connection* connection)
     {
-        Q_ASSERT(outerRequest.url().scheme() == "mxc");
+        Q_ASSERT(outerRequest.url().scheme() == "mxc"_ls);
         QNetworkRequest r(outerRequest);
         r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2")
                           .arg(connection->homeserver().toString(),
@@ -82,14 +82,14 @@ QNetworkReply* NetworkAccessManager::createRequest(
     Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
     const auto& mxcUrl = request.url();
-    if (mxcUrl.scheme() == "mxc") {
+    if (mxcUrl.scheme() == "mxc"_ls) {
         const QUrlQuery query(mxcUrl.query());
         const auto accountId = query.queryItemValue(QStringLiteral("user_id"));
         if (accountId.isEmpty()) {
             // Using QSettings here because Quotient::NetworkSettings
             // doesn't provide multithreading guarantees
             static thread_local QSettings s;
-            if (!s.value("Network/allow_direct_media_requests").toBool()) {
+            if (!s.value("Network/allow_direct_media_requests"_ls).toBool()) {
                 qCWarning(NETWORK) << "No connection specified";
                 return new MxcReply();
             }

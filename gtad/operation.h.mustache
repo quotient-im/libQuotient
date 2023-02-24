@@ -71,7 +71,7 @@ public:
 
     {{>nonInlineResponseSignature}}
     {
-        return reply()->rawHeader("{{baseName}}");
+        return QString::fromUtf8(reply()->rawHeader("{{baseName}}"));
     }
         {{/headers}}{{#inlineResponse}}
 

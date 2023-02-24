@@ -6,6 +6,7 @@
 #include "quotient_export.h"
 
 #include <qobjectdefs.h>
+#include "util.h"
 
 #include <array>
 
@@ -66,7 +67,7 @@ QUO_DECLARE_FLAGS_NS(MembershipMask, Membership)
 
 constexpr std::array MembershipStrings {
     // The order MUST be the same as the order in the Membership enum
-    "join", "leave", "invite", "knock", "ban"
+    "join"_ls, "leave"_ls, "invite"_ls, "knock"_ls, "ban"_ls
 };
 
 //! \brief Local user join-state names
@@ -113,7 +114,7 @@ enum class RoomType : uint8_t {
 };
 Q_ENUM_NS(RoomType)
 
-[[maybe_unused]] constexpr std::array RoomTypeStrings { "m.space" };
+[[maybe_unused]] constexpr std::array RoomTypeStrings { "m.space"_ls };
 
 enum class EncryptionType : uint8_t {
     MegolmV1AesSha2 = 0,

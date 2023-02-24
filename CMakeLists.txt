@@ -264,6 +264,15 @@ add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
 file(GLOB_RECURSE api_ALL_SRCS CONFIGURE_DEPENDS
      ${FULL_CSAPI_DIR}/*.* lib/${ASAPI_DEF_DIR}/*.* lib/${ISAPI_DEF_DIR}/*.*)
 
+add_compile_options(
+    -DQT_NO_CAST_TO_ASCII
+    -DQT_NO_CAST_FROM_ASCII
+    -DQT_NO_URL_CAST_FROM_STRING
+    -DQT_NO_CAST_FROM_BYTEARRAY
+    -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT
+    -DQT_NO_FOREACH
+)
+
 add_library(${PROJECT_NAME} ${lib_SRCS} ${api_ALL_SRCS})
 # Set BUILDING_SHARED_QUOTIENT if building as a shared library
 target_compile_definitions(${PROJECT_NAME} PRIVATE

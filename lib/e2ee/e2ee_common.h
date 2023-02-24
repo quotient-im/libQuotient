@@ -204,7 +204,7 @@ public:
                     { "signatures"_ls,
                       QJsonObject {
                           { userId, QJsonObject { { "ed25519:"_ls % deviceId,
-                                                    QString(signature) } } } } } }
+                                                    QString::fromUtf8(signature) } } } } } }
     {}
     explicit SignedOneTimeKey(const QJsonObject& jo = {})
         : payload(jo)

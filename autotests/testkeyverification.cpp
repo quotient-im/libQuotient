@@ -52,7 +52,7 @@ private Q_SLOTS:
         olm_create_sas(sas, getRandom(randomLength).data(), randomLength);
         QByteArray keyBytes(olm_sas_pubkey_length(sas), '\0');
         olm_sas_get_pubkey(sas, keyBytes.data(), keyBytes.size());
-        session->handleEvent(KeyVerificationKeyEvent(transactionId, keyBytes));
+        session->handleEvent(KeyVerificationKeyEvent(transactionId, QString::fromLatin1(keyBytes)));
         QVERIFY(session->state() == KeyVerificationSession::WAITINGFORVERIFICATION);
         session->sendMac();
         QVERIFY(session->state() == KeyVerificationSession::WAITINGFORMAC);

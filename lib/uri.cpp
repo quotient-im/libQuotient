@@ -36,7 +36,7 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
     if (primaryId.isEmpty())
         primaryType_ = Empty;
     else {
-        setScheme("matrix");
+        setScheme("matrix"_ls);
         QString pathToBe;
         primaryType_ = Invalid;
         if (primaryId.size() < 2) // There should be something after sigil
@@ -46,7 +46,7 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
                 primaryType_ = Type(p.sigil);
                 auto safePrimaryId = primaryId.mid(1);
                 safePrimaryId.replace('/', "%2F");
-                pathToBe = p.uriString + safePrimaryId;
+                pathToBe = p.uriString + QString::fromUtf8(safePrimaryId);
                 break;
             }
         if (!secondaryId.isEmpty()) {
@@ -56,7 +56,7 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
             }
             auto safeSecondaryId = secondaryId.mid(1);
             safeSecondaryId.replace('/', "%2F");
-            pathToBe += "/event/" + safeSecondaryId;
+            pathToBe += "/event/"_ls + QString::fromUtf8(safeSecondaryId);
         }
         setPath(pathToBe, QUrl::TolerantMode);
     }
@@ -72,7 +72,7 @@ static inline auto encodedPath(const QUrl& url)
 static QString pathSegment(const QUrl& url, int which)
 {
     return QUrl::fromPercentEncoding(
-        encodedPath(url).section('/', which, which).toUtf8());
+        encodedPath(url).section(u'/', which, which).toUtf8());
 }
 
 static auto decodeFragmentPart(QStringView part)
@@ -84,7 +84,7 @@ static inline auto matrixToUrlRegexInit()
 {
     // See https://matrix.org/docs/spec/appendices#matrix-to-navigation
     const QRegularExpression MatrixToUrlRE {
-        "^/(?<main>[^:]+:[^/?]+)(/(?<sec>(\\$|%24)[^?]+))?(\\?(?<query>.+))?$"
+        "^/(?<main>[^:]+:[^/?]+)(/(?<sec>(\\$|%24)[^?]+))?(\\?(?<query>.+))?$"_ls
     };
     Q_ASSERT(MatrixToUrlRE.isValid());
     return MatrixToUrlRE;
@@ -100,15 +100,15 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
     if (!QUrl::isValid()) // MatrixUri::isValid() checks primaryType_
         return;
 
-    if (scheme() == "matrix") {
+    if (scheme() == "matrix"_ls) {
         // Check sanity as per https://github.com/matrix-org/matrix-doc/pull/2312
         const auto& urlPath = encodedPath(*this);
-        const auto& splitPath = urlPath.split('/');
+        const auto& splitPath = urlPath.split(u'/');
         switch (splitPath.size()) {
         case 2:
             break;
         case 4:
-            if (splitPath[2] == "event" || splitPath[2] == "e")
+            if (splitPath[2] == "event"_ls || splitPath[2] == "e"_ls)
                 break;
             [[fallthrough]];
         default:
@@ -126,7 +126,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
     }
 
     primaryType_ = NonMatrix; // Default, unless overridden by the code below
-    if (scheme() == "https" && authority() == "matrix.to") {
+    if (scheme() == "https"_ls && authority() == "matrix.to"_ls) {
         static const auto MatrixToUrlRE = matrixToUrlRegexInit();
         // matrix.to accepts both literal sigils (as well as & and ? used in
         // its "query" substitute) and their %-encoded forms;
@@ -135,7 +135,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
         if (auto&& m = MatrixToUrlRE.match(f); m.hasMatch())
             *this = Uri { decodeFragmentPart(m.capturedView(u"main")),
                           decodeFragmentPart(m.capturedView(u"sec")),
-                          decodeFragmentPart(m.capturedView(u"query")) };
+                          QString::fromUtf8(decodeFragmentPart(m.capturedView(u"query"))) };
     }
 }
 
@@ -162,7 +162,7 @@ Uri::Type Uri::type() const { return primaryType_; }
 Uri::SecondaryType Uri::secondaryType() const
 {
     const auto& type2 = pathSegment(*this, 2);
-    return type2 == "event" || type2 == "e" ? EventId : NoSecondaryId;
+    return type2 == "event"_ls || type2 == "e"_ls ? EventId : NoSecondaryId;
 }
 
 QUrl Uri::toUrl(UriForm form) const
@@ -174,14 +174,14 @@ QUrl Uri::toUrl(UriForm form) const
         return SLICE(*this, QUrl);
 
     QUrl url;
-    url.setScheme("https");
-    url.setHost("matrix.to");
-    url.setPath("/");
-    auto fragment = '/' + primaryId();
+    url.setScheme("https"_ls);
+    url.setHost("matrix.to"_ls);
+    url.setPath("/"_ls);
+    auto fragment = u'/' + primaryId();
     if (const auto& secId = secondaryId(); !secId.isEmpty())
-        fragment += '/' + secId;
+        fragment += u'/' + secId;
     if (const auto& q = query(); !q.isEmpty())
-        fragment += '?' + q;
+        fragment += u'?' + q;
     url.setFragment(fragment);
     return url;
 }
@@ -193,7 +193,7 @@ QString Uri::primaryId() const
 
     auto idStem = pathSegment(*this, 1);
     if (!idStem.isEmpty())
-        idStem.push_front(char(primaryType_));
+        idStem.push_front(QChar::fromLatin1(primaryType_));
     return idStem;
 }
 
@@ -201,7 +201,7 @@ QString Uri::secondaryId() const
 {
     auto idStem = pathSegment(*this, 3);
     if (!idStem.isEmpty())
-        idStem.push_front(char(secondaryType()));
+        idStem.push_front(QChar::fromLatin1(secondaryType()));
     return idStem;
 }
 

@@ -60,7 +60,7 @@ int AccountRegistry::rowCount(const QModelIndex& parent) const
 
 QHash<int, QByteArray> AccountRegistry::roleNames() const
 {
-    return { { AccountRole, "connection" }, { UserIdRole, "userId" } };
+    return { { AccountRole, QByteArrayLiteral("connection") }, { UserIdRole, QByteArrayLiteral("userId") } };
 }
 
 Connection* AccountRegistry::get(const QString& userId)
@@ -84,7 +84,7 @@ QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(const Q
 
 void AccountRegistry::invokeLogin()
 {
-    const auto accounts = SettingsGroup("Accounts").childGroups();
+    const auto accounts = SettingsGroup("Accounts"_ls).childGroups();
     for (const auto& accountId : accounts) {
         AccountSettings account { accountId };
 
@@ -134,7 +134,7 @@ void AccountRegistry::invokeLogin()
                                 emit accountsLoadingChanged();
                             });
                     connection->assumeIdentity(
-                        account.userId(), accessTokenLoadingJob->binaryData(),
+                        account.userId(), QString::fromUtf8(accessTokenLoadingJob->binaryData()),
                         account.deviceId());
                 });
     }
