@@ -564,7 +564,7 @@ TEST_IMPL(sendCustomEvent)
 
 TEST_IMPL(setTopic)
 {
-    const auto newTopic = QString::fromUtf8(connection()->generateTxnId()); // Just a way to make
+    const auto newTopic = QString::fromLatin1(connection()->generateTxnId()); // Just a way to make
                                                          // a unique id
     targetRoom->setTopic(newTopic);
     connectUntil(targetRoom, &Room::topicChanged, this,
@@ -584,7 +584,7 @@ TEST_IMPL(changeName)
 {
     connectSingleShot(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
         auto* const localUser = connection()->user();
-        const auto& newName = QString::fromUtf8(connection()->generateTxnId()); // See setTopic()
+        const auto& newName = QString::fromLatin1(connection()->generateTxnId()); // See setTopic()
         clog << "Renaming the user to " << newName.toStdString()
              << " in the target room" << endl;
         localUser->rename(newName, targetRoom);
@@ -871,7 +871,7 @@ TEST_IMPL(visitResources)
     static const auto& joinRoomAlias =
         QStringLiteral("##/?.@\"unjoined:example.org");
     static const auto& encodedRoomAliasNoSigil =
-        QString::fromUtf8(QUrl::toPercentEncoding(joinRoomAlias.mid(1), QByteArrayLiteral(":")));
+        QString::fromLatin1(QUrl::toPercentEncoding(joinRoomAlias.mid(1), QByteArrayLiteral(":")));
     static const QString joinQuery { "?action=join"_ls };
     // These URIs are not supposed to be actually joined (and even exist,
     // as yet) - only to be syntactically correct
@@ -887,7 +887,7 @@ TEST_IMPL(visitResources)
     static const auto viaQuery =
         std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,
                         [](const QString& q, const QString& s) {
-                            return QString(q + "&via="_ls + s);
+                            return q + "&via="_ls + s;
                         });
     static const QStringList joinByIdUris {
         "matrix:roomid/"_ls + joinRoomId.mid(1) + viaQuery,

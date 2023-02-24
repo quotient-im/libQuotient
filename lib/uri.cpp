@@ -177,11 +177,11 @@ QUrl Uri::toUrl(UriForm form) const
     url.setScheme("https"_ls);
     url.setHost("matrix.to"_ls);
     url.setPath("/"_ls);
-    auto fragment = QString("/"_ls + primaryId());
+    auto fragment = u'/' + primaryId();
     if (const auto& secId = secondaryId(); !secId.isEmpty())
-        fragment += QString("/"_ls + secId);
+        fragment += u'/' + secId;
     if (const auto& q = query(); !q.isEmpty())
-        fragment += QString("?"_ls + q);
+        fragment += u'?' + q;
     url.setFragment(fragment);
     return url;
 }

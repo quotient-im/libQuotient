@@ -351,9 +351,8 @@ void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
     const auto pubkeyLength = olm_sas_pubkey_length(olmData);
     auto publicKey = byteArrayForOlm(pubkeyLength);
     olm_sas_get_pubkey(olmData, publicKey.data(), pubkeyLength);
-    const auto canonicalEvent = QString::fromUtf8(QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact));
-    auto commitment = QString::fromLatin1(QCryptographicHash::hash((QString::fromLatin1(publicKey) % canonicalEvent).toLatin1(), QCryptographicHash::Sha256).toBase64());
-    commitment = commitment.left(commitment.indexOf(u'='));
+    const auto canonicalEvent = QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact);
+    auto commitment = QCryptographicHash::hash(publicKey + canonicalEvent, QCryptographicHash::Sha256).toBase64(QByteArray::OmitTrailingEquals);
 
     m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationAcceptEvent(m_transactionId,
