@@ -2456,8 +2456,8 @@ void Room::unban(const QString& userId)
 
 void Room::redactEvent(const QString& eventId, const QString& reason)
 {
-    connection()->callApi<RedactEventJob>(id(), eventId),
-                                          QString::fromUtf8(connection()->generateTxnId()), reason);
+    connection()->callApi<RedactEventJob>(id(), eventId,
+                                          QString::fromLatin1(connection()->generateTxnId()), reason);
 }
 
 void Room::uploadFile(const QString& id, const QUrl& localFilename,
