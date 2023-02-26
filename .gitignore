@@ -15,13 +15,14 @@ object_script.*
 debug/
 release/
 
-# CMake derivatives
+# CMake derivatives and user data
 CMakeCache.txt
 cmake_install.cmake
 Makefile
 Quotient_autogen/
 .cmake/
 tests/.cmake/
+CMakeUserPresets.json
 
 # clangd
 .cache/
