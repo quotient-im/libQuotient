@@ -5,8 +5,7 @@
 #pragma once
 
 #include "converters.h"
-
-#include "csapi/definitions/../../identity/definitions/request_email_validation.h"
+#include "identity/definitions/request_email_validation.h"
 
 namespace Quotient {
 

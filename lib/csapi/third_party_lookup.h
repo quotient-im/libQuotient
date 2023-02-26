@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "csapi/../application-service/definitions/location.h"
-#include "csapi/../application-service/definitions/protocol.h"
-#include "csapi/../application-service/definitions/user.h"
+#include "application-service/definitions/location.h"
+#include "application-service/definitions/protocol.h"
+#include "application-service/definitions/user.h"
 
 #include "jobs/basejob.h"
 
