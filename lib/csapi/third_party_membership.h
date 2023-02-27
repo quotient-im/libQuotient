@@ -70,7 +70,7 @@ public:
      *
      * \param medium
      *   The kind of address being passed in the address field, for example
-     * `email`.
+     *   `email` (see [the list of recognised values](/appendices/#3pid-types)).
      *
      * \param address
      *   The invitee's third party identifier.

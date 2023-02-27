@@ -115,7 +115,8 @@ public:
         /// r0.5-compatible clients and this specification version.
         QString idAccessToken;
         /// The kind of address being passed in the address field, for example
-        /// `email`.
+        /// `email` (see [the list of recognised
+        /// values](/appendices/#3pid-types)).
         QString medium;
         /// The invitee's third party identifier.
         QString address;
