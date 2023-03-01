@@ -68,11 +68,10 @@ if (WIN32)
     endif()
 else()
     include(GNUInstallDirs)
-    set(INCLUDEDIR_INIT ${PROJECT_NAME})
     set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 endif(WIN32)
 set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
-        "${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDEDIR_INIT}" CACHE PATH
+        "${CMAKE_INSTALL_INCLUDEDIR}/" CACHE PATH
         "directory to install ${PROJECT_NAME} include files to")
 
 # Instruct CMake to run moc automatically when needed.
@@ -315,7 +314,7 @@ endif ()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Quotient>
-    $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}/Quotient>
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
@@ -353,9 +352,8 @@ endif()
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
         LIBRARY RUNTIME
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
 )
-install(DIRECTORY Quotient/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
+install(DIRECTORY Quotient/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}/Quotient
         FILES_MATCHING PATTERN "*.h")
 
 include(CMakePackageConfigHelpers)
