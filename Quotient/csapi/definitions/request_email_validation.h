@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "converters.h"
-#include "identity/definitions/request_email_validation.h"
+#include <Quotient/converters.h>
+#include <Quotient/csapi/definitions/../../identity/definitions/request_email_validation.h>
 
 namespace Quotient {
 

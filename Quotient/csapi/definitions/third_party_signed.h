@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "converters.h"
+#include <Quotient/converters.h>
 
 namespace Quotient {
 /// A signature of an `m.third_party_invite` token to prove that this user

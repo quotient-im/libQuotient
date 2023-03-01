@@ -4,9 +4,8 @@
 
 #pragma once
 
-#include "csapi/definitions/wellknown/full.h"
-
-#include "jobs/basejob.h"
+#include <Quotient/csapi/definitions/wellknown/full.h>
+#include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
 

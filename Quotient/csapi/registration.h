@@ -4,12 +4,11 @@
 
 #pragma once
 
-#include "csapi/definitions/auth_data.h"
-#include "csapi/definitions/request_email_validation.h"
-#include "csapi/definitions/request_msisdn_validation.h"
-#include "csapi/definitions/request_token_response.h"
-
-#include "jobs/basejob.h"
+#include <Quotient/csapi/definitions/auth_data.h>
+#include <Quotient/csapi/definitions/request_email_validation.h>
+#include <Quotient/csapi/definitions/request_msisdn_validation.h>
+#include <Quotient/csapi/definitions/request_token_response.h>
+#include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
 

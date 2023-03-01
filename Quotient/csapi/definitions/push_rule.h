@@ -4,9 +4,8 @@
 
 #pragma once
 
-#include "converters.h"
-
-#include "csapi/definitions/push_condition.h"
+#include <Quotient/converters.h>
+#include <Quotient/csapi/definitions/push_condition.h>
 
 namespace Quotient {
 

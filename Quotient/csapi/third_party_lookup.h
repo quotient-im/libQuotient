@@ -4,11 +4,10 @@
 
 #pragma once
 
-#include "application-service/definitions/location.h"
-#include "application-service/definitions/protocol.h"
-#include "application-service/definitions/user.h"
-
-#include "jobs/basejob.h"
+#include <Quotient/csapi/../application-service/definitions/location.h>
+#include <Quotient/csapi/../application-service/definitions/protocol.h>
+#include <Quotient/csapi/../application-service/definitions/user.h>
+#include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
 

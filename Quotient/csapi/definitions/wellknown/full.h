@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include "converters.h"
-
-#include "csapi/definitions/wellknown/homeserver.h"
-#include "csapi/definitions/wellknown/identity_server.h"
+#include <Quotient/converters.h>
+#include <Quotient/csapi/definitions/wellknown/homeserver.h>
+#include <Quotient/csapi/definitions/wellknown/identity_server.h>
 
 namespace Quotient {
 /// Used by clients to determine the homeserver, identity server, and other

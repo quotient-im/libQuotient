@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "converters.h"
+#include <Quotient/converters.h>
 
 namespace Quotient {
 /// Used by clients to discover homeserver information.
