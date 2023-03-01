@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "csapi/content-repo.h"
+#include <Quotient/csapi/content-repo.h>
 
-#include "events/filesourceinfo.h"
+#include <Quotient/events/filesourceinfo.h>
 
 namespace Quotient {
 class QUOTIENT_API DownloadFileJob : public GetContentJob {

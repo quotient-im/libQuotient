@@ -6,7 +6,7 @@
 #pragma once
 
 #include "stateevent.h"
-#include "quotient_common.h"
+#include <Quotient/quotient_common.h>
 
 namespace Quotient {
 class QUOTIENT_API MemberEventContent {

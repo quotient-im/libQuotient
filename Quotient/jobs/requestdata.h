@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "util.h"
+#include <Quotient/util.h>
 
 class QJsonObject;
 class QJsonArray;

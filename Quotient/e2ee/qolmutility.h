@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "util.h"
+#include <Quotient/util.h>
 
 #include <olm/error.h>
 

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "quotient_export.h"
+#include <Quotient/quotient_export.h>
 
 #include <QtCore/QByteArray>
 #include <qobjectdefs.h>

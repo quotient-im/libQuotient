@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "csapi/content-repo.h"
+#include <Quotient/csapi/content-repo.h>
 
 #include <QtGui/QPixmap>
 

@@ -7,7 +7,7 @@
 // message events as well as other events (e.g., avatars).
 
 #include "filesourceinfo.h"
-#include "quotient_export.h"
+#include <Quotient/quotient_export.h>
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QMetaType>

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "converters.h"
+#include <Quotient/converters.h>
 
 namespace Quotient {
 /// Definition of valid values for a field.
