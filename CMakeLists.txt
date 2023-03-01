@@ -112,86 +112,86 @@ endif()
 
 # Set up source files
 list(APPEND lib_SRCS
-    lib/quotient_common.h
-    lib/quotient_export.h
-    lib/function_traits.h lib/function_traits.cpp
-    lib/omittable.h
-    lib/expected.h
-    lib/networkaccessmanager.h lib/networkaccessmanager.cpp
-    lib/connectiondata.h lib/connectiondata.cpp
-    lib/connection.h lib/connection.cpp
-    lib/connection_p.h
-    lib/ssosession.h lib/ssosession.cpp
-    lib/logging.h lib/logging.cpp
-    lib/room.h lib/room.cpp
-    lib/roomstateview.h lib/roomstateview.cpp
-    lib/user.h lib/user.cpp
-    lib/avatar.h lib/avatar.cpp
-    lib/uri.h lib/uri.cpp
-    lib/uriresolver.h lib/uriresolver.cpp
-    lib/eventstats.h lib/eventstats.cpp
-    lib/syncdata.h lib/syncdata.cpp
-    lib/settings.h lib/settings.cpp
-    lib/networksettings.h lib/networksettings.cpp
-    lib/converters.h lib/converters.cpp
-    lib/util.h lib/util.cpp
-    lib/eventitem.h lib/eventitem.cpp
-    lib/accountregistry.h lib/accountregistry.cpp
-    lib/mxcreply.h lib/mxcreply.cpp
-    lib/e2ee/e2ee_common.h # because it's used by generated API
-    lib/events/event.h lib/events/event.cpp
-    lib/events/eventloader.h
-    lib/events/roomevent.h lib/events/roomevent.cpp
-    lib/events/stateevent.h lib/events/stateevent.cpp
-    lib/events/single_key_value.h
-    lib/events/simplestateevents.h
-    lib/events/eventcontent.h lib/events/eventcontent.cpp
-    lib/events/eventrelation.h lib/events/eventrelation.cpp
-    lib/events/roomcreateevent.h lib/events/roomcreateevent.cpp
-    lib/events/roomtombstoneevent.h lib/events/roomtombstoneevent.cpp
-    lib/events/roommessageevent.h lib/events/roommessageevent.cpp
-    lib/events/roommemberevent.h lib/events/roommemberevent.cpp
-    lib/events/roomcanonicalaliasevent.h
-    lib/events/roomavatarevent.h
-    lib/events/roompowerlevelsevent.h lib/events/roompowerlevelsevent.cpp
-    lib/events/typingevent.h
-    lib/events/accountdataevents.h
-    lib/events/receiptevent.h lib/events/receiptevent.cpp
-    lib/events/reactionevent.h
-    lib/events/callevents.h lib/events/callevents.cpp
-    lib/events/directchatevent.h lib/events/directchatevent.cpp
-    lib/events/encryptionevent.h lib/events/encryptionevent.cpp
-    lib/events/encryptedevent.h lib/events/encryptedevent.cpp
-    lib/events/roomkeyevent.h
-    lib/events/stickerevent.h
-    lib/events/filesourceinfo.h lib/events/filesourceinfo.cpp
-    lib/jobs/requestdata.h lib/jobs/requestdata.cpp
-    lib/jobs/basejob.h lib/jobs/basejob.cpp
-    lib/jobs/syncjob.h lib/jobs/syncjob.cpp
-    lib/jobs/mediathumbnailjob.h lib/jobs/mediathumbnailjob.cpp
-    lib/jobs/downloadfilejob.h lib/jobs/downloadfilejob.cpp
+    Quotient/quotient_common.h
+    Quotient/quotient_export.h
+    Quotient/function_traits.h Quotient/function_traits.cpp
+    Quotient/omittable.h
+    Quotient/expected.h
+    Quotient/networkaccessmanager.h Quotient/networkaccessmanager.cpp
+    Quotient/connectiondata.h Quotient/connectiondata.cpp
+    Quotient/connection.h Quotient/connection.cpp
+    Quotient/connection_p.h
+    Quotient/ssosession.h Quotient/ssosession.cpp
+    Quotient/logging.h Quotient/logging.cpp
+    Quotient/room.h Quotient/room.cpp
+    Quotient/roomstateview.h Quotient/roomstateview.cpp
+    Quotient/user.h Quotient/user.cpp
+    Quotient/avatar.h Quotient/avatar.cpp
+    Quotient/uri.h Quotient/uri.cpp
+    Quotient/uriresolver.h Quotient/uriresolver.cpp
+    Quotient/eventstats.h Quotient/eventstats.cpp
+    Quotient/syncdata.h Quotient/syncdata.cpp
+    Quotient/settings.h Quotient/settings.cpp
+    Quotient/networksettings.h Quotient/networksettings.cpp
+    Quotient/converters.h Quotient/converters.cpp
+    Quotient/util.h Quotient/util.cpp
+    Quotient/eventitem.h Quotient/eventitem.cpp
+    Quotient/accountregistry.h Quotient/accountregistry.cpp
+    Quotient/mxcreply.h Quotient/mxcreply.cpp
+    Quotient/e2ee/e2ee_common.h # because it's used by generated API
+    Quotient/events/event.h Quotient/events/event.cpp
+    Quotient/events/eventloader.h
+    Quotient/events/roomevent.h Quotient/events/roomevent.cpp
+    Quotient/events/stateevent.h Quotient/events/stateevent.cpp
+    Quotient/events/single_key_value.h
+    Quotient/events/simplestateevents.h
+    Quotient/events/eventcontent.h Quotient/events/eventcontent.cpp
+    Quotient/events/eventrelation.h Quotient/events/eventrelation.cpp
+    Quotient/events/roomcreateevent.h Quotient/events/roomcreateevent.cpp
+    Quotient/events/roomtombstoneevent.h Quotient/events/roomtombstoneevent.cpp
+    Quotient/events/roommessageevent.h Quotient/events/roommessageevent.cpp
+    Quotient/events/roommemberevent.h Quotient/events/roommemberevent.cpp
+    Quotient/events/roomcanonicalaliasevent.h
+    Quotient/events/roomavatarevent.h
+    Quotient/events/roompowerlevelsevent.h Quotient/events/roompowerlevelsevent.cpp
+    Quotient/events/typingevent.h
+    Quotient/events/accountdataevents.h
+    Quotient/events/receiptevent.h Quotient/events/receiptevent.cpp
+    Quotient/events/reactionevent.h
+    Quotient/events/callevents.h Quotient/events/callevents.cpp
+    Quotient/events/directchatevent.h Quotient/events/directchatevent.cpp
+    Quotient/events/encryptionevent.h Quotient/events/encryptionevent.cpp
+    Quotient/events/encryptedevent.h Quotient/events/encryptedevent.cpp
+    Quotient/events/roomkeyevent.h
+    Quotient/events/stickerevent.h
+    Quotient/events/filesourceinfo.h Quotient/events/filesourceinfo.cpp
+    Quotient/jobs/requestdata.h Quotient/jobs/requestdata.cpp
+    Quotient/jobs/basejob.h Quotient/jobs/basejob.cpp
+    Quotient/jobs/syncjob.h Quotient/jobs/syncjob.cpp
+    Quotient/jobs/mediathumbnailjob.h Quotient/jobs/mediathumbnailjob.cpp
+    Quotient/jobs/downloadfilejob.h Quotient/jobs/downloadfilejob.cpp
     libquotientemojis.qrc
 )
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS
-        lib/database.h lib/database.cpp
-        lib/keyverificationsession.h lib/keyverificationsession.cpp
-        lib/e2ee/e2ee_common.cpp # .h is in the common sources list
-        lib/e2ee/qolmaccount.h lib/e2ee/qolmaccount.cpp
-        lib/e2ee/qolmsession.h lib/e2ee/qolmsession.cpp
-        lib/e2ee/qolminboundsession.h lib/e2ee/qolminboundsession.cpp
-        lib/e2ee/qolmoutboundsession.h lib/e2ee/qolmoutboundsession.cpp
-        lib/e2ee/qolmutility.h lib/e2ee/qolmutility.cpp
-        lib/e2ee/qolmsession.h lib/e2ee/qolmsession.cpp
-        lib/e2ee/qolmmessage.h lib/e2ee/qolmmessage.cpp
-        lib/events/keyverificationevent.h
+        Quotient/database.h Quotient/database.cpp
+        Quotient/keyverificationsession.h Quotient/keyverificationsession.cpp
+        Quotient/e2ee/e2ee_common.cpp # .h is in the common sources list
+        Quotient/e2ee/qolmaccount.h Quotient/e2ee/qolmaccount.cpp
+        Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
+        Quotient/e2ee/qolminboundsession.h Quotient/e2ee/qolminboundsession.cpp
+        Quotient/e2ee/qolmoutboundsession.h Quotient/e2ee/qolmoutboundsession.cpp
+        Quotient/e2ee/qolmutility.h Quotient/e2ee/qolmutility.cpp
+        Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
+        Quotient/e2ee/qolmmessage.h Quotient/e2ee/qolmmessage.cpp
+        Quotient/events/keyverificationevent.h
     )
 endif()
 
 # Configure API files generation
 
 set(CSAPI_DIR csapi)
-set(FULL_CSAPI_DIR lib/${CSAPI_DIR})
+set(FULL_CSAPI_DIR Quotient/${CSAPI_DIR})
 set(ASAPI_DEF_DIR application-service/definitions)
 set(ISAPI_DEF_DIR identity/definitions)
 
@@ -242,7 +242,7 @@ if (API_GENERATION_ENABLED)
             key_backup.yaml- # immature and buggy in terms of API definition
             sync.yaml- # we have a better handcrafted implementation
             ${GTAD_ARGS}
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/Quotient
         SOURCES gtad/gtad.yaml
                 gtad/data.h.mustache
                 gtad/operation.h.mustache
@@ -263,7 +263,7 @@ add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
 # which would trigger the reconfiguration specifically before the next build.
 # For now CONFIGURE_DEPENDS is the best approximation of that.
 file(GLOB_RECURSE api_ALL_SRCS CONFIGURE_DEPENDS
-     ${FULL_CSAPI_DIR}/*.* lib/${ASAPI_DEF_DIR}/*.* lib/${ISAPI_DEF_DIR}/*.*)
+     ${FULL_CSAPI_DIR}/*.* Quotient/${ASAPI_DEF_DIR}/*.* Quotient/${ISAPI_DEF_DIR}/*.*)
 
 add_compile_options(
     -DQT_NO_CAST_TO_ASCII
@@ -310,11 +310,11 @@ endif()
 
 # Don't use PCH w/GCC (https://bugzilla.redhat.com/show_bug.cgi?id=1721553#c34)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    target_precompile_headers(${PROJECT_NAME} PRIVATE lib/converters.h)
+    target_precompile_headers(${PROJECT_NAME} PRIVATE Quotient/converters.h)
 endif ()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Quotient>
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
@@ -355,7 +355,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         INCLUDES DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
 )
-install(DIRECTORY lib/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
+install(DIRECTORY Quotient/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")
 
 include(CMakePackageConfigHelpers)
