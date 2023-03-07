@@ -18,6 +18,8 @@ public:
     explicit MxcReply(QNetworkReply *reply);
     MxcReply(QNetworkReply* reply, Room* room, const QString& eventId);
 
+    qint64 bytesAvailable() const override;
+
 public Q_SLOTS:
     void abort() override;
 
