@@ -90,10 +90,15 @@ MxcReply::MxcReply()
 
 qint64 MxcReply::readData(char *data, qint64 maxSize)
 {
-    return d->m_device->read(data, maxSize);
+    if(d != nullptr) {
+        return d->m_device->read(data, maxSize);
+    }
+    return -1;
 }
 
 void MxcReply::abort()
 {
-    d->m_reply->abort();
+    if(d != nullptr) {
+        d->m_reply->abort();
+    }
 }
