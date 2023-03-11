@@ -102,3 +102,11 @@ void MxcReply::abort()
         d->m_reply->abort();
     }
 }
+
+qint64 MxcReply::bytesAvailable() const
+{
+    if (d != nullptr) {
+        return d->m_device->bytesAvailable() + QNetworkReply::bytesAvailable();
+    }
+    return 0;
+}
