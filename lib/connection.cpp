@@ -2442,7 +2442,7 @@ void Connection::sendSessionKeyToDevices(
                          << "to keys to claim";
         }
 
-    auto sendKey = [devices, this, sessionId, index, sessionKey, roomId](){
+    auto sendKey = [devices, this, sessionId, index, sessionKey, roomId] {
         QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
         for (const auto& [targetUserId, targetDeviceId] : asKeyValueRange(devices)) {
             if (!hasOlmSession(targetUserId, targetDeviceId))
@@ -2452,8 +2452,8 @@ void Connection::sendSessionKeyToDevices(
             // qDebug(E2EE) << "Creating the payload for" << targetUserId
             //              << targetDeviceId << sessionId << sessionKey.toHex();
             const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
-                                                    roomId, QString::fromLatin1(sessionId),
-                                                    QString::fromLatin1(sessionKey))
+                                                   roomId, QString::fromLatin1(sessionId),
+                                                   QString::fromLatin1(sessionKey))
                                             .fullJson();
 
             usersToDevicesToContent[targetUserId][targetDeviceId] =
@@ -2466,11 +2466,10 @@ void Connection::sendSessionKeyToDevices(
             receivedDevices.reserve(devices.size());
             for (const auto& [user, device] : asKeyValueRange(devices))
                 receivedDevices.push_back(
-                    { user, device,
-                        d->curveKeyForUserDevice(user, device) });
+                    { user, device, d->curveKeyForUserDevice(user, device) });
 
             database()->setDevicesReceivedKey(roomId, receivedDevices,
-                                                sessionId, index);
+                                              sessionId, index);
         }
 };
 
