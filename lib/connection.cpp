@@ -2442,48 +2442,54 @@ void Connection::sendSessionKeyToDevices(
                          << "to keys to claim";
         }
 
-    if (hash.isEmpty())
+    auto sendKey = [devices, this, sessionId, index, sessionKey, roomId] {
+        QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
+        for (const auto& [targetUserId, targetDeviceId] : asKeyValueRange(devices)) {
+            if (!hasOlmSession(targetUserId, targetDeviceId))
+                continue;
+
+            // Noisy and leaks the key to logs but nice for debugging
+            // qDebug(E2EE) << "Creating the payload for" << targetUserId
+            //              << targetDeviceId << sessionId << sessionKey.toHex();
+            const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
+                                                   roomId, QString::fromLatin1(sessionId),
+                                                   QString::fromLatin1(sessionKey))
+                                            .fullJson();
+
+            usersToDevicesToContent[targetUserId][targetDeviceId] =
+                d->assembleEncryptedContent(keyEventJson, targetUserId,
+                                            targetDeviceId);
+        }
+        if (!usersToDevicesToContent.empty()) {
+            sendToDevices(EncryptedEvent::TypeId, usersToDevicesToContent);
+            QVector<std::tuple<QString, QString, QString>> receivedDevices;
+            receivedDevices.reserve(devices.size());
+            for (const auto& [user, device] : asKeyValueRange(devices))
+                receivedDevices.push_back(
+                    { user, device, d->curveKeyForUserDevice(user, device) });
+
+            database()->setDevicesReceivedKey(roomId, receivedDevices,
+                                              sessionId, index);
+        }
+};
+
+    if (hash.isEmpty()) {
+        sendKey();
         return;
+    }
 
     auto job = callApi<ClaimKeysJob>(hash);
     connect(
         job, &BaseJob::success, this,
-        [job, this, roomId, sessionId, sessionKey, devices, index] {
+        [job, this, roomId, sessionId, sessionKey, devices, sendKey] {
             QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
-            for (const auto oneTimeKeys = job->oneTimeKeys();
-                 const auto& [targetUserId, targetDeviceId] :
-                 asKeyValueRange(devices)) {
-                if (!hasOlmSession(targetUserId, targetDeviceId)
-                    && !d->createOlmSession(
-                        targetUserId, targetDeviceId,
-                        oneTimeKeys[targetUserId][targetDeviceId]))
-                    continue;
-
-                // Noisy and leaks the key to logs but nice for debugging
-//                qDebug(E2EE)
-//                    << "Creating the payload for" << targetUserId
-//                    << targetDeviceId << sessionId << sessionKey.toHex();
-                const auto keyEventJson = RoomKeyEvent(MegolmV1AesSha2AlgoKey,
-                                                       roomId, QString::fromLatin1(sessionId),
-                                                       QString::fromLatin1(sessionKey))
-                                              .fullJson();
-
-                usersToDevicesToContent[targetUserId][targetDeviceId] =
-                    d->assembleEncryptedContent(keyEventJson, targetUserId,
-                                                targetDeviceId);
+            const auto oneTimeKeys = job->oneTimeKeys();
+            for (const auto& userId : oneTimeKeys.keys()) {
+                for (const auto& deviceId : oneTimeKeys[userId].keys()) {
+                    d->createOlmSession(userId, deviceId, oneTimeKeys[userId][deviceId]);
+                }
             }
-            if (!usersToDevicesToContent.empty()) {
-                sendToDevices(EncryptedEvent::TypeId, usersToDevicesToContent);
-                QVector<std::tuple<QString, QString, QString>> receivedDevices;
-                receivedDevices.reserve(devices.size());
-                for (const auto& [user, device] : asKeyValueRange(devices))
-                    receivedDevices.push_back(
-                        { user, device,
-                          d->curveKeyForUserDevice(user, device) });
-
-                database()->setDevicesReceivedKey(roomId, receivedDevices,
-                                                  sessionId, index);
-            }
+            sendKey();
         });
 }
 
