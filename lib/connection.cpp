@@ -1022,11 +1022,11 @@ void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
                 if (event->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
                     qCDebug(E2EE) << "Unsupported algorithm" << event->id()
                                   << "for event" << event->algorithm();
-                    return;
+                    continue;
                 }
                 if (isKnownCurveKey(event->senderId(), event->senderKey())) {
                     handleEncryptedToDeviceEvent(*event);
-                    return;
+                    continue;
                 }
                 trackedUsers += event->senderId();
                 outdatedUsers += event->senderId();
