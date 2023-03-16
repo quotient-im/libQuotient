@@ -120,6 +120,7 @@ list(APPEND lib_SRCS
     lib/networkaccessmanager.h lib/networkaccessmanager.cpp
     lib/connectiondata.h lib/connectiondata.cpp
     lib/connection.h lib/connection.cpp
+    lib/connection_p.h
     lib/ssosession.h lib/ssosession.cpp
     lib/logging.h lib/logging.cpp
     lib/room.h lib/room.cpp
