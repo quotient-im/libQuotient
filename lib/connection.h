@@ -133,7 +133,6 @@ class QUOTIENT_API Connection : public QObject {
 public:
     using UsersToDevicesToContent = QHash<QString, QHash<QString, QJsonObject>>;
 
-
     enum RoomVisibility {
         PublishRoom,
         UnpublishRoom
