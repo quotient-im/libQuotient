@@ -328,6 +328,15 @@ public:
     //! Returns true if this megolm session comes from a verified device
     bool isVerifiedSession(const QByteArray& megolmSessionId) const;
 
+    //! Returns whether the device is verified
+    bool isVerifiedDevice(const QString& userId, const QString& deviceId) const;
+
+    //! Returns whether the device is known and supports end-to-end encryption.
+    //! This might give unexpected results for users we're not tracking,
+    //! i.e., users that we don't share an encrypted room with
+    bool isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const;
+
+
     void sendSessionKeyToDevices(const QString& roomId,
                                  const QOlmOutboundGroupSession& outboundSession,
                                  const QMultiHash<QString, QString>& devices);

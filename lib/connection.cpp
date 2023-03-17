@@ -2386,6 +2386,25 @@ bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
     database()->execute(query);
     return query.next() && query.value("verified"_ls).toBool();
 }
+
+bool Connection::isVerifiedDevice(const QString& userId, const QString& deviceId) const
+{
+    auto query = database()->prepareQuery("SELECT verified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_ls);
+    query.bindValue(":deviceId"_ls, deviceId);
+    query.bindValue(":matrixId"_ls, userId);
+    database()->execute(query);
+    return query.next() && query.value("verified"_ls).toBool();
+}
+
+bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const
+{
+    auto query = database()->prepareQuery("SELECT verified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_ls);
+    query.bindValue(":deviceId"_ls, deviceId);
+    query.bindValue(":matrixId"_ls, userId);
+    database()->execute(query);
+    return query.next();
+}
+
 #endif
 
 Connection* Connection::makeMockConnection(const QString& mxId)
