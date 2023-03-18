@@ -15,6 +15,7 @@
 
 #ifdef Quotient_E2EE_ENABLED
 #include "e2ee/qolmaccount.h"
+#include "e2ee/qolmsession.h"
 #include "database.h"
 #endif
 
@@ -24,6 +25,12 @@
 
 #include <QCoreApplication>
 #include <QPointer>
+
+#if QT_VERSION_MAJOR >= 6
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
 
 class Q_DECL_HIDDEN Quotient::Connection::Private {
 public:
