@@ -27,3 +27,7 @@ CMakeUserPresets.json
 # clangd
 .cache/
 compile_commands.json
+
+# Created by doxygen
+html/
+latex/

@@ -681,7 +681,7 @@ SORT_BRIEF_DOCS        = NO
 # detailed member documentation.
 # The default value is: NO.
 
-SORT_MEMBERS_CTORS_1ST = NO
+SORT_MEMBERS_CTORS_1ST = YES
 
 # If the SORT_GROUP_NAMES tag is set to YES then doxygen will sort the hierarchy
 # of group names into alphabetical order. If set to NO the group names will
@@ -1034,7 +1034,7 @@ EXCLUDE_PATTERNS       =
 # Note that the wildcards are matched against the file with absolute path, so to
 # exclude all test directories use the pattern */test/*
 
-EXCLUDE_SYMBOLS        = Quotient::_impl::* Quotient::JsonConverter<*> Quotient::JsonObjectConverter<*>
+EXCLUDE_SYMBOLS        = Quotient::_impl Quotient::JsonConverter<*> Quotient::JsonObjectConverter<*>
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or directories
 # that contain example code fragments that are included (see the \include
@@ -1227,7 +1227,7 @@ VERBATIM_HEADERS       = YES
 # generated with the -Duse_libclang=ON option for CMake.
 # The default value is: NO.
 
-CLANG_ASSISTED_PARSING = NO
+CLANG_ASSISTED_PARSING = YES
 
 # If the CLANG_ASSISTED_PARSING tag is set to YES and the CLANG_ADD_INC_PATHS
 # tag is set to YES then doxygen will add the directory of each input to the
@@ -1992,168 +1992,6 @@ PAPER_TYPE             = a4
 
 EXTRA_PACKAGES         =
 
-# The LATEX_HEADER tag can be used to specify a user-defined LaTeX header for
-# the generated LaTeX document. The header should contain everything until the
-# first chapter. If it is left blank doxygen will generate a standard header. It
-# is highly recommended to start with a default header using
-# doxygen -w latex new_header.tex new_footer.tex new_stylesheet.sty
-# and then modify the file new_header.tex. See also section "Doxygen usage" for
-# information on how to generate the default header that doxygen normally uses.
-#
-# Note: Only use a user-defined header if you know what you are doing!
-# Note: The header is subject to change so you typically have to regenerate the
-# default header when upgrading to a newer version of doxygen. The following
-# commands have a special meaning inside the header (and footer): For a
-# description of the possible markers and block names see the documentation.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_HEADER           =
-
-# The LATEX_FOOTER tag can be used to specify a user-defined LaTeX footer for
-# the generated LaTeX document. The footer should contain everything after the
-# last chapter. If it is left blank doxygen will generate a standard footer. See
-# LATEX_HEADER for more information on how to generate a default footer and what
-# special commands can be used inside the footer. See also section "Doxygen
-# usage" for information on how to generate the default footer that doxygen
-# normally uses. Note: Only use a user-defined footer if you know what you are
-# doing!
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_FOOTER           =
-
-# The LATEX_EXTRA_STYLESHEET tag can be used to specify additional user-defined
-# LaTeX style sheets that are included after the standard style sheets created
-# by doxygen. Using this option one can overrule certain style aspects. Doxygen
-# will copy the style sheet files to the output directory.
-# Note: The order of the extra style sheet files is of importance (e.g. the last
-# style sheet in the list overrules the setting of the previous ones in the
-# list).
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_EXTRA_STYLESHEET =
-
-# The LATEX_EXTRA_FILES tag can be used to specify one or more extra images or
-# other source files which should be copied to the LATEX_OUTPUT output
-# directory. Note that the files will be copied as-is; there are no commands or
-# markers available.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_EXTRA_FILES      =
-
-# If the PDF_HYPERLINKS tag is set to YES, the LaTeX that is generated is
-# prepared for conversion to PDF (using ps2pdf or pdflatex). The PDF file will
-# contain links (just like the HTML output) instead of page references. This
-# makes the output suitable for online browsing using a PDF viewer.
-# The default value is: YES.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-PDF_HYPERLINKS         = YES
-
-# If the USE_PDFLATEX tag is set to YES, doxygen will use the engine as
-# specified with LATEX_CMD_NAME to generate the PDF file directly from the LaTeX
-# files. Set this option to YES, to get a higher quality PDF documentation.
-#
-# See also section LATEX_CMD_NAME for selecting the engine.
-# The default value is: YES.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-USE_PDFLATEX           = YES
-
-# If the LATEX_BATCHMODE tag is set to YES, doxygen will add the \batchmode
-# command to the generated LaTeX files. This will instruct LaTeX to keep running
-# if errors occur, instead of asking the user for help.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_BATCHMODE        = NO
-
-# If the LATEX_HIDE_INDICES tag is set to YES then doxygen will not include the
-# index chapters (such as File Index, Compound Index, etc.) in the output.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_HIDE_INDICES     = NO
-
-# The LATEX_BIB_STYLE tag can be used to specify the style to use for the
-# bibliography, e.g. plainnat, or ieeetr. See
-# https://en.wikipedia.org/wiki/BibTeX and \cite for more info.
-# The default value is: plain.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_BIB_STYLE        = plain
-
-# If the LATEX_TIMESTAMP tag is set to YES then the footer of each generated
-# page will contain the date and time when the page was generated. Setting this
-# to NO can help when comparing the output of multiple runs.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_TIMESTAMP        = NO
-
-# The LATEX_EMOJI_DIRECTORY tag is used to specify the (relative or absolute)
-# path from which the emoji images will be read. If a relative path is entered,
-# it will be relative to the LATEX_OUTPUT directory. If left blank the
-# LATEX_OUTPUT directory will be used.
-# This tag requires that the tag GENERATE_LATEX is set to YES.
-
-LATEX_EMOJI_DIRECTORY  =
-
-#---------------------------------------------------------------------------
-# Configuration options related to the RTF output
-#---------------------------------------------------------------------------
-
-# If the GENERATE_RTF tag is set to YES, doxygen will generate RTF output. The
-# RTF output is optimized for Word 97 and may not look too pretty with other RTF
-# readers/editors.
-# The default value is: NO.
-
-GENERATE_RTF           = NO
-
-# The RTF_OUTPUT tag is used to specify where the RTF docs will be put. If a
-# relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
-# it.
-# The default directory is: rtf.
-# This tag requires that the tag GENERATE_RTF is set to YES.
-
-RTF_OUTPUT             = rtf
-
-# If the COMPACT_RTF tag is set to YES, doxygen generates more compact RTF
-# documents. This may be useful for small projects and may help to save some
-# trees in general.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_RTF is set to YES.
-
-COMPACT_RTF            = NO
-
-# If the RTF_HYPERLINKS tag is set to YES, the RTF that is generated will
-# contain hyperlink fields. The RTF file will contain links (just like the HTML
-# output) instead of page references. This makes the output suitable for online
-# browsing using Word or some other Word compatible readers that support those
-# fields.
-#
-# Note: WordPad (write) and others do not support links.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_RTF is set to YES.
-
-RTF_HYPERLINKS         = NO
-
-# Load stylesheet definitions from file. Syntax is similar to doxygen's
-# configuration file, i.e. a series of assignments. You only have to provide
-# replacements, missing definitions are set to their default value.
-#
-# See also section "Doxygen usage" for information on how to generate the
-# default style sheet that doxygen normally uses.
-# This tag requires that the tag GENERATE_RTF is set to YES.
-
-RTF_STYLESHEET_FILE    =
-
-# Set optional variables used in the generation of an RTF document. Syntax is
-# similar to doxygen's configuration file. A template extensions file can be
-# generated using doxygen -e rtf extensionFile.
-# This tag requires that the tag GENERATE_RTF is set to YES.
-
-RTF_EXTENSIONS_FILE    =
-
 #---------------------------------------------------------------------------
 # Configuration options related to the man page output
 #---------------------------------------------------------------------------
@@ -2197,108 +2035,6 @@ MAN_SUBDIR             =
 # This tag requires that the tag GENERATE_MAN is set to YES.
 
 MAN_LINKS              = NO
-
-#---------------------------------------------------------------------------
-# Configuration options related to the XML output
-#---------------------------------------------------------------------------
-
-# If the GENERATE_XML tag is set to YES, doxygen will generate an XML file that
-# captures the structure of the code including all documentation.
-# The default value is: NO.
-
-GENERATE_XML           = NO
-
-# The XML_OUTPUT tag is used to specify where the XML pages will be put. If a
-# relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
-# it.
-# The default directory is: xml.
-# This tag requires that the tag GENERATE_XML is set to YES.
-
-XML_OUTPUT             = xml
-
-# If the XML_PROGRAMLISTING tag is set to YES, doxygen will dump the program
-# listings (including syntax highlighting and cross-referencing information) to
-# the XML output. Note that enabling this will significantly increase the size
-# of the XML output.
-# The default value is: YES.
-# This tag requires that the tag GENERATE_XML is set to YES.
-
-XML_PROGRAMLISTING     = YES
-
-# If the XML_NS_MEMB_FILE_SCOPE tag is set to YES, doxygen will include
-# namespace members in file scope as well, matching the HTML output.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_XML is set to YES.
-
-XML_NS_MEMB_FILE_SCOPE = NO
-
-#---------------------------------------------------------------------------
-# Configuration options related to the DOCBOOK output
-#---------------------------------------------------------------------------
-
-# If the GENERATE_DOCBOOK tag is set to YES, doxygen will generate Docbook files
-# that can be used to generate PDF.
-# The default value is: NO.
-
-GENERATE_DOCBOOK       = NO
-
-# The DOCBOOK_OUTPUT tag is used to specify where the Docbook pages will be put.
-# If a relative path is entered the value of OUTPUT_DIRECTORY will be put in
-# front of it.
-# The default directory is: docbook.
-# This tag requires that the tag GENERATE_DOCBOOK is set to YES.
-
-DOCBOOK_OUTPUT         = docbook
-
-#---------------------------------------------------------------------------
-# Configuration options for the AutoGen Definitions output
-#---------------------------------------------------------------------------
-
-# If the GENERATE_AUTOGEN_DEF tag is set to YES, doxygen will generate an
-# AutoGen Definitions (see http://autogen.sourceforge.net/) file that captures
-# the structure of the code including all documentation. Note that this feature
-# is still experimental and incomplete at the moment.
-# The default value is: NO.
-
-GENERATE_AUTOGEN_DEF   = NO
-
-#---------------------------------------------------------------------------
-# Configuration options related to the Perl module output
-#---------------------------------------------------------------------------
-
-# If the GENERATE_PERLMOD tag is set to YES, doxygen will generate a Perl module
-# file that captures the structure of the code including all documentation.
-#
-# Note that this feature is still experimental and incomplete at the moment.
-# The default value is: NO.
-
-GENERATE_PERLMOD       = NO
-
-# If the PERLMOD_LATEX tag is set to YES, doxygen will generate the necessary
-# Makefile rules, Perl scripts and LaTeX code to be able to generate PDF and DVI
-# output from the Perl module output.
-# The default value is: NO.
-# This tag requires that the tag GENERATE_PERLMOD is set to YES.
-
-PERLMOD_LATEX          = NO
-
-# If the PERLMOD_PRETTY tag is set to YES, the Perl module output will be nicely
-# formatted so it can be parsed by a human reader. This is useful if you want to
-# understand what is going on. On the other hand, if this tag is set to NO, the
-# size of the Perl module output will be much smaller and Perl will parse it
-# just the same.
-# The default value is: YES.
-# This tag requires that the tag GENERATE_PERLMOD is set to YES.
-
-PERLMOD_PRETTY         = YES
-
-# The names of the make variables in the generated doxyrules.make file are
-# prefixed with the string contained in PERLMOD_MAKEVAR_PREFIX. This is useful
-# so different doxyrules.make files included by the same Makefile don't
-# overwrite each other's variables.
-# This tag requires that the tag GENERATE_PERLMOD is set to YES.
-
-PERLMOD_MAKEVAR_PREFIX =
 
 #---------------------------------------------------------------------------
 # Configuration options related to the preprocessor
@@ -2449,7 +2185,7 @@ HIDE_UNDOC_RELATIONS   = YES
 # set to NO
 # The default value is: NO.
 
-HAVE_DOT               = NO
+HAVE_DOT               = YES
 
 # The DOT_NUM_THREADS specifies the number of dot invocations doxygen is allowed
 # to run in parallel. When set to 0 doxygen will base this on the number of
@@ -2574,7 +2310,7 @@ DOT_WRAP_THRESHOLD     = 17
 # The default value is: NO.
 # This tag requires that the tag HAVE_DOT is set to YES.
 
-TEMPLATE_RELATIONS     = NO
+TEMPLATE_RELATIONS     = YES
 
 # If the INCLUDE_GRAPH, ENABLE_PREPROCESSING and SEARCH_INCLUDES tags are set to
 # YES then doxygen will generate a graph for each documented file showing the
