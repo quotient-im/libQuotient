@@ -13,8 +13,12 @@ using namespace Quotient;
 
 void AccountRegistry::add(Connection* a)
 {
-    if (contains(a))
+    Q_ASSERT(a != nullptr);
+    if (get(a->userId()) != nullptr) {
+        qWarning(MAIN) << "Attempt to add another connection for the same user "
+                          "id; skipping";
         return;
+    }
     beginInsertRows(QModelIndex(), size(), size());
     push_back(a);
     qDebug(MAIN) << "Added" << a->objectName() << "to the account registry";
