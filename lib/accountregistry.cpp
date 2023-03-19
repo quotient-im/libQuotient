@@ -17,6 +17,7 @@ void AccountRegistry::add(Connection* a)
         return;
     beginInsertRows(QModelIndex(), size(), size());
     push_back(a);
+    qDebug(MAIN) << "Added" << a->objectName() << "to the account registry";
     endInsertRows();
     emit accountCountChanged();
 }
@@ -26,6 +27,8 @@ void AccountRegistry::drop(Connection* a)
     if (const auto idx = indexOf(a); idx != -1) {
         beginRemoveRows(QModelIndex(), idx, idx);
         remove(idx);
+        qDebug(MAIN) << "Removed" << a->objectName()
+                     << "from the account registry";
         endRemoveRows();
     }
     Q_ASSERT(!contains(a));
