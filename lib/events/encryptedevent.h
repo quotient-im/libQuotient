@@ -43,6 +43,7 @@ public:
     explicit EncryptedEvent(const QByteArray& ciphertext,
                             const QString& senderKey, const QString& deviceId,
                             const QString& sessionId);
+    // TODO: replace with 'using RoomEvent::RoomEvent' in 0.8
     explicit EncryptedEvent(const QJsonObject& obj);
 
     QString algorithm() const;
