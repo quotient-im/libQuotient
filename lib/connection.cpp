@@ -81,6 +81,7 @@ Connection::Connection(const QUrl& server, QObject* parent)
     //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
 #endif
     d->q = this; // All d initialization should occur before this line
+    setObjectName(server.toString());
 }
 
 Connection::Connection(QObject* parent) : Connection({}, parent) {}
@@ -358,11 +359,13 @@ void Connection::Private::checkAndConnect(const QString& userId,
                                           const std::optional<LoginFlow>& flow)
 {
     if (data->baseUrl().isValid() && (!flow || loginFlows.contains(*flow))) {
+        q->setObjectName(userId % u"(?)");
         connectFn();
         return;
     }
     // Not good to go, try to ascertain the homeserver URL and flows
     if (userId.startsWith(u'@') && userId.indexOf(u':') != -1) {
+        q->setObjectName(userId % u"(?)");
         q->resolveServer(userId);
         if (flow)
             connectSingleShot(q, &Connection::loginFlowsChanged, q,
