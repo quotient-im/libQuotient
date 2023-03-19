@@ -126,7 +126,7 @@ void Connection::resolveServer(const QString& mxid)
                 emit resolveError(tr("Failed resolving the homeserver"));
                 return;
             }
-            QUrl baseUrl { d->resolverJob->data().homeserver.baseUrl };
+            const QUrl baseUrl { d->resolverJob->data().homeserver.baseUrl };
             if (baseUrl.isEmpty()) {
                 qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
                 emit resolveError(
@@ -2321,7 +2321,7 @@ void Connection::sendSessionKeyToDevices(
                          << "to keys to claim";
         }
 
-    auto sendKey = [devices, this, sessionId, index, sessionKey, roomId] {
+    const auto sendKey = [devices, this, sessionId, index, sessionKey, roomId] {
         QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
         for (const auto& [targetUserId, targetDeviceId] : asKeyValueRange(devices)) {
             if (!hasOlmSession(targetUserId, targetDeviceId))
@@ -2350,7 +2350,7 @@ void Connection::sendSessionKeyToDevices(
             database()->setDevicesReceivedKey(roomId, receivedDevices,
                                               sessionId, index);
         }
-};
+    };
 
     if (hash.isEmpty()) {
         sendKey();

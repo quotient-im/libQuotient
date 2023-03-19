@@ -60,7 +60,8 @@ int AccountRegistry::rowCount(const QModelIndex& parent) const
 
 QHash<int, QByteArray> AccountRegistry::roleNames() const
 {
-    return { { AccountRole, QByteArrayLiteral("connection") }, { UserIdRole, QByteArrayLiteral("userId") } };
+    return { { AccountRole, QByteArrayLiteral("connection") },
+             { UserIdRole, QByteArrayLiteral("userId") } };
 }
 
 Connection* AccountRegistry::get(const QString& userId)
@@ -72,7 +73,8 @@ Connection* AccountRegistry::get(const QString& userId)
     return nullptr;
 }
 
-QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(const QString& userId)
+QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(
+    const QString& userId)
 {
     qCDebug(MAIN) << "Reading access token from keychain for" << userId;
     auto job = new QKeychain::ReadPasswordJob(qAppName(), this);
