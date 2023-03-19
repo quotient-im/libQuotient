@@ -69,6 +69,8 @@ public:
 
     QStringList accountsLoading() const;
 
+    [[deprecated("This may leak Connection objects when failing and cannot be"
+                 "fixed without breaking the API; do not use it")]] //
     void invokeLogin();
 
 Q_SIGNALS:
