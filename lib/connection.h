@@ -566,10 +566,17 @@ public Q_SLOTS:
 
     //! \brief Use an existing access token to connect to the homeserver
     //!
+    //! This is the old signature that will be deprecated in 0.8; since 0.7.2,
+    //! device id is resolved from the access token. Use 2-arg assumeIdentity()
+    void assumeIdentity(const QString& mxId, const QString& accessToken,
+                        [[maybe_unused]] const QString& deviceId);
+
+    //! \brief Use an existing access token to connect to the homeserver
+    //!
     //! Similar to loginWithPassword(), this method checks that the homeserver
     //! URL is valid and tries to resolve it from the MXID in case it is not.
-    void assumeIdentity(const QString& mxId, const QString& accessToken,
-                        const QString& deviceId);
+    //! \since 0.7.2
+    void assumeIdentity(const QString& mxId, const QString& accessToken);
 
     //! Explicitly request capabilities from the server
     void reloadCapabilities();

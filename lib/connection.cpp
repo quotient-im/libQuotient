@@ -191,17 +191,22 @@ void Connection::loginWithToken(const QByteArray& loginToken,
 }
 
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
-                                const QString& deviceId)
+                                [[maybe_unused]] const QString& deviceId)
 {
-    d->checkAndConnect(mxId, [this, mxId, accessToken, deviceId] {
+    assumeIdentity(mxId, accessToken);
+}
+
+void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
+{
+    d->checkAndConnect(mxId, [this, mxId, accessToken] {
         d->data->setToken(accessToken.toLatin1());
-        d->data->setDeviceId(deviceId); // Can't we deduce this from access_token?
         auto* job = callApi<GetTokenOwnerJob>();
         connect(job, &BaseJob::success, this, [this, job, mxId] {
             if (mxId != job->userId())
                 qCWarning(MAIN).nospace()
                     << "The access_token owner (" << job->userId()
                     << ") is different from passed MXID (" << mxId << ")!";
+            d->data->setDeviceId(job->deviceId());
             d->completeSetup(job->userId());
         });
         connect(job, &BaseJob::failure, this, [this, job] {
