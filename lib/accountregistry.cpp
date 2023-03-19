@@ -36,9 +36,8 @@ void AccountRegistry::drop(Connection* a)
 
 bool AccountRegistry::isLoggedIn(const QString &userId) const
 {
-    return std::any_of(cbegin(), cend(), [&userId](const Connection* a) {
-        return a->userId() == userId;
-    });
+    const auto conn = get(userId);
+    return conn != nullptr && conn->isLoggedIn();
 }
 
 QVariant AccountRegistry::data(const QModelIndex& index, int role) const
