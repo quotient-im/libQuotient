@@ -66,7 +66,12 @@ QHash<int, QByteArray> AccountRegistry::roleNames() const
 
 Connection* AccountRegistry::get(const QString& userId)
 {
-    for (const auto &connection : *this) {
+    return const_cast<const AccountRegistry*>(this)->get(userId);
+}
+
+Connection* AccountRegistry::get(const QString& userId) const
+{
+    for (const auto& connection : *this) {
         if (connection->userId() == userId)
             return connection;
     }
