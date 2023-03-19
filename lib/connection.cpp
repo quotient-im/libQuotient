@@ -246,6 +246,56 @@ bool Connection::loadingCapabilities() const
     return !d->capabilities.roomVersions;
 }
 
+void Connection::Private::saveAccessTokenToKeychain() const
+{
+    qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
+    auto job = new QKeychain::WritePasswordJob(qAppName());
+    job->setKey(q->userId());
+    job->setBinaryData(data->accessToken());
+    job->start();
+    QObject::connect(job, &QKeychain::Job::finished, q, [job] {
+        if (job->error() == QKeychain::Error::NoError)
+            return;
+        qWarning().noquote()
+            << "Could not save access token to the keychain:"
+            << qUtf8Printable(job->errorString());
+        // TODO: emit a signal
+    });
+
+}
+
+void Connection::Private::dropAccessToken()
+{
+    // TODO: emit a signal on important (i.e. access denied) keychain errors
+    using namespace QKeychain;
+    qCDebug(MAIN) << "Removing access token from keychain for" << q->userId();
+    auto job = new DeletePasswordJob(qAppName());
+    job->setKey(q->userId());
+    job->start();
+    QObject::connect(job, &Job::finished, q, [job] {
+        if (job->error() == Error::NoError
+            || job->error() == Error::EntryNotFound)
+            return;
+        qWarning().noquote()
+            << "Could not delete access token from the keychain:"
+            << qUtf8Printable(job->errorString());
+    });
+
+    auto pickleJob = new DeletePasswordJob(qAppName());
+    pickleJob->setKey(q->userId() + "-Pickle"_ls);
+    pickleJob->start();
+    QObject::connect(job, &Job::finished, q, [job] {
+        if (job->error() == Error::NoError
+            || job->error() == Error::EntryNotFound)
+            return;
+        qWarning().noquote()
+            << "Could not delete account pickle from the keychain:"
+            << qUtf8Printable(job->errorString());
+    });
+
+    data->setToken({});
+}
+
 template <typename... LoginArgTs>
 void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 {
