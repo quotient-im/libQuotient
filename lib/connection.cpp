@@ -2358,18 +2358,15 @@ void Connection::sendSessionKeyToDevices(
     }
 
     auto job = callApi<ClaimKeysJob>(hash);
-    connect(
-        job, &BaseJob::success, this,
-        [job, this, roomId, sessionId, sessionKey, devices, sendKey] {
-            QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
-            const auto oneTimeKeys = job->oneTimeKeys();
-            for (const auto& userId : oneTimeKeys.keys()) {
-                for (const auto& deviceId : oneTimeKeys[userId].keys()) {
-                    d->createOlmSession(userId, deviceId, oneTimeKeys[userId][deviceId]);
-                }
+    connect(job, &BaseJob::success, this, [job, this, sendKey] {
+        for (const auto oneTimeKeys = job->oneTimeKeys();
+             const auto& [userId, devices] : asKeyValueRange(oneTimeKeys)) {
+            for (const auto& [deviceId, keys] : asKeyValueRange(devices)) {
+                d->createOlmSession(userId, deviceId, keys);
             }
-            sendKey();
-        });
+        }
+        sendKey();
+    });
 }
 
 Omittable<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(
