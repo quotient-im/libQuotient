@@ -13,10 +13,15 @@ using namespace Quotient;
 
 void AccountRegistry::add(Connection* a)
 {
-    if (contains(a))
+    Q_ASSERT(a != nullptr);
+    if (get(a->userId()) != nullptr) {
+        qWarning(MAIN) << "Attempt to add another connection for the same user "
+                          "id; skipping";
         return;
+    }
     beginInsertRows(QModelIndex(), size(), size());
     push_back(a);
+    qDebug(MAIN) << "Added" << a->objectName() << "to the account registry";
     endInsertRows();
     emit accountCountChanged();
 }
@@ -26,6 +31,8 @@ void AccountRegistry::drop(Connection* a)
     if (const auto idx = indexOf(a); idx != -1) {
         beginRemoveRows(QModelIndex(), idx, idx);
         remove(idx);
+        qDebug(MAIN) << "Removed" << a->objectName()
+                     << "from the account registry";
         endRemoveRows();
     }
     Q_ASSERT(!contains(a));
@@ -33,9 +40,8 @@ void AccountRegistry::drop(Connection* a)
 
 bool AccountRegistry::isLoggedIn(const QString &userId) const
 {
-    return std::any_of(cbegin(), cend(), [&userId](const Connection* a) {
-        return a->userId() == userId;
-    });
+    const auto conn = get(userId);
+    return conn != nullptr && conn->isLoggedIn();
 }
 
 QVariant AccountRegistry::data(const QModelIndex& index, int role) const
@@ -60,19 +66,26 @@ int AccountRegistry::rowCount(const QModelIndex& parent) const
 
 QHash<int, QByteArray> AccountRegistry::roleNames() const
 {
-    return { { AccountRole, QByteArrayLiteral("connection") }, { UserIdRole, QByteArrayLiteral("userId") } };
+    return { { AccountRole, QByteArrayLiteral("connection") },
+             { UserIdRole, QByteArrayLiteral("userId") } };
 }
 
 Connection* AccountRegistry::get(const QString& userId)
 {
-    for (const auto &connection : *this) {
+    return const_cast<const AccountRegistry*>(this)->get(userId);
+}
+
+Connection* AccountRegistry::get(const QString& userId) const
+{
+    for (const auto& connection : *this) {
         if (connection->userId() == userId)
             return connection;
     }
     return nullptr;
 }
 
-QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(const QString& userId)
+QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(
+    const QString& userId)
 {
     qCDebug(MAIN) << "Reading access token from keychain for" << userId;
     auto job = new QKeychain::ReadPasswordJob(qAppName(), this);
@@ -134,8 +147,8 @@ void AccountRegistry::invokeLogin()
                                 emit accountsLoadingChanged();
                             });
                     connection->assumeIdentity(
-                        account.userId(), QString::fromUtf8(accessTokenLoadingJob->binaryData()),
-                        account.deviceId());
+                        account.userId(),
+                        QString::fromUtf8(accessTokenLoadingJob->binaryData()));
                 });
     }
 }

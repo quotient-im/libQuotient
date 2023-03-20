@@ -3,7 +3,6 @@
 
 #include "encryptedevent.h"
 #include "e2ee/e2ee_common.h"
-#include "logging.h"
 
 using namespace Quotient;
 
@@ -24,11 +23,7 @@ EncryptedEvent::EncryptedEvent(const QByteArray& ciphertext,
                                     { SessionIdKeyL, sessionId } }))
 {}
 
-EncryptedEvent::EncryptedEvent(const QJsonObject& obj)
-    : RoomEvent(obj)
-{
-    qCDebug(E2EE) << "Encrypted event from" << senderId();
-}
+EncryptedEvent::EncryptedEvent(const QJsonObject& obj) : RoomEvent(obj) {}
 
 QString EncryptedEvent::algorithm() const
 {

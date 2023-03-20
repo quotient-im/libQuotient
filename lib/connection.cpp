@@ -81,6 +81,7 @@ Connection::Connection(const QUrl& server, QObject* parent)
     //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
 #endif
     d->q = this; // All d initialization should occur before this line
+    setObjectName(server.toString());
 }
 
 Connection::Connection(QObject* parent) : Connection({}, parent) {}
@@ -125,7 +126,7 @@ void Connection::resolveServer(const QString& mxid)
                 emit resolveError(tr("Failed resolving the homeserver"));
                 return;
             }
-            QUrl baseUrl { d->resolverJob->data().homeserver.baseUrl };
+            const QUrl baseUrl { d->resolverJob->data().homeserver.baseUrl };
             if (baseUrl.isEmpty()) {
                 qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
                 emit resolveError(
@@ -190,17 +191,22 @@ void Connection::loginWithToken(const QByteArray& loginToken,
 }
 
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
-                                const QString& deviceId)
+                                [[maybe_unused]] const QString& deviceId)
 {
-    d->checkAndConnect(mxId, [this, mxId, accessToken, deviceId] {
+    assumeIdentity(mxId, accessToken);
+}
+
+void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
+{
+    d->checkAndConnect(mxId, [this, mxId, accessToken] {
         d->data->setToken(accessToken.toLatin1());
-        d->data->setDeviceId(deviceId); // Can't we deduce this from access_token?
         auto* job = callApi<GetTokenOwnerJob>();
         connect(job, &BaseJob::success, this, [this, job, mxId] {
             if (mxId != job->userId())
                 qCWarning(MAIN).nospace()
                     << "The access_token owner (" << job->userId()
                     << ") is different from passed MXID (" << mxId << ")!";
+            d->data->setDeviceId(job->deviceId());
             d->completeSetup(job->userId());
         });
         connect(job, &BaseJob::failure, this, [this, job] {
@@ -238,6 +244,56 @@ bool Connection::loadingCapabilities() const
     // (Ab)use the fact that room versions cannot be omitted after
     // the capabilities have been loaded (see reloadCapabilities() above).
     return !d->capabilities.roomVersions;
+}
+
+void Connection::Private::saveAccessTokenToKeychain() const
+{
+    qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
+    auto job = new QKeychain::WritePasswordJob(qAppName());
+    job->setKey(q->userId());
+    job->setBinaryData(data->accessToken());
+    job->start();
+    QObject::connect(job, &QKeychain::Job::finished, q, [job] {
+        if (job->error() == QKeychain::Error::NoError)
+            return;
+        qWarning().noquote()
+            << "Could not save access token to the keychain:"
+            << qUtf8Printable(job->errorString());
+        // TODO: emit a signal
+    });
+
+}
+
+void Connection::Private::dropAccessToken()
+{
+    // TODO: emit a signal on important (i.e. access denied) keychain errors
+    using namespace QKeychain;
+    qCDebug(MAIN) << "Removing access token from keychain for" << q->userId();
+    auto job = new DeletePasswordJob(qAppName());
+    job->setKey(q->userId());
+    job->start();
+    QObject::connect(job, &Job::finished, q, [job] {
+        if (job->error() == Error::NoError
+            || job->error() == Error::EntryNotFound)
+            return;
+        qWarning().noquote()
+            << "Could not delete access token from the keychain:"
+            << qUtf8Printable(job->errorString());
+    });
+
+    auto pickleJob = new DeletePasswordJob(qAppName());
+    pickleJob->setKey(q->userId() + "-Pickle"_ls);
+    pickleJob->start();
+    QObject::connect(job, &Job::finished, q, [job] {
+        if (job->error() == Error::NoError
+            || job->error() == Error::EntryNotFound)
+            return;
+        qWarning().noquote()
+            << "Could not delete account pickle from the keychain:"
+            << qUtf8Printable(job->errorString());
+    });
+
+    data->setToken({});
 }
 
 template <typename... LoginArgTs>
@@ -358,11 +414,13 @@ void Connection::Private::checkAndConnect(const QString& userId,
                                           const std::optional<LoginFlow>& flow)
 {
     if (data->baseUrl().isValid() && (!flow || loginFlows.contains(*flow))) {
+        q->setObjectName(userId % u"(?)");
         connectFn();
         return;
     }
     // Not good to go, try to ascertain the homeserver URL and flows
     if (userId.startsWith(u'@') && userId.indexOf(u':') != -1) {
+        q->setObjectName(userId % u"(?)");
         q->resolveServer(userId);
         if (flow)
             connectSingleShot(q, &Connection::loginFlowsChanged, q,
@@ -2263,7 +2321,7 @@ void Connection::sendSessionKeyToDevices(
                          << "to keys to claim";
         }
 
-    auto sendKey = [devices, this, sessionId, index, sessionKey, roomId] {
+    const auto sendKey = [devices, this, sessionId, index, sessionKey, roomId] {
         QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
         for (const auto& [targetUserId, targetDeviceId] : asKeyValueRange(devices)) {
             if (!hasOlmSession(targetUserId, targetDeviceId))
@@ -2292,7 +2350,7 @@ void Connection::sendSessionKeyToDevices(
             database()->setDevicesReceivedKey(roomId, receivedDevices,
                                               sessionId, index);
         }
-};
+    };
 
     if (hash.isEmpty()) {
         sendKey();
@@ -2300,18 +2358,15 @@ void Connection::sendSessionKeyToDevices(
     }
 
     auto job = callApi<ClaimKeysJob>(hash);
-    connect(
-        job, &BaseJob::success, this,
-        [job, this, roomId, sessionId, sessionKey, devices, sendKey] {
-            QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
-            const auto oneTimeKeys = job->oneTimeKeys();
-            for (const auto& userId : oneTimeKeys.keys()) {
-                for (const auto& deviceId : oneTimeKeys[userId].keys()) {
-                    d->createOlmSession(userId, deviceId, oneTimeKeys[userId][deviceId]);
-                }
+    connect(job, &BaseJob::success, this, [job, this, sendKey] {
+        for (const auto oneTimeKeys = job->oneTimeKeys();
+             const auto& [userId, devices] : asKeyValueRange(oneTimeKeys)) {
+            for (const auto& [deviceId, keys] : asKeyValueRange(devices)) {
+                d->createOlmSession(userId, deviceId, keys);
             }
-            sendKey();
-        });
+        }
+        sendKey();
+    });
 }
 
 Omittable<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(

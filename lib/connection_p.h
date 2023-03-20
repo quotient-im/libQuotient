@@ -26,12 +26,6 @@
 #include <QCoreApplication>
 #include <QPointer>
 
-#if QT_VERSION_MAJOR >= 6
-#    include <qt6keychain/keychain.h>
-#else
-#    include <qt5keychain/keychain.h>
-#endif
-
 class Q_DECL_HIDDEN Quotient::Connection::Private {
 public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)
@@ -156,31 +150,8 @@ public:
 
     std::pair<EventPtr, QString> sessionDecryptMessage(const EncryptedEvent& encryptedEvent);
 
-    void saveAccessTokenToKeychain() const
-    {
-        qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
-        auto job = new QKeychain::WritePasswordJob(qAppName());
-        job->setAutoDelete(true);
-        job->setKey(q->userId());
-        job->setBinaryData(data->accessToken());
-        job->start();
-        //TODO error handling
-    }
-    void dropAccessToken()
-    {
-        qCDebug(MAIN) << "Removing access token from keychain for" << q->userId();
-        auto job = new QKeychain::DeletePasswordJob(qAppName());
-        job->setAutoDelete(true);
-        job->setKey(q->userId());
-        job->start();
-
-        auto pickleJob = new QKeychain::DeletePasswordJob(qAppName());
-        pickleJob->setAutoDelete(true);
-        pickleJob->setKey(q->userId() + "-Pickle"_ls);
-        pickleJob->start();
-        //TODO error handling
-
-        data->setToken({});}
+    void saveAccessTokenToKeychain() const;
+    void dropAccessToken();
 
 #ifdef Quotient_E2EE_ENABLED
     void saveOlmAccount();
