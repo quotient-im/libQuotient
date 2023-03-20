@@ -568,6 +568,8 @@ public Q_SLOTS:
     //!
     //! This is the old signature that will be deprecated in 0.8; since 0.7.2,
     //! device id is resolved from the access token. Use 2-arg assumeIdentity()
+    [[deprecated("Device id is now resolved from accessToken; use "
+                 "assumeIdentity(QString, QString) instead of this overload")]] //
     void assumeIdentity(const QString& mxId, const QString& accessToken,
                         [[maybe_unused]] const QString& deviceId);
 

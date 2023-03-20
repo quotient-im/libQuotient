@@ -147,8 +147,8 @@ void AccountRegistry::invokeLogin()
                                 emit accountsLoadingChanged();
                             });
                     connection->assumeIdentity(
-                        account.userId(), QString::fromUtf8(accessTokenLoadingJob->binaryData()),
-                        account.deviceId());
+                        account.userId(),
+                        QString::fromUtf8(accessTokenLoadingJob->binaryData()));
                 });
     }
 }
