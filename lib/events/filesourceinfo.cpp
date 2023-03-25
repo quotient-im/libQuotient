@@ -94,8 +94,8 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
 #endif
 }
 
-void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(QJsonObject& jo,
-                                                const EncryptedFileMetadata& pod)
+void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(
+    QJsonObject& jo, const EncryptedFileMetadata& pod)
 {
     addParam<>(jo, QStringLiteral("url"), pod.url);
     addParam<>(jo, QStringLiteral("key"), pod.key);
@@ -104,8 +104,8 @@ void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(QJsonObject& jo,
     addParam<>(jo, QStringLiteral("v"), pod.v);
 }
 
-void JsonObjectConverter<EncryptedFileMetadata>::fillFrom(const QJsonObject& jo,
-                                                  EncryptedFileMetadata& pod)
+void JsonObjectConverter<EncryptedFileMetadata>::fillFrom(
+    const QJsonObject& jo, EncryptedFileMetadata& pod)
 {
     fromJson(jo.value("url"_ls), pod.url);
     fromJson(jo.value("key"_ls), pod.key);
