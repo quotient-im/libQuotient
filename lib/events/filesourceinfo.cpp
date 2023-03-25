@@ -30,7 +30,7 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
     auto _key = metadata.key.k;
     const auto keyBytes = QByteArray::fromBase64(
         _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
-    int length;
+    int length = -1;
     auto* ctx = EVP_CIPHER_CTX_new();
     QByteArray plaintext(ciphertext.size() + EVP_MAX_BLOCK_LENGTH - 1, '\0');
     EVP_DecryptInit_ex(
@@ -41,7 +41,7 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
     EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(plaintext.data()),
                       &length,
                       reinterpret_cast<const unsigned char*>(ciphertext.data()),
-                      ciphertext.size());
+                      static_cast<int>(ciphertext.size()));
     EVP_DecryptFinal_ex(ctx,
                         reinterpret_cast<unsigned char*>(plaintext.data())
                             + length,
@@ -63,7 +63,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
                               | QByteArray::OmitTrailingEquals);
     auto iv = getRandom<16>();
-    JWK key = {
+    const JWK key = {
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
     };
 
@@ -75,7 +75,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(cipherText.data()),
                       &length,
                       reinterpret_cast<const unsigned char*>(plainText.data()),
-                      plainText.size());
+                      static_cast<int>(plainText.size()));
     EVP_EncryptFinal_ex(ctx,
                         reinterpret_cast<unsigned char*>(cipherText.data())
                             + length,
@@ -85,7 +85,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     auto hash = QCryptographicHash::hash(cipherText, QCryptographicHash::Sha256)
                     .toBase64(QByteArray::OmitTrailingEquals);
     auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
-    EncryptedFileMetadata efm = {
+    const EncryptedFileMetadata efm = {
         {}, key, QString::fromLatin1(ivBase64), { { QStringLiteral("sha256"), QString::fromLatin1(hash) } }, "v2"_ls
     };
     return { efm, cipherText };

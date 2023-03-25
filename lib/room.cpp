@@ -3417,7 +3417,7 @@ QString Room::Private::calculateDisplayname() const
         names << tr(
             "%Ln other(s)",
             "Used to make a room name from user names: A, B and _N others_",
-            usersCountExceptLocal - int(shortlist.size()));
+            static_cast<int>(usersCountExceptLocal - std::ssize(shortlist)));
     const auto namesList = QLocale().createSeparatedList(names);
 
     // Room members

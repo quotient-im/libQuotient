@@ -691,7 +691,7 @@ QString BaseJob::rawDataSample(int bytesAtMost) const
                ? data
                : data + tr("...(truncated, %Ln bytes in total)",
                            "Comes after trimmed raw network response",
-                           d->rawResponse.size());
+                           static_cast<int>(d->rawResponse.size()));
 }
 
 QJsonObject BaseJob::jsonData() const
