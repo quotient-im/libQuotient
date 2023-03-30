@@ -291,7 +291,7 @@ public:
     /**
      * Remove events from the passed container that are already in the timeline
      */
-    void dropDuplicateEvents(RoomEvents& events) const;
+    void dropExtraneousEvents(RoomEvents& events) const;
     void decryptIncomingEvents(RoomEvents& events);
 
     //! \brief update last receipt record for a given user
@@ -2584,29 +2584,32 @@ void Room::cancelFileTransfer(const QString& id)
     emit fileTransferFailed(id, FileTransferCancelledMsg());
 }
 
-void Room::Private::dropDuplicateEvents(RoomEvents& events) const
+void Room::Private::dropExtraneousEvents(RoomEvents& events) const
 {
     if (events.empty())
         return;
 
     // Multiple-remove (by different criteria), single-erase
-    // 1. Check for duplicates against the timeline.
-    auto dupsBegin =
-        remove_if(events.begin(), events.end(), [&](const RoomEventPtr& e) {
-            return eventsIndex.contains(e->id());
+    // 1. Check for duplicates against the timeline and for events from ignored
+    //    users
+    auto newEnd =
+        remove_if(events.begin(), events.end(), [this](const RoomEventPtr& e) {
+            return eventsIndex.contains(e->id())
+                   || connection->isIgnored(e->senderId());
         });
 
     // 2. Check for duplicates within the batch if there are still events.
-    for (auto eIt = events.begin(); distance(eIt, dupsBegin) > 1; ++eIt)
-        dupsBegin = remove_if(eIt + 1, dupsBegin, [&](const RoomEventPtr& e) {
+    for (auto eIt = events.begin(); distance(eIt, newEnd) > 1; ++eIt)
+        newEnd = remove_if(eIt + 1, newEnd, [eIt](const RoomEventPtr& e) {
             return e->id() == (*eIt)->id();
         });
-    if (dupsBegin == events.end())
+
+    if (newEnd == events.end())
         return;
 
-    qCDebug(EVENTS) << "Dropping" << distance(dupsBegin, events.end())
-                    << "duplicate event(s)";
-    events.erase(dupsBegin, events.end());
+    qCDebug(EVENTS) << "Dropping" << distance(newEnd, events.end())
+                    << "extraneous event(s)";
+    events.erase(newEnd, events.end());
 }
 
 void Room::Private::decryptIncomingEvents(RoomEvents& events)
@@ -2823,7 +2826,7 @@ inline bool isEditing(const RoomEventPtr& ep)
 
 Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
-    dropDuplicateEvents(events);
+    dropExtraneousEvents(events);
     if (events.empty())
         return Change::None;
 
@@ -2971,7 +2974,7 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 {
     const auto timelineSize = timeline.size();
 
-    dropDuplicateEvents(events);
+    dropExtraneousEvents(events);
     if (events.empty())
         return;
 
