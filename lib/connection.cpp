@@ -307,7 +307,7 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         completeSetup(loginJob->userId());
         saveAccessTokenToKeychain();
 #ifdef Quotient_E2EE_ENABLED
-        database->clear();
+//        database->clear();
 #endif
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
@@ -1429,9 +1429,15 @@ QList<User*> Connection::directChatUsers(const Room* room) const
     return d->directChatUsers.values(room->id());
 }
 
+bool Connection::isIgnored(const QString& userId) const
+{
+    return ignoredUsers().contains(userId);
+}
+
 bool Connection::isIgnored(const User* user) const
 {
-    return ignoredUsers().contains(user->id());
+    Q_ASSERT(user != nullptr);
+    return isIgnored(user->id());
 }
 
 IgnoredUsersList Connection::ignoredUsers() const

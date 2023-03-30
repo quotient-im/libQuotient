@@ -246,6 +246,9 @@ public:
     //!         a direct chat; an empty list if the room is not a direct chat
     QList<User*> directChatUsers(const Room* room) const;
 
+    //! Check whether a particular user id is in the ignore list
+    Q_INVOKABLE bool isIgnored(const QString& userId) const;
+
     //! Check whether a particular user is in the ignore list
     Q_INVOKABLE bool isIgnored(const Quotient::User* user) const;
 
