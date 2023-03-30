@@ -257,17 +257,12 @@ public:
         }
         return changes;
     }
+    void addRelation(const ReactionEvent& reactionEvt);
     void addRelations(auto from, auto to)
     {
-        for (auto it = from; it != to; ++it) {
-            if (const auto* reaction = it->template viewAs<ReactionEvent>()) {
-                const auto& content = reaction->content().value;
-                // See ReactionEvent::isValid()
-                Q_ASSERT(content.type == EventRelation::AnnotationType);
-                relations[{ content.eventId, content.type }] << reaction;
-                emit q->updatedEvent(content.eventId);
-            }
-        }
+        for (auto it = from; it != to; ++it)
+            if (const auto* reaction = it->template viewAs<ReactionEvent>())
+                addRelation(*reaction);
     }
 
     Changes addNewMessageEvents(RoomEvents&& events);
@@ -2811,6 +2806,31 @@ Connection* Room::connection() const
 }
 
 User* Room::localUser() const { return connection()->user(); }
+
+void Room::Private::addRelation(const ReactionEvent& reactionEvt)
+{
+    const auto& content = reactionEvt.content().value;
+    // See ReactionEvent::isValid()
+    Q_ASSERT(content.type == EventRelation::AnnotationType);
+    const auto isSameReaction = [&reactionEvt](const RoomEvent* existingEvent) {
+        const auto* reactionEvt2 = eventCast<const ReactionEvent>(existingEvent);
+        const auto& r1 = reactionEvt.content().value;
+        const auto& r2 = reactionEvt2->content().value;
+        return reactionEvt2 != nullptr
+               && reactionEvt.senderId() == reactionEvt2->senderId()
+               && r1.eventId == r2.eventId && r1.key == r2.key;
+    };
+
+    auto& thisEventReactions = relations[{ content.eventId, content.type }];
+    if (std::any_of(thisEventReactions.cbegin(), thisEventReactions.cend(),
+                    isSameReaction)) {
+        qDebug(MESSAGES) << "Skipping a duplicate reaction from"
+                         << reactionEvt.senderId();
+        return;
+    }
+    thisEventReactions << &reactionEvt;
+    emit q->updatedEvent(content.eventId);
+}
 
 /// Whether the event is a redaction or a replacement
 inline bool isEditing(const RoomEventPtr& ep)
