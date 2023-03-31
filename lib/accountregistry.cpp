@@ -11,6 +11,8 @@
 
 using namespace Quotient;
 
+AccountRegistry::AccountRegistry() { qInfo(MAIN) << "Account registry created"; }
+
 void AccountRegistry::add(Connection* a)
 {
     Q_ASSERT(a != nullptr);

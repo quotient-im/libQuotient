@@ -30,6 +30,8 @@ public:
     using const_iterator = vector_t::const_iterator;
     using const_reference = vector_t::const_reference;
 
+    AccountRegistry();
+
     enum EventRoles {
         AccountRole = Qt::UserRole + 1,
         ConnectionRole = AccountRole,
