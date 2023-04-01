@@ -291,6 +291,21 @@ public:
     Q_INVOKABLE Quotient::Room* roomByAlias(
         const QString& roomAlias,
         Quotient::JoinStates states = JoinState::Invite | JoinState::Join) const;
+
+    //! \brief Map an alias to a room ID on the user's current server.
+    //!
+    //! This uses the room alias endpoint from the matrix specification
+    //! https://spec.matrix.org/v1.5/client-server-api/#room-aliases
+    //!
+    //! \note This is different to Room::setLocalAliases and
+    //!       Room::setCanonicalAlias as they can only get the room to publish
+    //!       an alias that is already mapped.
+    //!       i.e. Use this function first to map an alias then Room::setLocalAliases
+    //!       or Room::setCanonicalAlias to publish the alias officially.
+    //! \sa Room::setLocalAliases, Room::setCanonicalAlias
+    Q_INVOKABLE void mapAlias(const QString& roomId, const QString& alias);
+    //! Unmap an alias from a room ID on the user's current server.
+    Q_INVOKABLE void unmapAlias(const QString& alias);
     //! \brief Update the internal map of room aliases to IDs
     //!
     //! This is used to maintain the internal index of room aliases.

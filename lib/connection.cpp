@@ -19,6 +19,7 @@
 
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
+#include "csapi/directory.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 #include "csapi/logout.h"
@@ -1194,6 +1195,23 @@ Room* Connection::roomByAlias(const QString& roomAlias, JoinStates states) const
     qCWarning(MAIN) << "Room for alias" << roomAlias
                     << "is not found under account" << userId();
     return nullptr;
+}
+
+void Connection::mapAlias(const QString& roomId, const QString& alias)
+{
+    auto getRoomIdByAliasJob = callApi<GetRoomIdByAliasJob>(alias);
+    connect(getRoomIdByAliasJob, &BaseJob::success, this, [this, getRoomIdByAliasJob, alias, roomId] {
+        if (!getRoomIdByAliasJob->roomId().isEmpty()) {
+            qWarning(MAIN) << "Alias" << alias << "is already mapped to" << getRoomIdByAliasJob->roomId();
+        } else {
+            callApi<SetRoomAliasJob>(alias, roomId);
+        }
+    });
+}
+
+void Connection::unmapAlias(const QString& alias)
+{
+    callApi<DeleteRoomAliasJob>(alias);
 }
 
 void Connection::updateRoomAliases(const QString& roomId,
