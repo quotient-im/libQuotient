@@ -844,6 +844,22 @@ JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
     return job;
 }
 
+KnockRoomJob* Connection::knockRoom(const QString& roomAlias,
+                                    const QStringList& serverNames,
+                                    const QString& reason)
+{
+    auto* const job = callApi<KnockRoomJob>(roomAlias, serverNames, reason);
+    // Upon completion, ensure a room object is created in case it hasn't come
+    // with a sync yet. If the room object is not there, provideRoom() will
+    // create it in Knock state. finished() is used here instead of success()
+    // to overtake clients that may add their own slots to finished().
+    connect(job, &BaseJob::finished, this, [this, job] {
+        if (job->status().good())
+            provideRoom(job->roomId(), JoinState::Knock);
+    });
+    return job;
+}
+
 LeaveRoomJob* Connection::leaveRoom(Room* room)
 {
     const auto& roomId = room->id();
