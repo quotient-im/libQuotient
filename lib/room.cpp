@@ -1269,6 +1269,16 @@ const EventPtr& Room::accountData(const QString& type) const
     return it != d->accountData.end() ? it->second : NoEventPtr;
 }
 
+QStringList Room::accountDataEventTypes() const
+{
+    QStringList events;
+    events.reserve(d->accountData.size());
+    for (const auto &[key, value] : d->accountData) {
+        events += key;
+    }
+    return events;
+}
+
 QStringList Room::tagNames() const { return d->tags.keys(); }
 
 TagsMap Room::tags() const { return d->tags; }

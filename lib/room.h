@@ -173,6 +173,8 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY
                    eventsHistoryJobChanged)
 
+    Q_PROPERTY(QStringList accountDataEventTypes READ accountDataEventTypes NOTIFY accountDataChanged)
+
 public:
     using Timeline = std::deque<TimelineItem>;
     using PendingEvents = std::vector<PendingEventItem>;
@@ -651,6 +653,11 @@ public:
      * using this method _yet_.
      */
     const EventPtr& accountData(const QString& type) const;
+
+    /** Get a list of all room account data events
+     * @return A list of event types that exist in the room
+     */
+    QStringList accountDataEventTypes() const;
 
     QStringList tagNames() const;
     TagsMap tags() const;
