@@ -1273,7 +1273,7 @@ QStringList Room::accountDataEventTypes() const
 {
     QStringList events;
     events.reserve(d->accountData.size());
-    for (const auto &[key, value] : d->accountData) {
+    for (const auto& [key, value] : std::as_const(d->accountData)) {
         events += key;
     }
     return events;
