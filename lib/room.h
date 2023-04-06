@@ -654,9 +654,8 @@ public:
      */
     const EventPtr& accountData(const QString& type) const;
 
-    /** Get a list of all room account data events
-     * @return A list of event types that exist in the room
-     */
+    //! Get a list of all room account data events
+    //! \return A list of event types that exist in the room
     QStringList accountDataEventTypes() const;
 
     QStringList tagNames() const;
