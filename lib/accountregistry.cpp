@@ -77,7 +77,7 @@ Connection* AccountRegistry::get(const QString& userId)
 
 Connection* AccountRegistry::get(const QString& userId) const
 {
-    for (const auto& connection : *this) {
+    for (const auto& connection : accounts()) {
         if (connection->userId() == userId)
             return connection;
     }
