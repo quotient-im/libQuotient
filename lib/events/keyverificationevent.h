@@ -72,6 +72,10 @@ public:
     QUO_CONTENT_GETTER(QStringList, methods)
 };
 
+constexpr auto HmacSha256Code = "hkdf-hmac-sha256"_ls;
+constexpr auto HmacSha256V2Code = "hkdf-hmac-sha256.v2"_ls;
+constexpr std::array SupportedMacs { HmacSha256Code, HmacSha256V2Code };
+
 /// Begins a key verification process.
 class QUOTIENT_API KeyVerificationStartEvent : public KeyVerificationEvent {
 public:
@@ -88,7 +92,7 @@ public:
                                 { "key_agreement_protocols"_ls,
                                   QJsonArray{ "curve25519-hkdf-sha256"_ls } },
                                 { "message_authentication_codes"_ls,
-                                  QJsonArray{ "hkdf-hmac-sha256"_ls } },
+                                  toJson(SupportedMacs) },
                                 { "short_authentication_string"_ls,
                                   QJsonArray{ "decimal"_ls, "emoji"_ls } } }))
     {}
@@ -152,7 +156,7 @@ public:
                       { "method"_ls, SasV1Method },
                       { "key_agreement_protocol"_ls, "curve25519-hkdf-sha256"_ls },
                       { "hash"_ls, "sha256"_ls },
-                      { "message_authentication_code"_ls, "hkdf-hmac-sha256"_ls },
+                      { "message_authentication_code"_ls, HmacSha256V2Code },
                       { "short_authentication_string"_ls,
                         QJsonArray{ "decimal"_ls, "emoji"_ls, } },
                       { "commitment"_ls, commitment } }))
