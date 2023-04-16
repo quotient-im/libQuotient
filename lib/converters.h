@@ -363,6 +363,35 @@ template <typename T>
 struct JsonConverter<std::vector<T>>
     : public JsonArrayConverter<std::vector<T>> {};
 
+template <typename T, size_t N>
+struct JsonConverter<std::array<T, N>> {
+    // The size of std::array is known at compile-time and those arrays
+    // are usually short. The common conversion logic therefore is to expand
+    // the passed source array into a pack of values converted with to/fromJson
+    // and then construct the target array list-initialised with that pack.
+    // For load(), this implies that if QJsonArray is not of the right size,
+    // the resulting std::array will not have extra values or will have empty
+    // values at the end - silently.
+    static constexpr std::make_index_sequence<N> Indices{};
+    template <typename TargetT, size_t... I>
+    static auto staticTransform(const auto& source, std::index_sequence<I...>,
+                                auto unaryFn)
+    {
+        return TargetT { unaryFn(source[I])... };
+    }
+    static auto dump(const std::array<T, N> a)
+    {
+        return staticTransform<QJsonArray>(a, Indices, [](const T& v) {
+            return toJson(v);
+        });
+    }
+    static auto load(const QJsonArray& ja)
+    {
+        return staticTransform<std::array<T, N>>(ja, Indices,
+                                                 fromJson<T, QJsonValue>);
+    }
+};
+
 #if QT_VERSION_MAJOR < 6 // QVector is an alias of QList in Qt6 but not in Qt 5
 template <typename T>
 struct JsonConverter<QVector<T>> : public JsonArrayConverter<QVector<T>> {};
