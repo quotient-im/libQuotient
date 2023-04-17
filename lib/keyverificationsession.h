@@ -122,6 +122,7 @@ private:
     Connection* m_connection;
     bool m_encrypted;
     QStringList m_remoteSupportedMethods{};
+    QStringList m_commonMacCodes{};
 
     CStructPtr<OlmSAS> olmDataHolder = makeOlmData();
     OlmSAS* olmData = olmDataHolder.get();

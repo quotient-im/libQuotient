@@ -236,9 +236,15 @@ QString KeyVerificationSession::calculateMac(const QString& input,
             .arg(m_connection->userId(), m_connection->deviceId(),
                  m_remoteUserId, m_remoteDeviceId, m_transactionId, keyId)
             .toLatin1();
-    olm_sas_calculate_mac(olmData, inputBytes.data(), unsignedSize(inputBytes),
-                          macInfo.data(), unsignedSize(macInfo),
-                          macChars.data(), macLength);
+    if (m_commonMacCodes.contains(HmacSha256V2Code))
+        olm_sas_calculate_mac_fixed_base64(olmData, inputBytes.data(),
+                                           unsignedSize(inputBytes),
+                                           macInfo.data(), unsignedSize(macInfo),
+                                           macChars.data(), macLength);
+    else
+        olm_sas_calculate_mac(olmData, inputBytes.data(),
+                              unsignedSize(inputBytes), macInfo.data(),
+                              unsignedSize(macInfo), macChars.data(), macLength);
     return QString::fromLatin1(macChars.data(), macChars.indexOf('='));
 }
 
@@ -347,6 +353,14 @@ void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
             return;
         }
         startSentByUs = false;
+    }
+    const auto& theirMacs = event.messageAuthenticationCodes();
+    for (const auto& macCode : SupportedMacs)
+        if (theirMacs.contains(macCode))
+            m_commonMacCodes.push_back(macCode);
+    if (m_commonMacCodes.isEmpty()) {
+        cancelVerification(UNKNOWN_METHOD);
+        return;
     }
     const auto pubkeyLength = olm_sas_pubkey_length(olmData);
     auto publicKey = byteArrayForOlm(pubkeyLength);
