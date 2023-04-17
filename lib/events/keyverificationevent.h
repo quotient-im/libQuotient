@@ -138,7 +138,7 @@ public:
     QString shortAuthenticationString() const
     {
         Q_ASSERT(method() == SasV1Method);
-        return contentPart<QString>("short_authentification_string"_ls);
+        return contentPart<QString>("short_authentication_string"_ls);
     }
 };
 
