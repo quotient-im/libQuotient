@@ -398,6 +398,11 @@ void Connection::Private::completeSetup(const QString& mxId)
         connect(job, &BaseJob::failure, q, [job]{
             qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
         });
+        connect(job, &BaseJob::success, q, [this]{
+            trackedUsers += q->userId();
+            outdatedUsers += q->userId();
+            encryptionUpdateRequired = true;
+        });
     } else { // account already existing
         if (outcome != OLM_SUCCESS)
             qCritical(E2EE)
