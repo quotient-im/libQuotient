@@ -37,6 +37,7 @@
 
 #include "events/callevents.h"
 #include "events/encryptionevent.h"
+#include "events/joinrulesevent.h"
 #include "events/reactionevent.h"
 #include "events/receiptevent.h"
 #include "events/redactionevent.h"
@@ -537,6 +538,11 @@ QString Room::predecessorId() const
         return evt->predecessor().roomId;
 
     return {};
+}
+
+QString Room::joinRule() const
+{
+    return currentState().get<JoinRulesEvent>()->joinRule();
 }
 
 Room* Room::predecessor(JoinStates statesFilter) const
@@ -2309,6 +2315,18 @@ SetRoomStateWithKeyJob* Room::setState(const QString& evtType,
 void Room::setName(const QString& newName)
 {
     setState<RoomNameEvent>(newName);
+}
+
+void Room::setJoinRule(const QString& joinRule)
+{
+    auto plEvent = currentState().get<RoomPowerLevelsEvent>();
+    auto pl = plEvent->powerLevelForState(JoinRulesEvent::TypeId);
+    auto currentPl = plEvent->powerLevelForUser(localUser()->id());
+    if (currentPl < pl) {
+        qWarning() << "Power level too low to set join rules";
+        return;
+    }
+    setState(JoinRulesEvent::TypeId, "", QJsonObject{ { "join_rule", joinRule } });
 }
 
 void Room::setCanonicalAlias(const QString& newAlias)

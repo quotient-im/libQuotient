@@ -117,6 +117,7 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
     Q_PROPERTY(User* localUser READ localUser CONSTANT)
     Q_PROPERTY(QString id READ id CONSTANT)
+    Q_PROPERTY(QString joinRule READ joinRule WRITE setJoinRule NOTIFY joinRuleChanged)
     Q_PROPERTY(QString version READ version NOTIFY baseStateLoaded)
     Q_PROPERTY(bool isUnstable READ isUnstable NOTIFY stabilityUpdated)
     Q_PROPERTY(QString predecessorId READ predecessorId NOTIFY baseStateLoaded)
@@ -237,6 +238,7 @@ public:
     QString version() const;
     bool isUnstable() const;
     QString predecessorId() const;
+    [[nodiscard]] QString joinRule() const;
     /// Room predecessor
     /** This function validates that the predecessor has a tombstone and
      * the tombstone refers to the current room. If that's not the case,
@@ -842,6 +844,7 @@ public Q_SLOTS:
                                      const QString& stateKey,
                                      const QJsonObject& contentJson);
     void setName(const QString& newName);
+    void setJoinRule(const QString &joinRule);
     void setCanonicalAlias(const QString& newAlias);
     void setPinnedEvents(const QStringList& events);
     /// Set room aliases on the user's current server
@@ -949,6 +952,7 @@ Q_SIGNALS:
      * Not triggered when display name changes.
      */
     void namesChanged(Quotient::Room* room);
+    void joinRuleChanged();
     void displaynameAboutToChange(Quotient::Room* room);
     void displaynameChanged(Quotient::Room* room, QString oldName);
     void pinnedEventsChanged();
