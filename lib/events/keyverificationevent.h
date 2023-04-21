@@ -72,8 +72,8 @@ public:
     QUO_CONTENT_GETTER(QStringList, methods)
 };
 
-constexpr auto HmacSha256Code = "hkdf-hmac-sha256"_ls;
-constexpr auto HmacSha256V2Code = "hkdf-hmac-sha256.v2"_ls;
+constexpr inline auto HmacSha256Code = "hkdf-hmac-sha256"_ls;
+constexpr inline auto HmacSha256V2Code = "hkdf-hmac-sha256.v2"_ls;
 constexpr std::array SupportedMacs { HmacSha256Code, HmacSha256V2Code };
 
 /// Begins a key verification process.
