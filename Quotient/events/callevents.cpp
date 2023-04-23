@@ -3,7 +3,7 @@
 
 #include "callevents.h"
 
-#include "logging.h"
+#include <Quotient/logging.h>
 
 using namespace Quotient;
 

@@ -3,8 +3,8 @@
 
 #include "eventcontent.h"
 
-#include "converters.h"
-#include "logging.h"
+#include <Quotient/converters.h>
+#include <Quotient/logging.h>
 
 #include <QtCore/QMimeDatabase>
 #include <QtCore/QFileInfo>

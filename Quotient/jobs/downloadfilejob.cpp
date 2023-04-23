@@ -8,7 +8,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "events/filesourceinfo.h"
+#    include <Quotient/events/filesourceinfo.h>
 
 #    include <QtCore/QCryptographicHash>
 #endif

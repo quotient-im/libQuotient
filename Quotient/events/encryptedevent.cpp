@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "encryptedevent.h"
-#include "e2ee/e2ee_common.h"
+#include <Quotient/e2ee/e2ee_common.h>
 
 using namespace Quotient;
 

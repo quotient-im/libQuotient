@@ -20,7 +20,7 @@ Example of a Receipt Event:
 
 #include "receiptevent.h"
 
-#include "logging.h"
+#include <Quotient/logging.h>
 
 using namespace Quotient;
 

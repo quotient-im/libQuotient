@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "stateevent.h"
-#include "logging.h"
+#include <Quotient/logging.h>
 
 using namespace Quotient;
 

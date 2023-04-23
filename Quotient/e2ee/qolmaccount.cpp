@@ -4,11 +4,11 @@
 
 #include "qolmaccount.h"
 
-#include "connection.h"
-#include "e2ee/qolmsession.h"
-#include "e2ee/qolmutility.h"
+#include <Quotient/connection.h>
+#include <Quotient/e2ee/qolmsession.h>
+#include <Quotient/e2ee/qolmutility.h>
 
-#include "csapi/keys.h"
+#include <Quotient/csapi/keys.h>
 
 #include <QtCore/QRandomGenerator>
 

@@ -4,7 +4,7 @@
 
 #include "qolmoutboundsession.h"
 
-#include "logging.h"
+#include <Quotient/logging.h>
 
 #include <olm/olm.h>
 

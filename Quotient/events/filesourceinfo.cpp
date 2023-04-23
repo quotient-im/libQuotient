@@ -4,11 +4,11 @@
 
 #include "filesourceinfo.h"
 
-#include "logging.h"
-#include "util.h"
+#include <Quotient/logging.h>
+#include <Quotient/util.h>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "e2ee/e2ee_common.h"
+#    include <Quotient/e2ee/e2ee_common.h>
 
 #    include <QtCore/QCryptographicHash>
 

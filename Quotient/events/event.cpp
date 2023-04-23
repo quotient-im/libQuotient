@@ -4,7 +4,7 @@
 #include "event.h"
 
 #include "callevents.h"
-#include "logging.h"
+#include <Quotient/logging.h>
 #include "stateevent.h"
 
 #include <QtCore/QJsonDocument>

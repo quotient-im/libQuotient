@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "e2ee/qolmutility.h"
+#include "qolmutility.h"
 
 #include "e2ee_common.h"
 

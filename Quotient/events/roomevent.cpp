@@ -3,7 +3,7 @@
 
 #include "roomevent.h"
 
-#include "logging.h"
+#include <Quotient/logging.h>
 #include "redactionevent.h"
 
 using namespace Quotient;

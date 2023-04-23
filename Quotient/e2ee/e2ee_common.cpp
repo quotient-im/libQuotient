@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "e2ee/e2ee_common.h"
+#include "e2ee_common.h"
 
-#include "logging.h"
+#include <Quotient/logging.h>
 
 #include <QtCore/QRandomGenerator>
 

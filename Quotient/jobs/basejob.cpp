@@ -4,7 +4,7 @@
 
 #include "basejob.h"
 
-#include "connectiondata.h"
+#include <Quotient/connectiondata.h>
 
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>

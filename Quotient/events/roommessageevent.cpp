@@ -5,8 +5,8 @@
 
 #include "roommessageevent.h"
 
-#include "logging.h"
-#include "events/eventrelation.h"
+#include <Quotient/logging.h>
+#include "eventrelation.h"
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
