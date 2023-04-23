@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <connection.h>
-#include <networkaccessmanager.h>
+#include <Quotient/connection.h>
+#include <Quotient/networkaccessmanager.h>
 
 #include <QtTest/QSignalSpy>
 

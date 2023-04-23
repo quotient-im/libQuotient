@@ -3,3 +3,9 @@ include(CMakeFindDependencyMacro)
 @FIND_DEPS@
 
 include("${CMAKE_CURRENT_LIST_DIR}/QuotientTargets.cmake")
+
+if (NOT QUOTIENT_FORCE_NAMESPACED_INCLUDES)
+    get_target_property(_include_dir @PROJECT_NAME@ INTERFACE_INCLUDE_DIRECTORIES)
+    list(APPEND _include_dir "${_include_dir}/Quotient")
+    set_target_properties(@PROJECT_NAME@ PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${_include_dir}")
+endif()

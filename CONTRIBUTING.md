@@ -383,7 +383,7 @@ preprocessor symbol (i.e. passing `-DPROFILE_LOG_USECS=<usecs>` to the compiler
 if you're on Linux/macOS).
 
 ### Generated C++ code for CS API
-The code in `lib/csapi`, `lib/identity` and `lib/application-service`, although
+The code in `Quotient/csapi`, `Quotient/identity` and `Quotient/application-service`, although
 stored in Git, is actually generated from the official Matrix Client-Server API
 definition files. If you're unhappy with something in there and want to improve
 that, you have to understand the way these files are produced and setup some
@@ -438,7 +438,7 @@ that also briefly touches on GTAD - the tool written for the purpose.
    an additional build target called `update-api` will be configured.
 2. Generate the code: `cmake --build <your build dir> --target update-api`.
    Building this target will create (overwriting without warning) source files
-   in `lib/csapi`, `lib/identity`, `lib/application-service` for all YAML files
+   in `Quotient/csapi`, `Quotient/identity`, `Quotient/application-service` for all YAML files
    it can find in `/path/to/matrix-spec/data/api/client-server` and their
    dependencies.
 

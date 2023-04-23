@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "events/callevents.h"
+#include <Quotient/events/callevents.h>
 
 #include <QtTest/QtTest>
 

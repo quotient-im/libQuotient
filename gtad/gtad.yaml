@@ -47,7 +47,7 @@ analyzer:
   types:
   - +set: &UseOmittable
       useOmittable:
-      omittedValue: 'none' # Quotient::none in lib/omittable.h
+      omittedValue: 'none' # Quotient::none in Quotient/omittable.h
     +on:
     - integer:
       - int64: qint64
@@ -87,17 +87,17 @@ analyzer:
         +on:
         - /state_event.yaml$/:
             type: StateEventPtr
-            imports: '"events/stateevent.h"'
+            imports: '<Quotient/events/stateevent.h>'
         - /(room|client)_event.yaml$/:
             type: RoomEventPtr
-            imports: '"events/roomevent.h"'
+            imports: '<Quotient/events/roomevent.h>'
         - /event(_without_room_id)?.yaml$/:
             type: EventPtr
-            imports: '"events/event.h"'
+            imports: '<Quotient/events/event.h>'
       - +set:
           # This renderer applies to everything actually $ref'ed
           # (not substituted)
-          _importRenderer: '"{{#segments}}{{_}}{{#_join}}/{{/_join}}{{/segments}}.h"'
+          _importRenderer: '<Quotient/{{#segments}}{{_}}{{#_join}}/{{/_join}}{{/segments}}.h>'
         +on:
         - '/^(\./)?definitions/request_email_validation.yaml$/':
             title: EmailValidationData
@@ -130,7 +130,7 @@ analyzer:
       - RoomFilter: # A structure inside Filter, same story as with *_filter.yaml
       - OneTimeKeys:
           type: OneTimeKeys
-          imports: '"e2ee/e2ee_common.h"'
+          imports: '<Quotient/e2ee/e2ee_common.h>'
       - //: *UseOmittable
     - array:
       - string: QStringList
@@ -139,7 +139,7 @@ analyzer:
         - /^Notification|Result|ChildRoomsChunk$/: "std::vector<{{1}}>"
         - /^StrippedChildStateEvent$|state_event.yaml$/:
             type: StateEvents
-            imports: '"events/stateevent.h"' # For StrippedChildStateEvent
+            imports: '<Quotient/events/stateevent.h>' # For StrippedChildStateEvent
         - /(room|client)_event.yaml$/: RoomEvents
         - /event(_without_room_id)?.yaml$/: Events
       - //: "QVector<{{1}}>"

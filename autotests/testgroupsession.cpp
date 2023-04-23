@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "testgroupsession.h"
-#include "e2ee/qolminboundsession.h"
-#include "e2ee/qolmoutboundsession.h"
+#include <Quotient/e2ee/qolminboundsession.h>
+#include <Quotient/e2ee/qolmoutboundsession.h>
 
 using namespace Quotient;
 
