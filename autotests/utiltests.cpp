@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2021 Kitsune Ral <kitsune-ral@users.sf.net>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "omittable.h"
+#include <Quotient/omittable.h>
 
 #include <QtTest/QtTest>
 

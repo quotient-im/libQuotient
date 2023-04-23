@@ -1,21 +1,21 @@
 // SPDX-FileCopyrightText: 2016 Kitsune Ral <Kitsune-Ral@users.sf.net>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "connection.h"
-#include "room.h"
-#include "user.h"
-#include "uriresolver.h"
-#include "networkaccessmanager.h"
-#include "qt_connection_util.h"
+#include <Quotient/connection.h>
+#include <Quotient/room.h>
+#include <Quotient/user.h>
+#include <Quotient/uriresolver.h>
+#include <Quotient/networkaccessmanager.h>
+#include <Quotient/qt_connection_util.h>
 
-#include "csapi/joining.h"
-#include "csapi/leaving.h"
-#include "csapi/room_send.h"
+#include <Quotient/csapi/joining.h>
+#include <Quotient/csapi/leaving.h>
+#include <Quotient/csapi/room_send.h>
 
-#include "events/reactionevent.h"
-#include "events/redactionevent.h"
-#include "events/simplestateevents.h"
-#include "events/roommemberevent.h"
+#include <Quotient/events/reactionevent.h>
+#include <Quotient/events/redactionevent.h>
+#include <Quotient/events/simplestateevents.h>
+#include <Quotient/events/roommemberevent.h>
 
 #include <QtTest/QSignalSpy>
 #include <QtCore/QCoreApplication>

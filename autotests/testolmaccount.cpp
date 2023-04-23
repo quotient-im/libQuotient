@@ -5,14 +5,14 @@
 
 #include "testolmaccount.h"
 
-#include <connection.h>
-#include <csapi/joining.h>
-#include <e2ee/qolmaccount.h>
-#include <e2ee/qolmutility.h>
-#include <events/encryptionevent.h>
-#include <events/filesourceinfo.h>
-#include <networkaccessmanager.h>
-#include <room.h>
+#include <Quotient/connection.h>
+#include <Quotient/csapi/joining.h>
+#include <Quotient/e2ee/qolmaccount.h>
+#include <Quotient/e2ee/qolmutility.h>
+#include <Quotient/events/encryptionevent.h>
+#include <Quotient/events/filesourceinfo.h>
+#include <Quotient/networkaccessmanager.h>
+#include <Quotient/room.h>
 
 #include "testutils.h"
 

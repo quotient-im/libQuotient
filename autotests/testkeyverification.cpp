@@ -6,7 +6,7 @@
 #include <QTest>
 #include "testutils.h"
 #include <QtCore/QDateTime>
-#include <e2ee/qolmaccount.h>
+#include <Quotient/e2ee/qolmaccount.h>
 #include "olm/sas.h"
 
 class TestKeyVerificationSession : public QObject

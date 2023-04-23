@@ -4,7 +4,7 @@
 
 #include "testfilecrypto.h"
 
-#include "events/filesourceinfo.h"
+#include <Quotient/events/filesourceinfo.h>
 
 #include <qtest.h>
 

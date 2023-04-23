@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include "e2ee/qolmsession.h"
-#include "e2ee/qolmaccount.h"
+#include <Quotient/e2ee/qolmsession.h>
+#include <Quotient/e2ee/qolmaccount.h>
 #include "testolmsession.h"
 
 using namespace Quotient;
