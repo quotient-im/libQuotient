@@ -6,7 +6,7 @@ set(quotest_SRCS quotest.cpp)
 
 find_package(${Qt} COMPONENTS Concurrent)
 add_executable(quotest ${quotest_SRCS})
-target_link_libraries(quotest PRIVATE ${Qt}::Core ${Qt}::Test ${Qt}::Concurrent ${PROJECT_NAME})
+target_link_libraries(quotest PRIVATE ${Qt}::Core ${Qt}::Test ${Qt}::Concurrent ${QUOTIENT_LIB_NAME})
 
 set_target_properties(quotest PROPERTIES
     VISIBILITY_INLINES_HIDDEN ON

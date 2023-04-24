@@ -51,12 +51,19 @@ else()
     add_compile_options(-fno-exceptions)
 endif()
 
+option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
+if (BUILD_WITH_QT6)
+    set(QUOTIENT_LIB_NAME ${PROJECT_NAME}Qt6)
+else()
+    set(QUOTIENT_LIB_NAME ${PROJECT_NAME})
+endif()
+
 if (WIN32)
     if (NOT CMAKE_INSTALL_LIBDIR)
         set(CMAKE_INSTALL_LIBDIR ".")
         set(CMakeFilesLocation "cmake")
     else()
-        set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+        set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${QUOTIENT_LIB_NAME}")
     endif()
 
     if (NOT CMAKE_INSTALL_BINDIR)
@@ -68,7 +75,7 @@ if (WIN32)
     endif()
 else()
     include(GNUInstallDirs)
-    set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+    set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${QUOTIENT_LIB_NAME}")
 endif(WIN32)
 set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
         "${CMAKE_INSTALL_INCLUDEDIR}/" CACHE PATH
@@ -77,8 +84,6 @@ set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-
-option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
 
 if (BUILD_WITH_QT6)
     set(QtMinVersion "6.0")
@@ -273,24 +278,24 @@ add_compile_options(
     -DQT_NO_FOREACH
 )
 
-add_library(${PROJECT_NAME} ${lib_SRCS} ${api_ALL_SRCS})
+add_library(${QUOTIENT_LIB_NAME} ${lib_SRCS} ${api_ALL_SRCS})
 # Set BUILDING_SHARED_QUOTIENT if building as a shared library
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    $<$<STREQUAL:$<TARGET_PROPERTY:${PROJECT_NAME},TYPE>,SHARED_LIBRARY>:BUILDING_SHARED_QUOTIENT>)
+target_compile_definitions(${QUOTIENT_LIB_NAME} PRIVATE
+    $<$<STREQUAL:$<TARGET_PROPERTY:${QUOTIENT_LIB_NAME},TYPE>,SHARED_LIBRARY>:BUILDING_SHARED_QUOTIENT>)
 # Set QUOTIENT_STATIC in a static library setting
-target_compile_definitions(${PROJECT_NAME} PUBLIC
-    $<$<STREQUAL:$<TARGET_PROPERTY:${PROJECT_NAME},TYPE>,STATIC_LIBRARY>:QUOTIENT_STATIC>)
-target_compile_definitions(${PROJECT_NAME} PRIVATE
+target_compile_definitions(${QUOTIENT_LIB_NAME} PUBLIC
+    $<$<STREQUAL:$<TARGET_PROPERTY:${QUOTIENT_LIB_NAME},TYPE>,STATIC_LIBRARY>:QUOTIENT_STATIC>)
+target_compile_definitions(${QUOTIENT_LIB_NAME} PRIVATE
     QT_NO_JAVA_STYLE_ITERATORS QT_NO_URL_CAST_FROM_STRING QT_NO_CAST_TO_ASCII
     QT_STRICT_ITERATORS QT_NO_CAST_FROM_BYTEARRAY)
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+target_compile_definitions(${QUOTIENT_LIB_NAME} PUBLIC ${PROJECT_NAME}_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
     ${PROJECT_NAME}_VERSION_MINOR=${PROJECT_VERSION_MINOR} ${PROJECT_NAME}_VERSION_PATCH=${PROJECT_VERSION_PATCH}
     ${PROJECT_NAME}_VERSION_STRING=\"${PROJECT_VERSION}\")
 if (${PROJECT_NAME}_ENABLE_E2EE)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_E2EE_ENABLED)
+    target_compile_definitions(${QUOTIENT_LIB_NAME} PUBLIC ${PROJECT_NAME}_E2EE_ENABLED)
 endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES
+set_target_properties(${QUOTIENT_LIB_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_EXTENSIONS OFF
     VISIBILITY_INLINES_HIDDEN ON
@@ -299,33 +304,33 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     SOVERSION ${API_VERSION}
     INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${API_VERSION}
 )
-set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
+set_property(TARGET ${QUOTIENT_LIB_NAME} APPEND PROPERTY
              COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION)
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+target_compile_features(${QUOTIENT_LIB_NAME} PUBLIC cxx_std_20)
 if (MSVC)
-    target_compile_options(${PROJECT_NAME} PUBLIC /Zc:preprocessor)
+    target_compile_options(${QUOTIENT_LIB_NAME} PUBLIC /Zc:preprocessor)
 endif()
 
 # Don't use PCH w/GCC (https://bugzilla.redhat.com/show_bug.cgi?id=1721553#c34)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    target_precompile_headers(${PROJECT_NAME} PRIVATE Quotient/converters.h)
+    target_precompile_headers(${QUOTIENT_LIB_NAME} PRIVATE Quotient/converters.h)
 endif ()
 
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:$<$<NOT:$<BOOL:${QUOTIENT_FORCE_NAMESPACED_INCLUDES}>>:${CMAKE_CURRENT_SOURCE_DIR}/Quotient>>
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
+target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
 if (Qt STREQUAL Qt5) # See #483
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${Qt}::Multimedia)
+    target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE ${Qt}::Multimedia)
 endif()
 set(FIND_DEPS "find_dependency(${Qt}Keychain)") # For QuotientConfig.cmake.in
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
-    target_link_libraries(${PROJECT_NAME}
+    target_link_libraries(${QUOTIENT_LIB_NAME}
         PUBLIC
             Olm::Olm
             ${Qt}::Sql
@@ -338,7 +343,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
     find_dependency(${Qt}Sql)")
 endif()
 
-configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
+configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
 # Configure testing
 
@@ -350,7 +355,7 @@ endif()
 
 # Configure installation
 
-install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
+install(TARGETS ${QUOTIENT_LIB_NAME} EXPORT ${QUOTIENT_LIB_NAME}Targets
         LIBRARY RUNTIME
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
@@ -361,34 +366,34 @@ include(CMakePackageConfigHelpers)
 # NB: SameMajorVersion doesn't really work yet, as we're within 0.x trail.
 # Maybe consider jumping the gun and releasing 1.0, as semver advises?
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}ConfigVersion.cmake"
     COMPATIBILITY SameMajorVersion
 )
 
-export(PACKAGE ${PROJECT_NAME})
-export(EXPORT ${PROJECT_NAME}Targets
-       FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
+export(PACKAGE ${QUOTIENT_LIB_NAME})
+export(EXPORT ${QUOTIENT_LIB_NAME}Targets
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}Targets.cmake")
 configure_file(cmake/${PROJECT_NAME}Config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}Config.cmake"
     @ONLY
 )
 
-install(EXPORT ${PROJECT_NAME}Targets
-        FILE ${PROJECT_NAME}Targets.cmake DESTINATION ${CMakeFilesLocation})
+install(EXPORT ${QUOTIENT_LIB_NAME}Targets
+        FILE ${QUOTIENT_LIB_NAME}Targets.cmake DESTINATION ${CMakeFilesLocation})
 
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}ConfigVersion.cmake"
     DESTINATION ${CMakeFilesLocation}
 )
-install(EXPORT_ANDROID_MK ${PROJECT_NAME}Targets DESTINATION ${CMAKE_INSTALL_DATADIR}/ndk-modules)
+install(EXPORT_ANDROID_MK ${QUOTIENT_LIB_NAME}Targets DESTINATION ${CMAKE_INSTALL_DATADIR}/ndk-modules)
 
 if (WIN32)
     install(FILES mime/packages/freedesktop.org.xml DESTINATION mime/packages)
 endif (WIN32)
 
 if (UNIX AND NOT APPLE)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
 
