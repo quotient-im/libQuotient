@@ -2,12 +2,12 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| dev     | :white_check_mark: |
-| 0.7.x   | :white_check_mark: |
-| 0.6.x   | :white_check_mark: |
-| older   | :x:                |
+| Version | Supported                     |
+| ------- | ----------------------------- |
+| dev     | :white_check_mark: (unstable) |
+| 0.7.x   | :white_check_mark:            |
+| 0.6.x   | :white_check_mark:            |
+| older   | :x:                           |
 
 ## Reporting a Vulnerability
 
@@ -19,8 +19,9 @@ In any of these two options, indicate that you have such information (do not sha
 
 By default, we will give credit to anyone who reports a vulnerability in a responsible way so that we can fix it before public disclosure.
 If you want to remain anonymous or pseudonymous instead, please let us know; we will gladly respect your wishes.
-If you provide a fix as a PR, you have no way to remain anonymous; you also thereby lay out the vulnerability itself
-so this is NOT the right way for undisclosed vulnerabilities, whether or not you want to stay incognito.
+NEVER provide a fix as a PR upfront and be very cautious about pushing fixes
+to public repos (e.g. at non-private GitHub), as all of this can reveal
+the vulnerability itself.
 
 ## Timeline and commitments
 

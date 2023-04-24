@@ -139,6 +139,15 @@ feel free to check out (and copy, with appropriate attribution) the source code
 of [Quaternion](https://github.com/quotient-im/Quaternion) (the reference client
 for libQuotient) or [NeoChat](https://invent.kde.org/network/neochat).
 
+As of Quotient 0.7.2, all header files of libQuotient
+*except those ending with `_p.h`* are considered public and covered by API/ABI
+stability guarantees as follows: the API and ABI are backwards compatible within
+every minor version (0.7.x releases) with every next minor version (0.8, e.g.)
+breaking the compatibility. Once we reach 1.0, this rule will apply to the major
+version, aligning with [semantic versioning](https://semver.org/) rules.
+`_p.h` files are not covered by these guarantees; definitions from those
+should not be directly used by clients.
+
 
 ## Building the library
 On platforms other than Linux you will have to build libQuotient yourself
@@ -172,7 +181,7 @@ Any C++ IDE that works with CMake should be able to do the same with minimal
 configuration effort.
 
 Static builds are tested on all supported platforms, building the library as
-a shared object (aka dynamic library) is supported on Linux and macOS but is
+a shared object (aka dynamic library) is known to work on Linux and macOS,
 untested on Windows.
 
 Before proceeding, double-check that you have installed development libraries
@@ -208,6 +217,16 @@ the standard variables coming with CMake. On top of them, Quotient understands:
   Client-Server API description made in OpenAPI notation. This is not needed
   if you just need to build the library; if you're really into hacking on it,
   please read the respective section in [CONTRIBUTING.md](./CONTRIBUTING.md).
+- `QUOTIENT_FORCE_NAMESPACED_INCLUDES=<ON/OFF>`, since version 0.7.2, `OFF`
+  by default (note that QUOTIENT is in caps here, unlike options above) - when
+  this option is set to `ON`, CMake skips adding
+  `<top-level include prefix>/Quotient/` to include paths, thereby forcing
+  the client code to use `#include <Quotient/header.h>` instead of historically
+  accepted `#include <header.h>`. By default this is set to `OFF` for backwards
+  compatibility; eventually this default may change so it is recommended to
+  at least occasionally add `-DQUOTIENT_FORCE_NAMESPACED_INCLUDES=1` to a CMake
+  invocation (or set the variable in your IDE) and make sure your code uses
+  prefixed `#include` paths.
 
 You can install the library with CMake:
 ```shell script
