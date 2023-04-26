@@ -1674,7 +1674,7 @@ void Room::Private::insertMemberIntoMap(User* u)
     const auto maybeUserName =
         currentState.query(u->id(), &RoomMemberEvent::newDisplayName);
     if (!maybeUserName)
-        qCWarning(MEMBERS) << "insertMemberIntoMap():" << u->id()
+        qCDebug(MEMBERS) << "insertMemberIntoMap():" << u->id()
                            << "has no name (even empty)";
     const auto userName = maybeUserName.value_or(QString());
     const auto namesakes = membersMap.values(userName);
