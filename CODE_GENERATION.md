@@ -23,7 +23,7 @@ that also briefly touches on GTAD - the tool written for the purpose.
 
 ## Prerequisites for CS API code generation
 
-1. Get the source code of GTAD and its dependencies. Since version 0.7, 
+1. Get the source code of GTAD and its dependencies. Since version 0.7,
    libQuotient includes GTAD as a submodule so you can get everything you need
    by updating gtad/gtad submodule in libQuotient sources:
    `git submodule update --init --recursive gtad/gtad`.
@@ -147,7 +147,7 @@ an existing one beyond minor adjustments):
    strongly recommends to show an implementation in existing projects. In
    the case of Client-Server API that usually means a homeserver and a client
    application. Submit PRs to the projects you took for that including
-   libQuotient, referring to your MSC; for API definition files, use 
+   libQuotient, referring to your MSC; for API definition files, use
    `https://github.com/quotient-im/matrix-spec` (the fork) instead of
    [the official repo](`https://github.com/matrix-org/matrix-spec`), as
    the official repo only accepts PRs on approved MSCs. You will have to show
