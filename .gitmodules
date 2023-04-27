@@ -1,3 +1,6 @@
 [submodule "gtad/gtad"]
 	path = gtad/gtad
 	url = https://github.com/quotient-im/gtad.git
+[submodule "doxygen-awesome-css"]
+	path = doxygen-awesome-css
+	url = https://github.com/jothepro/doxygen-awesome-css.git

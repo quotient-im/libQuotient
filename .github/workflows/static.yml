@@ -26,6 +26,9 @@ jobs:
         run: sudo apt-get -qq install doxygen 
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Update submodules
+        run: git submodule update --init
+        shell: bash
       - name: Build docs
         run: doxygen
         shell: bash
