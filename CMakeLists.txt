@@ -3,8 +3,8 @@ if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
 
-set(API_VERSION "0.7")
-project(Quotient VERSION "${API_VERSION}.2" LANGUAGES CXX)
+set(API_VERSION "0.8")
+project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 
 message(STATUS)
 message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION} ==>")
