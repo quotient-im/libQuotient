@@ -86,8 +86,8 @@ void ConnectionData::submit(BaseJob* job)
         return;
     }
     d->jobs[size_t(job->isBackground())].emplace(job);
-    qCDebug(MAIN) << job << "queued," << d->jobs.front().size() << "+"
-                  << d->jobs.back().size() << "total jobs in" << d->id()
+    qCDebug(MAIN) << job << "queued," << d->jobs.front().size() << "(fg) +"
+                  << d->jobs.back().size() << "(bg) total jobs in" << d->id()
                   << "queues";
 }
 

@@ -1983,8 +1983,8 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
     if (changes & Change::Highlights)
         emit q->highlightCountChanged();
 
-    qCDebug(MAIN) << terse << changes << "= hex" << Qt::hex << uint(changes)
-                  << "in" << q->objectName();
+    qCDebug(MAIN).nospace() << terse << changes << " = 0x" << Qt::hex
+                            << uint(changes) << " in " << q->objectName();
     emit q->changed(changes);
     if (saveState)
         connection->saveRoomState(q);
