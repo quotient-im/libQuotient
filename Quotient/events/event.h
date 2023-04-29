@@ -39,14 +39,14 @@ constexpr inline auto UnsignedKeyL = "unsigned"_ls;
 constexpr inline auto RedactedCauseKeyL = "redacted_because"_ls;
 constexpr inline auto PrevContentKeyL = "prev_content"_ls;
 constexpr inline auto StateKeyKeyL = "state_key"_ls;
-const QString TypeKey { TypeKeyL };
-const QString BodyKey { BodyKeyL };
-const QString ContentKey { ContentKeyL };
-const QString EventIdKey { EventIdKeyL };
-const QString SenderKey { SenderKeyL };
-const QString RoomIdKey { RoomIdKeyL };
-const QString UnsignedKey { UnsignedKeyL };
-const QString StateKeyKey { StateKeyKeyL };
+[[deprecated("use TypeKeyL")]] constexpr inline auto TypeKey = TypeKeyL;
+[[deprecated("use BodyKeyL")]] constexpr inline auto BodyKey = BodyKeyL;
+[[deprecated("use ContentKeyL")]] constexpr inline auto ContentKey = ContentKeyL;
+[[deprecated("use EventIdKeyL")]] constexpr inline auto EventIdKey = EventIdKeyL;
+[[deprecated("use SenderKeyL")]] constexpr inline auto SenderKey = SenderKeyL;
+[[deprecated("use RoomIdKeyL")]] constexpr inline auto RoomIdKey = RoomIdKeyL;
+[[deprecated("use UnsignedKeyL")]] constexpr inline auto UnsignedKey = UnsignedKeyL;
+[[deprecated("use StateKeyKeyL")]] constexpr inline auto StateKeyKey = StateKeyKeyL;
 
 using event_type_t = QLatin1String;
 
