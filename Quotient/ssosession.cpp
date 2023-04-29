@@ -16,8 +16,8 @@ using namespace Quotient;
 
 class Q_DECL_HIDDEN SsoSession::Private {
 public:
-    Private(SsoSession* q, QString initialDeviceName = {},
-            QString deviceId = {}, Connection* connection = nullptr)
+    Private(SsoSession* q, QString initialDeviceName, QString deviceId,
+            Connection* connection)
         : initialDeviceName(std::move(initialDeviceName))
         , deviceId(std::move(deviceId))
         , connection(connection)
