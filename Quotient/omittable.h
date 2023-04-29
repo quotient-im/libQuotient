@@ -26,11 +26,10 @@ constexpr auto none = std::nullopt;
 //! \return Always an Omittable: if \p fn returns another type, lift() wraps
 //!         it in an Omittable; if \p fn returns an Omittable, that return value
 //!         (or none) is returned as is.
-template <typename FnT, typename... ArgTs>
-inline auto lift(FnT&& fn, ArgTs&&... args)
+template <typename FnT>
+inline auto lift(FnT&& fn, auto&&... args)
 {
-    if constexpr (std::is_void_v<decltype(std::invoke(std::forward<FnT>(fn),
-                                                      *args...))>) {
+    if constexpr (std::is_void_v<std::invoke_result_t<FnT, decltype(*args)...>>) {
         if ((... && bool(args)))
             std::invoke(std::forward<FnT>(fn), *args...);
     } else
@@ -54,14 +53,6 @@ inline auto lift(FnT&& fn, ArgTs&&... args)
  *   have it; but besides that, value_or() or (after explicit checking)
  *   `operator*()`/`operator->()` are better alternatives within Quotient
  *   that doesn't practice throwing exceptions (as doesn't most of Qt).
- * - ensure() to provide a safer lvalue accessor instead of operator* or
- *   operator->. Allows chained initialisation of nested Omittables:
- *   \code
- *   struct Inner { int member = 10; Omittable<int> innermost; };
- *   struct Outer { int anotherMember = 10; Omittable<Inner> inner; };
- *   Omittable<Outer> o; // = { 10, std::nullopt };
- *   o.ensure().inner.ensure().innermost.emplace(42);
- *   \endcode
  * - merge() - a soft version of operator= that only overwrites its first
  *   operand with the second one if the second one is not empty.
  * - then() and then_or() to streamline read-only interrogation in a "monadic"
@@ -104,21 +95,6 @@ public:
     auto& value() = delete;
     const auto& value() const = delete;
 
-    template <typename U>
-    value_type& ensure(U&& defaultValue = value_type {})
-    {
-        return this->has_value() ? this->operator*()
-                                 : this->emplace(std::forward<U>(defaultValue));
-    }
-    value_type& ensure(const value_type& defaultValue)
-    {
-        return ensure<>(defaultValue);
-    }
-    value_type& ensure(value_type&& defaultValue)
-    {
-        return ensure<>(std::move(defaultValue));
-    }
-
     //! Merge the value from another Omittable
     //! \return true if \p other is not omitted and the value of
     //!         the current Omittable was different (or omitted),
@@ -154,7 +130,7 @@ public:
     //!         otherwise, the Omittable returned from a call to \p fn
     //! \tparam FnT a callable with \p T (or <tt>const T&</tt>)
     //!             returning Omittable<T2>, T2 is any supported type
-    //! \sa then_or, transform
+    //! \sa then_or
     template <typename FnT>
     auto then(FnT&& fn) const
     {
@@ -173,10 +149,11 @@ public:
     //! \brief Lift a callable into the const lvalue Omittable, with a fallback
     //!
     //! This effectively does the same what then() does, except that it returns
-    //! a value of type returned by the callable, or the provided fallback value
-    //! if the current Omittable is empty. This is a typesafe version to apply
-    //! an operation on an Omittable without having to deal with another
-    //! Omittable afterwards.
+    //! a value of type returned by the callable (unwrapped from the Omittable),
+    //! or the provided fallback value if the resulting (or the current - then
+    //! the callable is not even touched) Omittable is empty. This is a typesafe
+    //! version to apply an operation on an Omittable without having to deal
+    //! with another Omittable afterwards.
     template <typename FnT, typename FallbackT>
     auto then_or(FnT&& fn, FallbackT&& fallback) const
     {
