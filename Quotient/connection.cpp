@@ -1219,6 +1219,13 @@ void Connection::updateRoomAliases(const QString& roomId,
             if (mappedId == roomId)
                 qCDebug(MAIN)
                     << "Alias" << a << "is already mapped to" << roomId;
+            else if (room(roomId)->successorId() == mappedId || room(mappedId)->predecessorId() == roomId) {
+                qCDebug(MAIN) << "Not remapping alias" << a << "from" <<
+                                mappedId << "to predecessor" << roomId;
+                continue;
+            } else if (room(mappedId)->successorId() == roomId)
+                qCDebug(MAIN) << "Remapping alias" << a << "from" << mappedId
+                    << "to successor" << roomId;
             else
                 qCWarning(MAIN) << "Alias" << a << "will be force-remapped from"
                                 << mappedId << "to" << roomId;
