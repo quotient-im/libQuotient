@@ -10,14 +10,14 @@ using namespace Quotient;
 
 RoomEvent::RoomEvent(const QJsonObject& json) : Event(json)
 {
-    if (const auto redaction = unsignedPart<QJsonObject>(RedactedCauseKeyL);
+    if (const auto redaction = unsignedPart<QJsonObject>(RedactedCauseKey);
         !redaction.isEmpty())
         _redactedBecause = loadEvent<RedactionEvent>(redaction);
 }
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
 
-QString RoomEvent::id() const { return fullJson()[EventIdKeyL].toString(); }
+QString RoomEvent::id() const { return fullJson()[EventIdKey].toString(); }
 
 QDateTime RoomEvent::originTimestamp() const
 {
@@ -26,12 +26,12 @@ QDateTime RoomEvent::originTimestamp() const
 
 QString RoomEvent::roomId() const
 {
-    return fullJson()[RoomIdKeyL].toString();
+    return fullJson()[RoomIdKey].toString();
 }
 
 QString RoomEvent::senderId() const
 {
-    return fullJson()[SenderKeyL].toString();
+    return fullJson()[SenderKey].toString();
 }
 
 QString RoomEvent::redactionReason() const
@@ -46,24 +46,24 @@ QString RoomEvent::transactionId() const
 
 QString RoomEvent::stateKey() const
 {
-    return fullJson()[StateKeyKeyL].toString();
+    return fullJson()[StateKeyKey].toString();
 }
 
 void RoomEvent::setRoomId(const QString& roomId)
 {
-    editJson().insert(RoomIdKeyL, roomId);
+    editJson().insert(RoomIdKey, roomId);
 }
 
 void RoomEvent::setSender(const QString& senderId)
 {
-    editJson().insert(SenderKeyL, senderId);
+    editJson().insert(SenderKey, senderId);
 }
 
 void RoomEvent::setTransactionId(const QString& txnId)
 {
-    auto unsignedData = fullJson()[UnsignedKeyL].toObject();
+    auto unsignedData = fullJson()[UnsignedKey].toObject();
     unsignedData.insert(QStringLiteral("transaction_id"), txnId);
-    editJson().insert(UnsignedKeyL, unsignedData);
+    editJson().insert(UnsignedKey, unsignedData);
     Q_ASSERT(transactionId() == txnId);
 }
 
@@ -71,7 +71,7 @@ void RoomEvent::addId(const QString& newId)
 {
     Q_ASSERT(id().isEmpty());
     Q_ASSERT(!newId.isEmpty());
-    editJson().insert(EventIdKeyL, newId);
+    editJson().insert(EventIdKey, newId);
     qCDebug(EVENTS) << "Event txnId -> id:" << transactionId() << "->" << id();
     Q_ASSERT(id() == newId);
 }

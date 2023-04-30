@@ -55,7 +55,7 @@ public:
     void editContent(VisitorT&& visitor)
     {
         visitor(*_content);
-        editJson()[ContentKeyL] = assembleContentJson(plainBody(), rawMsgtype(),
+        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(),
                                                       _content.data());
     }
     QMimeType mimeType() const;

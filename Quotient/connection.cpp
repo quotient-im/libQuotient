@@ -1876,7 +1876,7 @@ void Connection::Private::handleQueryKeys(const QueryKeysJob* job)
     std::erase_if(pendingEncryptedEvents,
                   [this](const event_ptr_tt<EncryptedEvent>& pendingEvent) {
                       if (!isKnownCurveKey(
-                              pendingEvent->fullJson()[SenderKeyL].toString(),
+                              pendingEvent->fullJson()[SenderKey].toString(),
                               pendingEvent->contentPart<QString>(SenderKeyKeyL)))
                           return false;
                       handleEncryptedToDeviceEvent(*pendingEvent);
@@ -2123,7 +2123,7 @@ QJsonObject Connection::Private::assembleEncryptedContent(
     QJsonObject payloadJson, const QString& targetUserId,
     const QString& targetDeviceId) const
 {
-    payloadJson.insert(SenderKeyL, data->userId());
+    payloadJson.insert(SenderKey, data->userId());
 //    eventJson.insert("sender_device"_ls, data->deviceId());
     payloadJson.insert("keys"_ls,
                        QJsonObject{
@@ -2199,7 +2199,7 @@ std::pair<EventPtr, QString> Connection::Private::sessionDecryptMessage(
     auto&& decryptedEvent =
         fromJson<EventPtr>(QJsonDocument::fromJson(decrypted.toUtf8()));
 
-    if (auto sender = decryptedEvent->fullJson()[SenderKeyL].toString();
+    if (auto sender = decryptedEvent->fullJson()[SenderKey].toString();
         sender != encryptedEvent.senderId()) {
         qWarning(E2EE) << "Found user" << sender << "instead of sender"
                        << encryptedEvent.senderId() << "in Olm plaintext";
@@ -2247,13 +2247,13 @@ std::pair<QString, QString> Connection::Private::sessionDecryptMessage(
     const QJsonObject& personalCipherObject, const QByteArray& senderKey)
 {
     const auto msgType = static_cast<QOlmMessage::Type>(
-        personalCipherObject.value(TypeKeyL).toInt(-1));
+        personalCipherObject.value(TypeKey).toInt(-1));
     if (msgType != QOlmMessage::General && msgType != QOlmMessage::PreKey) {
         qCWarning(E2EE) << "Olm message has incorrect type" << msgType;
         return {};
     }
     QOlmMessage message {
-        personalCipherObject.value(BodyKeyL).toString().toLatin1(), msgType
+        personalCipherObject.value(BodyKey).toString().toLatin1(), msgType
     };
     for (const auto& session : olmSessions[QString::fromLatin1(senderKey)])
         if (msgType == QOlmMessage::General

@@ -16,7 +16,7 @@ void JsonObjectConverter<EventRelation>::dumpTo(QJsonObject& jo,
         return;
     }
     jo.insert(RelTypeKey, pod.type);
-    jo.insert(EventIdKeyL, pod.eventId);
+    jo.insert(EventIdKey, pod.eventId);
     if (pod.type == EventRelation::AnnotationType)
         jo.insert(QStringLiteral("key"), pod.key);
 }
@@ -27,11 +27,11 @@ void JsonObjectConverter<EventRelation>::fillFrom(const QJsonObject& jo,
     if (const auto replyJson = jo.value(EventRelation::ReplyType).toObject();
         !replyJson.isEmpty()) {
         pod.type = EventRelation::ReplyType;
-        fromJson(replyJson[EventIdKeyL], pod.eventId);
+        fromJson(replyJson[EventIdKey], pod.eventId);
     } else {
         // The experimental logic for generic relationships (MSC1849)
         fromJson(jo[RelTypeKey], pod.type);
-        fromJson(jo[EventIdKeyL], pod.eventId);
+        fromJson(jo[EventIdKey], pod.eventId);
         if (pod.type == EventRelation::AnnotationType)
             fromJson(jo["key"_ls], pod.key);
     }

@@ -50,8 +50,8 @@ void AbstractEventMetaType::addDerived(const AbstractEventMetaType* newType)
 Event::Event(const QJsonObject& json)
     : _json(json)
 {
-    if (!json.contains(ContentKeyL)
-        && !json.value(UnsignedKeyL).toObject().contains(RedactedCauseKeyL)) {
+    if (!json.contains(ContentKey)
+        && !json.value(UnsignedKey).toObject().contains(RedactedCauseKey)) {
         qCWarning(EVENTS) << "Event without 'content' node";
         qCWarning(EVENTS) << formatJson << json;
     }
@@ -59,18 +59,18 @@ Event::Event(const QJsonObject& json)
 
 Event::~Event() = default;
 
-QString Event::matrixType() const { return fullJson()[TypeKeyL].toString(); }
+QString Event::matrixType() const { return fullJson()[TypeKey].toString(); }
 
 QByteArray Event::originalJson() const { return QJsonDocument(_json).toJson(); }
 
 const QJsonObject Event::contentJson() const
 {
-    return fullJson()[ContentKeyL].toObject();
+    return fullJson()[ContentKey].toObject();
 }
 
 const QJsonObject Event::unsignedJson() const
 {
-    return fullJson()[UnsignedKeyL].toObject();
+    return fullJson()[UnsignedKey].toObject();
 }
 
 bool Event::isStateEvent() const { return is<StateEvent>(); }

@@ -235,7 +235,7 @@ template <EventClass EventT>
 inline event_ptr_tt<EventT> loadEvent(const QJsonObject& fullJson)
 {
     return mostSpecificMetaType<EventT>().loadFrom(
-        fullJson, fullJson[TypeKeyL].toString());
+        fullJson, fullJson[TypeKey].toString());
 }
 
 //! \brief Create an event from a type string and content JSON
@@ -282,7 +282,7 @@ public:
     static QJsonObject basicJson(const QString& matrixType,
                                  const QJsonObject& content)
     {
-        return { { TypeKeyL, matrixType }, { ContentKeyL, content } };
+        return { { TypeKey, matrixType }, { ContentKey, content } };
     }
 
     //! \brief Event Matrix type, as identified by its metatype object
