@@ -29,24 +29,26 @@ inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
 
 // === Standard Matrix key names and basicEventJson() ===
 
-constexpr inline auto TypeKeyL = "type"_ls;
-constexpr inline auto BodyKeyL = "body"_ls;
-constexpr inline auto ContentKeyL = "content"_ls;
-constexpr inline auto EventIdKeyL = "event_id"_ls;
-constexpr inline auto SenderKeyL = "sender"_ls;
-constexpr inline auto RoomIdKeyL = "room_id"_ls;
-constexpr inline auto UnsignedKeyL = "unsigned"_ls;
-constexpr inline auto RedactedCauseKeyL = "redacted_because"_ls;
-constexpr inline auto PrevContentKeyL = "prev_content"_ls;
-constexpr inline auto StateKeyKeyL = "state_key"_ls;
-[[deprecated("use TypeKeyL")]] constexpr inline auto TypeKey = TypeKeyL;
-[[deprecated("use BodyKeyL")]] constexpr inline auto BodyKey = BodyKeyL;
-[[deprecated("use ContentKeyL")]] constexpr inline auto ContentKey = ContentKeyL;
-[[deprecated("use EventIdKeyL")]] constexpr inline auto EventIdKey = EventIdKeyL;
-[[deprecated("use SenderKeyL")]] constexpr inline auto SenderKey = SenderKeyL;
-[[deprecated("use RoomIdKeyL")]] constexpr inline auto RoomIdKey = RoomIdKeyL;
-[[deprecated("use UnsignedKeyL")]] constexpr inline auto UnsignedKey = UnsignedKeyL;
-[[deprecated("use StateKeyKeyL")]] constexpr inline auto StateKeyKey = StateKeyKeyL;
+constexpr inline auto TypeKey = "type"_ls;
+constexpr inline auto BodyKey = "body"_ls;
+constexpr inline auto ContentKey = "content"_ls;
+constexpr inline auto EventIdKey = "event_id"_ls;
+constexpr inline auto SenderKey = "sender"_ls;
+constexpr inline auto RoomIdKey = "room_id"_ls;
+constexpr inline auto UnsignedKey = "unsigned"_ls;
+constexpr inline auto RedactedCauseKey = "redacted_because"_ls;
+constexpr inline auto PrevContentKey = "prev_content"_ls;
+constexpr inline auto StateKeyKey = "state_key"_ls;
+[[deprecated("use TypeKey")]] constexpr inline auto TypeKeyL = TypeKey;
+[[deprecated("use BodyKey")]] constexpr inline auto BodyKeyL = BodyKey;
+[[deprecated("use ContentKey")]] constexpr inline auto ContentKeyL = ContentKey;
+[[deprecated("use EventIdKey")]] constexpr inline auto EventIdKeyL = EventIdKey;
+[[deprecated("use SenderKey")]] constexpr inline auto SenderKeyL = SenderKey;
+[[deprecated("use RoomIdKey")]] constexpr inline auto RoomIdKeyL = RoomIdKey;
+[[deprecated("use UnsignedKey")]] constexpr inline auto UnsignedKeyL = UnsignedKey;
+[[deprecated("use RedactedCauseKey")]] constexpr inline auto RedactedCauseKeyL = RedactedCauseKey;
+[[deprecated("use PrevContentKey")]] constexpr inline auto PrevContentKeyL = PrevContentKey;
+[[deprecated("use StateKeyKey")]] constexpr inline auto StateKeyKeyL = StateKeyKey;
 
 using event_type_t = QLatin1String;
 
