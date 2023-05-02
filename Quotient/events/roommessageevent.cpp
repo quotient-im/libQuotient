@@ -112,16 +112,16 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                    && textContent->relatesTo->type
                           == EventRelation::ReplacementType) {
             auto newContentJson = json.take("m.new_content"_ls).toObject();
-            newContentJson.insert(BodyKeyL, plainBody);
+            newContentJson.insert(BodyKey, plainBody);
             newContentJson.insert(MsgTypeKey, jsonMsgType);
             json.insert(QStringLiteral("m.new_content"), newContentJson);
             json[MsgTypeKey] = jsonMsgType;
-            json[BodyKeyL] = "* "_ls + plainBody;
+            json[BodyKey] = "* "_ls + plainBody;
             return json;
         }
     }
     json.insert(MsgTypeKey, jsonMsgType);
-    json.insert(BodyKeyL, plainBody);
+    json.insert(BodyKey, plainBody);
     return json;
 }
 
@@ -180,7 +180,7 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     if (isRedacted())
         return;
     const QJsonObject content = contentJson();
-    if (content.contains(MsgTypeKey) && content.contains(BodyKeyL)) {
+    if (content.contains(MsgTypeKey) && content.contains(BodyKey)) {
         auto msgtype = content[MsgTypeKey].toString();
         bool msgTypeFound = false;
         for (const auto& mt : msgTypes)
@@ -212,7 +212,7 @@ QString RoomMessageEvent::rawMsgtype() const
 
 QString RoomMessageEvent::plainBody() const
 {
-    return contentPart<QString>(BodyKeyL);
+    return contentPart<QString>(BodyKey);
 }
 
 QMimeType RoomMessageEvent::mimeType() const
@@ -258,7 +258,7 @@ QString RoomMessageEvent::replacedBy() const
     // clang-format off
     return unsignedPart<QJsonObject>("m.relations"_ls)
             .value("m.replace"_ls).toObject()
-            .value(EventIdKeyL).toString();
+            .value(EventIdKey).toString();
     // clang-format on
 }
 
@@ -312,7 +312,7 @@ TextContent::TextContent(const QJsonObject& json)
         // Falling back to plain text, as there's no standard way to describe
         // rich text in messages.
         mimeType = PlainTextMimeType;
-        body = actualJson[BodyKeyL].toString();
+        body = actualJson[BodyKey].toString();
     }
 }
 
@@ -330,9 +330,9 @@ void TextContent::fillJson(QJsonObject &json) const
             relatesTo->type == EventRelation::ReplyType
                 ? QJsonObject { { relatesTo->type,
                                   QJsonObject {
-                                      { EventIdKeyL, relatesTo->eventId } } } }
+                                      { EventIdKey, relatesTo->eventId } } } }
                 : QJsonObject { { RelTypeKey, relatesTo->type },
-                                { EventIdKeyL, relatesTo->eventId } });
+                                { EventIdKey, relatesTo->eventId } });
         if (relatesTo->type == EventRelation::ReplacementType) {
             QJsonObject newContentJson;
             if (mimeType.inherits("text/html"_ls)) {

@@ -2651,7 +2651,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     // clang-format puts them in a single column...
     // clang-format off
     static const QStringList keepKeys {
-        EventIdKeyL, TypeKeyL, RoomIdKeyL, SenderKeyL, StateKeyKeyL,
+        EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey,
         "hashes"_ls, "signatures"_ls, "depth"_ls, "prev_events"_ls,
         "prev_state"_ls, "auth_events"_ls, "origin"_ls, "origin_server_ts"_ls,
         "membership"_ls };
@@ -2681,20 +2681,20 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
         find_if(begin(keepContentKeysMap), end(keepContentKeysMap),
                 [&target](const auto& t) { return target.type() == t.first; });
     if (keepContentKeys == end(keepContentKeysMap)) {
-        originalJson.remove(ContentKeyL);
-        originalJson.remove(PrevContentKeyL);
+        originalJson.remove(ContentKey);
+        originalJson.remove(PrevContentKey);
     } else {
-        auto content = originalJson.take(ContentKeyL).toObject();
+        auto content = originalJson.take(ContentKey).toObject();
         for (auto it = content.begin(); it != content.end();) {
             if (!keepContentKeys->second.contains(it.key()))
                 it = content.erase(it);
             else
                 ++it;
         }
-        originalJson.insert(ContentKeyL, content);
+        originalJson.insert(ContentKey, content);
     }
-    auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
-    unsignedData[RedactedCauseKeyL] = redaction.fullJson();
+    auto unsignedData = originalJson.take(UnsignedKey).toObject();
+    unsignedData[RedactedCauseKey] = redaction.fullJson();
     originalJson.insert(QStringLiteral("unsigned"), unsignedData);
 
     return loadEvent<RoomEvent>(originalJson);
@@ -2767,13 +2767,13 @@ RoomEventPtr makeReplaced(const RoomEvent& target,
         newContent["m.relates_to"_ls] = targetReply;
     }
     auto originalJson = target.fullJson();
-    originalJson[ContentKeyL] = newContent;
+    originalJson[ContentKey] = newContent;
 
-    auto unsignedData = originalJson.take(UnsignedKeyL).toObject();
+    auto unsignedData = originalJson.take(UnsignedKey).toObject();
     auto relations = unsignedData.take("m.relations"_ls).toObject();
     relations["m.replace"_ls] = replacement.id();
     unsignedData.insert("m.relations"_ls, relations);
-    originalJson.insert(UnsignedKeyL, unsignedData);
+    originalJson.insert(UnsignedKey, unsignedData);
 
     return loadEvent<RoomEvent>(originalJson);
 }
@@ -3499,7 +3499,7 @@ QJsonObject Room::Private::toJson() const
             auto json = evt->fullJson();
             auto unsignedJson = evt->unsignedJson();
             unsignedJson.remove(QStringLiteral("prev_content"));
-            json[UnsignedKeyL] = unsignedJson;
+            json[UnsignedKey] = unsignedJson;
             stateEvents.append(json);
         }
 

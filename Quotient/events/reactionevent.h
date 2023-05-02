@@ -16,7 +16,7 @@ public:
     QUO_EVENT(ReactionEvent, "m.reaction")
     static bool isValid(const QJsonObject& fullJson)
     {
-        return fullJson[ContentKeyL][RelatesToKey][RelTypeKey].toString()
+        return fullJson[ContentKey][RelatesToKey][RelTypeKey].toString()
                == EventRelation::AnnotationType;
     }
 

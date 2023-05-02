@@ -25,8 +25,8 @@ QString RoomCreateEvent::version() const
 RoomCreateEvent::Predecessor RoomCreateEvent::predecessor() const
 {
     const auto predJson = contentPart<QJsonObject>("predecessor"_ls);
-    return { fromJson<QString>(predJson[RoomIdKeyL]),
-             fromJson<QString>(predJson[EventIdKeyL]) };
+    return { fromJson<QString>(predJson[RoomIdKey]),
+             fromJson<QString>(predJson[EventIdKey]) };
 }
 
 bool RoomCreateEvent::isUpgrade() const

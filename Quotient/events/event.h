@@ -29,24 +29,26 @@ inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
 
 // === Standard Matrix key names and basicEventJson() ===
 
-constexpr inline auto TypeKeyL = "type"_ls;
-constexpr inline auto BodyKeyL = "body"_ls;
-constexpr inline auto ContentKeyL = "content"_ls;
-constexpr inline auto EventIdKeyL = "event_id"_ls;
-constexpr inline auto SenderKeyL = "sender"_ls;
-constexpr inline auto RoomIdKeyL = "room_id"_ls;
-constexpr inline auto UnsignedKeyL = "unsigned"_ls;
-constexpr inline auto RedactedCauseKeyL = "redacted_because"_ls;
-constexpr inline auto PrevContentKeyL = "prev_content"_ls;
-constexpr inline auto StateKeyKeyL = "state_key"_ls;
-const QString TypeKey { TypeKeyL };
-const QString BodyKey { BodyKeyL };
-const QString ContentKey { ContentKeyL };
-const QString EventIdKey { EventIdKeyL };
-const QString SenderKey { SenderKeyL };
-const QString RoomIdKey { RoomIdKeyL };
-const QString UnsignedKey { UnsignedKeyL };
-const QString StateKeyKey { StateKeyKeyL };
+constexpr inline auto TypeKey = "type"_ls;
+constexpr inline auto BodyKey = "body"_ls;
+constexpr inline auto ContentKey = "content"_ls;
+constexpr inline auto EventIdKey = "event_id"_ls;
+constexpr inline auto SenderKey = "sender"_ls;
+constexpr inline auto RoomIdKey = "room_id"_ls;
+constexpr inline auto UnsignedKey = "unsigned"_ls;
+constexpr inline auto RedactedCauseKey = "redacted_because"_ls;
+constexpr inline auto PrevContentKey = "prev_content"_ls;
+constexpr inline auto StateKeyKey = "state_key"_ls;
+[[deprecated("use TypeKey")]] constexpr inline auto TypeKeyL = TypeKey;
+[[deprecated("use BodyKey")]] constexpr inline auto BodyKeyL = BodyKey;
+[[deprecated("use ContentKey")]] constexpr inline auto ContentKeyL = ContentKey;
+[[deprecated("use EventIdKey")]] constexpr inline auto EventIdKeyL = EventIdKey;
+[[deprecated("use SenderKey")]] constexpr inline auto SenderKeyL = SenderKey;
+[[deprecated("use RoomIdKey")]] constexpr inline auto RoomIdKeyL = RoomIdKey;
+[[deprecated("use UnsignedKey")]] constexpr inline auto UnsignedKeyL = UnsignedKey;
+[[deprecated("use RedactedCauseKey")]] constexpr inline auto RedactedCauseKeyL = RedactedCauseKey;
+[[deprecated("use PrevContentKey")]] constexpr inline auto PrevContentKeyL = PrevContentKey;
+[[deprecated("use StateKeyKey")]] constexpr inline auto StateKeyKeyL = StateKeyKey;
 
 using event_type_t = QLatin1String;
 
@@ -233,7 +235,7 @@ template <EventClass EventT>
 inline event_ptr_tt<EventT> loadEvent(const QJsonObject& fullJson)
 {
     return mostSpecificMetaType<EventT>().loadFrom(
-        fullJson, fullJson[TypeKeyL].toString());
+        fullJson, fullJson[TypeKey].toString());
 }
 
 //! \brief Create an event from a type string and content JSON
@@ -280,7 +282,7 @@ public:
     static QJsonObject basicJson(const QString& matrixType,
                                  const QJsonObject& content)
     {
-        return { { TypeKeyL, matrixType }, { ContentKeyL, content } };
+        return { { TypeKey, matrixType }, { ContentKey, content } };
     }
 
     //! \brief Event Matrix type, as identified by its metatype object

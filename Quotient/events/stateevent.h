@@ -13,7 +13,7 @@ public:
 
     static bool isValid(const QJsonObject& fullJson)
     {
-        return fullJson.contains(StateKeyKeyL);
+        return fullJson.contains(StateKeyKey);
     }
 
     //! \brief Static setting of whether a given even type uses state keys
@@ -32,9 +32,9 @@ public:
                                  const QString& stateKey = {},
                                  const QJsonObject& contentJson = {})
     {
-        return { { TypeKeyL, matrixTypeId },
-                 { StateKeyKeyL, stateKey },
-                 { ContentKeyL, contentJson } };
+        return { { TypeKey, matrixTypeId },
+                 { StateKeyKey, stateKey },
+                 { ContentKey, contentJson } };
     }
 
     QString replacedState() const;
@@ -76,7 +76,7 @@ public:
         explicit Prev(const QJsonObject& unsignedJson)
             : senderId(fromJson<QString>(unsignedJson["prev_sender"_ls]))
             , content(
-                  fromJson<Omittable<ContentT>>(unsignedJson[PrevContentKeyL]))
+                  fromJson<Omittable<ContentT>>(unsignedJson[PrevContentKey]))
         {}
 
         QString senderId;
@@ -94,7 +94,7 @@ public:
         : StateEvent(EventT::TypeId, stateKey)
         , _content { std::forward<ContentParamTs>(contentParams)... }
     {
-        editJson().insert(ContentKeyL, toJson(_content));
+        editJson().insert(ContentKey, toJson(_content));
     }
 
     const ContentT& content() const { return _content; }
@@ -103,7 +103,7 @@ public:
     void editContent(VisitorT&& visitor)
     {
         visitor(_content);
-        editJson()[ContentKeyL] = toJson(_content);
+        editJson()[ContentKey] = toJson(_content);
     }
     const Omittable<ContentT>& prevContent() const { return _prev.content; }
     QString prevSenderId() const { return _prev.senderId; }
