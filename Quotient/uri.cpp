@@ -84,7 +84,7 @@ static inline auto matrixToUrlRegexInit()
 {
     // See https://matrix.org/docs/spec/appendices#matrix-to-navigation
     const QRegularExpression MatrixToUrlRE {
-        "^/(?<main>[^:]+:[^/?]+)(/(?<sec>(\\$|%24)[^?]+))?(\\?(?<query>.+))?$"_ls
+        "^/(?<main>[^:]+(:|%3A|%3a)[^/?]+)(/(?<sec>(\\$|%24)[^?]+))?(\\?(?<query>.+))?$"_ls
     };
     Q_ASSERT(MatrixToUrlRE.isValid());
     return MatrixToUrlRE;
