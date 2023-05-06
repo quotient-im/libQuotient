@@ -182,7 +182,7 @@ void TestOlmAccount::uploadIdentityKey()
 
     UnsignedOneTimeKeys unused;
     auto request = olmAccount->createUploadKeyRequest(unused);
-    connect(request, &BaseJob::result, this, [request, conn] {
+    connect(request, &BaseJob::result, this, [request] {
         if (!request->status().good())
             QFAIL("upload failed");
         const auto& oneTimeKeyCounts = request->oneTimeKeyCounts();
@@ -212,7 +212,7 @@ void TestOlmAccount::uploadOneTimeKeys()
         oneTimeKeysHash["curve25519:"_ls + keyId] = key;
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
-    connect(request, &BaseJob::result, this, [request, conn] {
+    connect(request, &BaseJob::result, this, [request] {
         if (!request->status().good())
             QFAIL("upload failed");
         QCOMPARE(request->oneTimeKeyCounts().value(Curve25519Key), 5);
@@ -236,7 +236,7 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
         oneTimeKeysHash[keyId] = key;
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
-    connect(request, &BaseJob::result, this, [request, nKeys, conn] {
+    connect(request, &BaseJob::result, this, [request, nKeys] {
         if (!request->status().good())
             QFAIL("upload failed");
         QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), nKeys);
@@ -254,7 +254,7 @@ void TestOlmAccount::uploadKeys()
     olmAccount->generateOneTimeKeys(1);
     auto otks = olmAccount->oneTimeKeys();
     auto request = olmAccount->createUploadKeyRequest(otks);
-    connect(request, &BaseJob::result, this, [request, conn] {
+    connect(request, &BaseJob::result, this, [request] {
         if (!request->status().good())
             QFAIL("upload failed");
         QCOMPARE(request->oneTimeKeyCounts().value(SignedCurve25519Key), 1);
