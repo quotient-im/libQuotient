@@ -1,19 +1,36 @@
-mkdir -p data
-chmod 0777 data
-
 SYNAPSE_IMAGE='matrixdotorg/synapse:v1.61.1'
+SCRIPT_DIR=$(dirname -- $(realpath -- ${BASH_SOURCE[0]}))
+DATA_PATH="$SCRIPT_DIR/data"
 
-rm ~/.local/share/testolmaccount -rf
-docker run -v `pwd`/data:/data --rm \
+if [ ! -d "$DATA_PATH" ]; then
+    mkdir -p -- "$DATA_PATH"
+    chmod 0777 -- "$DATA_PATH"
+fi
+
+rm -rf ~/.local/share/testolmaccount
+
+echo "Generating the configuration"
+docker run -v $DATA_PATH:/data:z --rm \
     -e SYNAPSE_SERVER_NAME=localhost -e SYNAPSE_REPORT_STATS=no $SYNAPSE_IMAGE generate
-(cd data && . ../autotests/adjust-config.sh)
+
+echo "Adjusting the configuration"
+(cd "$DATA_PATH" && . "$SCRIPT_DIR/adjust-config.sh")
+
+echo "Starting Synapse"
 docker run -d \
     --name synapse \
     -p 1234:8008 \
     -p 8448:8008 \
     -p 8008:8008 \
-    -v `pwd`/data:/data $SYNAPSE_IMAGE
-trap "rm -rf ./data/*; docker rm -f synapse 2>&1 >/dev/null; trap - EXIT" EXIT
+    -v $DATA_PATH:/data:z $SYNAPSE_IMAGE
+
+if [ -z "$KEEP_SYNAPSE" ]; then
+    TRAP_CMD="docker rm -f synapse 2>&1 >/dev/null"
+    if [ -z "$KEEP_DATA_PATH" ]; then
+        TRAP_CMD="$TRAP_CMD; rm -rf $DATA_PATH"
+    fi
+    trap "$TRAP_CMD; trap - EXIT" EXIT
+fi
 
 echo Waiting for synapse to start...
 until curl -s -f -k https://localhost:1234/_matrix/client/versions; do echo "Checking ..."; sleep 2; done
