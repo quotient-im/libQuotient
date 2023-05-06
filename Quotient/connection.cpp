@@ -1205,6 +1205,32 @@ Room* Connection::roomByAlias(const QString& roomAlias, JoinStates states) const
     return nullptr;
 }
 
+bool Connection::roomSucceeds(const QString& maybePredecessorId,
+                              const QString& maybeSuccessorId)
+{
+    static constexpr auto AnyJoinStateMask = JoinState::Invite | JoinState::Join
+                                             | JoinState::Knock
+                                             | JoinState::Leave;
+
+    for (auto r = room(maybePredecessorId, AnyJoinStateMask); r != nullptr;) {
+        const auto& currentSuccId = r->successorId(); // Search forward
+        if (currentSuccId.isEmpty())
+            break;
+        if (currentSuccId == maybeSuccessorId)
+            return true;
+        r = room(currentSuccId, AnyJoinStateMask);
+    }
+    for (auto r = room(maybeSuccessorId, AnyJoinStateMask); r != nullptr;) {
+        const auto& currentPredId = r->predecessorId(); // Search backward
+        if (currentPredId.isEmpty())
+            break;
+        if (currentPredId == maybePredecessorId)
+            return true;
+        r = room(currentPredId, AnyJoinStateMask);
+    }
+    return false; // Can't ascertain succession
+}
+
 void Connection::updateRoomAliases(const QString& roomId,
                                    const QStringList& previousRoomAliases,
                                    const QStringList& roomAliases)
@@ -1219,13 +1245,13 @@ void Connection::updateRoomAliases(const QString& roomId,
             if (mappedId == roomId)
                 qCDebug(MAIN)
                     << "Alias" << a << "is already mapped to" << roomId;
-            else if (room(roomId)->successorId() == mappedId || room(mappedId)->predecessorId() == roomId) {
-                qCDebug(MAIN) << "Not remapping alias" << a << "from" <<
-                                mappedId << "to predecessor" << roomId;
+            else if (roomSucceeds(roomId, mappedId)) {
+                qCDebug(MAIN) << "Not remapping alias" << a << "from"
+                              << mappedId << "to predecessor" << roomId;
                 continue;
-            } else if (room(mappedId)->successorId() == roomId)
+            } else if (roomSucceeds(mappedId, roomId))
                 qCDebug(MAIN) << "Remapping alias" << a << "from" << mappedId
-                    << "to successor" << roomId;
+                              << "to successor" << roomId;
             else
                 qCWarning(MAIN) << "Alias" << a << "will be force-remapped from"
                                 << mappedId << "to" << roomId;

@@ -499,6 +499,9 @@ public:
     //! Convert an mxc: URL into a CS API URL
     Q_INVOKABLE QUrl makeMediaUrl(QUrl mxcUrl) const;
 
+    Q_INVOKABLE bool roomSucceeds(const QString& maybePredecessorId,
+                                  const QString& maybeSuccessorId);
+
     //! Set a room factory function
     static void setRoomFactory(room_factory_t f);
 
