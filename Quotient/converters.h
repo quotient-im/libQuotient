@@ -59,10 +59,6 @@ struct JsonObjectUnpacker {
 //! of overloading toJson() and specialising fromJson().
 template <typename T>
 struct JsonConverter : JsonObjectUnpacker<T> {
-    // Unfortunately, if constexpr doesn't work with dump() and T::toJson
-    // because trying to check invocability of T::toJson hits a hard
-    // (non-SFINAE) compilation error if the member is not there. Hence a bit
-    // more verbose SFINAE construct in _impl::JsonExporter.
     static auto dump(const T& data)
     {
         if constexpr (requires() { data.toJson(); })

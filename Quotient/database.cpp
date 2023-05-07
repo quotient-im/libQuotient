@@ -61,7 +61,7 @@ int Database::version()
     return -1;
 }
 
-QSqlQuery Database::execute(const QString &queryString)
+QSqlQuery Database::execute(const QString& queryString)
 {
     auto query = database().exec(queryString);
     if (query.lastError().type() != QSqlError::NoError) {
