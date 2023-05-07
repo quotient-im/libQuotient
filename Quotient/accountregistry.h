@@ -52,7 +52,6 @@ public:
     const_reference front() const { return vector_t::front(); }
     const_reference back() const { return vector_t::back(); }
     bool isLoggedIn(const QString& userId) const;
-    Connection* get(const QString& userId); // FIXME: remove in 0.8
     Connection* get(const QString& userId) const;
 
     using vector_t::isEmpty, vector_t::empty;
