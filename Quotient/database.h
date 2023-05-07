@@ -29,7 +29,7 @@ public:
     void transaction();
     void commit();
     QSqlQuery execute(const QString &queryString);
-    QSqlQuery execute(QSqlQuery &query);
+    void execute(QSqlQuery &query);
     QSqlDatabase database() const;
     QSqlQuery prepareQuery(const QString& quaryString) const;
 

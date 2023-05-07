@@ -72,14 +72,13 @@ QSqlQuery Database::execute(const QString& queryString)
     return query;
 }
 
-QSqlQuery Database::execute(QSqlQuery &query)
+void Database::execute(QSqlQuery& query)
 {
     if (!query.exec()) {
         qCritical() << "Failed to execute query";
         qCritical() << query.lastQuery();
         qCritical() << query.lastError();
     }
-    return query;
 }
 
 void Database::transaction()
