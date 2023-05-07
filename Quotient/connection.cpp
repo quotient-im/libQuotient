@@ -1206,7 +1206,7 @@ Room* Connection::roomByAlias(const QString& roomAlias, JoinStates states) const
 }
 
 bool Connection::roomSucceeds(const QString& maybePredecessorId,
-                              const QString& maybeSuccessorId)
+                              const QString& maybeSuccessorId) const
 {
     static constexpr auto AnyJoinStateMask = JoinState::Invite | JoinState::Join
                                              | JoinState::Knock
