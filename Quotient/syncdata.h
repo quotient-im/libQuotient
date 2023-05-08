@@ -25,8 +25,7 @@ constexpr inline auto HighlightCountKey = "highlight_count"_ls;
 struct QUOTIENT_API RoomSummary {
     Omittable<int> joinedMemberCount;
     Omittable<int> invitedMemberCount;
-    Omittable<QStringList> heroes; //< mxids of users to take part in the room
-                                   // name
+    Omittable<QStringList> heroes; //!< mxids used to form the room name
 
     bool isEmpty() const;
     /// Merge the contents of another RoomSummary object into this one
@@ -50,7 +49,7 @@ struct DevicesList {
     QStringList changed;
 
     /// List of users with whom we do not share any encrypted rooms
-    /// anymore since the previous sync response.
+    /// any more since the previous sync response.
     QStringList left;
 };
 
@@ -91,11 +90,8 @@ class SyncData {
 public:
     SyncData() = default;
     explicit SyncData(const QString& cacheFileName);
-    /** Parse sync response into room events
-     * \param json response from /sync or a room state cache
-     * \return the list of rooms with missing cache files; always
-     *         empty when parsing response from /sync
-     */
+    //! Parse sync response into room events
+    //! \param json response from /sync or a room state cache
     void parseJson(const QJsonObject& json, const QString& baseDir = {});
 
     Events takePresenceData();

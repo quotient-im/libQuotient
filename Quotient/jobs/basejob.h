@@ -49,12 +49,12 @@ public:
         Success = 0,
         NoError = Success,
         Pending = 1,
-        WarningLevel = 20, //< Warnings have codes starting from this
+        WarningLevel = 20, //!< Warnings have codes starting from this
         UnexpectedResponseType = 21,
         UnexpectedResponseTypeWarning = UnexpectedResponseType,
-        Unprepared = 25, //< Initial job state is incomplete, hence warning level
-        Abandoned = 50, //< A tiny period between abandoning and object deletion
-        ErrorLevel = 100, //< Errors have codes starting from this
+        Unprepared = 25, //!< Initial job state is incomplete, hence warning level
+        Abandoned = 50, //!< A tiny period between abandoning and object deletion
+        ErrorLevel = 100, //!< Errors have codes starting from this
         NetworkError = 101,
         WITH_DEPRECATED_ERROR_VERSION(Timeout),
         Unauthorised,
