@@ -220,10 +220,10 @@ jobs:
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
         CTEST_ARGS="--test-dir $BUILD_PATH --output-on-failure"
-        if [[ -n '${{ matrix.e2ee }}' && '${{ runner.os }}' == 'Linux' ]]; then
+        if [[ -z '${{ matrix.e2ee }}' || '${{ runner.os }}' != 'Linux' ]]; then
             CTEST_ARGS="$CTEST_ARGS -E testolmaccount"
         else
-            autotests/setup-tests.sh $CTEST_ARGS
+            . autotests/setup-tests.sh $CTEST_ARGS
         fi
         GTEST_COLOR=1 ctest $CTEST_ARGS
         [[ -z "$TEST_USER" ]] || \
