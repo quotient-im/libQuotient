@@ -22,6 +22,7 @@ Makefile
 Quotient_autogen/
 .cmake/
 tests/.cmake/
+autotests/synapse-data
 CMakeUserPresets.json
 
 # clangd
