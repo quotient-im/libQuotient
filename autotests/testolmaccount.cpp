@@ -456,7 +456,6 @@ void TestOlmAccount::enableEncryption()
     QVERIFY(createRoomSpy.wait(10000));
     alice->sync();
     connect(alice.get(), &Connection::syncDone, this, [alice](){
-        qDebug() << "foo";
         alice->sync();
     });
     while(alice->roomsCount(JoinState::Join) == 0) {

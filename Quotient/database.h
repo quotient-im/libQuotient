@@ -31,7 +31,7 @@ public:
     QSqlQuery execute(const QString &queryString);
     void execute(QSqlQuery &query);
     QSqlDatabase database() const;
-    QSqlQuery prepareQuery(const QString& quaryString) const;
+    QSqlQuery prepareQuery(const QString& queryString) const;
 
     void storeOlmAccount(const QOlmAccount& olmAccount);
     Omittable<OlmErrorCode> setupOlmAccount(QOlmAccount &olmAccount);

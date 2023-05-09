@@ -535,8 +535,8 @@ void Connection::syncLoop(int timeout)
     }
     std::swap(d->syncTimeout, timeout);
     if (d->syncLoopConnection) {
-        qCInfo(MAIN) << "Timeout for next syncs changed from"
-                        << timeout << "to" << d->syncTimeout;
+        qCInfo(MAIN) << "Timeout for next syncs changed from" << timeout //
+                     << "to" << d->syncTimeout;
     } else {
         d->syncLoopConnection = connect(this, &Connection::syncDone,
                                         this, &Connection::syncLoopIteration,

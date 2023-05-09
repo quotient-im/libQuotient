@@ -79,8 +79,6 @@ public:
 
     SyncRoomData(QString roomId, JoinState joinState,
                  const QJsonObject& roomJson);
-    SyncRoomData(SyncRoomData&&) = default;
-    SyncRoomData& operator=(SyncRoomData&&) = default;
 };
 
 // QVector cannot work with non-copyable objects, std::vector can.
