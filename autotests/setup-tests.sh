@@ -3,11 +3,11 @@ SCRIPT_DIR="$PWD/autotests"
 
 if [ ! -f $SCRIPT_DIR/adjust-config.sh ]; then
     echo "This script should be run from the directory above autotests/"
-    echo "(i.e. autotests/run-tests.sh). Other ways of invocation are not supported."
+    echo "(i.e. autotests/setup-tests.sh). Other ways of invocation are not supported."
     return 1
 fi
 
-DATA_PATH="$SCRIPT_DIR/data"
+DATA_PATH="$SCRIPT_DIR/synapse-data"
 if [ ! -d "$DATA_PATH" ]; then
     mkdir -p -- "$DATA_PATH"
     chmod 0777 -- "$DATA_PATH"
@@ -51,4 +51,5 @@ done
 echo Register carl
 docker exec synapse /bin/sh -c "register_new_matrix_user --admin -u carl -p secret -c /data/homeserver.yaml https://localhost:8008"
 
+echo You can run ctest with a full set of tests now!
 GTEST_COLOR=1 ctest --verbose "$@"
