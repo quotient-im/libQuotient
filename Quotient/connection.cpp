@@ -601,6 +601,7 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
         d->encryptionUpdateRequired = false;
     }
 #endif
+    Q_UNUSED(std::move(data)) // Tell static analysers `data` is consumed now
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
