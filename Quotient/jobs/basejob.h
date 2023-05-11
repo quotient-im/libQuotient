@@ -251,13 +251,11 @@ public:
 public Q_SLOTS:
     void initiate(Quotient::ConnectionData* connData, bool inBackground);
 
-    /**
-     * Abandons the result of this job, arrived or unarrived.
-     *
-     * This aborts waiting for a reply from the server (if there was
-     * any pending) and deletes the job object. No result signals
-     * (result, success, failure) are emitted.
-     */
+    //! \brief Abandon the result of this job, arrived or unarrived.
+    //!
+    //! This aborts waiting for a reply from the server (if there was
+    //! any pending) and deletes the job object. No result signals
+    //! (result, success, failure) are emitted, only finished() is.
     void abandon();
 
 Q_SIGNALS:

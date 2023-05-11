@@ -5,9 +5,9 @@
 
 #include <Quotient/csapi/content-repo.h>
 
-#include <Quotient/events/filesourceinfo.h>
-
 namespace Quotient {
+struct EncryptedFileMetadata;
+
 class QUOTIENT_API DownloadFileJob : public GetContentJob {
 public:
     using GetContentJob::makeRequestUrl;
@@ -17,7 +17,9 @@ public:
                     const QString& localFilename = {});
 
 #ifdef Quotient_E2EE_ENABLED
-    DownloadFileJob(const QString& serverName, const QString& mediaId, const EncryptedFileMetadata& file, const QString& localFilename = {});
+    DownloadFileJob(const QString& serverName, const QString& mediaId,
+                    const EncryptedFileMetadata& file,
+                    const QString& localFilename = {});
 #endif
     QString targetFileName() const;
 
