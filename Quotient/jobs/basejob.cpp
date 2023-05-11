@@ -91,7 +91,9 @@ public:
         }
     }
 
-    void sendRequest();
+    QNetworkRequest prepareRequest();
+    void sendRequest(const QNetworkRequest& req);
+
     /*! \brief Parse the response byte array into JSON
      *
      * This calls QJsonDocument::fromJson() on rawResponse, converts
@@ -284,10 +286,10 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QByteArray& encodedPath,
     return baseUrl;
 }
 
-void BaseJob::Private::sendRequest()
+QNetworkRequest BaseJob::Private::prepareRequest()
 {
-    QNetworkRequest req { makeRequestUrl(connection->baseUrl(), apiEndpoint,
-                                         requestQuery) };
+    QNetworkRequest req{ makeRequestUrl(connection->baseUrl(), apiEndpoint,
+                                        requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_ls);
     if (needsToken)
@@ -305,7 +307,11 @@ void BaseJob::Private::sendRequest()
     Q_ASSERT(req.url().isValid());
     for (auto it = requestHeaders.cbegin(); it != requestHeaders.cend(); ++it)
         req.setRawHeader(it.key(), it.value());
+    return req;
+}
 
+void BaseJob::Private::sendRequest(const QNetworkRequest& req)
+{
     switch (verb) {
     case HttpVerb::Get:
         reply = connection->nam()->get(req);
@@ -369,8 +375,9 @@ void BaseJob::sendRequest()
     }
     Q_ASSERT(d->connection && status().code == Pending);
     d->needsToken |= d->connection->needsToken(objectName());
-    emit aboutToSendRequest();
-    d->sendRequest();
+    auto req = d->prepareRequest();
+    emit aboutToSendRequest(&req);
+    d->sendRequest(req);
     Q_ASSERT(d->reply);
     connect(reply(), &QNetworkReply::finished, this, [this] {
         gotReply();

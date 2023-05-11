@@ -12,6 +12,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QStringBuilder>
 
+class QNetworkRequest;
 class QNetworkReply;
 class QSslError;
 
@@ -260,8 +261,19 @@ public Q_SLOTS:
     void abandon();
 
 Q_SIGNALS:
-    /** The job is about to send a network request */
-    void aboutToSendRequest();
+    //! \brief The job is about to send a network request
+    //!
+    //! This signal is emitted every time a network request is made (which can
+    //! occur several times due to job retries). You can use it to change
+    //! the request parameters (such as redirect policy) if necessary. If you
+    //! need to set additional request headers or query items, do that using
+    //! setRequestHeaders() and setRequestQuery() instead.
+    //! \note \p req is not guaranteed to exist (i.e. it may point to garbage)
+    //!       unless this signal is handled via a DirectConnection (or
+    //!       BlockingQueuedConnection if in another thread), i.e.,
+    //!       synchronously.
+    //! \sa setRequestHeaders, setRequestQuery
+    void aboutToSendRequest(QNetworkRequest* req);
 
     /** The job has sent a network request */
     void sentRequest();
