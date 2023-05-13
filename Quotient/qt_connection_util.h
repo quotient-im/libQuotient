@@ -5,6 +5,7 @@
 
 #include "function_traits.h"
 
+#include <QtCore/QObject>
 #include <QtCore/QPointer>
 
 namespace Quotient {
