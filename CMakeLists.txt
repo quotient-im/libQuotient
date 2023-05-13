@@ -327,7 +327,6 @@ target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Q
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE ${Qt}::Multimedia)
 endif()
-set(FIND_DEPS "find_dependency(${Qt}Keychain)") # For QuotientConfig.cmake.in
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${QUOTIENT_LIB_NAME}
@@ -337,10 +336,6 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         PRIVATE
             OpenSSL::Crypto
     )
-    set(FIND_DEPS "${FIND_DEPS}
-    find_dependency(Olm)
-    find_dependency(OpenSSL)
-    find_dependency(${Qt}Sql)")
 endif()
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
