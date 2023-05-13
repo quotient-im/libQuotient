@@ -17,10 +17,10 @@
 
 using namespace Quotient;
 
+#ifdef Quotient_E2EE_ENABLED
 QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
                                  const EncryptedFileMetadata& metadata)
 {
-#ifdef Quotient_E2EE_ENABLED
     if (QByteArray::fromBase64(metadata.hashes["sha256"_ls].toLatin1())
         != QCryptographicHash::hash(ciphertext, QCryptographicHash::Sha256)) {
         qCWarning(E2EE) << "Hash verification failed for file";
@@ -48,17 +48,11 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
                         &length);
     EVP_CIPHER_CTX_free(ctx);
     return plaintext.left(ciphertext.size());
-#else
-    qWarning(MAIN) << "This build of libQuotient doesn't support E2EE, "
-                      "cannot decrypt the file";
-    return ciphertext;
-#endif
 }
 
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
-#ifdef Quotient_E2EE_ENABLED
     auto k = getRandom<32>();
     auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
                               | QByteArray::OmitTrailingEquals);
@@ -89,10 +83,8 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
         {}, key, QString::fromLatin1(ivBase64), { { QStringLiteral("sha256"), QString::fromLatin1(hash) } }, "v2"_ls
     };
     return { efm, cipherText };
-#else
-    return {};
-#endif
 }
+#endif
 
 void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(
     QJsonObject& jo, const EncryptedFileMetadata& pod)

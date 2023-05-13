@@ -4,7 +4,6 @@
 #include "mxcreply.h"
 
 #include <QtCore/QBuffer>
-#include "accountregistry.h"
 #include "room.h"
 
 #ifdef Quotient_E2EE_ENABLED
@@ -16,11 +15,11 @@ using namespace Quotient;
 class Q_DECL_HIDDEN MxcReply::Private
 {
 public:
-    explicit Private(QNetworkReply* r = nullptr)
-        : m_reply(r)
-    {}
+    explicit Private(QNetworkReply* r = nullptr) : m_reply(r) {}
     QNetworkReply* m_reply;
+#ifdef Quotient_E2EE_ENABLED
     Omittable<EncryptedFileMetadata> m_encryptedFile;
+#endif
     QIODevice* m_device = nullptr;
 };
 
