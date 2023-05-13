@@ -60,6 +60,7 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
     d->encryptedFileMetadata = file;
 }
 #endif
+
 QString DownloadFileJob::targetFileName() const
 {
     return (d->targetFile ? d->targetFile : d->tempFile)->fileName();
@@ -119,6 +120,7 @@ void DownloadFileJob::beforeAbandon()
     d->tempFile->remove();
 }
 
+#ifdef Quotient_E2EE_ENABLED
 void decryptFile(QFile& sourceFile, const EncryptedFileMetadata& metadata,
                  QFile& targetFile)
 {
@@ -127,6 +129,7 @@ void decryptFile(QFile& sourceFile, const EncryptedFileMetadata& metadata,
     const auto decrypted = decryptFile(encrypted, metadata);
     targetFile.write(decrypted);
 }
+#endif
 
 BaseJob::Status DownloadFileJob::prepareResult()
 {
