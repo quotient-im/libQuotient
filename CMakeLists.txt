@@ -368,6 +368,11 @@ write_basic_package_version_file(
 export(PACKAGE ${QUOTIENT_LIB_NAME})
 export(EXPORT ${QUOTIENT_LIB_NAME}Targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}Targets.cmake")
+
+# make sure BUILD_SHARED_LIBS is always defined for generating the QuotientConfig.cmake file
+if (NOT DEFINED BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS OFF)
+endif()
 configure_file(cmake/${PROJECT_NAME}Config.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}Config.cmake"
     @ONLY
