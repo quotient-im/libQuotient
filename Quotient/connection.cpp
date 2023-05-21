@@ -1414,6 +1414,13 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     return room;
 }
 
+#ifdef Quotient_E2EE_ENABLED
+void Connection::setEncryptionDefault(bool useByDefault)
+{
+    Private::encryptionDefault = useByDefault;
+}
+#endif
+
 void Connection::setRoomFactory(room_factory_t f)
 {
     _roomFactory = std::move(f);

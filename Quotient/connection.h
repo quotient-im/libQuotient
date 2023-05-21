@@ -525,6 +525,11 @@ public:
     Q_INVOKABLE bool roomSucceeds(const QString& maybePredecessorId,
                                   const QString& maybeSuccessorId) const;
 
+#ifdef Quotient_E2EE_ENABLED
+    //! Set the E2EE default state for any Connection created further
+    static void setEncryptionDefault(bool useByDefault);
+#endif
+
     //! Set a room factory function
     static void setRoomFactory(room_factory_t f);
 

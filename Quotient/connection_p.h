@@ -60,9 +60,12 @@ public:
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
-    std::conditional_t<E2EE_Enabled, bool, const bool> useEncryption = false;
 #ifdef Quotient_E2EE_ENABLED
+    static inline bool encryptionDefault = false;
+    bool useEncryption = encryptionDefault;
     std::unique_ptr<_impl::ConnectionEncryptionData> encryptionData;
+#else
+    static constexpr bool useEncryption = false;
 #endif
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
