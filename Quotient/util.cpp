@@ -138,9 +138,5 @@ int Quotient::patchVersion()
 
 bool Quotient::encryptionSupported()
 {
-#ifdef Quotient_E2EE_ENABLED
-    return true;
-#else
-    return false;
-#endif
+    return E2EE_Enabled;
 }

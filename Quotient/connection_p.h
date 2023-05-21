@@ -14,17 +14,17 @@
 #include "csapi/wellknown.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#include "e2ee/qolmaccount.h"
-#include "e2ee/qolmsession.h"
-#include "database.h"
+#    include "connectionencryptiondata_p.h"
 #endif
 
 #include "csapi/account-data.h"
 
-#include "events/encryptedevent.h"
+#include <QtCore/QCoreApplication>
+#include <QtCore/QPointer>
 
-#include <QCoreApplication>
-#include <QPointer>
+namespace Quotient {
+
+class EncryptedEvent;
 
 class Q_DECL_HIDDEN Quotient::Connection::Private {
 public:
@@ -55,36 +55,18 @@ public:
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
 
-#ifdef Quotient_E2EE_ENABLED
-    QSet<QString> trackedUsers;
-    QSet<QString> outdatedUsers;
-    QHash<QString, QHash<QString, DeviceKeys>> deviceKeys;
-    QueryKeysJob *currentQueryKeysJob = nullptr;
-    bool encryptionUpdateRequired = false;
-    Database *database = nullptr;
-    QHash<QString, int> oneTimeKeysCount;
-    std::vector<std::unique_ptr<EncryptedEvent>> pendingEncryptedEvents;
-    void handleEncryptedToDeviceEvent(const EncryptedEvent& event);
-    template <typename... ArgTs>
-    KeyVerificationSession* setupKeyVerificationSession(ArgTs&&... sessionArgs);
-    bool processIfVerificationEvent(const Event &evt, bool encrypted);
-
-    // A map from SenderKey to vector of InboundSession
-    UnorderedMap<QString, std::vector<QOlmSession>> olmSessions;
-
-    QHash<QString, KeyVerificationSession*> verificationSessions;
-    QSet<std::pair<QString, QString>> triedDevices;
-
-    std::unique_ptr<QOlmAccount> olmAccount;
-    bool isUploadingKeys = false;
-    bool firstSync = true;
-#endif // Quotient_E2EE_ENABLED
-
     GetCapabilitiesJob* capabilitiesJob = nullptr;
     GetCapabilitiesJob::Capabilities capabilities;
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
+#ifdef Quotient_E2EE_ENABLED
+    static inline bool encryptionDefault = false;
+    bool useEncryption = encryptionDefault;
+    std::unique_ptr<_impl::ConnectionEncryptionData> encryptionData;
+#else
+    static constexpr bool useEncryption = false;
+#endif
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
     QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;
@@ -119,14 +101,13 @@ public:
                          const std::optional<LoginFlow> &flow = none);
     template <typename... LoginArgTs>
     void loginToServer(LoginArgTs&&... loginArgs);
-    void completeSetup(const QString &mxId);
+    void completeSetup(const QString &mxId, bool mock = false);
     void removeRoom(const QString& roomId);
 
     void consumeRoomData(SyncDataList&& roomDataList, bool fromCache);
     void consumeAccountData(Events&& accountDataEvents);
     void consumePresenceData(Events&& presenceData);
     void consumeToDeviceEvents(Events&& toDeviceEvents);
-    void consumeDevicesList(DevicesList&& devicesList);
 
     void packAndSendAccountData(EventPtr&& event)
     {
@@ -152,39 +133,5 @@ public:
 
     void saveAccessTokenToKeychain() const;
     void dropAccessToken();
-
-#ifdef Quotient_E2EE_ENABLED
-    void saveOlmAccount();
-
-    void loadSessions();
-    void saveSession(const QOlmSession& session, const QString& senderKey) const;
-
-    template <typename FnT>
-    std::pair<QString, QString> doDecryptMessage(const QOlmSession& session,
-                                                 const QOlmMessage& message,
-                                                 FnT&& andThen) const;
-
-    std::pair<QString, QString> sessionDecryptMessage(
-        const QJsonObject& personalCipherObject, const QByteArray& senderKey);
-
-    bool isKnownCurveKey(const QString& userId, const QString& curveKey) const;
-
-    void loadOutdatedUserDevices();
-    void saveDevicesList();
-    void loadDevicesList();
-    void handleQueryKeys(const QueryKeysJob* job);
-
-    // This function assumes that an olm session with (user, device) exists
-    std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
-        const QString& userId, const QString& device,
-        const QByteArray& message) const;
-    bool createOlmSession(const QString& targetUserId,
-                          const QString& targetDeviceId,
-                          const OneTimeKeys &oneTimeKeyObject);
-    QString curveKeyForUserDevice(const QString& userId,
-                                  const QString& device) const;
-    QJsonObject assembleEncryptedContent(QJsonObject payloadJson,
-                                         const QString& targetUserId,
-                                         const QString& targetDeviceId) const;
-#endif
 };
+} // namespace Quotient

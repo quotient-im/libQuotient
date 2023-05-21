@@ -24,6 +24,7 @@ std::shared_ptr<Quotient::Connection> Quotient::createTestConnection(
     static constexpr auto homeserverAddr = "localhost:1234"_ls;
     NetworkAccessManager::instance()->ignoreSslErrors(true);
     auto c = std::make_shared<Connection>();
+    c->enableEncryption(E2EE_Enabled);
     const QString userId{ u'@' % localUserName % u':' % homeserverAddr };
     c->setHomeserver(QUrl(u"https://" % homeserverAddr));
     if (!waitForSignal(c, &Connection::loginFlowsChanged)

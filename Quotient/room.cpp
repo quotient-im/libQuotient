@@ -66,7 +66,6 @@
 #include "e2ee/e2ee_common.h"
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolminboundsession.h"
-#include "e2ee/qolmutility.h"
 #include "database.h"
 #endif // Quotient_E2EE_ENABLED
 
@@ -450,7 +449,7 @@ public:
         qCDebug(E2EE) << "Creating new outbound megolm session for room "
                       << q->objectName();
         currentOutboundMegolmSession.emplace();
-        connection->saveCurrentOutboundMegolmSession(
+        connection->database()->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 
         addInboundGroupSession(QString::fromLatin1(currentOutboundMegolmSession->sessionId()),
@@ -488,29 +487,34 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
 #ifdef Quotient_E2EE_ENABLED
-    connectSingleShot(this, &Room::encryption, this, [this, connection](){
-        connection->encryptionUpdate(this);
-    });
-    connect(this, &Room::memberListChanged, this, [this, connection] {
-        if(usesEncryption()) {
-            connection->encryptionUpdate(this, d->usersInvited);
+    if (connection->encryptionEnabled()) {
+        connectSingleShot(this, &Room::encryption, this, [this, connection] {
+            connection->encryptionUpdate(this);
+        });
+        connect(this, &Room::memberListChanged, this, [this, connection] {
+            if(usesEncryption()) {
+                connection->encryptionUpdate(this, d->usersInvited);
+            }
+        });
+        d->groupSessions = connection->loadRoomMegolmSessions(this);
+        d->currentOutboundMegolmSession =
+            connection->database()->loadCurrentOutboundMegolmSession(id);
+        if (d->currentOutboundMegolmSession
+            && d->shouldRotateMegolmSession()) {
+            d->currentOutboundMegolmSession.reset();
         }
-    });
-    d->groupSessions = connection->loadRoomMegolmSessions(this);
-    d->currentOutboundMegolmSession =
-        connection->loadCurrentOutboundMegolmSession(id);
-    if (d->currentOutboundMegolmSession && d->shouldRotateMegolmSession()) {
-        d->currentOutboundMegolmSession.reset();
-    }
-    connect(this, &Room::userRemoved, this, [this] {
-        if (d->hasValidMegolmSession()) {
-            qCDebug(E2EE) << "Rotating the megolm session because a user left";
-            d->createMegolmSession();
-        }
-    });
+        connect(this, &Room::userRemoved, this, [this] {
+            if (d->hasValidMegolmSession()) {
+                qCDebug(E2EE)
+                    << "Rotating the megolm session because a user left";
+                d->createMegolmSession();
+            }
+        });
 
-    connect(this, &Room::beforeDestruction, this,
-            [id,connection] { connection->database()->clearRoomData(id); });
+        connect(this, &Room::beforeDestruction, this, [id, connection] {
+            connection->database()->clearRoomData(id);
+        });
+    }
 #endif
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
@@ -1623,7 +1627,8 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                                   olmSessionId)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                         << d->groupSessions.size();
-        auto undecryptedEvents = d->undecryptedEvents[roomKeyEvent.sessionId()];
+        const auto undecryptedEvents =
+            d->undecryptedEvents[roomKeyEvent.sessionId()];
         for (const auto& eventId : undecryptedEvents) {
             const auto pIdx = d->eventsIndex.constFind(eventId);
             if (pIdx == d->eventsIndex.cend())
@@ -2022,32 +2027,38 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
     std::unique_ptr<EncryptedEvent> encryptedEvent;
 
     if (q->usesEncryption()) {
-#ifndef Quotient_E2EE_ENABLED
-        qWarning() << "This build of libQuotient does not support E2EE.";
-        return {};
-#else
+        if (!connection->encryptionEnabled()) {
+            qWarning(E2EE) << "Room" << q->objectName()
+                           << "uses encryption but E2EE is switched off for"
+                           << connection->objectName()
+                           << "- the message won't be sent";
+            onEventSendingFailure(txnId);
+            return txnId;
+        }
+#ifdef Quotient_E2EE_ENABLED
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
         }
 
         // Send the session to other people
+        // FIXME: Take the sync/async logic to Connection in 0.8
         if (connection->isQueryingKeys()) {
-            connectSingleShot(connection, &Connection::finishedQueryingKeys, q,
-                              [this] {
+            connectSingleShot(connection, &Connection::finishedQueryingKeys,
+                              q, [this] {
                                   connection->sendSessionKeyToDevices(
                                       id, *currentOutboundMegolmSession,
                                       getDevicesWithoutKey());
                               });
         } else {
-            connection->sendSessionKeyToDevices(id,
-                                                *currentOutboundMegolmSession,
-                                                getDevicesWithoutKey());
+            connection->sendSessionKeyToDevices(
+                id, *currentOutboundMegolmSession, getDevicesWithoutKey());
         }
 
-        const auto encrypted = currentOutboundMegolmSession->encrypt(QJsonDocument(pEvent->fullJson()).toJson());
+        const auto encrypted = currentOutboundMegolmSession->encrypt(
+            QJsonDocument(pEvent->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(
             currentOutboundMegolmSession->messageCount() + 1);
-        connection->saveCurrentOutboundMegolmSession(
+        connection->database()->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
         encryptedEvent = makeEvent<EncryptedEvent>(
             encrypted, QString::fromLatin1(connection->olmAccount()->identityKeys().curve25519),
@@ -2055,10 +2066,12 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         encryptedEvent->setTransactionId(QString::fromLatin1(connection->generateTxnId()));
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
-        if(pEvent->contentJson().contains("m.relates_to"_ls)) {
-            encryptedEvent->setRelation(pEvent->contentJson()["m.relates_to"_ls].toObject());
+        if (pEvent->contentJson().contains("m.relates_to"_ls)) {
+            encryptedEvent->setRelation(
+                pEvent->contentJson()["m.relates_to"_ls].toObject());
         }
-        // We show the unencrypted event locally while pending. The echo check will throw the encrypted version out
+        // We show the unencrypted event locally while pending. The echo
+        // check will throw the encrypted version out
         _event = encryptedEvent.get();
 #endif
     }
@@ -2619,23 +2632,30 @@ void Room::Private::dropExtraneousEvents(RoomEvents& events) const
 void Room::Private::decryptIncomingEvents(RoomEvents& events)
 {
 #ifdef Quotient_E2EE_ENABLED
+    if (!connection->encryptionEnabled())
+        return;
+    if (!q->usesEncryption())
+        return; // If the room doesn't use encryption now, it never did
+
     QElapsedTimer et;
     et.start();
     size_t totalDecrypted = 0;
-    for (auto& eptr : events)
+    for (auto& eptr : events) {
+        if (eptr->isRedacted())
+            continue;
         if (const auto& eeptr = eventCast<EncryptedEvent>(eptr)) {
-            if (eeptr->isRedacted())
-                continue;
             if (auto decrypted = q->decryptMessage(*eeptr)) {
                 ++totalDecrypted;
                 auto&& oldEvent = eventCast<EncryptedEvent>(
-                    std::exchange(eptr, std::move(decrypted)));
+                        std::exchange(eptr, std::move(decrypted)));
                 eptr->setOriginalEvent(std::move(oldEvent));
             } else
                 undecryptedEvents[eeptr->sessionId()] += eeptr->id();
         }
+    }
     if (totalDecrypted > 5 || et.nsecsElapsed() >= ProfilerMinNsecs)
-        qDebug(PROFILER) << "Decrypted" << totalDecrypted << "events in" << et;
+        qDebug(PROFILER)
+            << "Decrypted" << totalDecrypted << "events in" << et;
 #endif
 }
 

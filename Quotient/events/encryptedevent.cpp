@@ -9,18 +9,18 @@ using namespace Quotient;
 EncryptedEvent::EncryptedEvent(const QJsonObject& ciphertexts,
                                const QString& senderKey)
     : RoomEvent(basicJson(TypeId, { { AlgorithmKeyL, OlmV1Curve25519AesSha2AlgoKey },
-                                    { CiphertextKeyL, ciphertexts },
-                                    { SenderKeyKeyL, senderKey } }))
+                                    { CiphertextKey, ciphertexts },
+                                    { SenderKeyKey, senderKey } }))
 {}
 
 EncryptedEvent::EncryptedEvent(const QByteArray& ciphertext,
                                const QString& senderKey,
                                const QString& deviceId, const QString& sessionId)
     : RoomEvent(basicJson(TypeId, { { AlgorithmKeyL, MegolmV1AesSha2AlgoKey },
-                                    { CiphertextKeyL, QString::fromLatin1(ciphertext) },
-                                    { DeviceIdKeyL, deviceId },
-                                    { SenderKeyKeyL, senderKey },
-                                    { SessionIdKeyL, sessionId } }))
+                                    { CiphertextKey, QString::fromLatin1(ciphertext) },
+                                    { DeviceIdKey, deviceId },
+                                    { SenderKeyKey, senderKey },
+                                    { SessionIdKey, sessionId } }))
 {}
 
 EncryptedEvent::EncryptedEvent(const QJsonObject& obj) : RoomEvent(obj) {}

@@ -18,12 +18,11 @@ class QOlmSession;
 class QOlmInboundGroupSession;
 class QOlmOutboundGroupSession;
 
-class QUOTIENT_API Database : public QObject
+class QUOTIENT_API Database
 {
-    Q_OBJECT
 public:
     Database(const QString& userId, const QString& deviceId,
-             PicklingKey&& picklingKey, QObject* parent);
+             PicklingKey&& picklingKey);
 
     int version();
     void transaction();

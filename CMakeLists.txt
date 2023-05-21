@@ -179,6 +179,7 @@ list(APPEND lib_SRCS
 if (${PROJECT_NAME}_ENABLE_E2EE)
     list(APPEND lib_SRCS
         Quotient/database.h Quotient/database.cpp
+        Quotient/connectionencryptiondata_p.h Quotient/connectionencryptiondata_p.cpp
         Quotient/keyverificationsession.h Quotient/keyverificationsession.cpp
         Quotient/e2ee/e2ee_common.cpp # .h is in the common sources list
         Quotient/e2ee/qolmaccount.h Quotient/e2ee/qolmaccount.cpp
