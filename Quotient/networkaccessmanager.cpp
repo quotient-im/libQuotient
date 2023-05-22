@@ -3,44 +3,52 @@
 
 #include "networkaccessmanager.h"
 
-#include "connection.h"
-#include "room.h"
-#include "accountregistry.h"
+#include "logging.h"
 #include "mxcreply.h"
 
+#include "events/filesourceinfo.h"
+
+#include "jobs/downloadfilejob.h" // For DownloadFileJob::makeRequestUrl() only
+
 #include <QtCore/QCoreApplication>
-#include <QtCore/QThread>
 #include <QtCore/QSettings>
+#include <QtCore/QStringBuilder>
+#include <QtCore/QThread>
+#include <QtCore/QReadWriteLock>
 #include <QtNetwork/QNetworkReply>
 
 using namespace Quotient;
 
 class Q_DECL_HIDDEN NetworkAccessManager::Private {
 public:
-    explicit Private(NetworkAccessManager* q)
-        : q(q)
-    {}
+    static inline QHash<QString, QUrl> baseUrls{};
+    static inline QReadWriteLock baseUrlsLock{};
 
-    QNetworkReply* createImplRequest(Operation op,
-                                     const QNetworkRequest& outerRequest,
-                                     Connection* connection)
-    {
-        Q_ASSERT(outerRequest.url().scheme() == "mxc"_ls);
-        QNetworkRequest r(outerRequest);
-        r.setUrl(QUrl(QStringLiteral("%1/_matrix/media/r0/download/%2")
-                          .arg(connection->homeserver().toString(),
-                               outerRequest.url().authority()
-                                   + outerRequest.url().path())));
-        return q->createRequest(op, r);
-    }
-
-    NetworkAccessManager* q;
     QList<QSslError> ignoredSslErrors;
+
+    static QUrl getBaseUrl(const QString& accountId)
+    {
+        return QReadLocker(&baseUrlsLock), baseUrls.value(accountId);
+    }
 };
 
 NetworkAccessManager::NetworkAccessManager(QObject* parent)
-    : QNetworkAccessManager(parent), d(makeImpl<Private>(this))
+    : QNetworkAccessManager(parent), d(makeImpl<Private>())
 {}
+
+void NetworkAccessManager::addBaseUrl(const QString& accountId,
+                                      const QUrl& homeserver)
+{
+    Q_ASSERT(!accountId.isEmpty() && homeserver.isValid());
+    const QWriteLocker l(&Private::baseUrlsLock);
+    Private::baseUrls.insert(accountId, homeserver);
+}
+
+void NetworkAccessManager::dropBaseUrl(const QString& accountId)
+{
+    const QWriteLocker l(&Private::baseUrlsLock);
+    Private::baseUrls.remove(accountId);
+}
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
 {
@@ -81,44 +89,48 @@ NetworkAccessManager* NetworkAccessManager::instance()
 QNetworkReply* NetworkAccessManager::createRequest(
     Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
-    const auto& mxcUrl = request.url();
-    if (mxcUrl.scheme() == "mxc"_ls) {
-        const QUrlQuery query(mxcUrl.query());
-        const auto accountId = query.queryItemValue(QStringLiteral("user_id"));
-        if (accountId.isEmpty()) {
-            // Using QSettings here because Quotient::NetworkSettings
-            // doesn't provide multithreading guarantees
-            static thread_local QSettings s;
-            if (!s.value("Network/allow_direct_media_requests"_ls).toBool()) {
-                qCWarning(NETWORK) << "No connection specified";
-                return new MxcReply();
-            }
-            // TODO: Make the best effort with a direct unauthenticated request
-            // to the media server
-        } else {
-            auto* const connection = Accounts.get(accountId);
-            if (!connection) {
-                qCWarning(NETWORK) << "Connection" << accountId << "not found";
-                return new MxcReply();
-            }
-            const auto roomId = query.queryItemValue(QStringLiteral("room_id"));
-            if (!roomId.isEmpty()) {
-                auto room = connection->room(roomId);
-                if (!room) {
-                    qCWarning(NETWORK) << "Room" << roomId << "not found";
-                    return new MxcReply();
-                }
-                return new MxcReply(
-                    d->createImplRequest(op, request, connection), room,
-                    query.queryItemValue(QStringLiteral("event_id")));
-            }
-            return new MxcReply(
-                d->createImplRequest(op, request, connection));
-        }
+    const auto url = request.url();
+    if (url.scheme() != "mxc"_ls) {
+        auto reply =
+            QNetworkAccessManager::createRequest(op, request, outgoingData);
+        reply->ignoreSslErrors(d->ignoredSslErrors);
+        return reply;
     }
-    auto reply = QNetworkAccessManager::createRequest(op, request, outgoingData);
-    reply->ignoreSslErrors(d->ignoredSslErrors);
-    return reply;
+    const QUrlQuery query{ url.query() };
+    const auto accountId = query.queryItemValue(QStringLiteral("user_id"));
+    if (accountId.isEmpty()) {
+        // Using QSettings here because Quotient::NetworkSettings
+        // doesn't provide multithreading guarantees
+        static thread_local const QSettings s;
+        if (!s.value("Network/allow_direct_media_requests"_ls).toBool()) {
+            qCWarning(NETWORK)
+                << "No connection specified, cannot convert mxc request";
+            return new MxcReply();
+        }
+        // TODO: Make the best effort with a direct unauthenticated request
+        // to the media server
+        qCWarning(NETWORK)
+            << "Direct unauthenticated mxc requests are not implemented";
+        return new MxcReply();
+    }
+    const auto& baseUrl = Private::getBaseUrl(accountId);
+    if (!baseUrl.isValid()) {
+        // Strictly speaking, it should be an assert...
+        qCCritical(NETWORK) << "Homeserver for" << accountId
+                            << "not found, cannot convert mxc request";
+        return new MxcReply();
+    }
+
+    // Convert mxc:// URL into normal http(s) for the given homeserver
+    QNetworkRequest rewrittenRequest(request);
+    rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(baseUrl, url));
+
+    auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
+    implReply->ignoreSslErrors(d->ignoredSslErrors);
+    const auto& fileMetadata = FileMetadataMap::lookup(
+        query.queryItemValue(QStringLiteral("room_id")),
+        query.queryItemValue(QStringLiteral("event_id")));
+    return new MxcReply(implReply, fileMetadata);
 }
 
 QStringList NetworkAccessManager::supportedSchemesImplementation() const

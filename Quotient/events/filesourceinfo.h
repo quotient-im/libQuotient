@@ -89,4 +89,18 @@ QUOTIENT_API void fillJson(QJsonObject& jo,
                            const std::array<QLatin1String, 2>& jsonKeys,
                            const FileSourceInfo& fsi);
 
+namespace FileMetadataMap {
+    QUOTIENT_API void add(const QString& roomId,
+                          const QString& eventId,
+                          const EncryptedFileMetadata& fileMetadata);
+    QUOTIENT_API void remove(const QString& roomId,
+                             const QString& eventId);
+
+    //! \brief Obtain file source information across connections, thread-safely
+    //! \return a FileSourceInfo object with the URL in it already converted
+    //!         from mxc to http(s) at the respective homeserver; in case of
+    //!         unsuccessful lookup the object will be set to an empty QUrl
+    QUOTIENT_API Omittable<EncryptedFileMetadata> lookup(const QString& roomId, const QString& eventId);
+}
+
 } // namespace Quotient

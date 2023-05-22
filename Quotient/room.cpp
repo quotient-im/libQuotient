@@ -1780,6 +1780,13 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
                              ? timeline.emplace_front(std::move(e), --index)
                              : timeline.emplace_back(std::move(e), ++index);
         eventsIndex.insert(eId, index);
+        if (auto* const rme = ti.viewAs<RoomMessageEvent>())
+            if (auto* const content = rme->content())
+                if (auto* const fileInfo = content->fileInfo())
+                    if (auto* const efm = std::get_if<EncryptedFileMetadata>(
+                            &fileInfo->source))
+                        FileMetadataMap::add(id, eId, *efm);
+
         if (auto n = q->checkForNotifications(ti); n.type != Notification::None)
             notifications.insert(eId, n);
         Q_ASSERT(q->findInTimeline(eId)->event()->id() == eId);
@@ -2736,6 +2743,8 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
                         << ti->id() << "already done, skipping";
         return true;
     }
+    if (const auto* messageEvent = ti.viewAs<RoomMessageEvent>())
+        FileMetadataMap::remove(id, ti->id());
 
     // Make a new event from the redacted JSON and put it in the timeline
     // instead of the redacted one. oldEvent will be deleted on return.

@@ -12,14 +12,16 @@ namespace Quotient {
 class QUOTIENT_API NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
-    NetworkAccessManager(QObject* parent = nullptr);
+    explicit NetworkAccessManager(QObject* parent = nullptr);
 
+    void addBaseUrl(const QString& accountId, const QUrl& homeserver);
+    void dropBaseUrl(const QString& accountId);
     QList<QSslError> ignoredSslErrors() const;
     void addIgnoredSslError(const QSslError& error);
     void clearIgnoredSslErrors();
     void ignoreSslErrors(bool ignore = true) const;
 
-    /// Get a NAM instance for the current thread
+    //! Get a NAM instance for the current thread
     static NetworkAccessManager* instance();
 
 private Q_SLOTS:

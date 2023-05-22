@@ -3,20 +3,19 @@
 
 #pragma once
 
-#include "util.h"
+#include "events/filesourceinfo.h"
 
 #include <QtNetwork/QNetworkReply>
 
 namespace Quotient {
-class Room;
-
 class QUOTIENT_API MxcReply : public QNetworkReply
 {
     Q_OBJECT
 public:
     explicit MxcReply();
-    explicit MxcReply(QNetworkReply *reply);
-    MxcReply(QNetworkReply* reply, Room* room, const QString& eventId);
+    explicit MxcReply(
+        QNetworkReply* reply,
+        const Omittable<EncryptedFileMetadata>& fileMetadata = none);
 
     qint64 bytesAvailable() const override;
 

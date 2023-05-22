@@ -4,7 +4,6 @@
 #include "mxcreply.h"
 
 #include <QtCore/QBuffer>
-#include "room.h"
 
 #ifdef Quotient_E2EE_ENABLED
 #include "events/filesourceinfo.h"
@@ -15,60 +14,29 @@ using namespace Quotient;
 class Q_DECL_HIDDEN MxcReply::Private
 {
 public:
-    explicit Private(QNetworkReply* r = nullptr) : m_reply(r) {}
     QNetworkReply* m_reply;
-#ifdef Quotient_E2EE_ENABLED
-    Omittable<EncryptedFileMetadata> m_encryptedFile;
-#endif
-    QIODevice* m_device = nullptr;
+    QIODevice* m_device;
 };
 
-MxcReply::MxcReply(QNetworkReply* reply)
-    : d(makeImpl<Private>(reply))
-{
-    d->m_device = d->m_reply;
-    reply->setParent(this);
-    connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
-        setError(d->m_reply->error(), d->m_reply->errorString());
-        setOpenMode(ReadOnly);
-        Q_EMIT finished();
-    });
-}
-
-MxcReply::MxcReply(QNetworkReply* reply, Room* room, const QString &eventId)
-    : d(makeImpl<Private>(reply))
+MxcReply::MxcReply(QNetworkReply* reply,
+                   const Omittable<EncryptedFileMetadata>& fileMetadata)
+    : d(makeImpl<Private>(reply, fileMetadata ? nullptr : reply))
 {
     reply->setParent(this);
-    connect(d->m_reply, &QNetworkReply::finished, this, [this]() {
+    connect(d->m_reply, &QNetworkReply::finished, this, [this, fileMetadata] {
         setError(d->m_reply->error(), d->m_reply->errorString());
 
 #ifdef Quotient_E2EE_ENABLED
-        if(!d->m_encryptedFile.has_value()) {
-            d->m_device = d->m_reply;
-        } else {
+        if (fileMetadata) {
             auto buffer = new QBuffer(this);
-            buffer->setData(
-                decryptFile(d->m_reply->readAll(), *d->m_encryptedFile));
+            buffer->setData(decryptFile(d->m_reply->readAll(), *fileMetadata));
             buffer->open(ReadOnly);
             d->m_device = buffer;
         }
-#else
-        d->m_device = d->m_reply;
 #endif
         setOpenMode(ReadOnly);
         emit finished();
     });
-
-#ifdef Quotient_E2EE_ENABLED
-    auto eventIt = room->findInTimeline(eventId);
-    if(eventIt != room->historyEdge()) {
-        if (auto event = eventIt->viewAs<RoomMessageEvent>()) {
-            if (auto* efm = std::get_if<EncryptedFileMetadata>(
-                    &event->content()->fileInfo()->source))
-                d->m_encryptedFile = *efm;
-        }
-    }
-#endif
 }
 
 MxcReply::MxcReply()
@@ -89,7 +57,7 @@ MxcReply::MxcReply()
 
 qint64 MxcReply::readData(char *data, qint64 maxSize)
 {
-    if(d != nullptr) {
+    if(d != nullptr && d->m_device != nullptr) {
         return d->m_device->read(data, maxSize);
     }
     return -1;
@@ -97,14 +65,14 @@ qint64 MxcReply::readData(char *data, qint64 maxSize)
 
 void MxcReply::abort()
 {
-    if(d != nullptr) {
+    if(d != nullptr && d->m_reply != nullptr) {
         d->m_reply->abort();
     }
 }
 
 qint64 MxcReply::bytesAvailable() const
 {
-    if (d != nullptr) {
+    if (d != nullptr && d->m_device != nullptr) {
         return d->m_device->bytesAvailable() + QNetworkReply::bytesAvailable();
     }
     return 0;

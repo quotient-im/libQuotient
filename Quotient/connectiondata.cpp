@@ -102,7 +102,7 @@ QByteArray ConnectionData::accessToken() const { return d->accessToken; }
 
 QUrl ConnectionData::baseUrl() const { return d->baseUrl; }
 
-QNetworkAccessManager* ConnectionData::nam() const
+NetworkAccessManager* ConnectionData::nam() const
 {
     return NetworkAccessManager::instance();
 }
@@ -111,6 +111,8 @@ void ConnectionData::setBaseUrl(QUrl baseUrl)
 {
     d->baseUrl = std::move(baseUrl);
     qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
+    if (!d->userId.isEmpty() && d->baseUrl.isValid())
+        nam()->addBaseUrl(d->userId, d->baseUrl);
 }
 
 void ConnectionData::setToken(QByteArray token)
@@ -133,7 +135,16 @@ void ConnectionData::setDeviceId(const QString& deviceId)
     d->deviceId = deviceId;
 }
 
-void ConnectionData::setUserId(const QString& userId) { d->userId = userId; }
+void ConnectionData::setUserId(const QString& userId)
+{
+    if (d->baseUrl.isValid()) {
+        if (d->userId != userId)
+            nam()->dropBaseUrl(d->userId);
+        if (!userId.isEmpty())
+            nam()->addBaseUrl(userId, d->baseUrl);
+    }
+    d->userId = userId;
+}
 
 void ConnectionData::setNeedsToken(const QString& requestName)
 {
