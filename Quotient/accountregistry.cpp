@@ -9,6 +9,10 @@
 
 #include <QtCore/QCoreApplication>
 
+// TODO: remove in 0.9
+QT_IGNORE_DEPRECATIONS(
+    QUOTIENT_API Quotient::AccountRegistry Quotient::Accounts{};)
+
 using namespace Quotient;
 
 void AccountRegistry::add(Connection* a)
@@ -21,6 +25,7 @@ void AccountRegistry::add(Connection* a)
     }
     beginInsertRows(QModelIndex(), size(), size());
     push_back(a);
+    connect(a, &Connection::loggedOut, this, [this, a] { drop(a); });
     qDebug(MAIN) << "Added" << a->objectName() << "to the account registry";
     endInsertRows();
     emit accountCountChanged();

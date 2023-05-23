@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "quotient_export.h"
+#include "util.h"
 
 #include <QtCore/QAbstractListModel>
 
@@ -36,8 +36,7 @@ public:
         UserIdRole = Qt::DisplayRole
     };
 
-    [[deprecated("Use Accounts variable instead")]] //
-    static AccountRegistry& instance();
+    explicit AccountRegistry(QObject* parent = nullptr);
 
     // Expose most of vector_t's const-API but only provide add() and drop()
     // for changing it. In theory other changing operations could be supported
@@ -85,7 +84,6 @@ private:
     QStringList m_accountsLoading;
 };
 
-inline QUOTIENT_API AccountRegistry Accounts {};
-
-inline AccountRegistry& AccountRegistry::instance() { return Accounts; }
+[[deprecated("Make and use an application-scope instance instead of a singleton")]]
+extern QUOTIENT_API AccountRegistry Accounts;
 } // namespace Quotient

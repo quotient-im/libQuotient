@@ -85,7 +85,6 @@ Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
-    Accounts.drop(this);
 }
 
 void Connection::resolveServer(const QString& mxid)
@@ -324,7 +323,6 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
-    Accounts.add(q);
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
 
     static auto callOnce [[maybe_unused]] = //
