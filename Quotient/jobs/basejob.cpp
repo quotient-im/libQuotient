@@ -5,12 +5,12 @@
 #include "basejob.h"
 
 #include <Quotient/connectiondata.h>
+#include <Quotient/networkaccessmanager.h>
 
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
 #include <QtCore/QMetaEnum>
 #include <QtCore/QPointer>
-#include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 

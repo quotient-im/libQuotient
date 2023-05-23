@@ -10,14 +10,15 @@
 
 #include <chrono>
 
-class QNetworkAccessManager;
-
 namespace Quotient {
+
+class NetworkAccessManager;
 class BaseJob;
 
 class ConnectionData {
 public:
     explicit ConnectionData(QUrl baseUrl);
+    Q_DISABLE_COPY_MOVE(ConnectionData)
     virtual ~ConnectionData();
 
     void submit(BaseJob* job);
@@ -28,7 +29,7 @@ public:
     const QString& deviceId() const;
     const QString& userId() const;
     bool needsToken(const QString& requestName) const;
-    QNetworkAccessManager* nam() const;
+    Quotient::NetworkAccessManager *nam() const;
 
     void setBaseUrl(QUrl baseUrl);
     void setToken(QByteArray accessToken);

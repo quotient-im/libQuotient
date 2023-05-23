@@ -7,6 +7,8 @@
 #include <Quotient/logging.h>
 #include <Quotient/util.h>
 
+#include <QtCore/QReadWriteLock>
+
 #ifdef Quotient_E2EE_ENABLED
 #    include <Quotient/e2ee/e2ee_common.h>
 
@@ -152,4 +154,30 @@ void Quotient::fillJson(QJsonObject& jo,
     static_assert(
         std::variant_size_v<FileSourceInfo> == decltype(jsonKeys) {}.size());
     jo.insert(jsonKeys[fsi.index()], toJson(fsi));
+}
+
+namespace {
+    // A map from roomId/eventId pair to file source info
+    QHash<std::pair<QString, QString>, EncryptedFileMetadata> infos;
+    QReadWriteLock lock;
+}
+
+void FileMetadataMap::add(const QString& roomId, const QString& eventId,
+                          const EncryptedFileMetadata& fileMetadata)
+{
+    const QWriteLocker l(&lock);
+    infos.insert({ roomId, eventId }, fileMetadata);
+}
+
+void FileMetadataMap::remove(const QString& roomId, const QString& eventId)
+{
+    const QWriteLocker l(&lock);
+    infos.remove({ roomId, eventId });
+}
+
+Omittable<EncryptedFileMetadata> FileMetadataMap::lookup(const QString& roomId,
+                                                         const QString& eventId)
+{
+    const QReadLocker l(&lock);
+    return infos.value({ roomId, eventId });
 }
