@@ -6,7 +6,6 @@
 
 #include "connection.h"
 
-#include "accountregistry.h"
 #include "connectiondata.h"
 #include "qt_connection_util.h"
 #include "room.h"

@@ -1,7 +1,6 @@
 #include "connectionencryptiondata_p.h"
 
 #include "room.h"
-#include "settings.h"
 #include "syncdata.h"
 #include "user.h"
 
