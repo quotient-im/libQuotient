@@ -80,8 +80,8 @@ Q_SIGNALS:
     void resolveError(Connection* connection, QString error);
 
 private:
-    QKeychain::ReadPasswordJob* loadAccessTokenFromKeychain(const QString &userId);
-    QStringList m_accountsLoading;
+    struct Private;
+    ImplPtr<Private> d;
 };
 
 [[deprecated("Make and use an application-scope instance instead of a singleton")]]

@@ -15,6 +15,14 @@ QT_IGNORE_DEPRECATIONS(
 
 using namespace Quotient;
 
+struct Q_DECL_HIDDEN AccountRegistry::Private {
+    QStringList m_accountsLoading;
+};
+
+AccountRegistry::AccountRegistry(QObject* parent)
+    : QAbstractListModel(parent), d(makeImpl<Private>())
+{}
+
 void AccountRegistry::add(Connection* a)
 {
     Q_ASSERT(a != nullptr);
@@ -84,17 +92,6 @@ Connection* AccountRegistry::get(const QString& userId) const
     return nullptr;
 }
 
-QKeychain::ReadPasswordJob* AccountRegistry::loadAccessTokenFromKeychain(
-    const QString& userId)
-{
-    qCDebug(MAIN) << "Reading access token from keychain for" << userId;
-    auto job = new QKeychain::ReadPasswordJob(qAppName(), this);
-    job->setKey(userId);
-    job->start();
-
-    return job;
-}
-
 void AccountRegistry::invokeLogin()
 {
     const auto accounts = SettingsGroup("Accounts"_ls).childGroups();
@@ -104,17 +101,19 @@ void AccountRegistry::invokeLogin()
         if (account.homeserver().isEmpty())
             continue;
 
-        m_accountsLoading += accountId;
+        d->m_accountsLoading += accountId;
         emit accountsLoadingChanged();
 
+        qCDebug(MAIN) << "Reading access token from keychain for" << accountId;
         auto accessTokenLoadingJob =
-            loadAccessTokenFromKeychain(account.userId());
+            new QKeychain::ReadPasswordJob(qAppName(), this);
+        accessTokenLoadingJob->setKey(accountId);
         connect(accessTokenLoadingJob, &QKeychain::Job::finished, this,
                 [accountId, this, accessTokenLoadingJob]() {
                     if (accessTokenLoadingJob->error()
                         != QKeychain::Error::NoError) {
                         emit keychainError(accessTokenLoadingJob->error());
-                        m_accountsLoading.removeAll(accountId);
+                        d->m_accountsLoading.removeAll(accountId);
                         emit accountsLoadingChanged();
                         return;
                     }
@@ -128,7 +127,7 @@ void AccountRegistry::invokeLogin()
 
                                 connection->syncLoop();
 
-                                m_accountsLoading.removeAll(accountId);
+                                d->m_accountsLoading.removeAll(accountId);
                                 emit accountsLoadingChanged();
                             });
                     connect(connection, &Connection::loginError, this,
@@ -136,24 +135,25 @@ void AccountRegistry::invokeLogin()
                                                const QString& details) {
                                 emit loginError(connection, error, details);
 
-                                m_accountsLoading.removeAll(accountId);
+                                d->m_accountsLoading.removeAll(accountId);
                                 emit accountsLoadingChanged();
                             });
                     connect(connection, &Connection::resolveError, this,
                             [this, connection, accountId](const QString& error) {
                                 emit resolveError(connection, error);
 
-                                m_accountsLoading.removeAll(accountId);
+                                d->m_accountsLoading.removeAll(accountId);
                                 emit accountsLoadingChanged();
                             });
                     connection->assumeIdentity(
                         account.userId(),
                         QString::fromUtf8(accessTokenLoadingJob->binaryData()));
                 });
+        accessTokenLoadingJob->start();
     }
 }
 
 QStringList AccountRegistry::accountsLoading() const
 {
-    return m_accountsLoading;
+    return d->m_accountsLoading;
 }
