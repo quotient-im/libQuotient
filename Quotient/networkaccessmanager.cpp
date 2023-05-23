@@ -24,27 +24,27 @@ class {
 public:
     void addBaseUrl(const QString& accountId, const QUrl& baseUrl)
     {
-        QWriteLocker(&namLock), baseUrls.insert(accountId, baseUrl);
+        QWriteLocker{ &namLock }, baseUrls.insert(accountId, baseUrl);
     }
     void dropBaseUrl(const QString& accountId)
     {
-        QWriteLocker(&namLock), baseUrls.remove(accountId);
+        QWriteLocker{ &namLock }, baseUrls.remove(accountId);
     }
     QUrl getBaseUrl(const QString& accountId) const
     {
-        return QReadLocker(&namLock), baseUrls.value(accountId);
+        return QReadLocker{ &namLock }, baseUrls.value(accountId);
     }
     void addIgnoredSslError(const QSslError& error)
     {
-        QWriteLocker(&namLock), ignoredSslErrors.push_back(error);
+        QWriteLocker{ &namLock }, ignoredSslErrors.push_back(error);
     }
     void clearIgnoredSslErrors()
     {
-        QWriteLocker(&namLock), ignoredSslErrors.clear();
+        QWriteLocker{ &namLock }, ignoredSslErrors.clear();
     }
     QList<QSslError> getIgnoredSslErrors() const
     {
-        return QReadLocker(&namLock), ignoredSslErrors;
+        return QReadLocker{ &namLock }, ignoredSslErrors;
     }
 
 private:
