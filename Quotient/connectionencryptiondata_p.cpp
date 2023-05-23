@@ -3,6 +3,7 @@
 #include "room.h"
 #include "syncdata.h"
 #include "user.h"
+#include "qt_connection_util.h"
 
 #include "e2ee/qolmutility.h"
 
@@ -682,14 +683,12 @@ std::pair<EventPtr, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(
     return { std::move(decryptedEvent), olmSessionId };
 }
 
-void ConnectionEncryptionData::sendSessionKeyToDevices(
-    const QString& roomId, const QOlmOutboundGroupSession& outboundSession,
+void ConnectionEncryptionData::doSendSessionKeyToDevices(
+    const QString& roomId, const QByteArray& sessionId,
+    const QByteArray& sessionKey, uint32_t messageIndex,
     const QMultiHash<QString, QString>& devices)
 {
-    const auto& sessionId = outboundSession.sessionId();
-    const auto& sessionKey = outboundSession.sessionKey();
-    const auto& index = outboundSession.sessionMessageIndex();
-    qDebug(E2EE) << "Sending room key to devices:" << sessionId << index;
+    qDebug(E2EE) << "Sending room key to devices:" << sessionId << messageIndex;
     QHash<QString, QHash<QString, QString>> hash;
     for (const auto& [userId, deviceId] : asKeyValueRange(devices))
         if (!hasOlmSession(userId, deviceId)) {
@@ -698,9 +697,11 @@ void ConnectionEncryptionData::sendSessionKeyToDevices(
                          << "to keys to claim";
         }
 
-    const auto sendKey = [devices, this, sessionId, index, sessionKey, roomId] {
+    const auto sendKey = [devices, this, sessionId, messageIndex, sessionKey,
+                          roomId] {
         QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
-        for (const auto& [targetUserId, targetDeviceId] : asKeyValueRange(devices)) {
+        for (const auto& [targetUserId, targetDeviceId] :
+             asKeyValueRange(devices)) {
             if (!hasOlmSession(targetUserId, targetDeviceId))
                 continue;
 
@@ -725,8 +726,8 @@ void ConnectionEncryptionData::sendSessionKeyToDevices(
                 receivedDevices.push_back(
                     { user, device, curveKeyForUserDevice(user, device) });
 
-            database.setDevicesReceivedKey(roomId, receivedDevices, sessionId,
-                                           index);
+            database.setDevicesReceivedKey(roomId, receivedDevices,
+                                           sessionId, messageIndex);
         }
     };
 
@@ -745,6 +746,23 @@ void ConnectionEncryptionData::sendSessionKeyToDevices(
         }
         sendKey();
     });
+}
+
+void ConnectionEncryptionData::sendSessionKeyToDevices(
+    const QString& roomId, const QOlmOutboundGroupSession& outboundSession,
+    const QMultiHash<QString, QString>& devices)
+{
+    const auto& sessionId = outboundSession.sessionId();
+    const auto& sessionKey = outboundSession.sessionKey();
+    const auto& index = outboundSession.sessionMessageIndex();
+
+    const auto closure = [this, roomId, sessionId, sessionKey, index, devices] {
+        doSendSessionKeyToDevices(roomId, sessionId, sessionKey, index, devices);
+    };
+    if (currentQueryKeysJob != nullptr) {
+        connectSingleShot(q, &Connection::finishedQueryingKeys, q, closure);
+    } else
+        closure();
 }
 
 ConnectionEncryptionData::ConnectionEncryptionData(Connection* connection,

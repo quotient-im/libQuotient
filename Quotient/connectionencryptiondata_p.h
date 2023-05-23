@@ -107,6 +107,10 @@ namespace _impl {
         std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
             const QString& userId, const QString& device,
             const QByteArray& message) const;
+
+        void doSendSessionKeyToDevices(const QString& roomId, const QByteArray& sessionId,
+            const QByteArray &sessionKey, uint32_t messageIndex,
+            const QMultiHash<QString, QString>& devices);
     };
 } // namespace _impl
 } // namespace Quotient

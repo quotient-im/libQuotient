@@ -1777,6 +1777,7 @@ void Connection::sendSessionKeyToDevices(
     const QString& roomId, const QOlmOutboundGroupSession& outboundSession,
     const QMultiHash<QString, QString>& devices)
 {
+    Q_ASSERT(d->encryptionData != nullptr);
     d->encryptionData->sendSessionKeyToDevices(roomId, outboundSession, devices);
 }
 

@@ -2048,18 +2048,8 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         }
 
         // Send the session to other people
-        // FIXME: Take the sync/async logic to Connection in 0.8
-        if (connection->isQueryingKeys()) {
-            connectSingleShot(connection, &Connection::finishedQueryingKeys,
-                              q, [this] {
-                                  connection->sendSessionKeyToDevices(
-                                      id, *currentOutboundMegolmSession,
-                                      getDevicesWithoutKey());
-                              });
-        } else {
-            connection->sendSessionKeyToDevices(
-                id, *currentOutboundMegolmSession, getDevicesWithoutKey());
-        }
+        connection->sendSessionKeyToDevices(id, *currentOutboundMegolmSession,
+                                            getDevicesWithoutKey());
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(
             QJsonDocument(pEvent->fullJson()).toJson());
