@@ -112,7 +112,7 @@ void ConnectionData::setBaseUrl(QUrl baseUrl)
     d->baseUrl = std::move(baseUrl);
     qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
     if (!d->userId.isEmpty() && d->baseUrl.isValid())
-        nam()->addBaseUrl(d->userId, d->baseUrl);
+        NetworkAccessManager::addBaseUrl(d->userId, d->baseUrl);
 }
 
 void ConnectionData::setToken(QByteArray token)
@@ -139,9 +139,9 @@ void ConnectionData::setUserId(const QString& userId)
 {
     if (d->baseUrl.isValid()) {
         if (d->userId != userId)
-            nam()->dropBaseUrl(d->userId);
+            NetworkAccessManager::dropBaseUrl(d->userId);
         if (!userId.isEmpty())
-            nam()->addBaseUrl(userId, d->baseUrl);
+            NetworkAccessManager::addBaseUrl(userId, d->baseUrl);
     }
     d->userId = userId;
 }
