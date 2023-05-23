@@ -23,7 +23,7 @@ public Q_SLOTS:
     void abort() override;
 
 protected:
-    qint64 readData(char *data, qint64 maxSize) override;
+    qint64 readData(char* data, qint64 maxSize) override;
 
 private:
     class Private;

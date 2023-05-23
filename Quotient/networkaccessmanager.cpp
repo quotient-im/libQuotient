@@ -107,17 +107,18 @@ QNetworkReply* NetworkAccessManager::createRequest(
     const auto accountId = query.queryItemValue(QStringLiteral("user_id"));
     if (accountId.isEmpty()) {
         // Using QSettings here because Quotient::NetworkSettings
-        // doesn't provide multithreading guarantees
-        static thread_local const QSettings s;
-        if (!s.value("Network/allow_direct_media_requests"_ls).toBool()) {
+        // doesn't provide multi-threading guarantees
+        if (static thread_local const QSettings s;
+            s.value("Network/allow_direct_media_requests"_ls).toBool()) //
+        {
+            // TODO: Make the best effort with a direct unauthenticated request
+            // to the media server
             qCWarning(NETWORK)
-                << "No connection specified, cannot convert mxc request";
+                << "Direct unauthenticated mxc requests are not implemented";
             return new MxcReply();
         }
-        // TODO: Make the best effort with a direct unauthenticated request
-        // to the media server
         qCWarning(NETWORK)
-            << "Direct unauthenticated mxc requests are not implemented";
+            << "No connection specified, cannot convert mxc request";
         return new MxcReply();
     }
     const auto& baseUrl = d.getBaseUrl(accountId);
@@ -142,7 +143,6 @@ QNetworkReply* NetworkAccessManager::createRequest(
 
 QStringList NetworkAccessManager::supportedSchemesImplementation() const
 {
-    auto schemes = QNetworkAccessManager::supportedSchemesImplementation();
-    schemes += QStringLiteral("mxc");
-    return schemes;
+    return QNetworkAccessManager::supportedSchemesImplementation()
+           << QStringLiteral("mxc");
 }

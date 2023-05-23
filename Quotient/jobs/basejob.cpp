@@ -133,7 +133,7 @@ public:
     /// definition (including an empty JSON object - QJsonObject{});
     /// and QJsonObject in case of an API error.
     QJsonDocument jsonResponse;
-    QUrl errorUrl; //< May contain a URL to help with some errors
+    QUrl errorUrl; //!< May contain a URL to help with some errors
 
     LoggingCategory logCat = JOBS;
 
