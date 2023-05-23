@@ -19,60 +19,67 @@
 
 using namespace Quotient;
 
-class Q_DECL_HIDDEN NetworkAccessManager::Private {
+namespace {
+class {
 public:
-    static inline QHash<QString, QUrl> baseUrls{};
-    static inline QReadWriteLock baseUrlsLock{};
-
-    QList<QSslError> ignoredSslErrors;
-
-    static QUrl getBaseUrl(const QString& accountId)
+    void addBaseUrl(const QString& accountId, const QUrl& baseUrl)
     {
-        return QReadLocker(&baseUrlsLock), baseUrls.value(accountId);
+        QWriteLocker(&namLock), baseUrls.insert(accountId, baseUrl);
     }
-};
+    void dropBaseUrl(const QString& accountId)
+    {
+        QWriteLocker(&namLock), baseUrls.remove(accountId);
+    }
+    QUrl getBaseUrl(const QString& accountId) const
+    {
+        return QReadLocker(&namLock), baseUrls.value(accountId);
+    }
+    void addIgnoredSslError(const QSslError& error)
+    {
+        QWriteLocker(&namLock), ignoredSslErrors.push_back(error);
+    }
+    void clearIgnoredSslErrors()
+    {
+        QWriteLocker(&namLock), ignoredSslErrors.clear();
+    }
+    QList<QSslError> getIgnoredSslErrors() const
+    {
+        return QReadLocker(&namLock), ignoredSslErrors;
+    }
 
-NetworkAccessManager::NetworkAccessManager(QObject* parent)
-    : QNetworkAccessManager(parent), d(makeImpl<Private>())
-{}
+private:
+    mutable QReadWriteLock namLock{};
+    QHash<QString, QUrl> baseUrls{};
+    QList<QSslError> ignoredSslErrors{};
+} d;
+
+} // anonymous namespace
 
 void NetworkAccessManager::addBaseUrl(const QString& accountId,
                                       const QUrl& homeserver)
 {
     Q_ASSERT(!accountId.isEmpty() && homeserver.isValid());
-    const QWriteLocker l(&Private::baseUrlsLock);
-    Private::baseUrls.insert(accountId, homeserver);
+    d.addBaseUrl(accountId, homeserver);
 }
 
 void NetworkAccessManager::dropBaseUrl(const QString& accountId)
 {
-    const QWriteLocker l(&Private::baseUrlsLock);
-    Private::baseUrls.remove(accountId);
+    d.dropBaseUrl(accountId);
 }
 
-QList<QSslError> NetworkAccessManager::ignoredSslErrors() const
+QList<QSslError> NetworkAccessManager::ignoredSslErrors()
 {
-    return d->ignoredSslErrors;
-}
-
-void NetworkAccessManager::ignoreSslErrors(bool ignore) const
-{
-    if (ignore) {
-        connect(this, &QNetworkAccessManager::sslErrors, this,
-                [](QNetworkReply* reply) { reply->ignoreSslErrors(); });
-    } else {
-        disconnect(this, &QNetworkAccessManager::sslErrors, this, nullptr);
-    }
+    return d.getIgnoredSslErrors();
 }
 
 void NetworkAccessManager::addIgnoredSslError(const QSslError& error)
 {
-    d->ignoredSslErrors << error;
+    d.addIgnoredSslError(error);
 }
 
 void NetworkAccessManager::clearIgnoredSslErrors()
 {
-    d->ignoredSslErrors.clear();
+    d.clearIgnoredSslErrors();
 }
 
 NetworkAccessManager* NetworkAccessManager::instance()
@@ -93,7 +100,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
     if (url.scheme() != "mxc"_ls) {
         auto reply =
             QNetworkAccessManager::createRequest(op, request, outgoingData);
-        reply->ignoreSslErrors(d->ignoredSslErrors);
+        reply->ignoreSslErrors(d.getIgnoredSslErrors());
         return reply;
     }
     const QUrlQuery query{ url.query() };
@@ -113,7 +120,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
             << "Direct unauthenticated mxc requests are not implemented";
         return new MxcReply();
     }
-    const auto& baseUrl = Private::getBaseUrl(accountId);
+    const auto& baseUrl = d.getBaseUrl(accountId);
     if (!baseUrl.isValid()) {
         // Strictly speaking, it should be an assert...
         qCCritical(NETWORK) << "Homeserver for" << accountId
@@ -126,7 +133,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
     rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(baseUrl, url));
 
     auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
-    implReply->ignoreSslErrors(d->ignoredSslErrors);
+    implReply->ignoreSslErrors(d.getIgnoredSslErrors());
     const auto& fileMetadata = FileMetadataMap::lookup(
         query.queryItemValue(QStringLiteral("room_id")),
         query.queryItemValue(QStringLiteral("event_id")));

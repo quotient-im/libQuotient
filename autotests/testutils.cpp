@@ -22,7 +22,10 @@ std::shared_ptr<Quotient::Connection> Quotient::createTestConnection(
     const QString& deviceName)
 {
     static constexpr auto homeserverAddr = "localhost:1234"_ls;
-    NetworkAccessManager::instance()->ignoreSslErrors(true);
+    auto* const nam = NetworkAccessManager::instance();
+    QObject::connect(nam, &QNetworkAccessManager::sslErrors, nam,
+                     [](QNetworkReply* reply) { reply->ignoreSslErrors(); });
+
     auto c = std::make_shared<Connection>();
     c->enableEncryption(E2EE_Enabled);
     const QString userId{ u'@' % localUserName % u':' % homeserverAddr };

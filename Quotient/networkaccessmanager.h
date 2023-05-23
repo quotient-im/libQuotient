@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "util.h"
+#include "Quotient/quotient_export.h"
 
 #include <QtNetwork/QNetworkAccessManager>
 
@@ -12,14 +12,14 @@ namespace Quotient {
 class QUOTIENT_API NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
-    explicit NetworkAccessManager(QObject* parent = nullptr);
+    using QNetworkAccessManager::QNetworkAccessManager;
 
-    void addBaseUrl(const QString& accountId, const QUrl& homeserver);
-    void dropBaseUrl(const QString& accountId);
-    QList<QSslError> ignoredSslErrors() const;
-    void addIgnoredSslError(const QSslError& error);
-    void clearIgnoredSslErrors();
-    void ignoreSslErrors(bool ignore = true) const;
+    static void addBaseUrl(const QString& accountId, const QUrl& homeserver);
+    static void dropBaseUrl(const QString& accountId);
+
+    static QList<QSslError> ignoredSslErrors();
+    static void addIgnoredSslError(const QSslError& error);
+    static void clearIgnoredSslErrors();
 
     //! Get a NAM instance for the current thread
     static NetworkAccessManager* instance();
@@ -30,8 +30,5 @@ private Q_SLOTS:
 private:
     QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,
                                  QIODevice* outgoingData = Q_NULLPTR) override;
-
-    class Private;
-    ImplPtr<Private> d;
 };
 } // namespace Quotient
