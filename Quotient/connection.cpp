@@ -40,6 +40,12 @@
 #    include "e2ee/qolminboundsession.h"
 #endif // Quotient_E2EE_ENABLED
 
+#if QT_VERSION_MAJOR >= 6
+#    include <qt6keychain/keychain.h>
+#else
+#    include <qt5keychain/keychain.h>
+#endif
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
