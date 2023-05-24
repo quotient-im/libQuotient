@@ -51,5 +51,8 @@ done
 echo Register carl
 docker exec synapse /bin/sh -c "register_new_matrix_user --admin -u carl -p secret -c /data/homeserver.yaml https://localhost:8008"
 
-echo You can run ctest with a full set of tests now!
-GTEST_COLOR=1 ctest --verbose "$@"
+echo "You can run ctest with a full set of tests now!"
+echo "If you don't find the synapse container running, make sure to source"
+echo "this script instead of running it in a subshell (the container will be"
+echo "deleted when you exit the shell then), or run it with KEEP_SYNAPSE"
+echo "environment variable set to any value"
