@@ -223,7 +223,7 @@ jobs:
         if [[ -z '${{ matrix.e2ee }}' || '${{ runner.os }}' != 'Linux' ]]; then
             CTEST_ARGS="$CTEST_ARGS -E testolmaccount"
         else
-            . autotests/setup-tests.sh $CTEST_ARGS
+            . autotests/setup-tests.sh
         fi
         GTEST_COLOR=1 ctest $CTEST_ARGS
         [[ -z "$TEST_USER" ]] || \
