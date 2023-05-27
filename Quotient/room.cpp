@@ -1758,6 +1758,9 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
                                     EventsPlacement placement)
 {
     Q_ASSERT(!events.empty());
+
+    const auto usesEncryption = q->usesEncryption();
+
     // Historical messages arrive in newest-to-oldest order, so the process for
     // them is almost symmetric to the one for new messages. New messages get
     // appended from index 0; old messages go backwards from index -1.
@@ -1780,12 +1783,13 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
                              ? timeline.emplace_front(std::move(e), --index)
                              : timeline.emplace_back(std::move(e), ++index);
         eventsIndex.insert(eId, index);
-        if (auto* const rme = ti.viewAs<RoomMessageEvent>())
-            if (auto* const content = rme->content())
-                if (auto* const fileInfo = content->fileInfo())
-                    if (auto* const efm = std::get_if<EncryptedFileMetadata>(
-                            &fileInfo->source))
-                        FileMetadataMap::add(id, eId, *efm);
+        if (usesEncryption)
+            if (auto* const rme = ti.viewAs<RoomMessageEvent>())
+                if (auto* const content = rme->content())
+                    if (auto* const fileInfo = content->fileInfo())
+                        if (auto* const efm = std::get_if<EncryptedFileMetadata>(
+                                &fileInfo->source))
+                            FileMetadataMap::add(id, eId, *efm);
 
         if (auto n = q->checkForNotifications(ti); n.type != Notification::None)
             notifications.insert(eId, n);
