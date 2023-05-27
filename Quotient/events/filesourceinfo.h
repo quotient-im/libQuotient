@@ -38,6 +38,7 @@ struct QUOTIENT_API EncryptedFileMetadata {
     Q_PROPERTY(QString iv MEMBER iv CONSTANT)
     Q_PROPERTY(QHash<QString, QString> hashes MEMBER hashes CONSTANT)
     Q_PROPERTY(QString v MEMBER v CONSTANT)
+    Q_PROPERTY(bool isValid READ isValid CONSTANT)
 
 public:
     QUrl url;
@@ -45,6 +46,8 @@ public:
     QString iv;
     QHash<QString, QString> hashes;
     QString v;
+
+    bool isValid() const { return url.isValid(); }
 };
 
 #ifdef Quotient_E2EE_ENABLED
@@ -97,10 +100,10 @@ namespace FileMetadataMap {
                              const QString& eventId);
 
     //! \brief Obtain file source information across connections, thread-safely
-    //! \return a FileSourceInfo object with the URL in it already converted
-    //!         from mxc to http(s) at the respective homeserver; in case of
-    //!         unsuccessful lookup the object will be set to an empty QUrl
-    QUOTIENT_API Omittable<EncryptedFileMetadata> lookup(const QString& roomId, const QString& eventId);
+    //! \return the previously saved EncryptedFileMetadata object, or an invalid
+    //!         (default-constructed) object in case of unsuccessful lookup
+    QUOTIENT_API EncryptedFileMetadata lookup(const QString& roomId,
+                                              const QString& eventId);
 }
 
 } // namespace Quotient

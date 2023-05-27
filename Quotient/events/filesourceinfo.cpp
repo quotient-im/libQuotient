@@ -175,8 +175,8 @@ void FileMetadataMap::remove(const QString& roomId, const QString& eventId)
     infos.remove({ roomId, eventId });
 }
 
-Omittable<EncryptedFileMetadata> FileMetadataMap::lookup(const QString& roomId,
-                                                         const QString& eventId)
+EncryptedFileMetadata FileMetadataMap::lookup(const QString& roomId,
+                                              const QString& eventId)
 {
     const QReadLocker l(&lock);
     return infos.value({ roomId, eventId });

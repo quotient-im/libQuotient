@@ -13,9 +13,8 @@ class QUOTIENT_API MxcReply : public QNetworkReply
     Q_OBJECT
 public:
     explicit MxcReply();
-    explicit MxcReply(
-        QNetworkReply* reply,
-        const Omittable<EncryptedFileMetadata>& fileMetadata = none);
+    explicit MxcReply(QNetworkReply* reply,
+                      const EncryptedFileMetadata& fileMetadata);
 
     qint64 bytesAvailable() const override;
 

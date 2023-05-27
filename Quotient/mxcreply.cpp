@@ -19,17 +19,17 @@ public:
 };
 
 MxcReply::MxcReply(QNetworkReply* reply,
-                   const Omittable<EncryptedFileMetadata>& fileMetadata)
-    : d(makeImpl<Private>(reply, fileMetadata ? nullptr : reply))
+                   const EncryptedFileMetadata& fileMetadata)
+    : d(makeImpl<Private>(reply, fileMetadata.isValid() ? nullptr : reply))
 {
     reply->setParent(this);
     connect(d->m_reply, &QNetworkReply::finished, this, [this, fileMetadata] {
         setError(d->m_reply->error(), d->m_reply->errorString());
 
 #ifdef Quotient_E2EE_ENABLED
-        if (fileMetadata) {
+        if (fileMetadata.isValid()) {
             auto buffer = new QBuffer(this);
-            buffer->setData(decryptFile(d->m_reply->readAll(), *fileMetadata));
+            buffer->setData(decryptFile(d->m_reply->readAll(), fileMetadata));
             buffer->open(ReadOnly);
             d->m_device = buffer;
         }
