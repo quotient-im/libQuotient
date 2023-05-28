@@ -21,6 +21,10 @@
 using namespace Quotient;
 
 namespace {
+
+static constexpr auto DirectMediaRequestsSetting =
+    "Network/allow_direct_media_requests"_ls;
+
 class {
 public:
     void addBaseUrl(const QString& accountId, const QUrl& baseUrl)
@@ -47,14 +51,41 @@ public:
     {
         return QReadLocker{ &namLock }, ignoredSslErrors;
     }
+    void allowDirectMediaRequests(bool allow)
+    {
+        if (allow)
+            directMediaRequestsAreAllowed.test_and_set();
+        else
+            directMediaRequestsAreAllowed.clear();
+    }
+    bool directMediaRequestsAllowed() const
+    {
+        return directMediaRequestsAreAllowed.test();
+    }
 
 private:
     mutable QReadWriteLock namLock{};
     QHash<QString, QUrl> baseUrls{};
     QList<QSslError> ignoredSslErrors{};
+    // This one is small enough to be atomic and not need a read-write lock
+    std::atomic_flag directMediaRequestsAreAllowed{ false };
 } d;
 
+std::once_flag directMediaRequestsInitFlag;
+
 } // anonymous namespace
+
+void NetworkAccessManager::allowDirectMediaRequests(bool allow, bool permanent)
+{
+    d.allowDirectMediaRequests(allow);
+    if (permanent)
+        QSettings().setValue(DirectMediaRequestsSetting, allow);
+}
+
+bool NetworkAccessManager::directMediaRequestsAllowed()
+{
+    return d.directMediaRequestsAllowed();
+}
 
 void NetworkAccessManager::addBaseUrl(const QString& accountId,
                                       const QUrl& homeserver)
@@ -85,6 +116,11 @@ void NetworkAccessManager::clearIgnoredSslErrors()
 
 NetworkAccessManager* NetworkAccessManager::instance()
 {
+    // Initialise direct media requests allowance at the very first NAM creation
+    std::call_once(directMediaRequestsInitFlag, [] {
+        NetworkAccessManager::allowDirectMediaRequests(
+            QSettings().value(DirectMediaRequestsSetting).toBool());
+    });
     thread_local auto* nam = [] {
         auto* namInit = new NetworkAccessManager();
         connect(QThread::currentThread(), &QThread::finished, namInit,
@@ -122,9 +158,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
     if (accountId.isEmpty()) {
         // Using QSettings here because Quotient::NetworkSettings
         // doesn't provide multi-threading guarantees
-        if (static thread_local const QSettings s;
-            s.value("Network/allow_direct_media_requests"_ls).toBool()) //
-        {
+        if (directMediaRequestsAllowed()) {
             // Best effort with an unauthenticated request directly to the media
             // homeserver (rather than via own homeserver)
             auto* mxcReply = new MxcReply(MxcReply::Deferred);

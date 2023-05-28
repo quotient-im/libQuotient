@@ -492,10 +492,7 @@ struct DownloadRunner {
 bool TestSuite::testDownload(const TestToken& thisTest, const QUrl& mxcUrl)
 {
     // Testing direct media requests needs explicit allowance
-    QSettings s;
-    static constexpr auto DirectMediaRequestsSetting =
-        "Network/allow_direct_media_requests"_ls;
-    s.setValue(DirectMediaRequestsSetting, true);
+    NetworkAccessManager::allowDirectMediaRequests(true, false);
     if (const auto result = DownloadRunner::run(mxcUrl, 1);
         result.front() != QNetworkReply::NoError) {
         clog << "Direct media request to "
@@ -503,7 +500,7 @@ bool TestSuite::testDownload(const TestToken& thisTest, const QUrl& mxcUrl)
              << " was allowed but failed" << endl;
         FAIL_TEST();
     }
-    s.setValue(DirectMediaRequestsSetting, false);
+    NetworkAccessManager::allowDirectMediaRequests(false, false);
     if (const auto result = DownloadRunner::run(mxcUrl, 1);
         result.front() == QNetworkReply::NoError) {
         clog << "Direct media request to "
