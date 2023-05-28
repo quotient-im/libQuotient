@@ -628,9 +628,6 @@ public:
     //! \sa unreadStats, lastLocalReadReceipt
     qsizetype notificationCount() const;
 
-    [[deprecated("Use setReadReceipt() to drive changes in notification count")]]
-    Q_INVOKABLE void resetNotificationCount();
-
     //! \brief Get the number of highlights since the last read receipt
     //!
     //! As of 0.7, this is defined by the homeserver as Quotient doesn't process
@@ -638,9 +635,6 @@ public:
     //!
     //! \sa unreadStats, lastLocalReadReceipt
     qsizetype highlightCount() const;
-
-    [[deprecated("Use setReadReceipt() to drive changes in highlightCount")]]
-    Q_INVOKABLE void resetHighlightCount();
 
     /** Check whether the room has account data of the given type
      * Tags and read markers are not supported by this method _yet_.
