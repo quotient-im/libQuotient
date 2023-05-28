@@ -68,7 +68,7 @@ private:
     QHash<QString, QUrl> baseUrls{};
     QList<QSslError> ignoredSslErrors{};
     // This one is small enough to be atomic and not need a read-write lock
-    std::atomic_flag directMediaRequestsAreAllowed{ false };
+    std::atomic_flag directMediaRequestsAreAllowed{};
 } d;
 
 std::once_flag directMediaRequestsInitFlag;
