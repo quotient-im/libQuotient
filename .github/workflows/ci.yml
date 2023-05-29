@@ -51,9 +51,6 @@ jobs:
           override-compiler: GCC
           update-api: update-api
 
-    env:
-      SONAR_SERVER_URL: 'https://sonarcloud.io'
-
     steps:
     - uses: actions/checkout@v3
       with:
@@ -146,19 +143,9 @@ jobs:
       with:
         arch: x64
 
-    - name: Download and set up Sonar Cloud tools
+    - name: Set up Sonar Cloud tools
       if: matrix.static-analysis == 'sonar'
-      env:
-        SONAR_SCANNER_VERSION: 4.6.2.2472
-      run: |
-        pushd $HOME/.sonar
-        curl -sSL --remote-name-all \
-            $SONAR_SERVER_URL/static/cpp/build-wrapper-linux-x86.zip \
-            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
-        unzip -o build-wrapper*.zip
-        echo "BUILD_WRAPPER=$HOME/.sonar/build-wrapper-linux-x86/build-wrapper-linux* --out-dir $BUILD_PATH/sonar" >>$GITHUB_ENV
-        unzip -o sonar-scanner-cli*.zip
-        popd
+      uses: sonarsource/sonarcloud-github-c-cpp@v1
 
     - name: Build and install QtKeychain
       run: |
@@ -241,6 +228,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_SERVER_URL: 'https://sonarcloud.io'
       run: |
         mkdir .coverage && pushd .coverage
         find $BUILD_PATH -name '*.gcda' -print0 \
@@ -249,7 +237,7 @@ jobs:
         # (if not, some tests failed and broke the build at an earlier stage)
         rm -f quotest* autotests*
         popd
-        $HOME/.sonar/sonar-scanner*/bin/sonar-scanner \
+        sonar-scanner \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
             -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
             -Dsonar.cfamily.threads=2 \
