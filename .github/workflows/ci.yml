@@ -195,7 +195,7 @@ jobs:
 
     - name: Build and install libQuotient
       run: |
-        $BUILD_WRAPPER cmake --build $BUILD_PATH --target all
+        build-wrapper-x86-64 --out-dir "$BUILD_PATH/sonar" cmake --build $BUILD_PATH --target all
         cmake --build $BUILD_PATH --target install
         ls ~/.local$BIN_DIR/quotest
 
