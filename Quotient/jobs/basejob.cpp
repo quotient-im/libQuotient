@@ -91,7 +91,7 @@ public:
         }
     }
 
-    QNetworkRequest prepareRequest();
+    QNetworkRequest prepareRequest() const;
     void sendRequest(const QNetworkRequest& req);
 
     /*! \brief Parse the response byte array into JSON
@@ -286,7 +286,7 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QByteArray& encodedPath,
     return baseUrl;
 }
 
-QNetworkRequest BaseJob::Private::prepareRequest()
+QNetworkRequest BaseJob::Private::prepareRequest() const
 {
     QNetworkRequest req{ makeRequestUrl(connection->baseUrl(), apiEndpoint,
                                         requestQuery) };
