@@ -144,6 +144,7 @@ jobs:
         arch: x64
 
     - name: Set up Sonar Cloud tools
+      id: sonar
       if: matrix.static-analysis == 'sonar'
       uses: sonarsource/sonarcloud-github-c-cpp@v1
 
@@ -195,7 +196,10 @@ jobs:
 
     - name: Build and install libQuotient
       run: |
-        build-wrapper-x86-64 --out-dir "$BUILD_PATH/sonar" cmake --build $BUILD_PATH --target all
+        if [[ '${{ matrix.static-analysis }}' == 'sonar' ]]; then
+            BUILD_WRAPPER="\"${{ steps.sonar.outputs.build-wrapper-binary }}\" --out-dir \"$BUILD_PATH/sonar\""
+        fi
+        $BUILD_WRAPPER cmake --build $BUILD_PATH --target all
         cmake --build $BUILD_PATH --target install
         ls ~/.local$BIN_DIR/quotest
 
@@ -237,7 +241,7 @@ jobs:
         # (if not, some tests failed and broke the build at an earlier stage)
         rm -f quotest* autotests*
         popd
-        sonar-scanner \
+        "${{ steps.sonar.outputs.sonar-scanner-binary }}" \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
             -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
             -Dsonar.cfamily.threads=2 \
