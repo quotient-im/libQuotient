@@ -279,7 +279,9 @@ public:
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
-    void handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent, const QString& senderId, const QString& olmSessionId);
+    void handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
+                            const QString& senderId,
+                            const QByteArray& olmSessionId);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;

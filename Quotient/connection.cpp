@@ -179,14 +179,14 @@ SsoSession* Connection::prepareForSso(const QString& initialDeviceName,
     return new SsoSession(this, initialDeviceName, deviceId);
 }
 
-void Connection::loginWithToken(const QByteArray& loginToken,
+void Connection::loginWithToken(const QString& loginToken,
                                 const QString& initialDeviceName,
                                 const QString& deviceId)
 {
     Q_ASSERT(d->data->baseUrl().isValid() && d->loginFlows.contains(LoginFlows::Token));
     d->loginToServer(LoginFlows::Token.type,
                      none /*user is encoded in loginToken*/, QString() /*password*/,
-                     QString::fromUtf8(loginToken), deviceId, initialDeviceName);
+                     loginToken, deviceId, initialDeviceName);
 }
 
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
@@ -972,15 +972,15 @@ SendToDeviceJob* Connection::sendToDevices(
     const QString& eventType, const UsersToDevicesToContent& contents)
 {
     return callApi<SendToDeviceJob>(BackgroundRequest, eventType,
-                                    QString::fromLatin1(generateTxnId()), contents);
+                                    generateTxnId(), contents);
 }
 
 SendMessageJob* Connection::sendMessage(const QString& roomId,
                                         const RoomEvent& event)
 {
     const auto txnId = event.transactionId().isEmpty() ? generateTxnId()
-                                                       : event.transactionId().toLatin1();
-    return callApi<SendMessageJob>(roomId, event.matrixType(), QString::fromLatin1(txnId),
+                                                       : event.transactionId();
+    return callApi<SendMessageJob>(roomId, event.matrixType(), txnId,
                                    event.contentJson());
 }
 
@@ -1441,7 +1441,7 @@ user_factory_t Connection::userFactory() { return _userFactory; }
 room_factory_t Connection::_roomFactory = defaultRoomFactory<>;
 user_factory_t Connection::_userFactory = defaultUserFactory<>;
 
-QByteArray Connection::generateTxnId() const
+QString Connection::generateTxnId() const
 {
     return d->data->generateTxnId();
 }
@@ -1736,7 +1736,7 @@ void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
-    if (auto r = room(notification["room_id"_ls].toString()))
+    if (auto r = room(notification[RoomIdKeyL].toString()))
         if (auto event =
                 loadEvent<EncryptedEvent>(notification["event"_ls].toObject()))
             if (const auto decrypted = r->decryptMessage(*event))
@@ -1749,7 +1749,7 @@ Database* Connection::database() const
     return d->encryptionData ? &d->encryptionData->database : nullptr;
 }
 
-UnorderedMap<QString, QOlmInboundGroupSession>
+UnorderedMap<QByteArray, QOlmInboundGroupSession>
 Connection::loadRoomMegolmSessions(const Room* room) const
 {
     return database()->loadMegolmSessions(room->id());

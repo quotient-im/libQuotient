@@ -40,7 +40,7 @@ public:
     QString lastEvent() const;
     void setLastEvent(QString identifier);
 
-    QByteArray generateTxnId() const;
+    QString generateTxnId() const;
 
 private:
     class Private;

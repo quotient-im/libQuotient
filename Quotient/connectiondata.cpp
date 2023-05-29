@@ -158,8 +158,8 @@ void ConnectionData::setLastEvent(QString identifier)
     d->lastEvent = std::move(identifier);
 }
 
-QByteArray ConnectionData::generateTxnId() const
+QString ConnectionData::generateTxnId() const
 {
-    return d->deviceId.toLatin1() + QByteArray::number(d->txnBase)
-           + QByteArray::number(++d->txnCounter);
+    return d->deviceId + QString::number(d->txnBase)
+           + QString::number(++d->txnCounter);
 }

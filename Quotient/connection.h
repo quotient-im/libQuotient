@@ -312,7 +312,7 @@ public:
     QOlmAccount* olmAccount() const;
     Database* database() const;
 
-    UnorderedMap<QString, QOlmInboundGroupSession> loadRoomMegolmSessions(
+    UnorderedMap<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;
@@ -517,7 +517,7 @@ public:
     //! \brief Generate a new transaction id
     //!
     //! Transaction id's are unique within a single Connection object
-    Q_INVOKABLE QByteArray generateTxnId() const;
+    Q_INVOKABLE QString generateTxnId() const;
 
     //! Convert an mxc: URL into a CS API URL
     Q_INVOKABLE QUrl makeMediaUrl(QUrl mxcUrl) const;
@@ -594,7 +594,7 @@ public Q_SLOTS:
     //! resolve the server from the user name because the full user MXID is
     //! encoded in the login token. Callers should ensure the homeserver
     //! sanity in advance.
-    void loginWithToken(const QByteArray& loginToken,
+    void loginWithToken(const QString& loginToken,
                         const QString& initialDeviceName,
                         const QString& deviceId = {});
 

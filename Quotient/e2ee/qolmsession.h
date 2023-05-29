@@ -42,8 +42,8 @@ public:
     bool matchesInboundSession(const QOlmMessage& preKeyMessage) const;
 
     //! Checks if the 'prekey' message is for this in-bound session.
-    bool matchesInboundSessionFrom(
-        const QString& theirIdentityKey, const QOlmMessage& preKeyMessage) const;
+    bool matchesInboundSessionFrom(QByteArray theirIdentityKey,
+                                   const QOlmMessage& preKeyMessage) const;
 
     friend bool operator<(const QOlmSession& lhs, const QOlmSession& rhs)
     {

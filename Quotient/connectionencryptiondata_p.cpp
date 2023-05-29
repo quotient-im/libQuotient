@@ -221,7 +221,7 @@ bool ConnectionEncryptionData::isKnownCurveKey(const QString& userId,
 bool ConnectionEncryptionData::hasOlmSession(const QString& user,
                                              const QString& deviceId) const
 {
-    const auto& curveKey = curveKeyForUserDevice(user, deviceId);
+    const auto& curveKey = curveKeyForUserDevice(user, deviceId).toLatin1();
     const auto sessionIt = olmSessions.find(curveKey);
     return sessionIt != olmSessions.cend() && !sessionIt->second.empty();
 }
@@ -356,8 +356,7 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
          olmSessionId = olmSessionId](const RoomKeyEvent& roomKeyEvent) {
             if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
                 detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(),
-                                                 QString::fromLatin1(
-                                                     olmSessionId));
+                                                 olmSessionId);
             } else {
                 qCDebug(E2EE)
                     << "Encrypted event room id" << roomKeyEvent.roomId()
@@ -466,8 +465,8 @@ bool ConnectionEncryptionData::createOlmSession(
         return false;
     }
     const auto recipientCurveKey =
-        curveKeyForUserDevice(targetUserId, targetDeviceId);
-    auto session = olmAccount.createOutboundSession(recipientCurveKey.toLatin1(),
+        curveKeyForUserDevice(targetUserId, targetDeviceId).toLatin1();
+    auto session = olmAccount.createOutboundSession(recipientCurveKey,
                                                     signedOneTimeKey->key());
     if (!session) {
         qCWarning(E2EE) << "Failed to create olm session for "
@@ -484,7 +483,7 @@ ConnectionEncryptionData::olmEncryptMessage(const QString& userId,
                                             const QString& device,
                                             const QByteArray& message) const
 {
-    const auto& curveKey = curveKeyForUserDevice(userId, device);
+    const auto& curveKey = curveKeyForUserDevice(userId, device).toLatin1();
     const auto& olmSession = olmSessions.at(curveKey).front();
     const auto result = olmSession.encrypt(message);
     database.updateOlmSession(curveKey, olmSession);
@@ -496,10 +495,9 @@ QJsonObject ConnectionEncryptionData::assembleEncryptedContent(
     const QString& targetDeviceId) const
 {
     payloadJson.insert(SenderKey, q->userId());
-    payloadJson.insert(
-        "keys"_ls,
-        QJsonObject{ { Ed25519Key, QString::fromLatin1(
-                                       olmAccount.identityKeys().ed25519) } });
+    payloadJson.insert("keys"_ls,
+                       QJsonObject{
+                           { Ed25519Key, olmAccount.identityKeys().ed25519 } });
     payloadJson.insert("recipient"_ls, targetUserId);
     payloadJson.insert(
         "recipient_keys"_ls,
@@ -513,8 +511,7 @@ QJsonObject ConnectionEncryptionData::assembleEncryptedContent(
           QJsonObject{ { "type"_ls, type },
                        { "body"_ls, QString::fromLatin1(cipherText) } } }
     };
-    return EncryptedEvent(encrypted, QString::fromLatin1(
-                                         olmAccount.identityKeys().curve25519))
+    return EncryptedEvent(encrypted, olmAccount.identityKeys().curve25519)
         .contentJson();
 }
 
@@ -537,7 +534,7 @@ std::pair<QByteArray, QByteArray> doDecryptMessage(const QOlmSession& session,
 }
 
 std::pair<QByteArray, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(
-    const QJsonObject& personalCipherObject, const QString& senderKey)
+    const QJsonObject& personalCipherObject, const QByteArray& senderKey)
 {
     const auto msgType = static_cast<QOlmMessage::Type>(
         personalCipherObject.value(TypeKey).toInt(-1));
@@ -564,7 +561,7 @@ std::pair<QByteArray, QByteArray> ConnectionEncryptionData::sessionDecryptMessag
 
     qCDebug(E2EE) << "Creating new inbound session"; // Pre-key messages only
     auto newSessionResult =
-        olmAccount.createInboundSessionFrom(senderKey.toLatin1(), message);
+        olmAccount.createInboundSessionFrom(senderKey, message);
     if (!newSessionResult) {
         qCWarning(E2EE) << "Failed to create inbound session for" << senderKey
                         << "with error" << newSessionResult.error();
@@ -589,14 +586,14 @@ std::pair<EventPtr, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(
         return {};
 
     const auto identityKey = olmAccount.identityKeys().curve25519;
-    const auto personalCipherObject =
-        encryptedEvent.ciphertext(QString::fromLatin1(identityKey));
+    const auto personalCipherObject = encryptedEvent.ciphertext(identityKey);
     if (personalCipherObject.isEmpty()) {
         qDebug(E2EE) << "Encrypted event is not for the current device";
         return {};
     }
     const auto [decrypted, olmSessionId] =
-        sessionDecryptMessage(personalCipherObject, encryptedEvent.senderKey());
+        sessionDecryptMessage(personalCipherObject,
+                              encryptedEvent.senderKey().toLatin1());
     if (decrypted.isEmpty()) {
         qDebug(E2EE) << "Problem with new session from senderKey:"
                      << encryptedEvent.senderKey()
@@ -673,7 +670,7 @@ std::pair<EventPtr, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(
     }
     if (const auto ourKey =
             decryptedEventObject["recipient_keys"_ls][Ed25519Key].toString();
-        ourKey != QString::fromLatin1(olmAccount.identityKeys().ed25519)) //
+        ourKey != olmAccount.identityKeys().ed25519) //
     {
         qDebug(E2EE) << "Found key" << ourKey
                      << "instead of our own ed25519 key in Olm plaintext";

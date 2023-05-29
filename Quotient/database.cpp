@@ -199,7 +199,7 @@ void Database::clear()
 
 }
 
-void Database::saveOlmSession(const QString& senderKey,
+void Database::saveOlmSession(const QByteArray& senderKey,
                               const QOlmSession& session,
                               const QDateTime& timestamp)
 {
@@ -213,19 +213,19 @@ void Database::saveOlmSession(const QString& senderKey,
     commit();
 }
 
-UnorderedMap<QString, std::vector<QOlmSession>> Database::loadOlmSessions()
+UnorderedMap<QByteArray, std::vector<QOlmSession>> Database::loadOlmSessions()
 {
     auto query = prepareQuery(QStringLiteral(
         "SELECT * FROM olm_sessions ORDER BY lastReceived DESC;"));
     transaction();
     execute(query);
     commit();
-    UnorderedMap<QString, std::vector<QOlmSession>> sessions;
+    UnorderedMap<QByteArray, std::vector<QOlmSession>> sessions;
     while (query.next()) {
         if (auto&& expectedSession =
                 QOlmSession::unpickle(query.value("pickle"_ls).toByteArray(),
                                       m_picklingKey)) {
-            sessions[query.value("senderKey"_ls).toString()].emplace_back(
+            sessions[query.value("senderKey"_ls).toByteArray()].emplace_back(
                 std::move(*expectedSession));
         } else
             qCWarning(E2EE)
@@ -234,7 +234,7 @@ UnorderedMap<QString, std::vector<QOlmSession>> Database::loadOlmSessions()
     return sessions;
 }
 
-UnorderedMap<QString, QOlmInboundGroupSession> Database::loadMegolmSessions(
+UnorderedMap<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSessions(
     const QString& roomId)
 {
     auto query = prepareQuery(QStringLiteral("SELECT * FROM inbound_megolm_sessions WHERE roomId=:roomId;"));
@@ -242,11 +242,11 @@ UnorderedMap<QString, QOlmInboundGroupSession> Database::loadMegolmSessions(
     transaction();
     execute(query);
     commit();
-    UnorderedMap<QString, QOlmInboundGroupSession> sessions;
+    UnorderedMap<QByteArray, QOlmInboundGroupSession> sessions;
     while (query.next()) {
         if (auto&& expectedSession = QOlmInboundGroupSession::unpickle(
                 query.value("pickle"_ls).toByteArray(), m_picklingKey)) {
-            const auto sessionId = query.value("sessionId"_ls).toString();
+            const auto sessionId = query.value("sessionId"_ls).toByteArray();
             if (const auto it = sessions.find(sessionId); it != sessions.end()) {
                 qCritical(DATABASE) << "More than one inbound group session "
                                        "with the same session id"
@@ -259,9 +259,9 @@ UnorderedMap<QString, QOlmInboundGroupSession> Database::loadMegolmSessions(
                 sessions.erase(it);
             }
             expectedSession->setOlmSessionId(
-                query.value("olmSessionId"_ls).toString());
+                query.value("olmSessionId"_ls).toByteArray());
             expectedSession->setSenderId(query.value("senderId"_ls).toString());
-            sessions.try_emplace(query.value("sessionId"_ls).toString(),
+            sessions.try_emplace(query.value("sessionId"_ls).toByteArray(),
                                  std::move(*expectedSession));
         } else
             qCWarning(E2EE) << "Failed to unpickle megolm session:"
@@ -430,7 +430,7 @@ QMultiHash<QString, QString> Database::devicesWithoutKey(
     return devices;
 }
 
-void Database::updateOlmSession(const QString& senderKey,
+void Database::updateOlmSession(const QByteArray& senderKey,
                                 const QOlmSession& session)
 {
     auto query = prepareQuery(

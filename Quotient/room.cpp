@@ -355,12 +355,12 @@ public:
     bool isLocalUser(const User* u) const { return u == q->localUser(); }
 
 #ifdef Quotient_E2EE_ENABLED
-    UnorderedMap<QString, QOlmInboundGroupSession> groupSessions;
+    UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
     Omittable<QOlmOutboundGroupSession> currentOutboundMegolmSession = none;
 
-    bool addInboundGroupSession(QString sessionId, QByteArray sessionKey,
+    bool addInboundGroupSession(QByteArray sessionId, QByteArray sessionKey,
                                 const QString& senderId,
-                                const QString& olmSessionId)
+                                const QByteArray& olmSessionId)
     {
         if (groupSessions.contains(sessionId)) {
             qCWarning(E2EE) << "Inbound Megolm session" << sessionId << "already exists";
@@ -370,7 +370,7 @@ public:
         auto expectedMegolmSession = QOlmInboundGroupSession::create(sessionKey);
         Q_ASSERT(expectedMegolmSession.has_value());
         auto&& megolmSession = *expectedMegolmSession;
-        if (QString::fromLatin1(megolmSession.sessionId()) != sessionId) {
+        if (megolmSession.sessionId() != sessionId) {
             qCWarning(E2EE) << "Session ID mismatch in m.room_key event";
             return false;
         }
@@ -383,7 +383,7 @@ public:
     }
 
     QString groupSessionDecryptMessage(const QByteArray& ciphertext,
-                                       const QString& sessionId,
+                                       const QByteArray& sessionId,
                                        const QString& eventId,
                                        const QDateTime& timestamp,
                                        const QString& senderId)
@@ -452,9 +452,9 @@ public:
         connection->database()->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 
-        addInboundGroupSession(QString::fromLatin1(currentOutboundMegolmSession->sessionId()),
+        addInboundGroupSession(currentOutboundMegolmSession->sessionId(),
                                currentOutboundMegolmSession->sessionKey(),
-                               q->localUser()->id(), "SELF"_ls);
+                               q->localUser()->id(), QByteArrayLiteral("SELF"));
     }
 
     QMultiHash<QString, QString> getDevicesWithoutKey() const
@@ -1575,7 +1575,7 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
         return {};
     }
     QString decrypted = d->groupSessionDecryptMessage(
-        encryptedEvent.ciphertext(), encryptedEvent.sessionId(),
+        encryptedEvent.ciphertext(), encryptedEvent.sessionId().toLatin1(),
         encryptedEvent.id(), encryptedEvent.originTimestamp(),
         encryptedEvent.senderId());
     if (decrypted.isEmpty()) {
@@ -1594,7 +1594,7 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 
 void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                               const QString& senderId,
-                              const QString& olmSessionId)
+                              const QByteArray& olmSessionId)
 {
 #ifndef Quotient_E2EE_ENABLED
     Q_UNUSED(roomKeyEvent)
@@ -1606,7 +1606,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
                         << roomKeyEvent.algorithm() << "in m.room_key event";
     }
-    if (d->addInboundGroupSession(roomKeyEvent.sessionId(),
+    if (d->addInboundGroupSession(roomKeyEvent.sessionId().toLatin1(),
                                   roomKeyEvent.sessionKey(), senderId,
                                   olmSessionId)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
@@ -1992,7 +1992,7 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
 RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
-        event->setTransactionId(QString::fromLatin1(connection->generateTxnId()));
+        event->setTransactionId(connection->generateTxnId());
     if (event->roomId().isEmpty())
         event->setRoomId(id);
     if (event->senderId().isEmpty())
@@ -2046,9 +2046,9 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         connection->database()->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
         encryptedEvent = makeEvent<EncryptedEvent>(
-            encrypted, QString::fromLatin1(connection->olmAccount()->identityKeys().curve25519),
+            encrypted, connection->olmAccount()->identityKeys().curve25519,
             connection->deviceId(), QString::fromLatin1(currentOutboundMegolmSession->sessionId()));
-        encryptedEvent->setTransactionId(QString::fromLatin1(connection->generateTxnId()));
+        encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
         if (pEvent->contentJson().contains("m.relates_to"_ls)) {
@@ -2459,7 +2459,7 @@ void Room::unban(const QString& userId)
 void Room::redactEvent(const QString& eventId, const QString& reason)
 {
     connection()->callApi<RedactEventJob>(id(), eventId,
-                                          QString::fromLatin1(connection()->generateTxnId()), reason);
+                                          connection()->generateTxnId(), reason);
 }
 
 void Room::uploadFile(const QString& id, const QUrl& localFilename,

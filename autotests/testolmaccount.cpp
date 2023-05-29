@@ -45,8 +45,8 @@ void TestOlmAccount::identityKeysValid()
     QCOMPARE(ed25519.size(), 43);
 
     // encoded as valid base64?
-    QVERIFY(QByteArray::fromBase64(curve25519).size() > 0);
-    QVERIFY(QByteArray::fromBase64(ed25519).size() > 0);
+    QVERIFY(QByteArray::fromBase64(curve25519.toLatin1()).size() > 0);
+    QVERIFY(QByteArray::fromBase64(ed25519.toLatin1()).size() > 0);
 }
 
 void TestOlmAccount::signatureValid()
@@ -60,7 +60,7 @@ void TestOlmAccount::signatureValid()
     QOlmUtility utility;
     const auto identityKeys = olmAccount.identityKeys();
     const auto ed25519Key = identityKeys.ed25519;
-    QVERIFY(utility.ed25519Verify(ed25519Key, message, signature));
+    QVERIFY(utility.ed25519Verify(ed25519Key.toLatin1(), message, signature));
 }
 
 void TestOlmAccount::oneTimeKeysValid()

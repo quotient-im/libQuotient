@@ -116,10 +116,8 @@ IdentityKeys QOlmAccount::identityKeys() const
             qPrintable("Failed to get "_ls % accountId() % " identity keys"_ls));
     }
     const auto key = QJsonDocument::fromJson(keyBuffer).object();
-    return IdentityKeys {
-        key.value(QStringLiteral("curve25519")).toString().toUtf8(),
-        key.value(QStringLiteral("ed25519")).toString().toUtf8()
-    };
+    return IdentityKeys{ key.value(QStringLiteral("curve25519")).toString(),
+                         key.value(QStringLiteral("ed25519")).toString() };
 }
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
@@ -148,10 +146,10 @@ QByteArray QOlmAccount::signIdentityKeys() const
                                     "m.megolm.v1.aes-sha2"_ls } },
         { "user_id"_ls, m_userId },
         { "device_id"_ls, m_deviceId },
-        { "keys"_ls, QJsonObject{ { QStringLiteral("curve25519:") + m_deviceId,
-                                 QString::fromLatin1(keys.curve25519) },
-                               { QStringLiteral("ed25519:") + m_deviceId,
-                                 QString::fromLatin1(keys.ed25519) } } } });
+        { "keys"_ls,
+          QJsonObject{
+              { QStringLiteral("curve25519:") + m_deviceId, keys.curve25519 },
+              { QStringLiteral("ed25519:") + m_deviceId, keys.ed25519 } } } });
 }
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const
@@ -225,10 +223,11 @@ DeviceKeys QOlmAccount::deviceKeys() const
         .userId = m_userId,
         .deviceId = m_deviceId,
         .algorithms = Algorithms,
-        .keys{ { "curve25519:"_ls + m_deviceId, QString::fromLatin1(idKeys.curve25519) },
-               { "ed25519:"_ls + m_deviceId, QString::fromLatin1(idKeys.ed25519) } },
-        .signatures{
-            { m_userId, { { "ed25519:"_ls + m_deviceId, QString::fromLatin1(signIdentityKeys()) } } } }
+        .keys{ { "curve25519:"_ls + m_deviceId, idKeys.curve25519 },
+               { "ed25519:"_ls + m_deviceId, idKeys.ed25519 } },
+        .signatures{ { m_userId,
+                       { { "ed25519:"_ls + m_deviceId,
+                           QString::fromLatin1(signIdentityKeys()) } } } }
     };
 }
 

@@ -39,8 +39,8 @@ public:
 
     //! The olm session that this session was received from.
     //! Required to get the device this session is from.
-    QString olmSessionId() const;
-    void setOlmSessionId(const QString& newOlmSessionId);
+    QByteArray olmSessionId() const;
+    void setOlmSessionId(const QByteArray& newOlmSessionId);
 
     //! The sender of this session.
     QString senderId() const;
@@ -52,7 +52,7 @@ public:
 private:
     QOlmInboundGroupSession();
     CStructPtr<OlmInboundGroupSession> m_groupSession;
-    QString m_olmSessionId;
+    QByteArray m_olmSessionId;
     QString m_senderId;
     OlmInboundGroupSession* olmData = m_groupSession.get();
 };

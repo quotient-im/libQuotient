@@ -35,10 +35,10 @@ public:
     void storeOlmAccount(const QOlmAccount& olmAccount);
     Omittable<OlmErrorCode> setupOlmAccount(QOlmAccount &olmAccount);
     void clear();
-    void saveOlmSession(const QString& senderKey, const QOlmSession& session,
+    void saveOlmSession(const QByteArray& senderKey, const QOlmSession& session,
                         const QDateTime& timestamp);
-    UnorderedMap<QString, std::vector<QOlmSession>> loadOlmSessions();
-    UnorderedMap<QString, QOlmInboundGroupSession> loadMegolmSessions(
+    UnorderedMap<QByteArray, std::vector<QOlmSession>> loadOlmSessions();
+    UnorderedMap<QByteArray, QOlmInboundGroupSession> loadMegolmSessions(
         const QString& roomId);
     void saveMegolmSession(const QString& roomId,
                            const QOlmInboundGroupSession& session);
@@ -55,7 +55,8 @@ public:
         const QString& roomId);
     void saveCurrentOutboundMegolmSession(
         const QString& roomId, const QOlmOutboundGroupSession& session);
-    void updateOlmSession(const QString& senderKey, const QOlmSession& session);
+    void updateOlmSession(const QByteArray& senderKey,
+                          const QOlmSession& session);
 
     // Returns a map UserId -> [DeviceId] that have not received key yet
     QMultiHash<QString, QString> devicesWithoutKey(

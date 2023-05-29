@@ -129,12 +129,11 @@ bool QOlmSession::matchesInboundSession(const QOlmMessage& preKeyMessage) const
 }
 
 bool QOlmSession::matchesInboundSessionFrom(
-    const QString& theirIdentityKey, const QOlmMessage& preKeyMessage) const
+    QByteArray theirIdentityKey, const QOlmMessage& preKeyMessage) const
 {
-    const auto theirIdentityKeyBuf = theirIdentityKey.toUtf8();
     auto oneTimeKeyMessageBuf = preKeyMessage.toCiphertext();
     const auto maybeMatches = olm_matches_inbound_session_from(
-        olmData, theirIdentityKeyBuf.data(), unsignedSize(theirIdentityKeyBuf),
+        olmData, theirIdentityKey.data(), unsignedSize(theirIdentityKey),
         oneTimeKeyMessageBuf.data(), unsignedSize(oneTimeKeyMessageBuf));
 
     if (maybeMatches == olm_error())
