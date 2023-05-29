@@ -1946,13 +1946,18 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
 
     roomChanges |= d->updateStatsFromSyncData(data, fromCache);
 
-    if (roomChanges & Change::Topic)
-        emit topicChanged();
+    if (roomChanges != 0) {
+        // First test for changes that can only come from /sync calls and not
+        // other interactions (/members, /messages etc.)
+        if ((roomChanges & Change::Topic) > 0)
+            emit topicChanged();
 
-    if (roomChanges & (Change::Name | Change::Aliases))
-        emit namesChanged(this);
+        if ((roomChanges & Change::RoomNames) > 0)
+            emit namesChanged(this);
 
-    d->postprocessChanges(roomChanges, !fromCache);
+        // And now test for changes that can occur from /sync or otherwise
+        d->postprocessChanges(roomChanges, !fromCache);
+    }
     if (firstUpdate)
         emit baseStateLoaded();
     qCDebug(MAIN) << "--- Finished updating room" << id() << "/" << objectName();
@@ -1963,23 +1968,22 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
     if (!changes)
         return;
 
-    if (changes & Change::Members)
+    if ((changes & Change::Members) > 0)
         emit q->memberListChanged();
 
-    if (changes
-        & (Change::Name | Change::Aliases | Change::Members | Change::Summary))
+    if ((changes & (Change::RoomNames | Change::Members | Change::Summary)) > 0)
         updateDisplayname();
 
-    if (changes & Change::PartiallyReadStats) {
+    if ((changes & Change::PartiallyReadStats) > 0) {
         QT_IGNORE_DEPRECATIONS(
             emit q->unreadMessagesChanged(q);) // TODO: remove in 0.8
         emit q->partiallyReadStatsChanged();
     }
 
-    if (changes & Change::UnreadStats)
+    if ((changes & Change::UnreadStats) > 0)
         emit q->unreadStatsChanged();
 
-    if (changes & Change::Highlights)
+    if ((changes & Change::Highlights) > 0)
         emit q->highlightCountChanged();
 
     qCDebug(MAIN).nospace() << terse << changes << " = 0x" << Qt::hex
@@ -3162,7 +3166,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     // clang-format off
     const auto result = switchOnType(e
         , [] (const RoomNameEvent&) {
-            return Change::Name;
+            return Change::RoomNames;
         }
         , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
             // clang-format on
@@ -3182,7 +3186,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
 
             connection()->updateRoomAliases(id(), previousAltAliases,
                                             newAliases);
-            return Change::Aliases;
+            return Change::RoomNames;
             // clang-format off
         }
         , [this] (const RoomPinnedEvent&) {

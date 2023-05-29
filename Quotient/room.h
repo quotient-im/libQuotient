@@ -188,29 +188,31 @@ public:
     //! a "cumulative" changed() signal instead of using individual signals for
     //! each change. Specific enumerators mention these individual signals.
     //! \sa changed
-    enum class Change : uint {
-        None = 0x0, ///< No changes occurred in the room
-        Name = 0x1, ///< \sa namesChanged, displaynameChanged
-        Aliases = 0x2, ///< \sa namesChanged, displaynameChanged
-        CanonicalAlias = Aliases,
-        Topic = 0x4, ///< \sa topicChanged
-        PartiallyReadStats = 0x8, ///< \sa partiallyReadStatsChanged
+    enum class Change : quint32 { // QFlags can't go more than 32-bit
+        None = 0x0, //!< No changes occurred in the room
+        RoomNames = 0x1, //!< \sa namesChanged, displaynameChanged
+        DECL_DEPRECATED_ENUMERATOR(Name, RoomNames),
+        DECL_DEPRECATED_ENUMERATOR(Aliases, RoomNames),
+        DECL_DEPRECATED_ENUMERATOR(CanonicalAlias, RoomNames),
+        // Aliases/CanonicalAlias pre-0.8 = 0x2,
+        Topic = 0x4, //!< \sa topicChanged
+        PartiallyReadStats = 0x8, //!< \sa partiallyReadStatsChanged
         DECL_DEPRECATED_ENUMERATOR(UnreadNotifs, PartiallyReadStats),
-        Avatar = 0x10, ///< \sa avatarChanged
-        JoinState = 0x20, ///< \sa joinStateChanged
-        Tags = 0x40, ///< \sa tagsChanged
+        Avatar = 0x10, //!< \sa avatarChanged
+        JoinState = 0x20, //!< \sa joinStateChanged
+        Tags = 0x40, //!< \sa tagsChanged
         //! \sa userAdded, userRemoved, memberRenamed, memberListChanged,
         //!     displaynameChanged
         Members = 0x80,
-        UnreadStats = 0x100, ///< \sa unreadStatsChanged
+        UnreadStats = 0x100, //!< \sa unreadStatsChanged
         AccountData Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::AccountData will be merged into Change::Other in 0.8") =
             0x200,
-        Summary = 0x400, ///< \sa summaryChanged, displaynameChanged
+        Summary = 0x400, //!< \sa summaryChanged, displaynameChanged
         ReadMarker Q_DECL_ENUMERATOR_DEPRECATED_X(
             "Change::ReadMarker will be merged into Change::Other in 0.8") =
             0x800,
-        Highlights = 0x1000, ///< \sa highlightCountChanged
+        Highlights = 0x1000, //!< \sa highlightCountChanged
         //! A catch-all value that covers changes not listed above (such as
         //! encryption turned on or the room having been upgraded), as well as
         //! changes in the room state that the library is not aware of (e.g.,
