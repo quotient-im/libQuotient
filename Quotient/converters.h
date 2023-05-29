@@ -331,9 +331,9 @@ struct JsonConverter<Omittable<T>> {
     }
 };
 
-template <typename VectorT, typename T = typename VectorT::value_type>
+template <typename ContT>
 struct JsonArrayConverter {
-    static auto dump(const VectorT& vals)
+    static auto dump(const ContT& vals)
     {
         QJsonArray ja;
         for (const auto& v : vals)
@@ -342,15 +342,15 @@ struct JsonArrayConverter {
     }
     static auto load(const QJsonArray& ja)
     {
-        VectorT vect;
-        vect.reserve(typename VectorT::size_type(ja.size()));
-        // NB: Make sure to pass QJsonValue to fromJson<> so that it could
-        // hit the correct overload and not fall back to the generic fromJson
-        // that treats everything as an object. See also the explanation in
-        // the commit introducing these lines.
-        for (const QJsonValue v : ja)
-            vect.push_back(fromJson<T>(v));
-        return vect;
+        ContT vals;
+        vals.reserve(static_cast<typename ContT::size_type>(ja.size()));
+        // NB: Make sure fromJson<> gets QJsonValue (not QJsonValue*Ref)
+        // to avoid it falling back to the generic implementation that treats
+        // everything as an object. See also the message of commit 20f01303b
+        // that introduced these lines.
+        for (const auto& v : ja)
+            vals.push_back(fromJson<typename ContT::value_type, QJsonValue>(v));
+        return vals;
     }
     static auto load(const QJsonValue& jv) { return load(jv.toArray()); }
     static auto load(const QJsonDocument& jd) { return load(jd.array()); }
@@ -430,11 +430,11 @@ struct HashMapFromJson {
     static void fillFrom(const QJsonObject& jo, HashMapT& h)
     {
         h.reserve(h.size() + jo.size());
-        // NB: the QJsonValue cast below is for the same reason as in
-        // JsonArrayConverter
+        // NB: coercing the passed value to QJsonValue below is for
+        // the same reason as in JsonArrayConverter
         for (auto it = jo.begin(); it != jo.end(); ++it)
-            h[it.key()] = fromJson<typename HashMapT::mapped_type>(
-                QJsonValue(it.value()));
+            h[it.key()] = fromJson<typename HashMapT::mapped_type, QJsonValue>(
+                it.value());
     }
 };
 
