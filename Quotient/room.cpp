@@ -1230,23 +1230,7 @@ qsizetype Room::notificationCount() const
     return d->unreadStats.notableCount;
 }
 
-void Room::resetNotificationCount()
-{
-    if (d->unreadStats.notableCount == 0)
-        return;
-    d->unreadStats.notableCount = 0;
-    emit notificationCountChanged();
-}
-
 qsizetype Room::highlightCount() const { return d->serverHighlightCount; }
-
-void Room::resetHighlightCount()
-{
-    if (d->serverHighlightCount == 0)
-        return;
-    d->serverHighlightCount = 0;
-    emit highlightCountChanged();
-}
 
 void Room::switchVersion(QString newVersion)
 {
