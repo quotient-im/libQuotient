@@ -197,7 +197,7 @@ jobs:
     - name: Build and install libQuotient
       run: |
         if [[ '${{ matrix.static-analysis }}' == 'sonar' ]]; then
-            BUILD_WRAPPER="\"${{ steps.sonar.outputs.build-wrapper-binary }}\" --out-dir \"$BUILD_PATH/sonar\""
+            BUILD_WRAPPER="${{ steps.sonar.outputs.build-wrapper-binary }} --out-dir $BUILD_PATH/sonar"
         fi
         $BUILD_WRAPPER cmake --build $BUILD_PATH --target all
         cmake --build $BUILD_PATH --target install
@@ -241,7 +241,7 @@ jobs:
         # (if not, some tests failed and broke the build at an earlier stage)
         rm -f quotest* autotests*
         popd
-        "${{ steps.sonar.outputs.sonar-scanner-binary }}" \
+        ${{ steps.sonar.outputs.sonar-scanner-binary }} \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
             -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
             -Dsonar.cfamily.threads=2 \
