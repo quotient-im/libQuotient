@@ -116,10 +116,8 @@ IdentityKeys QOlmAccount::identityKeys() const
             qPrintable("Failed to get "_ls % accountId() % " identity keys"_ls));
     }
     const auto key = QJsonDocument::fromJson(keyBuffer).object();
-    return IdentityKeys {
-        key.value(QStringLiteral("curve25519")).toString().toUtf8(),
-        key.value(QStringLiteral("ed25519")).toString().toUtf8()
-    };
+    return IdentityKeys{ key.value(QStringLiteral("curve25519")).toString(),
+                         key.value(QStringLiteral("ed25519")).toString() };
 }
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
@@ -143,15 +141,15 @@ QByteArray QOlmAccount::sign(const QJsonObject &message) const
 QByteArray QOlmAccount::signIdentityKeys() const
 {
     const auto keys = identityKeys();
+    static const auto& Algorithms = toJson(SupportedAlgorithms);
     return sign(QJsonObject{
-        { "algorithms"_ls, QJsonArray{ "m.olm.v1.curve25519-aes-sha2"_ls,
-                                    "m.megolm.v1.aes-sha2"_ls } },
+        { "algorithms"_ls, Algorithms },
         { "user_id"_ls, m_userId },
         { "device_id"_ls, m_deviceId },
-        { "keys"_ls, QJsonObject{ { QStringLiteral("curve25519:") + m_deviceId,
-                                 QString::fromLatin1(keys.curve25519) },
-                               { QStringLiteral("ed25519:") + m_deviceId,
-                                 QString::fromLatin1(keys.ed25519) } } } });
+        { "keys"_ls,
+          QJsonObject{
+              { QStringLiteral("curve25519:") + m_deviceId, keys.curve25519 },
+              { QStringLiteral("ed25519:") + m_deviceId, keys.ed25519 } } } });
 }
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const
@@ -217,18 +215,19 @@ OlmErrorCode QOlmAccount::removeOneTimeKeys(const QOlmSession& session)
 
 DeviceKeys QOlmAccount::deviceKeys() const
 {
-    static QStringList Algorithms(SupportedAlgorithms.cbegin(),
-                                  SupportedAlgorithms.cend());
+    static const QStringList Algorithms(SupportedAlgorithms.cbegin(),
+                                        SupportedAlgorithms.cend());
 
     const auto idKeys = identityKeys();
     return DeviceKeys{
         .userId = m_userId,
         .deviceId = m_deviceId,
         .algorithms = Algorithms,
-        .keys{ { "curve25519:"_ls + m_deviceId, QString::fromLatin1(idKeys.curve25519) },
-               { "ed25519:"_ls + m_deviceId, QString::fromLatin1(idKeys.ed25519) } },
-        .signatures{
-            { m_userId, { { "ed25519:"_ls + m_deviceId, QString::fromLatin1(signIdentityKeys()) } } } }
+        .keys{ { "curve25519:"_ls + m_deviceId, idKeys.curve25519 },
+               { "ed25519:"_ls + m_deviceId, idKeys.ed25519 } },
+        .signatures{ { m_userId,
+                       { { "ed25519:"_ls + m_deviceId,
+                           QString::fromLatin1(signIdentityKeys()) } } } }
     };
 }
 

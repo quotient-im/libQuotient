@@ -154,11 +154,11 @@ bool QOlmInboundGroupSession::isVerified() const
     return olm_inbound_group_session_is_verified(olmData) != 0;
 }
 
-QString QOlmInboundGroupSession::olmSessionId() const
+QByteArray QOlmInboundGroupSession::olmSessionId() const
 {
     return m_olmSessionId;
 }
-void QOlmInboundGroupSession::setOlmSessionId(const QString& newOlmSessionId)
+void QOlmInboundGroupSession::setOlmSessionId(const QByteArray& newOlmSessionId)
 {
     m_olmSessionId = newOlmSessionId;
 }

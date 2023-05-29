@@ -68,7 +68,8 @@ void TestOlmUtility::verifySignedOneTimeKey()
     std::copy(sig.begin(), sig.end(), signatureBuf1.begin());
 
     auto res =
-        olm_ed25519_verify(utility, aliceOlm.identityKeys().ed25519.data(),
+        olm_ed25519_verify(utility,
+                           aliceOlm.identityKeys().ed25519.toLatin1().data(),
                            aliceOlm.identityKeys().ed25519.size(), msg.data(),
                            msg.size(), sig.data(), sig.size());
 
@@ -78,8 +79,9 @@ void TestOlmUtility::verifySignedOneTimeKey()
     delete[](reinterpret_cast<uint8_t *>(utility));
 
     QOlmUtility utility2;
-    auto res2 = utility2.ed25519Verify(aliceOlm.identityKeys().ed25519, msg,
-                                       signatureBuf1);
+    auto res2 =
+        utility2.ed25519Verify(aliceOlm.identityKeys().ed25519.toLatin1(), msg,
+                               signatureBuf1);
 
     //QCOMPARE(std::string(olm_utility_last_error(utility)), "SUCCESS");
     QVERIFY(res2);
@@ -96,29 +98,21 @@ void TestOlmUtility::validUploadKeysRequest()
 
     auto idSig = alice.signIdentityKeys();
 
-    QJsonObject body
-    {
-        {"algorithms"_ls, QJsonArray{"m.olm.v1.curve25519-aes-sha2"_ls, "m.megolm.v1.aes-sha2"_ls}},
-        {"user_id"_ls, userId},
-        {"device_id"_ls, deviceId},
-        {"keys"_ls,
-            QJsonObject{
-                {QStringLiteral("curve25519:") + deviceId, QString::fromUtf8(alice.identityKeys().curve25519)},
-                {QStringLiteral("ed25519:") + deviceId, QString::fromUtf8(alice.identityKeys().ed25519)}
-            }
-        },
-        {"signatures"_ls,
-            QJsonObject{
-                {userId,
-                    QJsonObject{
-                        {"ed25519:"_ls + deviceId, QString::fromUtf8(idSig)}
-                    }
-                }
-            }
-        }
+    const QJsonObject body{
+        { "algorithms"_ls, toJson(SupportedAlgorithms) },
+        { "user_id"_ls, userId },
+        { "device_id"_ls, deviceId },
+        { "keys"_ls,
+          QJsonObject{
+              { "curve25519:"_ls + deviceId, alice.identityKeys().curve25519 },
+              { "ed25519:"_ls + deviceId, alice.identityKeys().ed25519 } } },
+        { "signatures"_ls,
+          QJsonObject{
+              { userId, QJsonObject{ { "ed25519:"_ls + deviceId,
+                                       QString::fromLatin1(idSig) } } } } }
     };
 
-    DeviceKeys deviceKeys = alice.deviceKeys();
+    const auto deviceKeys = alice.deviceKeys();
     QCOMPARE(QJsonDocument(toJson(deviceKeys)).toJson(QJsonDocument::Compact),
             QJsonDocument(body).toJson(QJsonDocument::Compact));
 

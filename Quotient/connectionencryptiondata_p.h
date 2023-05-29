@@ -21,7 +21,7 @@ namespace _impl {
         QOlmAccount olmAccount;
         // No easy way in C++ to discern between SQL SELECT from UPDATE, too bad
         mutable Database database;
-        UnorderedMap<QString, std::vector<QOlmSession>> olmSessions;
+        UnorderedMap<QByteArray, std::vector<QOlmSession>> olmSessions;
         //! A map from SenderKey to vector of InboundSession
         QHash<QString, KeyVerificationSession*> verificationSessions{};
         QSet<QString> trackedUsers{};
@@ -53,7 +53,7 @@ namespace _impl {
         bool createOlmSession(const QString& targetUserId,
                               const QString& targetDeviceId,
                               const OneTimeKeys& oneTimeKeyObject);
-        void saveSession(const QOlmSession& session, const QString& senderKey)
+        void saveSession(const QOlmSession& session, const QByteArray& senderKey)
         {
             database.saveOlmSession(senderKey, session,
                                     QDateTime::currentDateTime());
@@ -65,7 +65,8 @@ namespace _impl {
         }
 
         std::pair<QByteArray, QByteArray> sessionDecryptMessage(
-            const QJsonObject& personalCipherObject, const QString& senderKey);
+            const QJsonObject& personalCipherObject,
+            const QByteArray& senderKey);
         std::pair<EventPtr, QByteArray> sessionDecryptMessage(
             const EncryptedEvent& encryptedEvent);
 

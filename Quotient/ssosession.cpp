@@ -96,7 +96,7 @@ void SsoSession::Private::processCallback()
         return;
     }
     qCDebug(MAIN) << "Found the token in SSO callback, logging in";
-    connection->loginWithToken(query.queryItemValue(QueryItemName).toLatin1(),
+    connection->loginWithToken(query.queryItemValue(QueryItemName),
                                initialDeviceName, deviceId);
     connect(connection, &Connection::connected, socket, [this] {
         const auto msg =

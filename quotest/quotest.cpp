@@ -564,7 +564,7 @@ TEST_IMPL(sendCustomEvent)
 
 TEST_IMPL(setTopic)
 {
-    const auto newTopic = QString::fromLatin1(connection()->generateTxnId()); // Just a way to make
+    const auto newTopic = connection()->generateTxnId(); // Just a way to make
                                                          // a unique id
     targetRoom->setTopic(newTopic);
     connectUntil(targetRoom, &Room::topicChanged, this,
@@ -584,7 +584,7 @@ TEST_IMPL(changeName)
 {
     connectSingleShot(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
         auto* const localUser = connection()->user();
-        const auto& newName = QString::fromLatin1(connection()->generateTxnId()); // See setTopic()
+        const auto& newName = connection()->generateTxnId(); // See setTopic()
         clog << "Renaming the user to " << newName.toStdString()
              << " in the target room" << endl;
         localUser->rename(newName, targetRoom);

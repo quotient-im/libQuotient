@@ -182,8 +182,11 @@ public:
 
 struct IdentityKeys
 {
-    QByteArray curve25519;
-    QByteArray ed25519;
+    // Despite being Base64 payloads, these keys are stored in QStrings because
+    // in the vast majority of cases they are used to read from or write to
+    // QJsonObjects, and that effectively requires QStrings
+    QString curve25519;
+    QString ed25519;
 };
 
 //! Struct representing the one-time keys.
