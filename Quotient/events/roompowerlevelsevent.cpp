@@ -37,14 +37,14 @@ QJsonObject PowerLevelsEventContent::toJson() const
     return o;
 }
 
-int RoomPowerLevelsEvent::powerLevelForEvent(const QString& eventId) const
+int RoomPowerLevelsEvent::powerLevelForEvent(const QString& eventTypeId) const
 {
-    return events().value(eventId, eventsDefault());
+    return events().value(eventTypeId, eventsDefault());
 }
 
-int RoomPowerLevelsEvent::powerLevelForState(const QString& eventId) const
+int RoomPowerLevelsEvent::powerLevelForState(const QString& eventTypeId) const
 {
-    return events().value(eventId, stateDefault());
+    return events().value(eventTypeId, stateDefault());
 }
 
 int RoomPowerLevelsEvent::powerLevelForUser(const QString& userId) const
