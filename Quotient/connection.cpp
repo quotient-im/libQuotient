@@ -1736,7 +1736,7 @@ void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
-    if (auto r = room(notification[RoomIdKeyL].toString()))
+    if (auto r = room(notification[RoomIdKey].toString()))
         if (auto event =
                 loadEvent<EncryptedEvent>(notification["event"_ls].toObject()))
             if (const auto decrypted = r->decryptMessage(*event))
