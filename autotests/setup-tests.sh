@@ -11,6 +11,8 @@ DATA_PATH="$SCRIPT_DIR/synapse-data"
 if [ ! -d "$DATA_PATH" ]; then
     mkdir -p -- "$DATA_PATH"
     chmod 0777 -- "$DATA_PATH"
+else
+    rm -rf $DATA_PATH/*
 fi
 
 rm -rf ~/.local/share/testolmaccount
