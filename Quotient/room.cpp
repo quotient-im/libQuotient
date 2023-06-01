@@ -2648,59 +2648,61 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
 #endif
 }
 
-/** Make a redacted event
- *
- * This applies the redaction procedure as defined by the CS API specification
- * to the event's JSON and returns the resulting new event. It is
- * the responsibility of the caller to dispose of the original event after that.
- */
+//! \brief Make a redacted event
+//!
+//! This applies the redaction procedure as defined by the CS API specification
+//! to the event's JSON and returns the resulting new event. It is
+//! the responsibility of the caller to dispose of the original event after that.
 RoomEventPtr makeRedacted(const RoomEvent& target,
                           const RedactionEvent& redaction)
 {
-    // clang-format puts them in a single column...
+    // The logic below faithfully follows the spec despite quite a few of
+    // the preserved keys being only relevant for homeservers. Just in case.
     // clang-format off
-    static const QStringList keepKeys {
+    static const QStringList TopLevelKeysToKeep{
         EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey, ContentKey,
         "hashes"_ls, "signatures"_ls, "depth"_ls, "prev_events"_ls,
-        "prev_state"_ls, "auth_events"_ls, "origin"_ls, "origin_server_ts"_ls,
-        "membership"_ls };
+        "auth_events"_ls, "origin"_ls, "origin_server_ts"_ls
+    };
     // clang-format on
-
-    static const auto keepContentKeysMap =
-        std::to_array<std::pair<event_type_t, QStringList>>(
-            { { RoomMemberEvent::TypeId,
-                { "membership"_ls, "join_authorised_via_users_server"_ls } },
-              { RoomCreateEvent::TypeId, { "creator"_ls } },
-              { RoomPowerLevelsEvent::TypeId,
-                { "ban"_ls, "events"_ls, "events_default"_ls, "kick"_ls,
-                  "redact"_ls, "state_default"_ls, "users"_ls,
-                  "users_default"_ls } },
-              // TODO: Replace with RoomJoinRules::TypeId etc. once available
-              { "m.room.join_rules"_ls, { "join_rule"_ls, "allow"_ls } },
-              { "m.room.history_visibility"_ls, { "history_visibility"_ls } } });
 
     auto originalJson = target.fullJson();
     for (auto it = originalJson.begin(); it != originalJson.end();) {
-        if (!keepKeys.contains(it.key()))
-            it = originalJson.erase(it); // TODO: shred the value
+        if (!TopLevelKeysToKeep.contains(it.key()))
+            it = originalJson.erase(it);
         else
             ++it;
     }
-    auto keepContentKeys =
-        find_if(begin(keepContentKeysMap), end(keepContentKeysMap),
-                [&target](const auto& t) { return target.type() == t.first; });
-    if (keepContentKeys == end(keepContentKeysMap)) {
-        originalJson.remove(ContentKey);
-        originalJson.remove(PrevContentKey);
-    } else {
-        auto content = originalJson.take(ContentKey).toObject();
-        for (auto it = content.begin(); it != content.end();) {
-            if (!keepContentKeys->second.contains(it.key()))
-                it = content.erase(it);
-            else
-                ++it;
+    if (!target.is<RoomCreateEvent>()) { // See MSC2176 on create events
+        static const QHash<QString, QStringList> ContentKeysToKeepPerType{
+            { RedactionEvent::TypeId, { "redacts"_ls } },
+            { RoomMemberEvent::TypeId,
+              { "membership"_ls, "join_authorised_via_users_server"_ls } },
+            { RoomPowerLevelsEvent::TypeId,
+              { "ban"_ls, "events"_ls, "events_default"_ls, "invite"_ls,
+                "kick"_ls, "redact"_ls, "state_default"_ls, "users"_ls,
+                "users_default"_ls } },
+            // TODO: Replace with RoomJoinRules::TypeId etc. once available
+            { "m.room.join_rules"_ls, { "join_rule"_ls, "allow"_ls } },
+            { "m.room.history_visibility"_ls, { "history_visibility"_ls } }
+        };
+
+        if (const auto contentKeysToKeep =
+                ContentKeysToKeepPerType.value(target.matrixType());
+            !contentKeysToKeep.isEmpty()) //
+        {
+            auto content = originalJson.take(ContentKey).toObject();
+            for (auto it = content.begin(); it != content.end();) {
+                if (!contentKeysToKeep.contains(it.key()))
+                    it = content.erase(it);
+                else
+                    ++it;
+            }
+            originalJson.insert(ContentKey, content);
+        } else {
+            originalJson.remove(ContentKey);
+            originalJson.remove(PrevContentKey);
         }
-        originalJson.insert(ContentKey, content);
     }
     auto unsignedData = originalJson.take(UnsignedKey).toObject();
     unsignedData[RedactedCauseKey] = redaction.fullJson();
