@@ -2660,7 +2660,7 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     // clang-format puts them in a single column...
     // clang-format off
     static const QStringList keepKeys {
-        EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey,
+        EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey, ContentKey,
         "hashes"_ls, "signatures"_ls, "depth"_ls, "prev_events"_ls,
         "prev_state"_ls, "auth_events"_ls, "origin"_ls, "origin_server_ts"_ls,
         "membership"_ls };
