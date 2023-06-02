@@ -2859,12 +2859,11 @@ void Room::Private::addRelation(const ReactionEvent& reactionEvt)
 inline bool isEditing(const RoomEventPtr& ep)
 {
     Q_ASSERT(ep);
-    if (is<RedactionEvent>(*ep))
-        return true;
-    if (auto* msgEvent = eventCast<RoomMessageEvent>(ep))
-        return !msgEvent->replacedEvent().isEmpty();
-
-    return false;
+    return ep->switchOnType([](const RedactionEvent&) { return true; },
+                     [](const RoomMessageEvent& rme) {
+                         return !rme.replacedEvent().isEmpty();
+                     },
+                     false);
 }
 
 Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)

@@ -305,6 +305,37 @@ public:
         return Quotient::is<EventT>(*this);
     }
 
+    //! \brief Apply one of the visitors based on the actual event type
+    //!
+    //! This function uses function_traits template and is() to find the first
+    //! of the passed visitor invocables that can be called with this event
+    //! object, downcasting `*this` in a type-safe way to the most specific type
+    //! accepted by the visitor. Without this function, you can still write
+    //! a stack of, for example,
+    //! `(else) if (const auto* evtPtr = eventCast<...>(baseEvtPtr))`
+    //! blocks but switchType() provides a more concise and isolating syntax:
+    //! there's no `else` or trailing `return/break` to forget, for one.
+    //! The visitors have to all return the same type (possibly void).
+    //! Here's how you might use this function:
+    //! \code
+    //! RoomEventPtr eptr = /* get the event pointer from somewhere */;
+    //! const auto result = eptr->switchOnType(
+    //!     [](const RoomMemberEvent& memberEvent) {
+    //!         // Do what's needed if eptr points to a RoomMemberEvent
+    //!         return 1;
+    //!     },
+    //!     [](const CallEvent& callEvent) {
+    //!         // Do what's needed if eptr points to a CallEvent or any
+    //!         // class derived from it
+    //!         return 2;
+    //!     },
+    //!     3); /* the default value to return if nothing above matched */
+    //! \endcode
+    //! As the example shows, the last parameter can optionally be either
+    //! a plain returned value instead of a visitor.
+    template <typename... VisitorTs>
+    auto switchOnType(VisitorTs&&... visitors) const;
+
     [[deprecated("Use fullJson() and stringify it with QJsonDocument::toJson() "
                  "or by other means")]]
     QByteArray originalJson() const;
@@ -614,8 +645,8 @@ inline auto switchOnType(const BaseT& event, TailT&& tail)
     }
 }
 
-template <EventClass BaseT, typename FnT1, typename... FnTs>
-inline auto switchOnType(const BaseT& event, FnT1&& fn1, FnTs&&... fns)
+template <typename FnT1, typename... FnTs>
+inline auto switchOnType(const EventClass auto& event, FnT1&& fn1, FnTs&&... fns)
 {
     using event_type1 = fn_arg_t<FnT1>;
     if (is<std::decay_t<event_type1>>(event))
@@ -630,7 +661,14 @@ inline auto visit(const BaseT& event, FnTs&&... fns)
     return switchOnType(event, std::forward<FnTs>(fns)...);
 }
 
-    // A facility overload that calls void-returning switchOnType() on each event
+template <typename... VisitorTs>
+inline auto Event::switchOnType(VisitorTs&&... visitors) const
+{
+    return Quotient::switchOnType(*this,
+                                  std::forward<VisitorTs>(visitors)...);
+}
+
+// A facility overload that calls void-returning switchOnType() on each event
 // over a range of event pointers
 // TODO: replace with ranges::for_each once all standard libraries have it
 template <typename RangeT, typename... FnTs>
