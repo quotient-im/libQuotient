@@ -195,6 +195,11 @@ public:
 
     Changes setSummary(RoomSummary&& newSummary);
 
+    void preprocessStateEvent(const RoomEvent& newEvent,
+                              const RoomEvent* curEvent);
+    Change processStateEvent(const RoomEvent& curEvent,
+                             const RoomEvent* oldEvent);
+
     // void inviteUser(User* u); // We might get it at some point in time.
     void insertMemberIntoMap(User* u);
     void removeMemberFromMap(User* u);
@@ -3057,6 +3062,73 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         postprocessChanges(changes);
 }
 
+void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
+                                         const RoomEvent* curEvent)
+{
+    newEvent.switchOnType(
+        [this, curEvent](const RoomMemberEvent& rme) {
+            auto* u = q->user(rme.userId());
+            if (!u) { // Some terribly malformed user id?
+                qCCritical(MAIN) << "Could not get a user object for"
+                                 << rme.userId();
+                return; // See also Room::Private::processStateEvent()
+            }
+            switch (const auto prevMembership =
+                        lift(&RoomMemberEvent::membership,
+                             eventCast<const RoomMemberEvent>(curEvent))
+                            .value_or(Membership::Leave)) {
+            case Membership::Invite:
+                if (rme.membership() != prevMembership) {
+                    usersInvited.removeOne(u);
+                    Q_ASSERT(!usersInvited.contains(u));
+                }
+                break;
+            case Membership::Join:
+                if (rme.membership() == Membership::Join) {
+                    // rename/avatar change or no-op
+                    if (rme.newDisplayName()) {
+                        emit q->memberAboutToRename(u, *rme.newDisplayName());
+                        removeMemberFromMap(u);
+                    }
+                    if (!rme.newDisplayName() && !rme.newAvatarUrl())
+                        qCDebug(MEMBERS).nospace().noquote()
+                            << "No-op membership event for " << rme.userId()
+                            << ": " << rme;
+                } else {
+                    if (rme.membership() == Membership::Invite)
+                        qCWarning(MAIN)
+                            << "Membership change from Join to Invite:" << rme;
+                    // whatever the new membership, it's no more Join
+                    removeMemberFromMap(u);
+                    emit q->userRemoved(u);
+                }
+                break;
+            case Membership::Ban:
+            case Membership::Knock:
+            case Membership::Leave:
+                if (rme.membership() == Membership::Invite
+                    || rme.membership() == Membership::Join) {
+                    membersLeft.removeOne(u);
+                    Q_ASSERT(!membersLeft.contains(u));
+                }
+                break;
+            case Membership::Undefined:
+                ; // A warning will be dropped in Room::P::processStateEvent()
+            }
+        },
+        [this, curEvent](const EncryptionEvent& ee) {
+            if (curEvent)
+                qCWarning(STATE) << "Room" << q->objectName()
+                                 << "is already encrypted but a new room "
+                                    "encryption event arrived";
+            if (ee.algorithm().isEmpty())
+                qWarning(STATE)
+                    << "The encryption event for room" << q->objectName()
+                    << "doesn't have 'algorithm' specified";
+
+        });
+}
+
 Room::Changes Room::processStateEvent(const RoomEvent& e)
 {
     if (!e.isStateEvent())
@@ -3065,91 +3137,8 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     // Find a value (create an empty one if necessary) and get a reference
     // to it, anticipating a change further in the function.
     auto& curStateEvent = d->currentState[{ e.matrixType(), e.stateKey() }];
-    // Prepare for the state change
-    // clang-format off
-    const bool proceed = switchOnType(e
-        , [this, curStateEvent](const RoomMemberEvent& rme) {
-            // clang-format on
-            auto* oldRme = static_cast<const RoomMemberEvent*>(curStateEvent);
-            auto* u = user(rme.userId());
-            if (!u) { // Some terribly malformed user id?
-                qCCritical(MAIN) << "Could not get a user object for"
-                                 << rme.userId();
-                return false; // Stay low and hope for the best...
-            }
-            const auto prevMembership = oldRme ? oldRme->membership()
-                                               : Membership::Leave;
-            switch (prevMembership) {
-            case Membership::Invite:
-                if (rme.membership() != prevMembership) {
-                    d->usersInvited.removeOne(u);
-                    Q_ASSERT(!d->usersInvited.contains(u));
-                }
-                break;
-            case Membership::Join:
-                if (rme.membership() == Membership::Join) {
-                    // rename/avatar change or no-op
-                    if (rme.newDisplayName()) {
-                        emit memberAboutToRename(u, *rme.newDisplayName());
-                        d->removeMemberFromMap(u);
-                    }
-                    if (!rme.newDisplayName() && !rme.newAvatarUrl()) {
-                        qCWarning(MEMBERS)
-                            << "No-op membership event for" << rme.userId()
-                            << "- retaining the state";
-                        qCWarning(MEMBERS) << "The event dump:" << rme;
-                        return false;
-                    }
-                } else {
-                    if (rme.membership() == Membership::Invite)
-                        qCWarning(MAIN)
-                            << "Membership change from Join to Invite:" << rme;
-                    // whatever the new membership, it's no more Join
-                    d->removeMemberFromMap(u);
-                    emit userRemoved(u);
-                }
-                break;
-            case Membership::Ban:
-            case Membership::Knock:
-            case Membership::Leave:
-                if (rme.membership() == Membership::Invite
-                    || rme.membership() == Membership::Join) {
-                    d->membersLeft.removeOne(u);
-                    Q_ASSERT(!d->membersLeft.contains(u));
-                }
-                break;
-            case Membership::Undefined:
-                ; // A warning will be dropped in the post-processing block below
-            }
-            return true;
-            // clang-format off
-        }
-        , [this, curStateEvent]( const EncryptionEvent& ee) {
-            // clang-format on
-            auto* oldEncEvt =
-                    static_cast<const EncryptionEvent*>(curStateEvent);
-            if (ee.algorithm().isEmpty()) {
-                qWarning(STATE)
-                    << "The encryption event for room" << objectName()
-                    << "doesn't have 'algorithm' specified - ignoring";
-                return false;
-            }
-            if (oldEncEvt
-                && oldEncEvt->encryption() != EncryptionType::Undefined) {
-                qCWarning(STATE) << "The room is already encrypted but a new"
-                                    " room encryption event arrived - ignoring";
-                return false;
-            }
-            return true;
-            // clang-format off
-        }
-        , true); // By default, go forward with the state change
-    // clang-format on
-    if (!proceed) {
-        if (!curStateEvent) // Remove the empty placeholder if one was created
-            d->currentState.remove({ e.matrixType(), e.stateKey() });
-        return Change::None;
-    }
+
+    d->preprocessStateEvent(e, curStateEvent);
 
     // Change the state
     const auto* const oldStateEvent =
@@ -3162,20 +3151,27 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     else
         qCDebug(STATE) << "Updated room state:" << e;
 
-    // Update internal structures as per the change and work out the return value
+    const auto result = d->processStateEvent(*curStateEvent, oldStateEvent);
 
-    // clang-format off
-    const auto result = switchOnType(e
-        , [] (const RoomNameEvent&) {
-            return Change::RoomNames;
-        }
-        , [this, oldStateEvent] (const RoomCanonicalAliasEvent& cae) {
-            // clang-format on
-            setObjectName(cae.alias().isEmpty() ? d->id : cae.alias());
-            const auto* oldCae =
-                static_cast<const RoomCanonicalAliasEvent*>(oldStateEvent);
-            QStringList previousAltAliases {};
-            if (oldCae) {
+    Q_ASSERT(result != Change::None);
+    // Whatever the outcome, the relevant piece of state should stay valid
+    // (the absense of event is a valid state, too)
+    Q_ASSERT(currentState().queryOr(e.matrixType(), e.stateKey(),
+                                    &Event::isStateEvent, true));
+    return result;
+}
+
+//! Update internal structures as per the change and work out the return value
+Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
+                                              const RoomEvent* oldEvent)
+{
+    return curEvent.switchOnType(
+        [](const RoomNameEvent&) { return Change::RoomNames; },
+        [this, oldEvent](const RoomCanonicalAliasEvent& cae) {
+            q->setObjectName(cae.alias().isEmpty() ? id : cae.alias());
+            QStringList previousAltAliases{};
+            if (const auto* oldCae =
+                    static_cast<const RoomCanonicalAliasEvent*>(oldEvent)) {
                 previousAltAliases = oldCae->altAliases();
                 if (!oldCae->alias().isEmpty())
                     previousAltAliases.push_back(oldCae->alias());
@@ -3185,90 +3181,81 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
             if (!cae.alias().isEmpty())
                 newAliases.push_front(cae.alias());
 
-            connection()->updateRoomAliases(id(), previousAltAliases,
-                                            newAliases);
+            connection->updateRoomAliases(id, previousAltAliases, newAliases);
             return Change::RoomNames;
-            // clang-format off
-        }
-        , [this] (const RoomPinnedEvent&) {
-            emit pinnedEventsChanged();
+        },
+        [this](const RoomPinnedEvent&) {
+            emit q->pinnedEventsChanged();
             return Change::Other;
-        }
-        , [] (const RoomTopicEvent&) {
-            return Change::Topic;
-        }
-        , [this] (const RoomAvatarEvent& evt) {
-            if (d->avatar.updateUrl(evt.url()))
-                emit avatarChanged();
+        },
+        [](const RoomTopicEvent&) { return Change::Topic; },
+        [this](const RoomAvatarEvent& evt) {
+            if (avatar.updateUrl(evt.url()))
+                emit q->avatarChanged();
             return Change::Avatar;
-        }
-        , [this,oldStateEvent] (const RoomMemberEvent& evt) {
-            // clang-format on
-            auto* u = user(evt.userId());
-            const auto* oldMemberEvent =
-                static_cast<const RoomMemberEvent*>(oldStateEvent);
-            const auto prevMembership = oldMemberEvent
-                                            ? oldMemberEvent->membership()
-                                            : Membership::Leave;
-            switch (evt.membership()) {
-            case Membership::Join:
-                if (prevMembership != Membership::Join) {
-                    d->insertMemberIntoMap(u);
-                    emit userAdded(u);
-                } else {
-                    if (evt.newDisplayName()) {
-                        d->insertMemberIntoMap(u);
-                        emit memberRenamed(u);
+        },
+        [this, oldEvent](const RoomMemberEvent& evt) {
+            // See also Room::P::preprocessStateEvent()
+            if (auto* u = q->user(evt.userId())) {
+                const auto prevMembership =
+                    lift(&RoomMemberEvent::membership,
+                         static_cast<const RoomMemberEvent*>(oldEvent))
+                        .value_or(Membership::Leave);
+                switch (evt.membership()) {
+                case Membership::Join:
+                    if (prevMembership != Membership::Join) {
+                        insertMemberIntoMap(u);
+                        emit q->userAdded(u);
+                    } else {
+                        if (evt.newDisplayName()) {
+                            insertMemberIntoMap(u);
+                            emit q->memberRenamed(u);
+                        }
+                        if (evt.newAvatarUrl())
+                            emit q->memberAvatarChanged(u);
                     }
-                    if (evt.newAvatarUrl())
-                        emit memberAvatarChanged(u);
+                    break;
+                case Membership::Invite:
+                    if (!usersInvited.contains(u))
+                        usersInvited.push_back(u);
+                    if (u == q->localUser() && evt.isDirect())
+                        connection->addToDirectChats(q, q->user(evt.senderId()));
+                    break;
+                case Membership::Knock:
+                case Membership::Ban:
+                case Membership::Leave:
+                    if (!membersLeft.contains(u))
+                        membersLeft.append(u);
+                    break;
+                case Membership::Undefined:
+                    qCWarning(MEMBERS) << "Ignored undefined membership type";
                 }
-                break;
-            case Membership::Invite:
-                if (!d->usersInvited.contains(u))
-                    d->usersInvited.push_back(u);
-                if (u == localUser() && evt.isDirect())
-                    connection()->addToDirectChats(this, user(evt.senderId()));
-                break;
-            case Membership::Knock:
-            case Membership::Ban:
-            case Membership::Leave:
-                if (!d->membersLeft.contains(u))
-                    d->membersLeft.append(u);
-                break;
-            case Membership::Undefined:
-                qCWarning(MEMBERS) << "Ignored undefined membership type";
             }
             return Change::Members;
-            // clang-format off
-        }
-        , [this] (const EncryptionEvent&) {
+        },
+        [this](const EncryptionEvent&) {
             // As encryption can only be switched on once, emit the signal here
             // instead of aggregating and emitting in updateData()
-            emit encryption();
+            emit q->encryption();
             return Change::Other;
-        }
-        , [this] (const RoomTombstoneEvent& evt) {
+        },
+        [this](const RoomTombstoneEvent& evt) {
             const auto successorId = evt.successorRoomId();
-            if (auto* successor = connection()->room(successorId))
-                emit upgraded(evt.serverMessage(), successor);
+            if (auto* successor = connection->room(successorId))
+                emit q->upgraded(evt.serverMessage(), successor);
             else
-                connectUntil(connection(), &Connection::loadedRoomState, this,
+                connectUntil(connection, &Connection::loadedRoomState, q,
                     [this,successorId,serverMsg=evt.serverMessage()]
                     (Room* newRoom) {
                         if (newRoom->id() != successorId)
                             return false;
-                        emit upgraded(serverMsg, newRoom);
+                        emit q->upgraded(serverMsg, newRoom);
                         return true;
                     });
 
             return Change::Other;
-            // clang-format off
-        }
-        , Change::Other);
-    // clang-format on
-    Q_ASSERT(result != Change::None);
-    return result;
+        },
+        Change::Other);
 }
 
 Room::Changes Room::processEphemeralEvent(EventPtr&& event)
