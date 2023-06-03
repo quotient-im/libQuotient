@@ -1836,7 +1836,7 @@ void Connection::sendToDevice(const QString& targetUserId,
                                                           targetUserId,
                                                           targetDeviceId)
             : event.contentJson();
-    sendToDevices(encrypted ? EncryptedEvent::TypeId : event.type(),
+    sendToDevices(encrypted ? EncryptedEvent::TypeId : event.matrixType(),
                   { { targetUserId, { { targetDeviceId, contentJson } } } });
 }
 
