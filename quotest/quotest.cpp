@@ -105,8 +105,8 @@ private slots:
     TEST_DECL(sendFile)
     TEST_DECL(sendCustomEvent)
     TEST_DECL(setTopic)
+    TEST_DECL(redactEvent)
     TEST_DECL(changeName)
-    TEST_DECL(sendAndRedact)
     TEST_DECL(showLocalUsername)
     TEST_DECL(addAndRemoveTag)
     TEST_DECL(markDirectChat)
@@ -125,8 +125,6 @@ private:
     [[nodiscard]] bool checkFileSendingOutcome(const TestToken& thisTest,
                                                const QString& txnId,
                                                const QString& fileName);
-    [[nodiscard]] bool checkRedactionOutcome(const QByteArray& thisTest,
-                                             const QString& evtIdToRedact);
 
     template <EventClass<RoomEvent> EventT>
     [[nodiscard]] bool validatePendingEvent(const QString& txnId);
@@ -514,7 +512,6 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
 
             clog << "File event " << txnId.toStdString()
                  << " arrived in the timeline" << endl;
-            // This part tests switchOnType()
             return switchOnType(
                 *evt,
                 [&](const RoomMessageEvent& e) {
@@ -580,8 +577,44 @@ TEST_IMPL(setTopic)
     return false;
 }
 
+TEST_IMPL(redactEvent)
+{
+    using TargetEventType = RoomMemberEvent;
+
+    // We use currentState() to quickly get an id of our own joining event,
+    // to try to redact it. As long as the homeserver is compliant to the spec
+    // nothing bad will happen upon an attempt to redact that member event,
+    // the test user will remain a member of the room, while the library is
+    // tested to implement MSC2176 correctly (see also our own bug #664).
+    const auto* memberEventToRedact =
+        targetRoom->currentState().get<TargetEventType>(connection()->userId());
+    Q_ASSERT(memberEventToRedact); // ...or the room state is totally screwed
+    const auto& evtId = memberEventToRedact->id();
+
+    clog << "Redacting the latest member event" << endl;
+    targetRoom->redactEvent(evtId, origin);
+    connectUntil(targetRoom, &Room::addedMessages, this, [this, thisTest, evtId] {
+        auto it = targetRoom->findInTimeline(evtId);
+        if (it == targetRoom->historyEdge())
+            return false; // Waiting for the next sync
+
+        FINISH_TEST((*it)->switchOnType([this](const TargetEventType& e) {
+            return e.redactionReason() == origin
+                   && e.membership() == Membership::Join;
+            // The second condition above tests MSC2176 - if it's violated (pre
+            // 0.8 beta), membership() ends up being Membership::Undefined
+        }));
+    });
+    return false;
+}
+
 TEST_IMPL(changeName)
 {
+    // NB: this test races against redactEvent(); both update the same event
+    // type and state key. In an extremely improbable case when changeName()
+    // completes (with server roundtrips etc.) the first rename before
+    // redactEvent() even starts, redactEvent() will capture the rename event
+    // instead of the join, and likely break changeName() as a result.
     connectSingleShot(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
         auto* const localUser = connection()->user();
         const auto& newName = connection()->generateTxnId(); // See setTopic()
@@ -629,68 +662,6 @@ TEST_IMPL(showLocalUsername)
 {
     auto* const localUser = connection()->user();
     FINISH_TEST(!localUser->name().contains("@"_ls));
-}
-
-TEST_IMPL(sendAndRedact)
-{
-    clog << "Sending a message to redact" << endl;
-    auto txnId = targetRoom->postPlainText(origin % ": message to redact"_ls);
-    if (txnId.isEmpty())
-        FAIL_TEST();
-
-    connectUntil(targetRoom, &Room::messageSent, this,
-            [this, thisTest, txnId](const QString& tId, const QString& evtId) {
-                if (tId != txnId)
-                    return false;
-
-                // The event may end up having been merged, and that's ok;
-                // but if it's not, it has to be in the ReachedServer state.
-                if (auto it = room()->findPendingEvent(tId);
-                    it != room()->pendingEvents().cend()
-                    && it->deliveryStatus() != EventStatus::ReachedServer) {
-                    clog << "Incorrect sent event status ("
-                         << it->deliveryStatus() << ')' << endl;
-                    FAIL_TEST();
-                }
-
-                clog << "Redacting the message" << endl;
-                targetRoom->redactEvent(evtId, origin);
-                connectUntil(targetRoom, &Room::addedMessages, this,
-                             [this, thisTest, evtId] {
-                                 return checkRedactionOutcome(thisTest, evtId);
-                             });
-                return false;
-            });
-    return false;
-}
-
-bool TestSuite::checkRedactionOutcome(const QByteArray& thisTest,
-                                      const QString& evtIdToRedact)
-{
-    // There are two possible (correct) outcomes: either the event comes already
-    // redacted at the next sync, or the nearest sync completes with
-    // the unredacted event but the next one brings redaction.
-    auto it = targetRoom->findInTimeline(evtIdToRedact);
-    if (it == targetRoom->historyEdge())
-        return false; // Waiting for the next sync
-
-    if ((*it)->isRedacted()) {
-        clog << "The sync brought already redacted message" << endl;
-        FINISH_TEST(true);
-    }
-
-    clog << "Message came non-redacted with the sync, waiting for redaction"
-         << endl;
-    connectUntil(targetRoom, &Room::replacedEvent, this,
-                 [this, thisTest, evtIdToRedact](const RoomEvent* newEvent,
-                                                 const RoomEvent* oldEvent) {
-                     if (oldEvent->id() != evtIdToRedact)
-                         return false;
-
-                     FINISH_TEST(newEvent->isRedacted()
-                                 && newEvent->redactionReason() == origin);
-                 });
-    return true;
 }
 
 TEST_IMPL(addAndRemoveTag)
