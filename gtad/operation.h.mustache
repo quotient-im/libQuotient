@@ -28,11 +28,11 @@ public:
     {
             {{#vars}}
         {{>docCommentShort}}
-        {{>maybeOmittableType}} {{nameCamelCase}};
+        {{>maybeOmittableType}} {{nameCamelCase}}{{>initializeField}};
             {{/vars}}
             {{#propertyMap}}
         {{>docCommentShort}}
-        {{>maybeOmittableType}} {{nameCamelCase}};
+        {{>maybeOmittableType}} {{nameCamelCase}}{};
             {{/propertyMap}}
     };
         {{/model}}
@@ -114,7 +114,7 @@ template <> struct JsonObjectConverter<{{qualifiedName}}> {
         {   {{#parents}}
         fillFromJson<{{name}}{{!of the parent!}}>(jo, result);
             {{/parents}}{{#vars}}
-        fromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls),
+        fillFromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls),
                  result.{{nameCamelCase}});
             {{/vars}}{{#propertyMap}}
         fromJson(jo, result.{{nameCamelCase}});

@@ -194,7 +194,10 @@ mustache:
       "{{#propertyMap}}take{{/propertyMap}}{{^propertyMap}}value{{/propertyMap}}"
     takeOrLoad: "{{#moveOnly}}take{{/moveOnly}}{{^moveOnly}}load{{/moveOnly}}"
 
-    initializeDefaultValue:
+    initializeField:
+      "{{^required}}{ {{#defaultValue}}{{>initializer}}{{/defaultValue}} }{{/required}}"
+
+    paramDefaultValue:
       "{{#defaultValue}}{{>initializer}}{{/defaultValue}}\
       {{^defaultValue}}{{>omittedValue}}{{/defaultValue}}"
 
@@ -202,12 +205,12 @@ mustache:
 
     joinedParamDecl: >-
       {{>maybeCrefType}} {{paramName}}
-      {{^required?}} = {{>initializeDefaultValue}}{{/required?}}{{>cjoin}}
+      {{^required?}} = {{>paramDefaultValue}}{{/required?}}{{>cjoin}}
     joinedParamDef: "{{>maybeCrefType}} {{paramName}}{{>cjoin}}"
 
     passPathAndMaybeQuery: >-
       makePath("{{basePathWithoutHost}}"{{#pathParts}},
-        {{_}}{{/pathParts}}){{#queryParams?}},
+      {{_}}{{/pathParts}}){{#queryParams?}},
       queryTo{{camelCaseOperationId}}(
       {{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}){{/queryParams?}}
 
