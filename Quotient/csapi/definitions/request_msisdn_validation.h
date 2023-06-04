@@ -16,14 +16,14 @@ struct MsisdnValidationData : RequestMsisdnValidation {
     ///
     /// This parameter is deprecated with a plan to be removed in a future
     /// specification version for `/account/password` and `/register` requests.
-    QString idServer;
+    QString idServer{};
 
     /// An access token previously registered with the identity server. Servers
     /// can treat this as optional to distinguish between r0.5-compatible
     /// clients and this specification version.
     ///
     /// Required if an `id_server` is supplied.
-    QString idAccessToken;
+    QString idAccessToken{};
 };
 
 template <>
@@ -38,8 +38,8 @@ struct JsonObjectConverter<MsisdnValidationData> {
     static void fillFrom(const QJsonObject& jo, MsisdnValidationData& pod)
     {
         fillFromJson<RequestMsisdnValidation>(jo, pod);
-        fromJson(jo.value("id_server"_ls), pod.idServer);
-        fromJson(jo.value("id_access_token"_ls), pod.idAccessToken);
+        fillFromJson(jo.value("id_server"_ls), pod.idServer);
+        fillFromJson(jo.value("id_access_token"_ls), pod.idAccessToken);
     }
 };
 

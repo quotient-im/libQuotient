@@ -31,7 +31,7 @@ struct RequestEmailValidation {
     /// Optional. When the validation is completed, the identity server will
     /// redirect the user to this URL. This option is ignored when submitting
     /// 3PID validation information through a POST request.
-    QString nextLink;
+    QString nextLink{};
 };
 
 template <>
@@ -45,10 +45,10 @@ struct JsonObjectConverter<RequestEmailValidation> {
     }
     static void fillFrom(const QJsonObject& jo, RequestEmailValidation& pod)
     {
-        fromJson(jo.value("client_secret"_ls), pod.clientSecret);
-        fromJson(jo.value("email"_ls), pod.email);
-        fromJson(jo.value("send_attempt"_ls), pod.sendAttempt);
-        fromJson(jo.value("next_link"_ls), pod.nextLink);
+        fillFromJson(jo.value("client_secret"_ls), pod.clientSecret);
+        fillFromJson(jo.value("email"_ls), pod.email);
+        fillFromJson(jo.value("send_attempt"_ls), pod.sendAttempt);
+        fillFromJson(jo.value("next_link"_ls), pod.nextLink);
     }
 };
 

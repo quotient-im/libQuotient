@@ -23,7 +23,7 @@ struct CrossSigningKey {
     /// Signatures of the key, calculated using the process described at
     /// [Signing JSON](/appendices/#signing-json). Optional for the master key.
     /// Other keys must be signed by the user\'s master key.
-    QJsonObject signatures;
+    QJsonObject signatures{};
 };
 
 template <>
@@ -37,10 +37,10 @@ struct JsonObjectConverter<CrossSigningKey> {
     }
     static void fillFrom(const QJsonObject& jo, CrossSigningKey& pod)
     {
-        fromJson(jo.value("user_id"_ls), pod.userId);
-        fromJson(jo.value("usage"_ls), pod.usage);
-        fromJson(jo.value("keys"_ls), pod.keys);
-        fromJson(jo.value("signatures"_ls), pod.signatures);
+        fillFromJson(jo.value("user_id"_ls), pod.userId);
+        fillFromJson(jo.value("usage"_ls), pod.usage);
+        fillFromJson(jo.value("keys"_ls), pod.keys);
+        fillFromJson(jo.value("signatures"_ls), pod.signatures);
     }
 };
 

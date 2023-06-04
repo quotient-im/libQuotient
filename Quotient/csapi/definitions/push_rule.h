@@ -25,11 +25,11 @@ struct PushRule {
     /// The conditions that must hold true for an event in order for a rule to
     /// be applied to an event. A rule with no conditions always matches. Only
     /// applicable to `underride` and `override` rules.
-    QVector<PushCondition> conditions;
+    QVector<PushCondition> conditions{};
 
     /// The [glob-style pattern](/appendices#glob-style-matching) to match
     /// against. Only applicable to `content` rules.
-    QString pattern;
+    QString pattern{};
 };
 
 template <>
@@ -45,12 +45,12 @@ struct JsonObjectConverter<PushRule> {
     }
     static void fillFrom(const QJsonObject& jo, PushRule& pod)
     {
-        fromJson(jo.value("actions"_ls), pod.actions);
-        fromJson(jo.value("default"_ls), pod.isDefault);
-        fromJson(jo.value("enabled"_ls), pod.enabled);
-        fromJson(jo.value("rule_id"_ls), pod.ruleId);
-        fromJson(jo.value("conditions"_ls), pod.conditions);
-        fromJson(jo.value("pattern"_ls), pod.pattern);
+        fillFromJson(jo.value("actions"_ls), pod.actions);
+        fillFromJson(jo.value("default"_ls), pod.isDefault);
+        fillFromJson(jo.value("enabled"_ls), pod.enabled);
+        fillFromJson(jo.value("rule_id"_ls), pod.ruleId);
+        fillFromJson(jo.value("conditions"_ls), pod.conditions);
+        fillFromJson(jo.value("pattern"_ls), pod.pattern);
     }
 };
 

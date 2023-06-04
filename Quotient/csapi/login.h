@@ -33,7 +33,7 @@ public:
         /// endpoint. Note that supporting the endpoint does not
         /// necessarily indicate that the user attempting to log in will
         /// be able to generate such a token.
-        bool getLoginToken;
+        bool getLoginToken{ false };
     };
 
     // Construction/destruction
@@ -62,8 +62,8 @@ struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
     static void fillFrom(const QJsonObject& jo,
                          GetLoginFlowsJob::LoginFlow& result)
     {
-        fromJson(jo.value("type"_ls), result.type);
-        fromJson(jo.value("get_login_token"_ls), result.getLoginToken);
+        fillFromJson(jo.value("type"_ls), result.type);
+        fillFromJson(jo.value("get_login_token"_ls), result.getLoginToken);
     }
 };
 

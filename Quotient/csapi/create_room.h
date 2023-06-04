@@ -172,10 +172,10 @@ public:
     struct StateEvent {
         /// The type of event to send.
         QString type;
-        /// The state_key of the state event. Defaults to an empty string.
-        QString stateKey;
         /// The content of the event.
         QJsonObject content;
+        /// The state_key of the state event. Defaults to an empty string.
+        QString stateKey{};
     };
 
     // Construction/destruction
@@ -298,8 +298,8 @@ struct JsonObjectConverter<CreateRoomJob::StateEvent> {
     static void dumpTo(QJsonObject& jo, const CreateRoomJob::StateEvent& pod)
     {
         addParam<>(jo, QStringLiteral("type"), pod.type);
-        addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
         addParam<>(jo, QStringLiteral("content"), pod.content);
+        addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
     }
 };
 

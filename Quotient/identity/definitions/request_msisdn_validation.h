@@ -34,7 +34,7 @@ struct RequestMsisdnValidation {
     /// Optional. When the validation is completed, the identity server will
     /// redirect the user to this URL. This option is ignored when submitting
     /// 3PID validation information through a POST request.
-    QString nextLink;
+    QString nextLink{};
 };
 
 template <>
@@ -49,11 +49,11 @@ struct JsonObjectConverter<RequestMsisdnValidation> {
     }
     static void fillFrom(const QJsonObject& jo, RequestMsisdnValidation& pod)
     {
-        fromJson(jo.value("client_secret"_ls), pod.clientSecret);
-        fromJson(jo.value("country"_ls), pod.country);
-        fromJson(jo.value("phone_number"_ls), pod.phoneNumber);
-        fromJson(jo.value("send_attempt"_ls), pod.sendAttempt);
-        fromJson(jo.value("next_link"_ls), pod.nextLink);
+        fillFromJson(jo.value("client_secret"_ls), pod.clientSecret);
+        fillFromJson(jo.value("country"_ls), pod.country);
+        fillFromJson(jo.value("phone_number"_ls), pod.phoneNumber);
+        fillFromJson(jo.value("send_attempt"_ls), pod.sendAttempt);
+        fillFromJson(jo.value("next_link"_ls), pod.nextLink);
     }
 };
 

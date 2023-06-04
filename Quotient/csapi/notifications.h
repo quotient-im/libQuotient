@@ -26,8 +26,6 @@ public:
         QVector<QVariant> actions;
         /// The Event object for the event that triggered the notification.
         EventPtr event;
-        /// The profile tag of the rule that matched this event.
-        QString profileTag;
         /// Indicates whether the user has sent a read receipt indicating
         /// that they have read this message.
         bool read;
@@ -36,6 +34,8 @@ public:
         /// The unix timestamp at which the event notification was sent,
         /// in milliseconds.
         qint64 ts;
+        /// The profile tag of the rule that matched this event.
+        QString profileTag{};
     };
 
     // Construction/destruction
@@ -86,12 +86,12 @@ struct JsonObjectConverter<GetNotificationsJob::Notification> {
     static void fillFrom(const QJsonObject& jo,
                          GetNotificationsJob::Notification& result)
     {
-        fromJson(jo.value("actions"_ls), result.actions);
-        fromJson(jo.value("event"_ls), result.event);
-        fromJson(jo.value("profile_tag"_ls), result.profileTag);
-        fromJson(jo.value("read"_ls), result.read);
-        fromJson(jo.value("room_id"_ls), result.roomId);
-        fromJson(jo.value("ts"_ls), result.ts);
+        fillFromJson(jo.value("actions"_ls), result.actions);
+        fillFromJson(jo.value("event"_ls), result.event);
+        fillFromJson(jo.value("read"_ls), result.read);
+        fillFromJson(jo.value("room_id"_ls), result.roomId);
+        fillFromJson(jo.value("ts"_ls), result.ts);
+        fillFromJson(jo.value("profile_tag"_ls), result.profileTag);
     }
 };
 

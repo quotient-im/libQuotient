@@ -29,9 +29,9 @@ struct JsonObjectConverter<ThirdPartyLocation> {
     }
     static void fillFrom(const QJsonObject& jo, ThirdPartyLocation& pod)
     {
-        fromJson(jo.value("alias"_ls), pod.alias);
-        fromJson(jo.value("protocol"_ls), pod.protocol);
-        fromJson(jo.value("fields"_ls), pod.fields);
+        fillFromJson(jo.value("alias"_ls), pod.alias);
+        fillFromJson(jo.value("protocol"_ls), pod.protocol);
+        fillFromJson(jo.value("fields"_ls), pod.fields);
     }
 };
 

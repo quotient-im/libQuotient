@@ -38,10 +38,10 @@ struct JsonObjectConverter<OpenIdCredentials> {
     }
     static void fillFrom(const QJsonObject& jo, OpenIdCredentials& pod)
     {
-        fromJson(jo.value("access_token"_ls), pod.accessToken);
-        fromJson(jo.value("token_type"_ls), pod.tokenType);
-        fromJson(jo.value("matrix_server_name"_ls), pod.matrixServerName);
-        fromJson(jo.value("expires_in"_ls), pod.expiresIn);
+        fillFromJson(jo.value("access_token"_ls), pod.accessToken);
+        fillFromJson(jo.value("token_type"_ls), pod.tokenType);
+        fillFromJson(jo.value("matrix_server_name"_ls), pod.matrixServerName);
+        fillFromJson(jo.value("expires_in"_ls), pod.expiresIn);
     }
 };
 

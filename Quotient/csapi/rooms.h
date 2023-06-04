@@ -169,10 +169,10 @@ public:
     /// efficiently on the server.
     struct RoomMember {
         /// The display name of the user this object is representing.
-        QString displayName;
+        QString displayName{};
         /// The avatar of the user this object is representing, as an [`mxc://`
         /// URI](/client-server-api/#matrix-content-mxc-uris).
-        QUrl avatarUrl;
+        QUrl avatarUrl{};
     };
 
     // Construction/destruction
@@ -205,8 +205,8 @@ struct JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember> {
     static void fillFrom(const QJsonObject& jo,
                          GetJoinedMembersByRoomJob::RoomMember& result)
     {
-        fromJson(jo.value("display_name"_ls), result.displayName);
-        fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+        fillFromJson(jo.value("display_name"_ls), result.displayName);
+        fillFromJson(jo.value("avatar_url"_ls), result.avatarUrl);
     }
 };
 

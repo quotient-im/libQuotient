@@ -35,12 +35,12 @@ public:
     /// Java package naming convention.
     struct Capabilities {
         /// Capability to indicate if the user can change their password.
-        Omittable<ChangePasswordCapability> changePassword;
+        Omittable<ChangePasswordCapability> changePassword{};
         /// The room versions the server supports.
-        Omittable<RoomVersionsCapability> roomVersions;
+        Omittable<RoomVersionsCapability> roomVersions{};
         /// The custom capabilities the server supports, using the
         /// Java package naming convention.
-        QHash<QString, QJsonObject> additionalProperties;
+        QHash<QString, QJsonObject> additionalProperties{};
     };
 
     // Construction/destruction
@@ -70,7 +70,7 @@ struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
     static void fillFrom(const QJsonObject& jo,
                          GetCapabilitiesJob::ChangePasswordCapability& result)
     {
-        fromJson(jo.value("enabled"_ls), result.enabled);
+        fillFromJson(jo.value("enabled"_ls), result.enabled);
     }
 };
 
@@ -79,8 +79,8 @@ struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability> {
     static void fillFrom(const QJsonObject& jo,
                          GetCapabilitiesJob::RoomVersionsCapability& result)
     {
-        fromJson(jo.value("default"_ls), result.defaultVersion);
-        fromJson(jo.value("available"_ls), result.available);
+        fillFromJson(jo.value("default"_ls), result.defaultVersion);
+        fillFromJson(jo.value("available"_ls), result.available);
     }
 };
 
@@ -89,8 +89,8 @@ struct JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
     static void fillFrom(QJsonObject jo,
                          GetCapabilitiesJob::Capabilities& result)
     {
-        fromJson(jo.take("m.change_password"_ls), result.changePassword);
-        fromJson(jo.take("m.room_versions"_ls), result.roomVersions);
+        fillFromJson(jo.take("m.change_password"_ls), result.changePassword);
+        fillFromJson(jo.take("m.room_versions"_ls), result.roomVersions);
         fromJson(jo, result.additionalProperties);
     }
 };

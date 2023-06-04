@@ -10,15 +10,15 @@
 namespace Quotient {
 
 struct PushRuleset {
-    QVector<PushRule> content;
+    QVector<PushRule> content{};
 
-    QVector<PushRule> override;
+    QVector<PushRule> override{};
 
-    QVector<PushRule> room;
+    QVector<PushRule> room{};
 
-    QVector<PushRule> sender;
+    QVector<PushRule> sender{};
 
-    QVector<PushRule> underride;
+    QVector<PushRule> underride{};
 };
 
 template <>
@@ -33,11 +33,11 @@ struct JsonObjectConverter<PushRuleset> {
     }
     static void fillFrom(const QJsonObject& jo, PushRuleset& pod)
     {
-        fromJson(jo.value("content"_ls), pod.content);
-        fromJson(jo.value("override"_ls), pod.override);
-        fromJson(jo.value("room"_ls), pod.room);
-        fromJson(jo.value("sender"_ls), pod.sender);
-        fromJson(jo.value("underride"_ls), pod.underride);
+        fillFromJson(jo.value("content"_ls), pod.content);
+        fillFromJson(jo.value("override"_ls), pod.override);
+        fillFromJson(jo.value("room"_ls), pod.room);
+        fillFromJson(jo.value("sender"_ls), pod.sender);
+        fillFromJson(jo.value("underride"_ls), pod.underride);
     }
 };
 

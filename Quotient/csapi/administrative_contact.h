@@ -81,10 +81,10 @@ struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
     static void fillFrom(const QJsonObject& jo,
                          GetAccount3PIDsJob::ThirdPartyIdentifier& result)
     {
-        fromJson(jo.value("medium"_ls), result.medium);
-        fromJson(jo.value("address"_ls), result.address);
-        fromJson(jo.value("validated_at"_ls), result.validatedAt);
-        fromJson(jo.value("added_at"_ls), result.addedAt);
+        fillFromJson(jo.value("medium"_ls), result.medium);
+        fillFromJson(jo.value("address"_ls), result.address);
+        fillFromJson(jo.value("validated_at"_ls), result.validatedAt);
+        fillFromJson(jo.value("added_at"_ls), result.addedAt);
     }
 };
 
