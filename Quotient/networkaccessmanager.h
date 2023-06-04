@@ -12,7 +12,9 @@ namespace Quotient {
 class QUOTIENT_API NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
-    using QNetworkAccessManager::QNetworkAccessManager;
+    static void allowDirectMediaRequests(bool allow = true,
+                                         bool permanent = true);
+    static bool directMediaRequestsAllowed();
 
     static void addBaseUrl(const QString& accountId, const QUrl& homeserver);
     static void dropBaseUrl(const QString& accountId);

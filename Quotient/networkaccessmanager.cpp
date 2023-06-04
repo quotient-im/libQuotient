@@ -5,6 +5,7 @@
 
 #include "logging.h"
 #include "mxcreply.h"
+#include "connection.h"
 
 #include "events/filesourceinfo.h"
 
@@ -20,6 +21,10 @@
 using namespace Quotient;
 
 namespace {
+
+static constexpr auto DirectMediaRequestsSetting =
+    "Network/allow_direct_media_requests"_ls;
+
 class {
 public:
     void addBaseUrl(const QString& accountId, const QUrl& baseUrl)
@@ -46,14 +51,41 @@ public:
     {
         return QReadLocker{ &namLock }, ignoredSslErrors;
     }
+    void allowDirectMediaRequests(bool allow)
+    {
+        if (allow)
+            directMediaRequestsAreAllowed.test_and_set();
+        else
+            directMediaRequestsAreAllowed.clear();
+    }
+    bool directMediaRequestsAllowed() const
+    {
+        return directMediaRequestsAreAllowed.test();
+    }
 
 private:
     mutable QReadWriteLock namLock{};
     QHash<QString, QUrl> baseUrls{};
     QList<QSslError> ignoredSslErrors{};
+    // This one is small enough to be atomic and not need a read-write lock
+    std::atomic_flag directMediaRequestsAreAllowed{};
 } d;
 
+std::once_flag directMediaRequestsInitFlag;
+
 } // anonymous namespace
+
+void NetworkAccessManager::allowDirectMediaRequests(bool allow, bool permanent)
+{
+    d.allowDirectMediaRequests(allow);
+    if (permanent)
+        QSettings().setValue(DirectMediaRequestsSetting, allow);
+}
+
+bool NetworkAccessManager::directMediaRequestsAllowed()
+{
+    return d.directMediaRequestsAllowed();
+}
 
 void NetworkAccessManager::addBaseUrl(const QString& accountId,
                                       const QUrl& homeserver)
@@ -84,6 +116,11 @@ void NetworkAccessManager::clearIgnoredSslErrors()
 
 NetworkAccessManager* NetworkAccessManager::instance()
 {
+    // Initialise direct media requests allowance at the very first NAM creation
+    std::call_once(directMediaRequestsInitFlag, [] {
+        NetworkAccessManager::allowDirectMediaRequests(
+            QSettings().value(DirectMediaRequestsSetting).toBool());
+    });
     thread_local auto* nam = [] {
         auto* namInit = new NetworkAccessManager();
         connect(QThread::currentThread(), &QThread::finished, namInit,
@@ -103,38 +140,58 @@ QNetworkReply* NetworkAccessManager::createRequest(
         reply->ignoreSslErrors(d.getIgnoredSslErrors());
         return reply;
     }
+    Q_ASSERT(!url.isRelative());
+
+    const auto createImplRequest = [this, op, request, outgoingData,
+                                    url](const QUrl& baseUrl) {
+        QNetworkRequest rewrittenRequest(request);
+        rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(baseUrl, url));
+        auto* implReply = QNetworkAccessManager::createRequest(op,
+                                                               rewrittenRequest,
+                                                               outgoingData);
+        implReply->ignoreSslErrors(d.getIgnoredSslErrors());
+        return implReply;
+    };
+
     const QUrlQuery query{ url.query() };
     const auto accountId = query.queryItemValue(QStringLiteral("user_id"));
     if (accountId.isEmpty()) {
         // Using QSettings here because Quotient::NetworkSettings
         // doesn't provide multi-threading guarantees
-        if (static thread_local const QSettings s;
-            s.value("Network/allow_direct_media_requests"_ls).toBool()) //
-        {
-            // TODO: Make the best effort with a direct unauthenticated request
-            // to the media server
-            qCWarning(NETWORK)
-                << "Direct unauthenticated mxc requests are not implemented";
-            return new MxcReply();
+        if (directMediaRequestsAllowed()) {
+            // Best effort with an unauthenticated request directly to the media
+            // homeserver (rather than via own homeserver)
+            auto* mxcReply = new MxcReply(MxcReply::Deferred);
+            // Connection class is, by the moment of this call, reentrant (it
+            // is not early on when user/room object factories and E2EE are set;
+            // but if you have an mxc link you are already well past that, most
+            // likely) so we can create and use it here, even if a connection
+            // to the same homeserver exists already.
+            auto* c = new Connection(mxcReply);
+            connect(c, &Connection::homeserverChanged, mxcReply,
+                    [mxcReply, createImplRequest, c](const QUrl& baseUrl) {
+                        mxcReply->setNetworkReply(createImplRequest(baseUrl));
+                        c->deleteLater();
+                    });
+            // Hack up a minimum "viable" MXID on the target homeserver
+            // to satisfy resolveServer()
+            c->resolveServer("@:"_ls % request.url().host());
+            return mxcReply;
         }
         qCWarning(NETWORK)
             << "No connection specified, cannot convert mxc request";
-        return new MxcReply();
+        return new MxcReply(MxcReply::Error);
     }
     const auto& baseUrl = d.getBaseUrl(accountId);
     if (!baseUrl.isValid()) {
         // Strictly speaking, it should be an assert...
         qCCritical(NETWORK) << "Homeserver for" << accountId
                             << "not found, cannot convert mxc request";
-        return new MxcReply();
+        return new MxcReply(MxcReply::Error);
     }
 
     // Convert mxc:// URL into normal http(s) for the given homeserver
-    QNetworkRequest rewrittenRequest(request);
-    rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(baseUrl, url));
-
-    auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
-    implReply->ignoreSslErrors(d.getIgnoredSslErrors());
+    auto* implReply = createImplRequest(baseUrl);
     const auto& fileMetadata = FileMetadataMap::lookup(
         query.queryItemValue(QStringLiteral("room_id")),
         query.queryItemValue(QStringLiteral("event_id")));

@@ -20,9 +20,15 @@ public:
 
 MxcReply::MxcReply(QNetworkReply* reply,
                    const EncryptedFileMetadata& fileMetadata)
-    : d(makeImpl<Private>(reply, fileMetadata.isValid() ? nullptr : reply))
 {
-    reply->setParent(this);
+    setNetworkReply(reply, fileMetadata);
+}
+
+void MxcReply::setNetworkReply(QNetworkReply* reply,
+                               const EncryptedFileMetadata& fileMetadata)
+{
+    d = makeImpl<Private>(reply, fileMetadata.isValid() ? nullptr : reply);
+    d->m_reply->setParent(this);
     connect(d->m_reply, &QNetworkReply::finished, this, [this, fileMetadata] {
         setError(d->m_reply->error(), d->m_reply->errorString());
 
@@ -34,16 +40,18 @@ MxcReply::MxcReply(QNetworkReply* reply,
             d->m_device = buffer;
         }
 #endif
+        setFinished(true);
         setOpenMode(ReadOnly);
         emit finished();
     });
 }
 
-MxcReply::MxcReply()
-    : d(ZeroImpl<Private>())
+MxcReply::MxcReply(DeferredFlag) {}
+
+MxcReply::MxcReply(ErrorFlag)
 {
     static const auto BadRequestPhrase = tr("Bad Request");
-    QMetaObject::invokeMethod(this, [this]() {
+    QMetaObject::invokeMethod(this, [this] {
             setAttribute(QNetworkRequest::HttpStatusCodeAttribute, 400);
             setAttribute(QNetworkRequest::HttpReasonPhraseAttribute,
                          BadRequestPhrase);
@@ -55,7 +63,7 @@ MxcReply::MxcReply()
         }, Qt::QueuedConnection);
 }
 
-qint64 MxcReply::readData(char *data, qint64 maxSize)
+qint64 MxcReply::readData(char* data, qint64 maxSize)
 {
     if(d != nullptr && d->m_device != nullptr) {
         return d->m_device->read(data, maxSize);
