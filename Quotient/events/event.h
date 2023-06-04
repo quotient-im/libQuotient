@@ -331,7 +331,7 @@ public:
     //!     },
     //!     3); /* the default value to return if nothing above matched */
     //! \endcode
-    //! As the example shows, the last parameter can optionally be either
+    //! As the example shows, the last parameter can optionally be
     //! a plain returned value instead of a visitor.
     template <typename... VisitorTs>
     auto switchOnType(VisitorTs&&... visitors) const;
