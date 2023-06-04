@@ -12,12 +12,12 @@
 
 namespace Quotient {
 
-/*! \brief Gets a list of a user's third party identifiers.
+/*! \brief Gets a list of a user's third-party identifiers.
  *
- * Gets a list of the third party identifiers that the homeserver has
+ * Gets a list of the third-party identifiers that the homeserver has
  * associated with the user's account.
  *
- * This is *not* the same as the list of third party identifiers bound to
+ * This is *not* the same as the list of third-party identifiers bound to
  * the user's Matrix ID in identity servers.
  *
  * Identifiers in this list may be used by the homeserver as, for example,
@@ -27,30 +27,30 @@ class QUOTIENT_API GetAccount3PIDsJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// Gets a list of the third party identifiers that the homeserver has
+    /// Gets a list of the third-party identifiers that the homeserver has
     /// associated with the user's account.
     ///
-    /// This is *not* the same as the list of third party identifiers bound to
+    /// This is *not* the same as the list of third-party identifiers bound to
     /// the user's Matrix ID in identity servers.
     ///
     /// Identifiers in this list may be used by the homeserver as, for example,
     /// identifiers that it will accept to reset the user's account password.
     struct ThirdPartyIdentifier {
-        /// The medium of the third party identifier.
+        /// The medium of the third-party identifier.
         QString medium;
-        /// The third party identifier address.
+        /// The third-party identifier address.
         QString address;
         /// The timestamp, in milliseconds, when the identifier was
         /// validated by the identity server.
         qint64 validatedAt;
         /// The timestamp, in milliseconds, when the homeserver associated the
-        /// third party identifier with the user.
+        /// third-party identifier with the user.
         qint64 addedAt;
     };
 
     // Construction/destruction
 
-    /// Gets a list of a user's third party identifiers.
+    /// Gets a list of a user's third-party identifiers.
     explicit GetAccount3PIDsJob();
 
     /*! \brief Construct a URL without creating a full-fledged job object
@@ -62,10 +62,10 @@ public:
 
     // Result properties
 
-    /// Gets a list of the third party identifiers that the homeserver has
+    /// Gets a list of the third-party identifiers that the homeserver has
     /// associated with the user's account.
     ///
-    /// This is *not* the same as the list of third party identifiers bound to
+    /// This is *not* the same as the list of third-party identifiers bound to
     /// the user's Matrix ID in identity servers.
     ///
     /// Identifiers in this list may be used by the homeserver as, for example,
@@ -105,7 +105,7 @@ class QUOTIENT_API Post3PIDsJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// The third party credentials to associate with the account.
+    /// The third-party credentials to associate with the account.
     struct ThreePidCredentials {
         /// The client secret used in the session with the identity server.
         QString clientSecret;
@@ -124,7 +124,7 @@ public:
     /*! \brief Adds contact information to the user's account.
      *
      * \param threePidCreds
-     *   The third party credentials to associate with the account.
+     *   The third-party credentials to associate with the account.
      */
     explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds);
 
@@ -217,9 +217,9 @@ public:
                          const QString& idAccessToken, const QString& sid);
 };
 
-/*! \brief Deletes a third party identifier from the user's account
+/*! \brief Deletes a third-party identifier from the user's account
  *
- * Removes a third party identifier from the user's account. This might not
+ * Removes a third-party identifier from the user's account. This might not
  * cause an unbind of the identifier from the identity server.
  *
  * Unlike other endpoints, this endpoint does not take an `id_access_token`
@@ -228,13 +228,13 @@ public:
  */
 class QUOTIENT_API Delete3pidFromAccountJob : public BaseJob {
 public:
-    /*! \brief Deletes a third party identifier from the user's account
+    /*! \brief Deletes a third-party identifier from the user's account
      *
      * \param medium
-     *   The medium of the third party identifier being removed.
+     *   The medium of the third-party identifier being removed.
      *
      * \param address
-     *   The third party address being removed.
+     *   The third-party address being removed.
      *
      * \param idServer
      *   The identity server to unbind from. If not provided, the homeserver
@@ -260,9 +260,9 @@ public:
     }
 };
 
-/*! \brief Removes a user's third party identifier from an identity server.
+/*! \brief Removes a user's third-party identifier from an identity server.
  *
- * Removes a user's third party identifier from the provided identity server
+ * Removes a user's third-party identifier from the provided identity server
  * without removing it from the homeserver.
  *
  * Unlike other endpoints, this endpoint does not take an `id_access_token`
@@ -271,13 +271,13 @@ public:
  */
 class QUOTIENT_API Unbind3pidFromAccountJob : public BaseJob {
 public:
-    /*! \brief Removes a user's third party identifier from an identity server.
+    /*! \brief Removes a user's third-party identifier from an identity server.
      *
      * \param medium
-     *   The medium of the third party identifier being removed.
+     *   The medium of the third-party identifier being removed.
      *
      * \param address
-     *   The third party address being removed.
+     *   The third-party address being removed.
      *
      * \param idServer
      *   The identity server to unbind from. If not provided, the homeserver

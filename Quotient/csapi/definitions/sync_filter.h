@@ -67,10 +67,10 @@ struct JsonObjectConverter<RoomFilter> {
 
 struct Filter {
     /// List of event fields to include. If this list is absent then all fields
-    /// are included. The entries may include '.' characters to indicate
-    /// sub-fields. So ['content.body'] will include the 'body' field of the
-    /// 'content' object. A literal '.' character in a field name may be escaped
-    /// using a '\\'. A server may include more fields than were requested.
+    /// are included. The entries are [dot-separated paths for each
+    /// property](/appendices#dot-separated-property-paths) to include. So
+    /// ['content.body'] will include the 'body' field of the 'content' object.
+    /// A server may include more fields than were requested.
     QStringList eventFields;
 
     /// The format to use for events. 'client' will return the events in a

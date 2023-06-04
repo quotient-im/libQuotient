@@ -9,7 +9,11 @@
 namespace Quotient {
 
 struct EventFilter {
-    /// The maximum number of events to return.
+    /// The maximum number of events to return, must be an integer greater than
+    /// 0.
+    ///
+    /// Servers should apply a default value, and impose a maximum value to
+    /// avoid resource exhaustion.
     Omittable<int> limit;
 
     /// A list of sender IDs to exclude. If this list is absent then no senders

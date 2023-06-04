@@ -66,19 +66,19 @@ struct JsonObjectConverter<ProtocolInstance> {
 };
 
 struct ThirdPartyProtocol {
-    /// Fields which may be used to identify a third party user. These should be
+    /// Fields which may be used to identify a third-party user. These should be
     /// ordered to suggest the way that entities may be grouped, where higher
     /// groupings are ordered first. For example, the name of a network should
     /// be searched before the nickname of a user.
     QStringList userFields;
 
-    /// Fields which may be used to identify a third party location. These
+    /// Fields which may be used to identify a third-party location. These
     /// should be ordered to suggest the way that entities may be grouped, where
     /// higher groupings are ordered first. For example, the name of a network
     /// should be searched before the name of a channel.
     QStringList locationFields;
 
-    /// A content URI representing an icon for the third party protocol.
+    /// A content URI representing an icon for the third-party protocol.
     QString icon;
 
     /// The type definitions for the fields defined in the `user_fields` and

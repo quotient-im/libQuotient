@@ -12,9 +12,9 @@ namespace Quotient {
  *
  * *Note that there are two forms of this API, which are documented separately.
  * This version of the API does not require that the inviter know the Matrix
- * identifier of the invitee, and instead relies on third party identifiers.
+ * identifier of the invitee, and instead relies on third-party identifiers.
  * The homeserver uses an identity server to perform the mapping from
- * third party identifier to a Matrix identifier. The other is documented in
+ * third-party identifier to a Matrix identifier. The other is documented in
  * the* [joining rooms
  * section](/client-server-api/#post_matrixclientv3roomsroomidinvite).
  *
@@ -26,18 +26,18 @@ namespace Quotient {
  * join that room.
  *
  * If the identity server did know the Matrix user identifier for the
- * third party identifier, the homeserver will append a `m.room.member`
+ * third-party identifier, the homeserver will append a `m.room.member`
  * event to the room.
  *
  * If the identity server does not know a Matrix user identifier for the
- * passed third party identifier, the homeserver will issue an invitation
- * which can be accepted upon providing proof of ownership of the third
+ * passed third-party identifier, the homeserver will issue an invitation
+ * which can be accepted upon providing proof of ownership of the third-
  * party identifier. This is achieved by the identity server generating a
  * token, which it gives to the inviting homeserver. The homeserver will
  * add an `m.room.third_party_invite` event into the graph for the room,
  * containing that token.
  *
- * When the invitee binds the invited third party identifier to a Matrix
+ * When the invitee binds the invited third-party identifier to a Matrix
  * user ID, the identity server will give the user a list of pending
  * invitations, each containing:
  *
@@ -60,8 +60,8 @@ public:
      *   The room identifier (not alias) to which to invite the user.
      *
      * \param idServer
-     *   The hostname+port of the identity server which should be used for third
-     * party identifier lookups.
+     *   The hostname+port of the identity server which should be used for
+     * third-party identifier lookups.
      *
      * \param idAccessToken
      *   An access token previously registered with the identity server. Servers
@@ -73,7 +73,7 @@ public:
      *   `email` (see [the list of recognised values](/appendices/#3pid-types)).
      *
      * \param address
-     *   The invitee's third party identifier.
+     *   The invitee's third-party identifier.
      */
     explicit InviteBy3PIDJob(const QString& roomId, const QString& idServer,
                              const QString& idAccessToken,

@@ -27,8 +27,8 @@ struct PushRule {
     /// applicable to `underride` and `override` rules.
     QVector<PushCondition> conditions;
 
-    /// The glob-style pattern to match against.  Only applicable to `content`
-    /// rules.
+    /// The [glob-style pattern](/appendices#glob-style-matching) to match
+    /// against. Only applicable to `content` rules.
     QString pattern;
 };
 

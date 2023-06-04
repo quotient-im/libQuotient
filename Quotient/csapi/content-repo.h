@@ -32,9 +32,91 @@ public:
 
     // Result properties
 
-    /// The [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the
+    /// The [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) to the
     /// uploaded content.
     QUrl contentUri() const { return loadFromJson<QUrl>("content_uri"_ls); }
+};
+
+/*! \brief Upload content to an `mxc://` URI that was created earlier.
+ *
+ * This endpoint permits uploading content to an `mxc://` URI that was created
+ * earlier via [POST
+ * /_matrix/media/v1/create](/client-server-api/#post_matrixmediav1create).
+ */
+class QUOTIENT_API UploadContentToMXCJob : public BaseJob {
+public:
+    /*! \brief Upload content to an `mxc://` URI that was created earlier.
+     *
+     * \param serverName
+     *   The server name from the `mxc://` URI returned by `POST
+     * /_matrix/media/v1/create` (the authoritory component).
+     *
+     * \param mediaId
+     *   The media ID from the `mxc://` URI returned by `POST
+     * /_matrix/media/v1/create` (the path component).
+     *
+     * \param content
+     *   The content to be uploaded.
+     *
+     * \param filename
+     *   The name of the file being uploaded
+     *
+     * \param contentType
+     *   The content type of the file being uploaded
+     */
+    explicit UploadContentToMXCJob(const QString& serverName,
+                                   const QString& mediaId, QIODevice* content,
+                                   const QString& filename = {},
+                                   const QString& contentType = {});
+};
+
+/*! \brief Create a new `mxc://` URI without uploading the content.
+ *
+ * Creates a new `mxc://` URI, independently of the content being uploaded. The
+ * content must be provided later via [`PUT
+ * /_matrix/media/v3/upload/{serverName}/{mediaId}`](/client-server-api/#put_matrixmediav3uploadservernamemediaid).
+ *
+ * The server may optionally enforce a maximum age for unused IDs,
+ * and delete media IDs when the client doesn't start the upload in time,
+ * or when the upload was interrupted and not resumed in time. The server
+ * should include the maximum POSIX millisecond timestamp to complete the
+ * upload in the `unused_expires_at` field in the response JSON. The
+ * recommended default expiration is 24 hours which should be enough time
+ * to accommodate users on poor connection who find a better connection to
+ * complete the upload.
+ *
+ * As well as limiting the rate of requests to create `mxc://` URIs, the server
+ * should limit the number of concurrent *pending media uploads* a given
+ * user can have. A pending media upload is a created `mxc://` URI where (a)
+ * the media has not yet been uploaded, and (b) has not yet expired (the
+ * `unused_expires_at` timestamp has not yet passed). In both cases, the
+ * server should respond with an HTTP 429 error with an errcode of
+ * `M_LIMIT_EXCEEDED`.
+ */
+class QUOTIENT_API CreateContentJob : public BaseJob {
+public:
+    /// Create a new `mxc://` URI without uploading the content.
+    explicit CreateContentJob();
+
+    /*! \brief Construct a URL without creating a full-fledged job object
+     *
+     * This function can be used when a URL for CreateContentJob
+     * is necessary but the job itself isn't.
+     */
+    static QUrl makeRequestUrl(QUrl baseUrl);
+
+    // Result properties
+
+    /// The [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) at
+    /// which the content will be available, once it is uploaded.
+    QUrl contentUri() const { return loadFromJson<QUrl>("content_uri"_ls); }
+
+    /// The timestamp (in milliseconds since the unix epoch) when the
+    /// generated media id will expire, if media is not uploaded.
+    Omittable<qint64> unusedExpiresAt() const
+    {
+        return loadFromJson<Omittable<qint64>>("unused_expires_at"_ls);
+    }
 };
 
 /*! \brief Download content from the content repository.
@@ -54,9 +136,23 @@ public:
      *   Indicates to the server that it should not attempt to fetch the media
      * if it is deemed remote. This is to prevent routing loops where the server
      * contacts itself. Defaults to true if not provided.
+     *
+     * \param timeoutMs
+     *   The maximum number of milliseconds that the client is willing to
+     *   wait to start receiving data, in the case that the content has not
+     *   yet been uploaded. The default value is 20000 (20 seconds). The
+     *   content repository can and should impose a maximum value for this
+     *   parameter. The content repository may also choose to respond before
+     *   the timeout.
+     *
+     * \param allowRedirect
+     *   Indicates to the server that it may return a 307 or 308 redirect
+     * response that points at the relevant media content. When not explicitly
+     * set to true the server must return the media content itself.
      */
     explicit GetContentJob(const QString& serverName, const QString& mediaId,
-                           bool allowRemote = true);
+                           bool allowRemote = true, qint64 timeoutMs = 20000,
+                           bool allowRedirect = false);
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
@@ -64,7 +160,9 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName,
-                               const QString& mediaId, bool allowRemote = true);
+                               const QString& mediaId, bool allowRemote = true,
+                               qint64 timeoutMs = 20000,
+                               bool allowRedirect = false);
 
     // Result properties
 
@@ -108,11 +206,26 @@ public:
      *   Indicates to the server that it should not attempt to fetch the media
      * if it is deemed remote. This is to prevent routing loops where the server
      * contacts itself. Defaults to true if not provided.
+     *
+     * \param timeoutMs
+     *   The maximum number of milliseconds that the client is willing to
+     *   wait to start receiving data, in the case that the content has not
+     *   yet been uploaded. The default value is 20000 (20 seconds). The
+     *   content repository can and should impose a maximum value for this
+     *   parameter. The content repository may also choose to respond before
+     *   the timeout.
+     *
+     * \param allowRedirect
+     *   Indicates to the server that it may return a 307 or 308 redirect
+     * response that points at the relevant media content. When not explicitly
+     * set to true the server must return the media content itself.
      */
     explicit GetContentOverrideNameJob(const QString& serverName,
                                        const QString& mediaId,
                                        const QString& fileName,
-                                       bool allowRemote = true);
+                                       bool allowRemote = true,
+                                       qint64 timeoutMs = 20000,
+                                       bool allowRedirect = false);
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
@@ -121,7 +234,8 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName,
                                const QString& mediaId, const QString& fileName,
-                               bool allowRemote = true);
+                               bool allowRemote = true, qint64 timeoutMs = 20000,
+                               bool allowRedirect = false);
 
     // Result properties
 
@@ -175,11 +289,26 @@ public:
      *   Indicates to the server that it should not attempt to fetch
      *   the media if it is deemed remote. This is to prevent routing loops
      *   where the server contacts itself. Defaults to true if not provided.
+     *
+     * \param timeoutMs
+     *   The maximum number of milliseconds that the client is willing to
+     *   wait to start receiving data, in the case that the content has not
+     *   yet been uploaded. The default value is 20000 (20 seconds). The
+     *   content repository can and should impose a maximum value for this
+     *   parameter. The content repository may also choose to respond before
+     *   the timeout.
+     *
+     * \param allowRedirect
+     *   Indicates to the server that it may return a 307 or 308 redirect
+     * response that points at the relevant media content. When not explicitly
+     * set to true the server must return the media content itself.
      */
     explicit GetContentThumbnailJob(const QString& serverName,
                                     const QString& mediaId, int width,
                                     int height, const QString& method = {},
-                                    bool allowRemote = true);
+                                    bool allowRemote = true,
+                                    qint64 timeoutMs = 20000,
+                                    bool allowRedirect = false);
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
@@ -189,7 +318,8 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName,
                                const QString& mediaId, int width, int height,
                                const QString& method = {},
-                               bool allowRemote = true);
+                               bool allowRemote = true, qint64 timeoutMs = 20000,
+                               bool allowRedirect = false);
 
     // Result properties
 
@@ -244,8 +374,8 @@ public:
         return loadFromJson<Omittable<qint64>>("matrix:image:size"_ls);
     }
 
-    /// An [MXC URI](/client-server-api/#matrix-content-mxc-uris) to the image.
-    /// Omitted if there is no image.
+    /// An [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) to the
+    /// image. Omitted if there is no image.
     QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_ls); }
 };
 

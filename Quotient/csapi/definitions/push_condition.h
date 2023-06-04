@@ -23,8 +23,8 @@ struct PushCondition {
     /// event's `content`.
     QString key;
 
-    /// Required for `event_match` conditions. The glob-style pattern to
-    /// match against.
+    /// Required for `event_match` conditions. The [glob-style
+    /// pattern](/appendices#glob-style-matching) to match against.
     QString pattern;
 
     /// Required for `room_member_count` conditions. A decimal integer

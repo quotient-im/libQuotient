@@ -9,13 +9,13 @@
 namespace Quotient {
 
 struct ThirdPartyUser {
-    /// A Matrix User ID represting a third party user.
+    /// A Matrix User ID represting a third-party user.
     QString userid;
 
-    /// The protocol ID that the third party location is a part of.
+    /// The protocol ID that the third-party location is a part of.
     QString protocol;
 
-    /// Information used to identify this third party location.
+    /// Information used to identify this third-party location.
     QJsonObject fields;
 };
 

@@ -40,7 +40,8 @@ public:
         QString userId;
         /// The display name of the user, if one exists.
         QString displayName;
-        /// The avatar url, as an MXC, if one exists.
+        /// The avatar url, as an [`mxc://`
+        /// URI](/client-server-api/#matrix-content-mxc-uris), if one exists.
         QUrl avatarUrl;
     };
 

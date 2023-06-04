@@ -5,7 +5,7 @@
 #pragma once
 
 #include <Quotient/converters.h>
-#include <Quotient/csapi/definitions/../../identity/definitions/request_email_validation.h>
+#include <Quotient/identity/definitions/request_email_validation.h>
 
 namespace Quotient {
 

@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <Quotient/csapi/../application-service/definitions/location.h>
-#include <Quotient/csapi/../application-service/definitions/protocol.h>
-#include <Quotient/csapi/../application-service/definitions/user.h>
+#include <Quotient/application-service/definitions/location.h>
+#include <Quotient/application-service/definitions/protocol.h>
+#include <Quotient/application-service/definitions/user.h>
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -41,7 +41,7 @@ public:
 /*! \brief Retrieve metadata about a specific protocol that the homeserver
  * supports.
  *
- * Fetches the metadata from the homeserver about a particular third party
+ * Fetches the metadata from the homeserver about a particular third-party
  * protocol.
  */
 class QUOTIENT_API GetProtocolMetadataJob : public BaseJob {
@@ -70,27 +70,27 @@ public:
     }
 };
 
-/*! \brief Retrieve Matrix-side portals rooms leading to a third party location.
+/*! \brief Retrieve Matrix-side portals rooms leading to a third-party location.
  *
  * Requesting this endpoint with a valid protocol name results in a list
  * of successful mapping results in a JSON array. Each result contains
  * objects to represent the Matrix room or rooms that represent a portal
- * to this third party network. Each has the Matrix room alias string,
- * an identifier for the particular third party network protocol, and an
+ * to this third-party network. Each has the Matrix room alias string,
+ * an identifier for the particular third-party network protocol, and an
  * object containing the network-specific fields that comprise this
  * identifier. It should attempt to canonicalise the identifier as much
  * as reasonably possible given the network type.
  */
 class QUOTIENT_API QueryLocationByProtocolJob : public BaseJob {
 public:
-    /*! \brief Retrieve Matrix-side portals rooms leading to a third party
+    /*! \brief Retrieve Matrix-side portals rooms leading to a third-party
      * location.
      *
      * \param protocol
-     *   The protocol used to communicate to the third party network.
+     *   The protocol used to communicate to the third-party network.
      *
      * \param searchFields
-     *   One or more custom fields to help identify the third party
+     *   One or more custom fields to help identify the third-party
      *   location.
      */
     explicit QueryLocationByProtocolJob(const QString& protocol,
@@ -113,14 +113,14 @@ public:
     }
 };
 
-/*! \brief Retrieve the Matrix User ID of a corresponding third party user.
+/*! \brief Retrieve the Matrix User ID of a corresponding third-party user.
  *
- * Retrieve a Matrix User ID linked to a user on the third party service, given
+ * Retrieve a Matrix User ID linked to a user on the third-party service, given
  * a set of user parameters.
  */
 class QUOTIENT_API QueryUserByProtocolJob : public BaseJob {
 public:
-    /*! \brief Retrieve the Matrix User ID of a corresponding third party user.
+    /*! \brief Retrieve the Matrix User ID of a corresponding third-party user.
      *
      * \param protocol
      *   The name of the protocol.
@@ -149,14 +149,14 @@ public:
     }
 };
 
-/*! \brief Reverse-lookup third party locations given a Matrix room alias.
+/*! \brief Reverse-lookup third-party locations given a Matrix room alias.
  *
- * Retrieve an array of third party network locations from a Matrix room
+ * Retrieve an array of third-party network locations from a Matrix room
  * alias.
  */
 class QUOTIENT_API QueryLocationByAliasJob : public BaseJob {
 public:
-    /*! \brief Reverse-lookup third party locations given a Matrix room alias.
+    /*! \brief Reverse-lookup third-party locations given a Matrix room alias.
      *
      * \param alias
      *   The Matrix room alias to look up.
@@ -172,20 +172,20 @@ public:
 
     // Result properties
 
-    /// All found third party locations.
+    /// All found third-party locations.
     QVector<ThirdPartyLocation> data() const
     {
         return fromJson<QVector<ThirdPartyLocation>>(jsonData());
     }
 };
 
-/*! \brief Reverse-lookup third party users given a Matrix User ID.
+/*! \brief Reverse-lookup third-party users given a Matrix User ID.
  *
- * Retrieve an array of third party users from a Matrix User ID.
+ * Retrieve an array of third-party users from a Matrix User ID.
  */
 class QUOTIENT_API QueryUserByIDJob : public BaseJob {
 public:
-    /*! \brief Reverse-lookup third party users given a Matrix User ID.
+    /*! \brief Reverse-lookup third-party users given a Matrix User ID.
      *
      * \param userid
      *   The Matrix User ID to look up.
@@ -201,7 +201,7 @@ public:
 
     // Result properties
 
-    /// An array of third party users.
+    /// An array of third-party users.
     QVector<ThirdPartyUser> data() const
     {
         return fromJson<QVector<ThirdPartyUser>>(jsonData());
