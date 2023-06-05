@@ -2663,13 +2663,11 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
 {
     // The logic below faithfully follows the spec despite quite a few of
     // the preserved keys being only relevant for homeservers. Just in case.
-    // clang-format off
     static const QStringList TopLevelKeysToKeep{
-        EventIdKey, TypeKey, RoomIdKey, SenderKey, StateKeyKey, ContentKey,
-        "hashes"_ls, "signatures"_ls, "depth"_ls, "prev_events"_ls,
-        "auth_events"_ls, "origin"_ls, "origin_server_ts"_ls
+        EventIdKey,  TypeKey,          RoomIdKey,        SenderKey,
+        StateKeyKey, ContentKey,       "hashes"_ls,      "signatures"_ls,
+        "depth"_ls,  "prev_events"_ls, "auth_events"_ls, "origin_server_ts"_ls
     };
-    // clang-format on
 
     auto originalJson = target.fullJson();
     for (auto it = originalJson.begin(); it != originalJson.end();) {
