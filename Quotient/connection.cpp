@@ -1736,7 +1736,7 @@ void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
-    if (auto r = room(notification[RoomIdKeyL].toString()))
+    if (auto r = room(notification[RoomIdKey].toString()))
         if (auto event =
                 loadEvent<EncryptedEvent>(notification["event"_ls].toObject()))
             if (const auto decrypted = r->decryptMessage(*event))
@@ -1836,7 +1836,7 @@ void Connection::sendToDevice(const QString& targetUserId,
                                                           targetUserId,
                                                           targetDeviceId)
             : event.contentJson();
-    sendToDevices(encrypted ? EncryptedEvent::TypeId : event.type(),
+    sendToDevices(encrypted ? EncryptedEvent::TypeId : event.matrixType(),
                   { { targetUserId, { { targetDeviceId, contentJson } } } });
 }
 

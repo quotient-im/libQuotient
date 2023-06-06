@@ -1086,7 +1086,7 @@ const RoomCreateEvent* Room::creation() const
     return currentState().get<RoomCreateEvent>();
 }
 
-const RoomTombstoneEvent *Room::tombstone() const
+const RoomTombstoneEvent* Room::tombstone() const
 {
     return currentState().get<RoomTombstoneEvent>();
 }

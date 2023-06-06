@@ -229,6 +229,7 @@ public:
     QUO_DECLARE_FLAGS(Changes, Change)
 
     Room(Connection* connection, QString id, JoinState initialJoinState);
+    Q_DISABLE_COPY_MOVE(Room)
     ~Room() override;
 
     // Property accessors

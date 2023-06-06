@@ -287,16 +287,17 @@ public:
 
     //! \brief Event Matrix type, as identified by its metatype object
     //!
-    //! For generic/unknown events it will contain a descriptive/generic string
-    //! defined by the respective base event type (that can be empty).
+    //! For event types that have defined C++ classes this will return the same
+    //! string as type(); for generic/unknown events it will contain
+    //! a descriptive/generic string defined by the respective base event type
+    //! (that can be empty).
     //! \sa matrixType
+    [[deprecated("Use matrixType() to get type id stored in event JSON, "
+                 "or metaType().matrixId if you (unlikely) need type id as "
+                 "per the metatype system")]]
     auto type() const { return metaType().matrixId; }
 
     //! \brief Exact Matrix type stored in JSON
-    //!
-    //! Coincides with the result of type() (but is slower) for events defined
-    //! in C++ (not necessarily in the library); for generic/unknown events
-    //! the returned value will be different.
     QString matrixType() const;
 
     template <EventClass EventT>
