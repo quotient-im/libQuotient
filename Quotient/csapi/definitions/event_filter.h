@@ -9,28 +9,32 @@
 namespace Quotient {
 
 struct EventFilter {
-    /// The maximum number of events to return.
-    Omittable<int> limit;
+    /// The maximum number of events to return, must be an integer greater than
+    /// 0.
+    ///
+    /// Servers should apply a default value, and impose a maximum value to
+    /// avoid resource exhaustion.
+    Omittable<int> limit{};
 
     /// A list of sender IDs to exclude. If this list is absent then no senders
     /// are excluded. A matching sender will be excluded even if it is listed in
     /// the `'senders'` filter.
-    QStringList notSenders;
+    QStringList notSenders{};
 
     /// A list of event types to exclude. If this list is absent then no event
     /// types are excluded. A matching type will be excluded even if it is
     /// listed in the `'types'` filter. A '*' can be used as a wildcard to match
     /// any sequence of characters.
-    QStringList notTypes;
+    QStringList notTypes{};
 
     /// A list of senders IDs to include. If this list is absent then all
     /// senders are included.
-    QStringList senders;
+    QStringList senders{};
 
     /// A list of event types to include. If this list is absent then all event
     /// types are included. A `'*'` can be used as a wildcard to match any
     /// sequence of characters.
-    QStringList types;
+    QStringList types{};
 };
 
 template <>
@@ -45,11 +49,11 @@ struct JsonObjectConverter<EventFilter> {
     }
     static void fillFrom(const QJsonObject& jo, EventFilter& pod)
     {
-        fromJson(jo.value("limit"_ls), pod.limit);
-        fromJson(jo.value("not_senders"_ls), pod.notSenders);
-        fromJson(jo.value("not_types"_ls), pod.notTypes);
-        fromJson(jo.value("senders"_ls), pod.senders);
-        fromJson(jo.value("types"_ls), pod.types);
+        fillFromJson(jo.value("limit"_ls), pod.limit);
+        fillFromJson(jo.value("not_senders"_ls), pod.notSenders);
+        fillFromJson(jo.value("not_types"_ls), pod.notTypes);
+        fillFromJson(jo.value("senders"_ls), pod.senders);
+        fillFromJson(jo.value("types"_ls), pod.types);
     }
 };
 

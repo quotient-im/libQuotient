@@ -45,11 +45,11 @@ struct JsonObjectConverter<DeviceKeys> {
     }
     static void fillFrom(const QJsonObject& jo, DeviceKeys& pod)
     {
-        fromJson(jo.value("user_id"_ls), pod.userId);
-        fromJson(jo.value("device_id"_ls), pod.deviceId);
-        fromJson(jo.value("algorithms"_ls), pod.algorithms);
-        fromJson(jo.value("keys"_ls), pod.keys);
-        fromJson(jo.value("signatures"_ls), pod.signatures);
+        fillFromJson(jo.value("user_id"_ls), pod.userId);
+        fillFromJson(jo.value("device_id"_ls), pod.deviceId);
+        fillFromJson(jo.value("algorithms"_ls), pod.algorithms);
+        fillFromJson(jo.value("keys"_ls), pod.keys);
+        fillFromJson(jo.value("signatures"_ls), pod.signatures);
     }
 };
 

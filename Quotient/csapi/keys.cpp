@@ -23,14 +23,13 @@ UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys,
 }
 
 QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
-                           Omittable<int> timeout, const QString& token)
+                           Omittable<int> timeout)
     : BaseJob(HttpVerb::Post, QStringLiteral("QueryKeysJob"),
               makePath("/_matrix/client/v3", "/keys/query"))
 {
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("timeout"), timeout);
     addParam<>(_dataJson, QStringLiteral("device_keys"), deviceKeys);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("token"), token);
     setRequestData({ _dataJson });
 }
 

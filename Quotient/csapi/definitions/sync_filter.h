@@ -15,28 +15,28 @@ struct RoomFilter {
     /// excluded. A matching room will be excluded even if it is listed in the
     /// `'rooms'` filter. This filter is applied before the filters in
     /// `ephemeral`, `state`, `timeline` or `account_data`
-    QStringList notRooms;
+    QStringList notRooms{};
 
     /// A list of room IDs to include. If this list is absent then all rooms are
     /// included. This filter is applied before the filters in `ephemeral`,
     /// `state`, `timeline` or `account_data`
-    QStringList rooms;
+    QStringList rooms{};
 
     /// The ephemeral events to include for rooms. These are the events that
     /// appear in the `ephemeral` property in the `/sync` response.
-    RoomEventFilter ephemeral;
+    RoomEventFilter ephemeral{};
 
     /// Include rooms that the user has left in the sync, default false
-    Omittable<bool> includeLeave;
+    Omittable<bool> includeLeave{};
 
     /// The state events to include for rooms.
-    RoomEventFilter state;
+    RoomEventFilter state{};
 
     /// The message and state update events to include for rooms.
-    RoomEventFilter timeline;
+    RoomEventFilter timeline{};
 
     /// The per user account data to include for rooms.
-    RoomEventFilter accountData;
+    RoomEventFilter accountData{};
 };
 
 template <>
@@ -55,37 +55,37 @@ struct JsonObjectConverter<RoomFilter> {
     }
     static void fillFrom(const QJsonObject& jo, RoomFilter& pod)
     {
-        fromJson(jo.value("not_rooms"_ls), pod.notRooms);
-        fromJson(jo.value("rooms"_ls), pod.rooms);
-        fromJson(jo.value("ephemeral"_ls), pod.ephemeral);
-        fromJson(jo.value("include_leave"_ls), pod.includeLeave);
-        fromJson(jo.value("state"_ls), pod.state);
-        fromJson(jo.value("timeline"_ls), pod.timeline);
-        fromJson(jo.value("account_data"_ls), pod.accountData);
+        fillFromJson(jo.value("not_rooms"_ls), pod.notRooms);
+        fillFromJson(jo.value("rooms"_ls), pod.rooms);
+        fillFromJson(jo.value("ephemeral"_ls), pod.ephemeral);
+        fillFromJson(jo.value("include_leave"_ls), pod.includeLeave);
+        fillFromJson(jo.value("state"_ls), pod.state);
+        fillFromJson(jo.value("timeline"_ls), pod.timeline);
+        fillFromJson(jo.value("account_data"_ls), pod.accountData);
     }
 };
 
 struct Filter {
     /// List of event fields to include. If this list is absent then all fields
-    /// are included. The entries may include '.' characters to indicate
-    /// sub-fields. So ['content.body'] will include the 'body' field of the
-    /// 'content' object. A literal '.' character in a field name may be escaped
-    /// using a '\\'. A server may include more fields than were requested.
-    QStringList eventFields;
+    /// are included. The entries are [dot-separated paths for each
+    /// property](/appendices#dot-separated-property-paths) to include. So
+    /// ['content.body'] will include the 'body' field of the 'content' object.
+    /// A server may include more fields than were requested.
+    QStringList eventFields{};
 
     /// The format to use for events. 'client' will return the events in a
     /// format suitable for clients. 'federation' will return the raw event as
     /// received over federation. The default is 'client'.
-    QString eventFormat;
+    QString eventFormat{};
 
     /// The presence updates to include.
-    EventFilter presence;
+    EventFilter presence{};
 
     /// The user account data that isn't associated with rooms to include.
-    EventFilter accountData;
+    EventFilter accountData{};
 
     /// Filters to be applied to room data.
-    RoomFilter room;
+    RoomFilter room{};
 };
 
 template <>
@@ -103,11 +103,11 @@ struct JsonObjectConverter<Filter> {
     }
     static void fillFrom(const QJsonObject& jo, Filter& pod)
     {
-        fromJson(jo.value("event_fields"_ls), pod.eventFields);
-        fromJson(jo.value("event_format"_ls), pod.eventFormat);
-        fromJson(jo.value("presence"_ls), pod.presence);
-        fromJson(jo.value("account_data"_ls), pod.accountData);
-        fromJson(jo.value("room"_ls), pod.room);
+        fillFromJson(jo.value("event_fields"_ls), pod.eventFields);
+        fillFromJson(jo.value("event_format"_ls), pod.eventFormat);
+        fillFromJson(jo.value("presence"_ls), pod.presence);
+        fillFromJson(jo.value("account_data"_ls), pod.accountData);
+        fillFromJson(jo.value("room"_ls), pod.room);
     }
 };
 

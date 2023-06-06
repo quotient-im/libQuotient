@@ -75,7 +75,7 @@ public:
     /// signatures.
     struct UnsignedDeviceInfo {
         /// The display name which the user set on the device.
-        QString deviceDisplayName;
+        QString deviceDisplayName{};
     };
 
     /// Returns the current devices and identity keys for the given users.
@@ -83,7 +83,7 @@ public:
         /// Additional data added to the device key information
         /// by intermediate servers, and not covered by the
         /// signatures.
-        Omittable<UnsignedDeviceInfo> unsignedData;
+        Omittable<UnsignedDeviceInfo> unsignedData{};
     };
 
     // Construction/destruction
@@ -98,16 +98,9 @@ public:
      * \param timeout
      *   The time (in milliseconds) to wait when downloading keys from
      *   remote servers. 10 seconds is the recommended default.
-     *
-     * \param token
-     *   If the client is fetching keys as a result of a device update received
-     *   in a sync request, this should be the 'since' token of that sync
-     * request, or any later sync token. This allows the server to ensure its
-     * response contains the keys advertised by the notification in that sync.
      */
     explicit QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
-                          Omittable<int> timeout = none,
-                          const QString& token = {});
+                          Omittable<int> timeout = none);
 
     // Result properties
 
@@ -172,7 +165,8 @@ struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
     static void fillFrom(const QJsonObject& jo,
                          QueryKeysJob::UnsignedDeviceInfo& result)
     {
-        fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
+        fillFromJson(jo.value("device_display_name"_ls),
+                     result.deviceDisplayName);
     }
 };
 
@@ -182,7 +176,7 @@ struct JsonObjectConverter<QueryKeysJob::DeviceInformation> {
                          QueryKeysJob::DeviceInformation& result)
     {
         fillFromJson<DeviceKeys>(jo, result);
-        fromJson(jo.value("unsigned"_ls), result.unsignedData);
+        fillFromJson(jo.value("unsigned"_ls), result.unsignedData);
     }
 };
 

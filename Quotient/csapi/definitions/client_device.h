@@ -14,16 +14,16 @@ struct Device {
 
     /// Display name set by the user for this device. Absent if no name has been
     /// set.
-    QString displayName;
+    QString displayName{};
 
     /// The IP address where this device was last seen. (May be a few minutes
     /// out of date, for efficiency reasons).
-    QString lastSeenIp;
+    QString lastSeenIp{};
 
     /// The timestamp (in milliseconds since the unix epoch) when this devices
     /// was last seen. (May be a few minutes out of date, for efficiency
     /// reasons).
-    Omittable<qint64> lastSeenTs;
+    Omittable<qint64> lastSeenTs{};
 };
 
 template <>
@@ -38,10 +38,10 @@ struct JsonObjectConverter<Device> {
     }
     static void fillFrom(const QJsonObject& jo, Device& pod)
     {
-        fromJson(jo.value("device_id"_ls), pod.deviceId);
-        fromJson(jo.value("display_name"_ls), pod.displayName);
-        fromJson(jo.value("last_seen_ip"_ls), pod.lastSeenIp);
-        fromJson(jo.value("last_seen_ts"_ls), pod.lastSeenTs);
+        fillFromJson(jo.value("device_id"_ls), pod.deviceId);
+        fillFromJson(jo.value("display_name"_ls), pod.displayName);
+        fillFromJson(jo.value("last_seen_ip"_ls), pod.lastSeenIp);
+        fillFromJson(jo.value("last_seen_ts"_ls), pod.lastSeenTs);
     }
 };
 

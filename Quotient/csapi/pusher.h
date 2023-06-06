@@ -21,10 +21,10 @@ public:
     struct PusherData {
         /// Required if `kind` is `http`. The URL to use to send
         /// notifications to.
-        QUrl url;
+        QUrl url{};
         /// The format to use when sending notifications to the Push
         /// Gateway.
-        QString format;
+        QString format{};
     };
 
     /// Gets all currently active pushers for the authenticated user.
@@ -45,15 +45,15 @@ public:
         /// A string that will allow the user to identify what device owns
         /// this pusher.
         QString deviceDisplayName;
-        /// This string determines which set of device specific rules this
-        /// pusher executes.
-        QString profileTag;
         /// The preferred language for receiving notifications (e.g. 'en'
         /// or 'en-US')
         QString lang;
         /// A dictionary of information for the pusher implementation
         /// itself.
         PusherData data;
+        /// This string determines which set of device specific rules this
+        /// pusher executes.
+        QString profileTag{};
     };
 
     // Construction/destruction
@@ -82,8 +82,8 @@ struct JsonObjectConverter<GetPushersJob::PusherData> {
     static void fillFrom(const QJsonObject& jo,
                          GetPushersJob::PusherData& result)
     {
-        fromJson(jo.value("url"_ls), result.url);
-        fromJson(jo.value("format"_ls), result.format);
+        fillFromJson(jo.value("url"_ls), result.url);
+        fillFromJson(jo.value("format"_ls), result.format);
     }
 };
 
@@ -91,14 +91,15 @@ template <>
 struct JsonObjectConverter<GetPushersJob::Pusher> {
     static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
     {
-        fromJson(jo.value("pushkey"_ls), result.pushkey);
-        fromJson(jo.value("kind"_ls), result.kind);
-        fromJson(jo.value("app_id"_ls), result.appId);
-        fromJson(jo.value("app_display_name"_ls), result.appDisplayName);
-        fromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
-        fromJson(jo.value("profile_tag"_ls), result.profileTag);
-        fromJson(jo.value("lang"_ls), result.lang);
-        fromJson(jo.value("data"_ls), result.data);
+        fillFromJson(jo.value("pushkey"_ls), result.pushkey);
+        fillFromJson(jo.value("kind"_ls), result.kind);
+        fillFromJson(jo.value("app_id"_ls), result.appId);
+        fillFromJson(jo.value("app_display_name"_ls), result.appDisplayName);
+        fillFromJson(jo.value("device_display_name"_ls),
+                     result.deviceDisplayName);
+        fillFromJson(jo.value("lang"_ls), result.lang);
+        fillFromJson(jo.value("data"_ls), result.data);
+        fillFromJson(jo.value("profile_tag"_ls), result.profileTag);
     }
 };
 
@@ -125,13 +126,13 @@ public:
         /// Required if `kind` is `http`. The URL to use to send
         /// notifications to. MUST be an HTTPS URL with a path of
         /// `/_matrix/push/v1/notify`.
-        QUrl url;
+        QUrl url{};
         /// The format to send notifications in to Push Gateways if the
         /// `kind` is `http`. The details about what fields the
         /// homeserver should send to the push gateway are defined in the
         /// [Push Gateway Specification](/push-gateway-api/). Currently the only
         /// format available is 'event_id_only'.
-        QString format;
+        QString format{};
     };
 
     // Construction/destruction

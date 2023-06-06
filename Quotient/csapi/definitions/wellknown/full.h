@@ -18,10 +18,10 @@ struct DiscoveryInformation {
 
     /// Used by clients to determine the homeserver, identity server, and other
     /// optional components they should be interacting with.
-    Omittable<IdentityServerInformation> identityServer;
+    Omittable<IdentityServerInformation> identityServer{};
 
     /// Application-dependent keys using Java package naming convention.
-    QHash<QString, QJsonObject> additionalProperties;
+    QHash<QString, QJsonObject> additionalProperties{};
 };
 
 template <>
@@ -35,8 +35,8 @@ struct JsonObjectConverter<DiscoveryInformation> {
     }
     static void fillFrom(QJsonObject jo, DiscoveryInformation& pod)
     {
-        fromJson(jo.take("m.homeserver"_ls), pod.homeserver);
-        fromJson(jo.take("m.identity_server"_ls), pod.identityServer);
+        fillFromJson(jo.take("m.homeserver"_ls), pod.homeserver);
+        fillFromJson(jo.take("m.identity_server"_ls), pod.identityServer);
         fromJson(jo, pod.additionalProperties);
     }
 };

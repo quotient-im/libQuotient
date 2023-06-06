@@ -140,12 +140,12 @@ public:
     struct Filter {
         /// An optional string to search for in the room metadata, e.g. name,
         /// topic, canonical alias, etc.
-        QString genericSearchTerm;
+        QString genericSearchTerm{};
         /// An optional list of [room types](/client-server-api/#types) to
         /// search for. To include rooms without a room type, specify `null`
         /// within this list. When not specified, all applicable rooms
         /// (regardless of type) are returned.
-        QStringList roomTypes;
+        QStringList roomTypes{};
     };
 
     // Construction/destruction
@@ -173,7 +173,7 @@ public:
      *   application services on the homeserver. Defaults to false.
      *
      * \param thirdPartyInstanceId
-     *   The specific third party network/protocol to request from the
+     *   The specific third-party network/protocol to request from the
      *   homeserver. Can only be used if `include_all_networks` is false.
      */
     explicit QueryPublicRoomsJob(const QString& server = {},

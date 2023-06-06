@@ -9,14 +9,17 @@
 
 namespace Quotient {
 
-/*! \brief Retrieve a list of threads in a room, with optional filters.
+/*! \brief Fetches a list of the threads in a room.
  *
- * Paginates over the thread roots in a room, ordered by the `latest_event` of
- * each thread root in its bundle.
+ * This API is used to paginate through the list of the thread roots in a given
+ * room.
+ *
+ * Optionally, the returned list may be filtered according to whether the
+ * requesting user has participated in the thread.
  */
 class QUOTIENT_API GetThreadRootsJob : public BaseJob {
 public:
-    /*! \brief Retrieve a list of threads in a room, with optional filters.
+    /*! \brief Fetches a list of the threads in a room.
      *
      * \param roomId
      *   The room ID where the thread roots are located.
@@ -59,8 +62,8 @@ public:
     // Result properties
 
     /// The thread roots, ordered by the `latest_event` in each event's
-    /// aggregation bundle. All events returned include bundled
-    /// [aggregations](/client-server-api/#aggregations).
+    /// aggregated children. All events returned include bundled
+    /// [aggregations](/client-server-api/#aggregations-of-child-events).
     ///
     /// If the thread root event was sent by an [ignored
     /// user](/client-server-api/#ignoring-users), the event is returned

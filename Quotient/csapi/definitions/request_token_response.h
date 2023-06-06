@@ -25,7 +25,7 @@ struct RequestTokenResponse {
     /// will happen without the client's involvement provided the homeserver
     /// advertises this specification version in the `/versions` response
     /// (ie: r0.5.0).
-    QUrl submitUrl;
+    QUrl submitUrl{};
 };
 
 template <>
@@ -37,8 +37,8 @@ struct JsonObjectConverter<RequestTokenResponse> {
     }
     static void fillFrom(const QJsonObject& jo, RequestTokenResponse& pod)
     {
-        fromJson(jo.value("sid"_ls), pod.sid);
-        fromJson(jo.value("submit_url"_ls), pod.submitUrl);
+        fillFromJson(jo.value("sid"_ls), pod.sid);
+        fillFromJson(jo.value("submit_url"_ls), pod.submitUrl);
     }
 };
 

@@ -9,13 +9,13 @@
 namespace Quotient {
 
 struct ThirdPartyUser {
-    /// A Matrix User ID represting a third party user.
+    /// A Matrix User ID represting a third-party user.
     QString userid;
 
-    /// The protocol ID that the third party location is a part of.
+    /// The protocol ID that the third-party location is a part of.
     QString protocol;
 
-    /// Information used to identify this third party location.
+    /// Information used to identify this third-party location.
     QJsonObject fields;
 };
 
@@ -29,9 +29,9 @@ struct JsonObjectConverter<ThirdPartyUser> {
     }
     static void fillFrom(const QJsonObject& jo, ThirdPartyUser& pod)
     {
-        fromJson(jo.value("userid"_ls), pod.userid);
-        fromJson(jo.value("protocol"_ls), pod.protocol);
-        fromJson(jo.value("fields"_ls), pod.fields);
+        fillFromJson(jo.value("userid"_ls), pod.userid);
+        fillFromJson(jo.value("protocol"_ls), pod.protocol);
+        fillFromJson(jo.value("fields"_ls), pod.fields);
     }
 };
 

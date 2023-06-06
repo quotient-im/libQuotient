@@ -21,7 +21,7 @@ struct JsonObjectConverter<IdentityServerInformation> {
     }
     static void fillFrom(const QJsonObject& jo, IdentityServerInformation& pod)
     {
-        fromJson(jo.value("base_url"_ls), pod.baseUrl);
+        fillFromJson(jo.value("base_url"_ls), pod.baseUrl);
     }
 };
 

@@ -27,8 +27,8 @@ struct JsonObjectConverter<FieldType> {
     }
     static void fillFrom(const QJsonObject& jo, FieldType& pod)
     {
-        fromJson(jo.value("regexp"_ls), pod.regexp);
-        fromJson(jo.value("placeholder"_ls), pod.placeholder);
+        fillFromJson(jo.value("regexp"_ls), pod.regexp);
+        fillFromJson(jo.value("placeholder"_ls), pod.placeholder);
     }
 };
 
@@ -36,15 +36,15 @@ struct ProtocolInstance {
     /// A human-readable description for the protocol, such as the name.
     QString desc;
 
-    /// An optional content URI representing the protocol. Overrides the one
-    /// provided at the higher level Protocol object.
-    QString icon;
-
     /// Preset values for `fields` the client may use to search by.
     QJsonObject fields;
 
     /// A unique identifier across all instances.
     QString networkId;
+
+    /// An optional content URI representing the protocol. Overrides the one
+    /// provided at the higher level Protocol object.
+    QString icon{};
 };
 
 template <>
@@ -52,33 +52,33 @@ struct JsonObjectConverter<ProtocolInstance> {
     static void dumpTo(QJsonObject& jo, const ProtocolInstance& pod)
     {
         addParam<>(jo, QStringLiteral("desc"), pod.desc);
-        addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
         addParam<>(jo, QStringLiteral("fields"), pod.fields);
         addParam<>(jo, QStringLiteral("network_id"), pod.networkId);
+        addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
     }
     static void fillFrom(const QJsonObject& jo, ProtocolInstance& pod)
     {
-        fromJson(jo.value("desc"_ls), pod.desc);
-        fromJson(jo.value("icon"_ls), pod.icon);
-        fromJson(jo.value("fields"_ls), pod.fields);
-        fromJson(jo.value("network_id"_ls), pod.networkId);
+        fillFromJson(jo.value("desc"_ls), pod.desc);
+        fillFromJson(jo.value("fields"_ls), pod.fields);
+        fillFromJson(jo.value("network_id"_ls), pod.networkId);
+        fillFromJson(jo.value("icon"_ls), pod.icon);
     }
 };
 
 struct ThirdPartyProtocol {
-    /// Fields which may be used to identify a third party user. These should be
+    /// Fields which may be used to identify a third-party user. These should be
     /// ordered to suggest the way that entities may be grouped, where higher
     /// groupings are ordered first. For example, the name of a network should
     /// be searched before the nickname of a user.
     QStringList userFields;
 
-    /// Fields which may be used to identify a third party location. These
+    /// Fields which may be used to identify a third-party location. These
     /// should be ordered to suggest the way that entities may be grouped, where
     /// higher groupings are ordered first. For example, the name of a network
     /// should be searched before the name of a channel.
     QStringList locationFields;
 
-    /// A content URI representing an icon for the third party protocol.
+    /// A content URI representing an icon for the third-party protocol.
     QString icon;
 
     /// The type definitions for the fields defined in the `user_fields` and
@@ -106,11 +106,11 @@ struct JsonObjectConverter<ThirdPartyProtocol> {
     }
     static void fillFrom(const QJsonObject& jo, ThirdPartyProtocol& pod)
     {
-        fromJson(jo.value("user_fields"_ls), pod.userFields);
-        fromJson(jo.value("location_fields"_ls), pod.locationFields);
-        fromJson(jo.value("icon"_ls), pod.icon);
-        fromJson(jo.value("field_types"_ls), pod.fieldTypes);
-        fromJson(jo.value("instances"_ls), pod.instances);
+        fillFromJson(jo.value("user_fields"_ls), pod.userFields);
+        fillFromJson(jo.value("location_fields"_ls), pod.locationFields);
+        fillFromJson(jo.value("icon"_ls), pod.icon);
+        fillFromJson(jo.value("field_types"_ls), pod.fieldTypes);
+        fillFromJson(jo.value("instances"_ls), pod.instances);
     }
 };
 

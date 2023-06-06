@@ -21,7 +21,7 @@ struct JsonObjectConverter<HomeserverInformation> {
     }
     static void fillFrom(const QJsonObject& jo, HomeserverInformation& pod)
     {
-        fromJson(jo.value("base_url"_ls), pod.baseUrl);
+        fillFromJson(jo.value("base_url"_ls), pod.baseUrl);
     }
 };
 

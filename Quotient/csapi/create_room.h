@@ -108,7 +108,7 @@ public:
     /// `creation_content`.
     struct Invite3pid {
         /// The hostname+port of the identity server which should be used for
-        /// third party identifier lookups.
+        /// third-party identifier lookups.
         QString idServer;
         /// An access token previously registered with the identity server.
         /// Servers can treat this as optional to distinguish between
@@ -118,7 +118,7 @@ public:
         /// `email` (see [the list of recognised
         /// values](/appendices/#3pid-types)).
         QString medium;
-        /// The invitee's third party identifier.
+        /// The invitee's third-party identifier.
         QString address;
     };
 
@@ -172,10 +172,10 @@ public:
     struct StateEvent {
         /// The type of event to send.
         QString type;
-        /// The state_key of the state event. Defaults to an empty string.
-        QString stateKey;
         /// The content of the event.
         QJsonObject content;
+        /// The state_key of the state event. Defaults to an empty string.
+        QString stateKey{};
     };
 
     // Construction/destruction
@@ -217,7 +217,7 @@ public:
      *   server to invite everyone in the list to the newly created room.
      *
      * \param invite3pid
-     *   A list of objects representing third party IDs to invite into
+     *   A list of objects representing third-party IDs to invite into
      *   the room.
      *
      * \param roomVersion
@@ -298,8 +298,8 @@ struct JsonObjectConverter<CreateRoomJob::StateEvent> {
     static void dumpTo(QJsonObject& jo, const CreateRoomJob::StateEvent& pod)
     {
         addParam<>(jo, QStringLiteral("type"), pod.type);
-        addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
         addParam<>(jo, QStringLiteral("content"), pod.content);
+        addParam<IfNotEmpty>(jo, QStringLiteral("state_key"), pod.stateKey);
     }
 };
 

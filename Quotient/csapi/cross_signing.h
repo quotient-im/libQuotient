@@ -49,15 +49,20 @@ public:
 
 /*! \brief Upload cross-signing signatures.
  *
- * Publishes cross-signing signatures for the user.  The request body is a
- * map from user ID to key ID to signed JSON object.
+ * Publishes cross-signing signatures for the user.
+ *
+ * The request body is a map from user ID to key ID to signed JSON object.
+ * The signed JSON object must match the key previously uploaded or
+ * retrieved for the given key ID, with the exception of the `signatures`
+ * property, which contains the new signature(s) to add.
  */
 class QUOTIENT_API UploadCrossSigningSignaturesJob : public BaseJob {
 public:
     /*! \brief Upload cross-signing signatures.
      *
      * \param signatures
-     *   The signatures to be published.
+     *   A map from user ID to key ID to signed JSON objects containing the
+     *   signatures to be published.
      */
     explicit UploadCrossSigningSignaturesJob(
         const QHash<QString, QHash<QString, QJsonObject>>& signatures);

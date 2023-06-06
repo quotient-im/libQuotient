@@ -8,7 +8,7 @@
 
 namespace Quotient {
 /// A signature of an `m.third_party_invite` token to prove that this user
-/// owns a third party identity which has been invited to the room.
+/// owns a third-party identity which has been invited to the room.
 struct ThirdPartySigned {
     /// The Matrix ID of the user who issued the invite.
     QString sender;
@@ -34,10 +34,10 @@ struct JsonObjectConverter<ThirdPartySigned> {
     }
     static void fillFrom(const QJsonObject& jo, ThirdPartySigned& pod)
     {
-        fromJson(jo.value("sender"_ls), pod.sender);
-        fromJson(jo.value("mxid"_ls), pod.mxid);
-        fromJson(jo.value("token"_ls), pod.token);
-        fromJson(jo.value("signatures"_ls), pod.signatures);
+        fillFromJson(jo.value("sender"_ls), pod.sender);
+        fillFromJson(jo.value("mxid"_ls), pod.mxid);
+        fillFromJson(jo.value("token"_ls), pod.token);
+        fillFromJson(jo.value("signatures"_ls), pod.signatures);
     }
 };
 

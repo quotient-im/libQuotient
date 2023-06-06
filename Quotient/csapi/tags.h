@@ -20,9 +20,9 @@ public:
     struct Tag {
         /// A number in a range `[0,1]` describing a relative
         /// position of the room under the given tag.
-        Omittable<float> order;
+        Omittable<float> order{};
         /// List the tags set by a user on a room.
-        QVariantHash additionalProperties;
+        QVariantHash additionalProperties{};
     };
 
     // Construction/destruction
@@ -59,7 +59,7 @@ template <>
 struct JsonObjectConverter<GetRoomTagsJob::Tag> {
     static void fillFrom(QJsonObject jo, GetRoomTagsJob::Tag& result)
     {
-        fromJson(jo.take("order"_ls), result.order);
+        fillFromJson(jo.take("order"_ls), result.order);
         fromJson(jo, result.additionalProperties);
     }
 };

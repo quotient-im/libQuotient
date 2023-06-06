@@ -14,13 +14,13 @@ struct AuthenticationData {
     /// May be omitted if `session` is given, and the client is reissuing a
     /// request which it believes has been completed out-of-band (for example,
     /// via the [fallback mechanism](#fallback)).
-    QString type;
+    QString type{};
 
     /// The value of the session key given by the homeserver.
-    QString session;
+    QString session{};
 
     /// Keys dependent on the login type
-    QHash<QString, QJsonObject> authInfo;
+    QHash<QString, QJsonObject> authInfo{};
 };
 
 template <>
@@ -33,8 +33,8 @@ struct JsonObjectConverter<AuthenticationData> {
     }
     static void fillFrom(QJsonObject jo, AuthenticationData& pod)
     {
-        fromJson(jo.take("type"_ls), pod.type);
-        fromJson(jo.take("session"_ls), pod.session);
+        fillFromJson(jo.take("type"_ls), pod.type);
+        fillFromJson(jo.take("session"_ls), pod.session);
         fromJson(jo, pod.authInfo);
     }
 };

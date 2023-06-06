@@ -26,6 +26,14 @@ public:
         /// The login type. This is supplied as the `type` when
         /// logging in.
         QString type;
+        /// If `type` is `m.login.token`, an optional field to indicate
+        /// to the unauthenticated client that the homeserver supports
+        /// the [`POST
+        /// /login/get_token`](/client-server-api/#post_matrixclientv1loginget_token)
+        /// endpoint. Note that supporting the endpoint does not
+        /// necessarily indicate that the user attempting to log in will
+        /// be able to generate such a token.
+        bool getLoginToken{ false };
     };
 
     // Construction/destruction
@@ -54,7 +62,8 @@ struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
     static void fillFrom(const QJsonObject& jo,
                          GetLoginFlowsJob::LoginFlow& result)
     {
-        fromJson(jo.value("type"_ls), result.type);
+        fillFromJson(jo.value("type"_ls), result.type);
+        fillFromJson(jo.value("get_login_token"_ls), result.getLoginToken);
     }
 };
 

@@ -27,11 +27,11 @@ public:
     /// specified in this document.
     struct ConnectionInfo {
         /// Most recently seen IP address of the session.
-        QString ip;
+        QString ip{};
         /// Unix timestamp that the session was last active.
-        Omittable<qint64> lastSeen;
+        Omittable<qint64> lastSeen{};
         /// User agent string last seen in the session.
-        QString userAgent;
+        QString userAgent{};
     };
 
     /// Gets information about a particular user.
@@ -41,7 +41,7 @@ public:
     /// specified in this document.
     struct SessionInfo {
         /// Information particular connections in the session.
-        QVector<ConnectionInfo> connections;
+        QVector<ConnectionInfo> connections{};
     };
 
     /// Gets information about a particular user.
@@ -52,7 +52,7 @@ public:
     struct DeviceInfo {
         /// A user's sessions (i.e. what they did with an access token from one
         /// login).
-        QVector<SessionInfo> sessions;
+        QVector<SessionInfo> sessions{};
     };
 
     // Construction/destruction
@@ -88,9 +88,9 @@ struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
     static void fillFrom(const QJsonObject& jo,
                          GetWhoIsJob::ConnectionInfo& result)
     {
-        fromJson(jo.value("ip"_ls), result.ip);
-        fromJson(jo.value("last_seen"_ls), result.lastSeen);
-        fromJson(jo.value("user_agent"_ls), result.userAgent);
+        fillFromJson(jo.value("ip"_ls), result.ip);
+        fillFromJson(jo.value("last_seen"_ls), result.lastSeen);
+        fillFromJson(jo.value("user_agent"_ls), result.userAgent);
     }
 };
 
@@ -98,7 +98,7 @@ template <>
 struct JsonObjectConverter<GetWhoIsJob::SessionInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
     {
-        fromJson(jo.value("connections"_ls), result.connections);
+        fillFromJson(jo.value("connections"_ls), result.connections);
     }
 };
 
@@ -106,7 +106,7 @@ template <>
 struct JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
     {
-        fromJson(jo.value("sessions"_ls), result.sessions);
+        fillFromJson(jo.value("sessions"_ls), result.sessions);
     }
 };
 

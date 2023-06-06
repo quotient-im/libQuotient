@@ -39,9 +39,10 @@ public:
         /// The user's matrix user ID.
         QString userId;
         /// The display name of the user, if one exists.
-        QString displayName;
-        /// The avatar url, as an MXC, if one exists.
-        QUrl avatarUrl;
+        QString displayName{};
+        /// The avatar url, as an [`mxc://`
+        /// URI](/client-server-api/#matrix-content-mxc-uris), if one exists.
+        QUrl avatarUrl{};
     };
 
     // Construction/destruction
@@ -74,9 +75,9 @@ struct JsonObjectConverter<SearchUserDirectoryJob::User> {
     static void fillFrom(const QJsonObject& jo,
                          SearchUserDirectoryJob::User& result)
     {
-        fromJson(jo.value("user_id"_ls), result.userId);
-        fromJson(jo.value("display_name"_ls), result.displayName);
-        fromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+        fillFromJson(jo.value("user_id"_ls), result.userId);
+        fillFromJson(jo.value("display_name"_ls), result.displayName);
+        fillFromJson(jo.value("avatar_url"_ls), result.avatarUrl);
     }
 };
 

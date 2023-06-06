@@ -16,11 +16,11 @@ struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/pare
 {       {{#vars}}
 
     {{>docCommentShort}}
-    {{>maybeOmittableType}} {{nameCamelCase}};
+    {{>maybeOmittableType}} {{nameCamelCase}}{{>initializeField}};
         {{/vars}}{{#propertyMap}}
 
     {{>docCommentShort}}
-    {{>maybeOmittableType}} {{nameCamelCase}};
+    {{>maybeOmittableType}} {{nameCamelCase}}{};
         {{/propertyMap}}
 };
 
@@ -43,7 +43,7 @@ template <> struct JsonObjectConverter<{{name}}>
     {       {{#parents}}
         fillFromJson<{{qualifiedName}}>(jo, pod);
             {{/parents}}{{#vars}}
-        fromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls), pod.{{nameCamelCase}});
+        fillFromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls), pod.{{nameCamelCase}});
             {{/vars}}{{#propertyMap}}
         fromJson(jo, pod.{{nameCamelCase}});
             {{/propertyMap}}

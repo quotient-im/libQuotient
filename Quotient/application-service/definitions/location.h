@@ -12,10 +12,10 @@ struct ThirdPartyLocation {
     /// An alias for a matrix room.
     QString alias;
 
-    /// The protocol ID that the third party location is a part of.
+    /// The protocol ID that the third-party location is a part of.
     QString protocol;
 
-    /// Information used to identify this third party location.
+    /// Information used to identify this third-party location.
     QJsonObject fields;
 };
 
@@ -29,9 +29,9 @@ struct JsonObjectConverter<ThirdPartyLocation> {
     }
     static void fillFrom(const QJsonObject& jo, ThirdPartyLocation& pod)
     {
-        fromJson(jo.value("alias"_ls), pod.alias);
-        fromJson(jo.value("protocol"_ls), pod.protocol);
-        fromJson(jo.value("fields"_ls), pod.fields);
+        fillFromJson(jo.value("alias"_ls), pod.alias);
+        fillFromJson(jo.value("protocol"_ls), pod.protocol);
+        fillFromJson(jo.value("fields"_ls), pod.fields);
     }
 };
 

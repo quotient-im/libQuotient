@@ -15,7 +15,7 @@ struct UserIdentifier {
     QString type;
 
     /// Identification information for a user
-    QVariantHash additionalProperties;
+    QVariantHash additionalProperties{};
 };
 
 template <>
@@ -27,7 +27,7 @@ struct JsonObjectConverter<UserIdentifier> {
     }
     static void fillFrom(QJsonObject jo, UserIdentifier& pod)
     {
-        fromJson(jo.take("type"_ls), pod.type);
+        fillFromJson(jo.take("type"_ls), pod.type);
         fromJson(jo, pod.additionalProperties);
     }
 };
