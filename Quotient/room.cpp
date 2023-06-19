@@ -2730,7 +2730,7 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
                         << ti->id() << "already done, skipping";
         return true;
     }
-    if (const auto* messageEvent = ti.viewAs<RoomMessageEvent>())
+    if (ti->is<RoomMessageEvent>())
         FileMetadataMap::remove(id, ti->id());
 
     // Make a new event from the redacted JSON and put it in the timeline
