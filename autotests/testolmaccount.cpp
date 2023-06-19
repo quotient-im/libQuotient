@@ -204,11 +204,10 @@ void TestOlmAccount::uploadOneTimeKeys()
     auto nKeys = olmAccount->generateOneTimeKeys(5);
     QCOMPARE(nKeys, 5);
 
-    auto oneTimeKeys = olmAccount->oneTimeKeys();
+    const auto oneTimeKeys = olmAccount->oneTimeKeys();
 
     OneTimeKeys oneTimeKeysHash;
-    const auto curve = oneTimeKeys.curve25519();
-    for (const auto &[keyId, key] : asKeyValueRange(curve)) {
+    for (const auto& [keyId, key] : asKeyValueRange(oneTimeKeys.curve25519())) {
         oneTimeKeysHash["curve25519:"_ls + keyId] = key;
     }
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
@@ -230,11 +229,7 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
     QCOMPARE(nKeys, 5);
 
     auto oneTimeKeys = olmAccount->oneTimeKeys();
-    OneTimeKeys oneTimeKeysHash;
-    const auto signedKey = olmAccount->signOneTimeKeys(oneTimeKeys);
-    for (const auto &[keyId, key] : asKeyValueRange(signedKey)) {
-        oneTimeKeysHash[keyId] = key;
-    }
+    auto oneTimeKeysHash = olmAccount->signOneTimeKeys(oneTimeKeys);
     auto request = new UploadKeysJob(none, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request, nKeys] {
         if (!request->status().good())

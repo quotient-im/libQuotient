@@ -372,8 +372,7 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
 
 void ConnectionEncryptionData::handleQueryKeys(const QueryKeysJob* job)
 {
-    const auto newDeviceKeys = job->deviceKeys();
-    for (const auto& [user, keys] : asKeyValueRange(newDeviceKeys)) {
+    for (const auto& [user, keys] : asKeyValueRange(job->deviceKeys())) {
         const QHash<QString, Quotient::DeviceKeys> oldDevices = deviceKeys[user];
         deviceKeys[user].clear();
         for (const auto& device : keys) {
