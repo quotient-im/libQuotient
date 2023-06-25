@@ -11,8 +11,6 @@
 
 using namespace Quotient;
 
-QString EventTypeRegistry::getMatrixType(event_type_t typeId) { return typeId; }
-
 void AbstractEventMetaType::addDerived(const AbstractEventMetaType* newType)
 {
     if (const auto existing =
@@ -60,8 +58,6 @@ Event::Event(const QJsonObject& json)
 Event::~Event() = default;
 
 QString Event::matrixType() const { return fullJson()[TypeKey].toString(); }
-
-QByteArray Event::originalJson() const { return QJsonDocument(_json).toJson(); }
 
 const QJsonObject Event::contentJson() const
 {
