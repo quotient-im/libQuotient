@@ -7,7 +7,7 @@
 // message events as well as other events (e.g., avatars).
 
 #include "filesourceinfo.h"
-#include <Quotient/quotient_export.h>
+#include "../metatype.h"
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QMetaType>
@@ -25,10 +25,12 @@ namespace Quotient::EventContent {
 //! that will fill the target QJsonObject with stored values. It is
 //! assumed but not required that a content object can also be created
 //! from plain data.
-class QUOTIENT_API Base {
+class QUOTIENT_API Base : public LoadableBase {
 public:
+    QUO_BASE_LOADABLE(Base, LoadableBase)
+
     explicit Base(QJsonObject o = {}) : originalJson(std::move(o)) {}
-    virtual ~Base() = default;
+    ~Base() override = default;
 
     QJsonObject toJson() const;
 

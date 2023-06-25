@@ -155,6 +155,7 @@ list(APPEND lib_SRCS
     Quotient/events/roomcreateevent.h Quotient/events/roomcreateevent.cpp
     Quotient/events/roomtombstoneevent.h Quotient/events/roomtombstoneevent.cpp
     Quotient/events/roommessageevent.h Quotient/events/roommessageevent.cpp
+    Quotient/events/messageevent.h Quotient/events/messageevent.cpp
     Quotient/events/roommemberevent.h Quotient/events/roommemberevent.cpp
     Quotient/events/roomcanonicalaliasevent.h
     Quotient/events/roomavatarevent.h
