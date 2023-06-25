@@ -345,7 +345,8 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
 {
     const auto [decryptedEvent, olmSessionId] = sessionDecryptMessage(event);
     if (!decryptedEvent) {
-        qCWarning(E2EE) << "Failed to decrypt event" << event.id();
+        qCWarning(E2EE) << "Failed to decrypt to-device event from device"
+                        << event.deviceId();
         return;
     }
 
@@ -569,8 +570,7 @@ std::pair<QByteArray, QByteArray> ConnectionEncryptionData::sessionDecryptMessag
     auto newSessionResult =
         olmAccount.createInboundSessionFrom(senderKey, message);
     if (!newSessionResult) {
-        qCWarning(E2EE) << "Failed to create inbound session for" << senderKey
-                        << "with error" << newSessionResult.error();
+        qCWarning(E2EE) << "Failed to create inbound session for" << senderKey;
         return {};
     }
     auto&& newSession = std::move(*newSessionResult);
