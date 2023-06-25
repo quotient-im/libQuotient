@@ -35,6 +35,11 @@ class QUOTIENT_API RoomMemberEvent
 public:
     QUO_EVENT(RoomMemberEvent, "m.room.member")
 
+    static bool isValid(const QJsonObject& fullJson)
+    {
+        return !fullJson[StateKeyKey].toString().isEmpty();
+    }
+
     using MembershipType
         [[deprecated("Use Quotient::Membership instead")]] = Membership;
 
