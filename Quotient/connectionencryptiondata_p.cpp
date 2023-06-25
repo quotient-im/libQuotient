@@ -297,7 +297,7 @@ void ConnectionEncryptionData::consumeToDeviceEvents(Events&& toDeviceEvents)
     if (!toDeviceEvents.empty()) {
         qCDebug(E2EE) << "Consuming" << toDeviceEvents.size()
                       << "to-device events";
-        for (auto&& tdEvt : toDeviceEvents) {
+        for (auto&& tdEvt : std::move(toDeviceEvents)) {
             if (processIfVerificationEvent(*tdEvt, false))
                 continue;
             if (auto&& event = eventCast<EncryptedEvent>(std::move(tdEvt))) {
