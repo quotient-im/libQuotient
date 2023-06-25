@@ -12,7 +12,7 @@ void EventContent::TextRepresentation::fillJson(QJsonObject &) const
 MessageEvent::MessageEvent(const QJsonObject& json)
     : RoomEvent(json)
     , _textBlock(
-          fromJson<QVector<EventContent::TextRepresentation>>(contentJson()))
+          fromJson<std::vector<EventContent::TextRepresentation>>(contentJson()))
 {
 
 }

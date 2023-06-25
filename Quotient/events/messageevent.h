@@ -19,7 +19,7 @@ namespace EventContent {
     private:
         void fillJson(QJsonObject&) const override;
     };
-    using TextBlock = QVector<TextRepresentation>;
+    using TextBlock = std::vector<TextRepresentation>;
 }
 
 inline std::unique_ptr<EventContent::Base> loadBlock(const QString& type,
