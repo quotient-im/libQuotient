@@ -13,21 +13,6 @@ namespace Quotient {
 template <typename EventT>
 using event_ptr_tt = std::unique_ptr<EventT>;
 
-template <typename EventT>
-[[deprecated("Use std::to_address() instead")]] // Remove in 0.9
-inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr)
-{
-    return ptr.get();
-}
-
-/// Unwrap a plain pointer and downcast it to the specified type
-template <typename TargetEventT, typename EventT>
-[[deprecated("Use eventCast() instead")]] // Remove in 0.9
-inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
-{
-    return static_cast<TargetEventT*>(std::to_address(ptr));
-}
-
 // === Standard Matrix key names ===
 
 constexpr inline auto TypeKey = "type"_ls;
@@ -40,16 +25,6 @@ constexpr inline auto UnsignedKey = "unsigned"_ls;
 constexpr inline auto RedactedCauseKey = "redacted_because"_ls;
 constexpr inline auto PrevContentKey = "prev_content"_ls;
 constexpr inline auto StateKeyKey = "state_key"_ls;
-[[deprecated("use TypeKey")]] constexpr inline auto TypeKeyL = TypeKey;
-[[deprecated("use BodyKey")]] constexpr inline auto BodyKeyL = BodyKey;
-[[deprecated("use ContentKey")]] constexpr inline auto ContentKeyL = ContentKey;
-[[deprecated("use EventIdKey")]] constexpr inline auto EventIdKeyL = EventIdKey;
-[[deprecated("use SenderKey")]] constexpr inline auto SenderKeyL = SenderKey;
-[[deprecated("use RoomIdKey")]] constexpr inline auto RoomIdKeyL = RoomIdKey;
-[[deprecated("use UnsignedKey")]] constexpr inline auto UnsignedKeyL = UnsignedKey;
-[[deprecated("use RedactedCauseKey")]] constexpr inline auto RedactedCauseKeyL = RedactedCauseKey;
-[[deprecated("use PrevContentKey")]] constexpr inline auto PrevContentKeyL = PrevContentKey;
-[[deprecated("use StateKeyKey")]] constexpr inline auto StateKeyKeyL = StateKeyKey;
 
 using event_type_t = QLatin1String;
 
@@ -275,18 +250,6 @@ public:
         return { { TypeKey, matrixType }, { ContentKey, content } };
     }
 
-    //! \brief Event Matrix type, as identified by its metatype object
-    //!
-    //! For event types that have defined C++ classes this will return the same
-    //! string as type(); for generic/unknown events it will contain
-    //! a descriptive/generic string defined by the respective base event type
-    //! (that can be empty).
-    //! \sa matrixType
-    [[deprecated("Use matrixType() to get type id stored in event JSON, "
-                 "or metaType().matrixId if you (unlikely) need type id as "
-                 "per the metatype system")]] // TODO: Remove in 0.9
-    auto type() const { return metaType().matrixId; }
-
     //! \brief Exact Matrix type stored in JSON
     QString matrixType() const;
 
@@ -375,7 +338,6 @@ public:
     // as an exception. For other base events, Event::is<>() and
     // Quotient::is<>() should be used; don't add is* methods here
     bool isStateEvent() const;
-    [[deprecated("Use is<CallEvent>() instead")]] bool isCallEvent() const;
 
 protected:
     friend class EventMetaType<Event>; // To access the below constructor
