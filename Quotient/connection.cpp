@@ -259,7 +259,7 @@ void Connection::Private::saveAccessTokenToKeychain() const
     QObject::connect(job, &QKeychain::Job::finished, q, [job] {
         if (job->error() == QKeychain::Error::NoError)
             return;
-        qWarning().noquote()
+        qWarning(MAIN).noquote()
             << "Could not save access token to the keychain:"
             << qUtf8Printable(job->errorString());
         // TODO: emit a signal
@@ -279,7 +279,7 @@ void Connection::Private::dropAccessToken()
         if (job->error() == Error::NoError
             || job->error() == Error::EntryNotFound)
             return;
-        qWarning().noquote()
+        qWarning(MAIN).noquote()
             << "Could not delete access token from the keychain:"
             << qUtf8Printable(job->errorString());
     });
@@ -291,7 +291,7 @@ void Connection::Private::dropAccessToken()
         if (job->error() == Error::NoError
             || job->error() == Error::EntryNotFound)
             return;
-        qWarning().noquote()
+        qWarning(MAIN).noquote()
             << "Could not delete account pickle from the keychain:"
             << qUtf8Printable(job->errorString());
     });
