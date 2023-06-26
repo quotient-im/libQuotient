@@ -7,6 +7,8 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QLoggingCategory>
 
+namespace Quotient {
+
 Q_DECLARE_LOGGING_CATEGORY(MAIN)
 Q_DECLARE_LOGGING_CATEGORY(STATE)
 Q_DECLARE_LOGGING_CATEGORY(MEMBERS)
@@ -21,7 +23,6 @@ Q_DECLARE_LOGGING_CATEGORY(NETWORK)
 Q_DECLARE_LOGGING_CATEGORY(PROFILER)
 Q_DECLARE_LOGGING_CATEGORY(DATABASE)
 
-namespace Quotient {
 // QDebug manipulators
 
 using QDebugManip = QDebug (*)(QDebug);

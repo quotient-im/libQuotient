@@ -6,7 +6,8 @@
 
 #define LOGGING_CATEGORY(Name, Id) Q_LOGGING_CATEGORY((Name), (Id), QtInfoMsg)
 
-// Use LOGGING_CATEGORY instead of Q_LOGGING_CATEGORY in the rest of the code
+namespace Quotient {
+
 LOGGING_CATEGORY(MAIN, "quotient.main")
 LOGGING_CATEGORY(EVENTS, "quotient.events")
 LOGGING_CATEGORY(STATE, "quotient.events.state")
@@ -20,3 +21,5 @@ LOGGING_CATEGORY(THUMBNAILJOB, "quotient.jobs.thumbnail")
 LOGGING_CATEGORY(NETWORK, "quotient.network")
 LOGGING_CATEGORY(PROFILER, "quotient.profiler")
 LOGGING_CATEGORY(DATABASE, "quotient.database")
+
+}
