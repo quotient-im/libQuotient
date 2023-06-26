@@ -75,15 +75,15 @@ inline bool is(const BaseT& v)
 {
     // Protect against accidental putting QUO_*EVENT to a private section
     static_assert(
-        requires { &T::metaType; },
-        "Event class doesn't have a public metaType() override - "
+        requires { &T::metaObject; },
+        "Event class doesn't have a public metaObject() override - "
         "make sure QUO_*LOADABLE macro in in public section");
-    if constexpr (requires { T::MetaType; }) {
-        return &v.metaType() == &T::MetaType;
+    if constexpr (requires { T::MetaObject; }) {
+        return &v.metaObject() == &T::MetaObject;
     } else {
-        const auto* p = &v.metaType();
+        const auto* p = &v.metaObject();
         do {
-            if (p == &T::BaseMetaType)
+            if (p == &T::BaseMetaObject)
                 return true;
         } while ((p = p->baseType) != nullptr);
         return false;
@@ -216,20 +216,23 @@ private:
 //! Derive your base class from LoadableBase (directly or by deriving from
 //! another base class that inherits LoadableBase) and use this macro in its
 //! public section to provide type identity and enable creation of generic
-//! objects of that type from JSON payloads. This macro provides BaseMetaType
-//! static field initialised by parameters passed to the macro, and a metaType()
-//! override pointing to that BaseMetaType.
+//! objects of that type from JSON payloads. This macro provides BaseMetaObject
+//! static field initialised by parameters passed to the macro, and
+//! the metaObject() override pointing to that BaseMetaObject.
 //! \note Do _not_ add this macro if your class is an intermediate wrapper that
 //!       is not supposed to be instantiated on its own.
 //! \sa MetaType
-#define QUO_BASE_LOADABLE(CppType_, BaseCppType_)                              \
-    friend class MetaType<CppType_>;                                           \
-    static inline MetaType<CppType_> BaseMetaType{                             \
-        #CppType_, &BaseCppType_::BaseMetaType                                 \
-    };                                                                         \
-    static_assert(&CppType_::BaseMetaType == &BaseMetaType,                    \
-                  #CppType_ " is wrong here - check for copy-pasta");          \
-    const AbstractMetaType& metaType() const override { return BaseMetaType; } \
+#define QUO_BASE_LOADABLE(CppType_, BaseCppType_)                     \
+    friend class MetaType<CppType_>;                                  \
+    static inline MetaType<CppType_> BaseMetaObject{                  \
+        #CppType_, &BaseCppType_::BaseMetaObject                      \
+    };                                                                \
+    static_assert(&CppType_::BaseMetaObject == &BaseMetaObject,       \
+                  #CppType_ " is wrong here - check for copy-pasta"); \
+    const AbstractMetaType& metaObject() const override               \
+    {                                                                 \
+        return BaseMetaObject;                                        \
+    }                                                                 \
     // End of macro
 
 //! \brief Supply metatype information in (specific, leaf) types
@@ -237,35 +240,36 @@ private:
 //! Derive your class from a base class that has QUO_BASE_LOADABLE macro, and
 //! use this (QUO_LOADABLE) macro in its public sectio to provide type
 //! identity and enable dynamic loading from JSON for objects of that type.
-//! This macro provides MetaType static field initialised as described below;
-//! the metaType() override pointing to it; and the TypeId static field that
+//! This macro provides MetaObject static field initialised as described below;
+//! the metaObject() override pointing to it; and the TypeId static field that
 //! keeps the Matrix id from which it can be loaded.
 //!
-//! The first two macro parameters are used as the first two MetaType
-//! constructor parameters; the third MetaType parameter is set to BaseMetaType
-//! (which is why this macro requires deriving from a class that defines
-//! BaseMetaType, normally via QUO_BASE_LOADABLE macro).
+//! The first two macro parameters are used as the first two MetaObject
+//! constructor parameters; the third MetaObject parameter is set to
+//! BaseMetaObject (which is why this macro requires deriving from a class that
+//! defines BaseMetaObject, normally via QUO_BASE_LOADABLE macro).
 //! \note Do _not_ use this macro if your class is an intermediate wrapper that
 //!       is not supposed to be instantiated on its own.
 //! \sa MetaType
 #define QUO_LOADABLE(CppType_, MatrixType_)                                    \
     static inline const auto TypeId = MatrixType_##_ls;                        \
     friend class MetaType<CppType_>;                                           \
-    static inline const MetaType<CppType_> MetaType{ #CppType_, &BaseMetaType, \
-                                                     TypeId };                 \
-    static_assert(&CppType_::MetaType == &MetaType,                            \
+    static inline const MetaType<CppType_> MetaObject{ #CppType_,              \
+                                                       &BaseMetaObject,        \
+                                                       TypeId };               \
+    static_assert(&CppType_::MetaObject == &MetaObject,                        \
                   #CppType_ " is wrong here - check for copy-pasta");          \
-    const AbstractMetaType& metaType() const override { return MetaType; }     \
+    const AbstractMetaType& metaObject() const override { return MetaObject; } \
     // End of macro
 
 //! Facility function to get the most specific metatype object for a given type
 template <class T>
-constexpr const auto& mostSpecificMetaType()
+constexpr const auto& mostSpecificMetaObject()
 {
-    if constexpr (requires { T::MetaType; })
-        return T::MetaType;
+    if constexpr (requires { T::MetaObject; })
+        return T::MetaObject;
     else
-        return T::BaseMetaType;
+        return T::BaseMetaObject;
 }
 
 //! \brief Cast the pointer to a loadable down in a type-safe way
@@ -311,10 +315,6 @@ namespace _impl {
         Loadable_Class<std::remove_cvref_t<fn_arg_t<FnT>>, BaseT>;
 }
 
-//! \brief Non-member version of LoadableBase::switchOnType()
-//!
-//! See Quotient::is() for the discussion of member vs. non-member versions;
-//! LoadableBase::switchOnType() for the semantics.
 template <Loadable_Class BaseT, typename TailT>
 inline auto switchOnType(const BaseT& loadable, TailT&& tail)
 {
@@ -330,6 +330,10 @@ inline auto switchOnType(const BaseT& loadable, TailT&& tail)
     }
 }
 
+//! \brief Non-member version of LoadableBase::switchOnType()
+//!
+//! See Quotient::is() for the discussion of member vs. non-member versions;
+//! LoadableBase::switchOnType() for the semantics.
 template <typename FnT1, typename... FnTs>
 inline auto switchOnType(const Loadable_Class auto& loadable, FnT1&& fn1,
                          FnTs&&... fns)
@@ -347,10 +351,11 @@ public:
     // Provide the foundation for QUO_BASE_LOADABLE to work and common parts
     // for all "loadable" classes
 
-    static inline MetaType<LoadableBase> BaseMetaType{};
-    virtual const AbstractMetaType& metaType() const = 0;
+    static inline MetaType<LoadableBase> BaseMetaObject{};
+    virtual const AbstractMetaType& metaObject() const = 0;
     virtual ~LoadableBase() = default;
 
+    //! \brief TODO
     template <class T>
     bool is() const
     {

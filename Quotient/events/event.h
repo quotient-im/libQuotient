@@ -51,7 +51,7 @@ inline event_ptr_tt<EventT> makeEvent(ArgTs&&... args)
 template <EventClass EventT>
 inline event_ptr_tt<EventT> loadEvent(const QJsonObject& fullJson)
 {
-    return mostSpecificMetaType<EventT>().loadFrom(
+    return mostSpecificMetaObject<EventT>().loadFrom(
         fullJson, fullJson[TypeKey].toString());
 }
 
@@ -64,7 +64,7 @@ template <EventClass EventT>
 inline event_ptr_tt<EventT> loadEvent(const QString& matrixType,
                                       const auto&... otherBasicJsonParams)
 {
-    return mostSpecificMetaType<EventT>().loadFrom(
+    return mostSpecificMetaObject<EventT>().loadFrom(
         EventT::basicJson(matrixType, otherBasicJsonParams...), matrixType);
 }
 
@@ -90,6 +90,11 @@ public:
     Event(Event&&) noexcept = default;
     Event& operator=(Event&&) = delete;
     ~Event() override = default;
+
+    [[deprecated("Use metaObject() instead")]] const auto& metaType()
+    {
+        return metaObject();
+    }
 
     /// Make a minimal correct Matrix event JSON
     static QJsonObject basicJson(const QString& matrixType,
@@ -140,7 +145,7 @@ public:
     {
         const QDebugStateSaver _dss { dbg };
         dbg.noquote().nospace()
-            << e.matrixType() << '(' << e.metaType().className << "): ";
+            << e.matrixType() << '(' << e.metaObject().className << "): ";
         e.dumpTo(dbg);
         return dbg;
     }

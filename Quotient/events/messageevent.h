@@ -25,7 +25,7 @@ namespace EventContent {
 inline std::unique_ptr<EventContent::Base> loadBlock(const QString& type,
                                                      const QJsonObject& json)
 {
-    return EventContent::Base::BaseMetaType.loadFrom(json, type);
+    return EventContent::Base::BaseMetaObject.loadFrom(json, type);
 }
 
 
@@ -41,4 +41,4 @@ protected:
 private:
     EventContent::TextBlock _textBlock;
 };
-}
+} // namespace Quotient
