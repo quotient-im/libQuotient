@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-22.04, macos-11, windows-2019 ]
+        os: [ ubuntu-22.04, macos-latest, windows-latest ]
         qt-version: [ '6.4', '5.15' ]
         override-compiler: [ '', GCC ] # Defaults: MSVC on Windows, Clang elsewhere
         # Not using binary values here, to make the job captions more readable
@@ -29,9 +29,9 @@ jobs:
           e2ee: ''
         - qt-version: '5.15'
           override-compiler: GCC
-        - os: macos-11
+        - os: macos-latest
           override-compiler: GCC
-        - os: windows-2019
+        - os: windows-latest
           override-compiler: GCC
         include:
         - os: ubuntu-22.04 # Overrides the existing job
