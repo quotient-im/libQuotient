@@ -210,7 +210,7 @@ Additionally:
     data structures (see the previous point). However, exposing STL containers
     in the API is not encouraged (except where absolutely necessary, e.g. we use
     `std::deque` for a timeline). Especially when it comes to API intended
-    for usage from QML (e.g. `Q_PROPERTY`), STL containers or iterators are
+    for usage from QML (e.g. `Q_PROPERTY`), most STL containers or iterators are
     unlikely to work and therefore unlikely to be accepted into `dev`.
   * Notwithstanding the above (you're not going to use these with QML anyway),
     prefer `std::unique_ptr<>` over `QScopedPointer<>` as it gives stronger
@@ -224,6 +224,14 @@ Additionally:
   templated code because type deduction doesn't work with aliases. This breakage
   will go away in C++23 but we are far from that yet; in the meantime, the fix
   boils down to specifying the template parameter of `QVector` explicitly.)
+
+* When you write logs within the library, always use logging categories defined
+  in `logging_categories_p.h`, instead of plain `qDebug()` (that assigns a log
+  line to the default category). `qCDebug(CATEGORY)` is the preferred form;
+  `qDebug(CATEGORY)` is accepted as well. Do not add new logging categories
+  without necessity; if you do, make sure to add the new category to
+  `logging_categories_p.h`, to make sure there's a central reference for all
+  of them (mentioned in README.md, by the way).
 
 ### API conventions
 
