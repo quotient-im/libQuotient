@@ -81,19 +81,9 @@ inline auto connectSingleShot(auto* sender, auto signal, ContextT* context,
     // In case of classic Qt pointer-to-member-function slots the receiver
     // object has to be pre-bound to the slot to make it self-contained
     if constexpr (_impl::PmfSlot<SlotT, ContextT>) {
-        auto&& boundSlot =
-#    if __cpp_lib_bind_front // Needs Apple Clang 13 (other platforms are fine)
-            std::bind_front(slot, context);
-#    else
-            [context, slot](const auto&... args)
-            requires requires { (context->*slot)(args...); }
-            {
-                (context->*slot)(args...);
-            };
-#    endif
-        return _impl::connect<_impl::SingleShot>(
-            sender, signal, context,
-            std::forward<decltype(boundSlot)>(boundSlot), connType);
+        return _impl::connect<_impl::SingleShot>(sender, signal, context,
+                                                 std::bind_front(slot, context),
+                                                 connType);
     } else {
         return _impl::connect<_impl::SingleShot>(sender, signal, context, slot,
                                                  connType);
