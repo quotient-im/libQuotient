@@ -9,7 +9,7 @@ namespace Quotient {
 
 class QUOTIENT_API StateEvent : public RoomEvent {
 public:
-    QUO_BASE_EVENT(StateEvent, RoomEvent, "json.contains('state_key')")
+    QUO_BASE_EVENT(StateEvent, RoomEvent)
 
     static bool isValid(const QJsonObject& fullJson)
     {
@@ -24,7 +24,7 @@ public:
     //! constructors and calls in, e.g., RoomStateView don't include it.
     static constexpr auto needsStateKey = false;
 
-    explicit StateEvent(event_type_t type, const QString& stateKey = {},
+    explicit StateEvent(matrix_type_t type, const QString& stateKey = {},
                         const QJsonObject& contentJson = {});
 
     //! Make a minimal correct Matrix state event JSON

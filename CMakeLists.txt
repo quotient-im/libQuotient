@@ -139,6 +139,7 @@ list(APPEND lib_SRCS
     Quotient/networksettings.h Quotient/networksettings.cpp
     Quotient/converters.h Quotient/converters.cpp
     Quotient/util.h Quotient/util.cpp
+    Quotient/metatype.h Quotient/metatype.cpp
     Quotient/eventitem.h Quotient/eventitem.cpp
     Quotient/accountregistry.h Quotient/accountregistry.cpp
     Quotient/mxcreply.h Quotient/mxcreply.cpp

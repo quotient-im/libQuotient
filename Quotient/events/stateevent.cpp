@@ -13,7 +13,7 @@ StateEvent::StateEvent(const QJsonObject& json)
                "Attempt to create a state event without state key");
 }
 
-StateEvent::StateEvent(event_type_t type, const QString& stateKey,
+StateEvent::StateEvent(matrix_type_t type, const QString& stateKey,
                        const QJsonObject& contentJson)
     : RoomEvent(basicJson(type, stateKey, contentJson))
 {}
