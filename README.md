@@ -48,7 +48,7 @@ To build applications with libQuotient, you'll also need:
 - CMake 3.16 or newer
 - A C++ toolchain that supports at least some subset of C++20 (concepts,
   in particular):
-  - GCC 11 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
+  - GCC 11 (Windows, Linux, macOS), Clang 13 (Linux), Apple Clang 14 (macOS 12+)
     and Visual Studio 2019 (Windows) are the oldest officially supported
 - If using E2EE (beta, as of libQuotient 0.8):
   - libolm 3.2.5 or newer (the latest 3.x strongly recommended)
