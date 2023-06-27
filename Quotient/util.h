@@ -330,19 +330,14 @@ QUOTIENT_API bool encryptionSupported();
 
 // QDebug manipulators
 
-using QDebugManip = QDebug (*)(QDebug);
-
-/**
- * @brief QDebug manipulator to setup the stream for JSON output
- *
- * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
- * and the respective addition of QDebug::noquote().
- * Together with the operator<<() helper, the proposed usage is
- * (similar to std:: I/O manipulators):
- *
- * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
- */
-inline QDebug formatJson(QDebug debug_object) { return debug_object.noquote(); }
+//! \brief QDebug manipulator to setup the stream for JSON output
+//!
+//! Originally made to encapsulate the change in QDebug behavior in Qt 5.4
+//! and the respective addition of QDebug::noquote().
+//! Together with the operator<<() helper, the proposed usage is
+//! (similar to std:: I/O manipulators):
+//! `qCDebug(MAIN) << formatJson << json_object; // (QJsonObject etc.)`
+inline QDebug formatJson(QDebug dbg) { return dbg.noquote(); }
 
 //! Suppress full qualification of enums/QFlags when logging
 inline QDebug terse(QDebug dbg)
@@ -359,21 +354,23 @@ constexpr qint64 ProfilerMinNsecs =
     * 1000;
 } // namespace Quotient
 
-//! \brief A helper operator to facilitate usage of formatJson (and possibly
-//!        other manipulators)
+//! \brief A helper operator for QDebug manipulators, e.g. formatJson
 //!
-//! \param debug_object to output the json to
-//! \param qdm a QDebug manipulator
-//! \return a copy of debug_object that has its mode altered by qdm
-inline QDebug operator<<(QDebug debug_object, Quotient::QDebugManip qdm)
+//! \param dbg to output the json to
+//! \param manipFn a QDebug manipulator
+//! \return a copy of dbg that has its mode altered by manipFn
+template <typename FnT>
+inline QDebug operator<<(QDebug dbg, FnT manipFn)
+    requires std::is_invocable_v<FnT, QDebug>
+// TODO: move over to std::invocable once on Apple Clang 14 (lib 0.9, i.e.)
 {
-    return qdm(debug_object); // NOLINT(performance-unnecessary-value-param)
+    return std::invoke(manipFn, dbg);
 }
 
-inline QDebug operator<<(QDebug debug_object, QElapsedTimer et)
+inline QDebug operator<<(QDebug dbg, QElapsedTimer et)
 {
     // NOLINTNEXTLINE(bugprone-integer-division)
-    debug_object << static_cast<double>(et.nsecsElapsed() / 1000) / 1000
+    dbg << static_cast<double>(et.nsecsElapsed() / 1000) / 1000
                  << "ms"; // Show in ms with 3 decimal digits precision
-    return debug_object;
+    return dbg;
 }

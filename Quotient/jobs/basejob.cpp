@@ -137,7 +137,7 @@ public:
     QJsonDocument jsonResponse;
     QUrl errorUrl; //!< May contain a URL to help with some errors
 
-    QMessageLogger::CategoryFunction logCat = JOBS;
+    QMessageLogger::CategoryFunction logCat = &JOBS;
 
     QTimer timer;
     QTimer retryTimer;

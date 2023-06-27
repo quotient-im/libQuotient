@@ -833,8 +833,9 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
     if (readReceiptMarker < to || changes /*i.e. read receipt was corrected*/) {
         unreadStats = EventStats::fromMarker(q, readReceiptMarker);
         Q_ASSERT(!unreadStats.isEstimate);
-        qCDebug(MESSAGES).nospace() << "Recalculated unread event statistics in"
-                                    << q->objectName() << ": " << unreadStats;
+        qCDebug(MESSAGES).nospace()
+            << "Recalculated unread event statistics in " << q->objectName()
+            << ": " << unreadStats;
         changes |= Change::UnreadStats;
         if (fullyReadMarker < to) {
             // Add up to unreadStats instead of counting same events again
