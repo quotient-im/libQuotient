@@ -4,7 +4,7 @@
 #include "database.h"
 
 #include "connection.h"
-#include "logging.h"
+#include "logging_categories_p.h"
 
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolminboundsession.h"

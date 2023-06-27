@@ -8,6 +8,8 @@
 
 #include <QtCore/QLatin1String>
 #include <QtCore/QHashFunctions>
+#include <QtCore/QDebug>
+#include <QtCore/QElapsedTimer>
 
 #include <memory>
 #include <unordered_map>
@@ -325,4 +327,53 @@ constexpr auto E2EE_Enabled =
 #endif
 
 QUOTIENT_API bool encryptionSupported();
+
+// QDebug manipulators
+
+using QDebugManip = QDebug (*)(QDebug);
+
+/**
+ * @brief QDebug manipulator to setup the stream for JSON output
+ *
+ * Originally made to encapsulate the change in QDebug behavior in Qt 5.4
+ * and the respective addition of QDebug::noquote().
+ * Together with the operator<<() helper, the proposed usage is
+ * (similar to std:: I/O manipulators):
+ *
+ * @example qCDebug() << formatJson << json_object; // (QJsonObject, etc.)
+ */
+inline QDebug formatJson(QDebug debug_object) { return debug_object.noquote(); }
+
+//! Suppress full qualification of enums/QFlags when logging
+inline QDebug terse(QDebug dbg)
+{
+    return dbg.verbosity(QDebug::MinimumVerbosity);
+}
+
+constexpr qint64 ProfilerMinNsecs =
+#ifdef PROFILER_LOG_USECS
+    PROFILER_LOG_USECS
+#else
+    200
+#endif
+    * 1000;
 } // namespace Quotient
+
+//! \brief A helper operator to facilitate usage of formatJson (and possibly
+//!        other manipulators)
+//!
+//! \param debug_object to output the json to
+//! \param qdm a QDebug manipulator
+//! \return a copy of debug_object that has its mode altered by qdm
+inline QDebug operator<<(QDebug debug_object, Quotient::QDebugManip qdm)
+{
+    return qdm(debug_object); // NOLINT(performance-unnecessary-value-param)
+}
+
+inline QDebug operator<<(QDebug debug_object, QElapsedTimer et)
+{
+    // NOLINTNEXTLINE(bugprone-integer-division)
+    debug_object << static_cast<double>(et.nsecsElapsed() / 1000) / 1000
+                 << "ms"; // Show in ms with 3 decimal digits precision
+    return debug_object;
+}

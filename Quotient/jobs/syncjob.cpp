@@ -3,6 +3,8 @@
 
 #include "syncjob.h"
 
+#include "../logging_categories_p.h"
+
 using namespace Quotient;
 
 static size_t jobId = 0;

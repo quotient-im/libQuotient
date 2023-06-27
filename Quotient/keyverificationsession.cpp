@@ -5,14 +5,17 @@
 
 #include "connection.h"
 #include "database.h"
+#include "logging_categories_p.h"
+
 #include "e2ee/qolmaccount.h"
-#include "olm/sas.h"
 
 #include "events/event.h"
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
+
+#include <olm/sas.h>
 
 #include <chrono>
 

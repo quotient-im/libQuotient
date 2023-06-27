@@ -4,15 +4,16 @@
 
 #include "qolmaccount.h"
 
-#include <Quotient/connection.h>
-#include <Quotient/e2ee/qolmsession.h>
-#include <Quotient/e2ee/qolmutility.h>
+#include "../logging_categories_p.h"
+#include "qolmsession.h"
+#include "qolmutility.h"
 
-#include <Quotient/csapi/keys.h>
+#include "../csapi/keys.h"
 
 #include <QtCore/QRandomGenerator>
 
 #include <olm/olm.h>
+
 #include <span>
 
 using namespace Quotient;

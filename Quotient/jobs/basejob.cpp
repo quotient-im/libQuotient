@@ -4,13 +4,15 @@
 
 #include "basejob.h"
 
-#include <Quotient/connectiondata.h>
-#include <Quotient/networkaccessmanager.h>
+#include "../logging_categories_p.h"
 
-#include <QtCore/QRegularExpression>
-#include <QtCore/QTimer>
+#include "../connectiondata.h"
+#include "../networkaccessmanager.h"
+
 #include <QtCore/QMetaEnum>
 #include <QtCore/QPointer>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QTimer>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
@@ -135,7 +137,7 @@ public:
     QJsonDocument jsonResponse;
     QUrl errorUrl; //!< May contain a URL to help with some errors
 
-    LoggingCategory logCat = JOBS;
+    QMessageLogger::CategoryFunction logCat = JOBS;
 
     QTimer timer;
     QTimer retryTimer;
@@ -813,4 +815,7 @@ void BaseJob::timeout()
     finishJob();
 }
 
-void BaseJob::setLoggingCategory(LoggingCategory lcf) { d->logCat = lcf; }
+void BaseJob::setLoggingCategory(QMessageLogger::CategoryFunction lcf)
+{
+    d->logCat = lcf;
+}

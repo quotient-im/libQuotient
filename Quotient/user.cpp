@@ -6,6 +6,7 @@
 
 #include "avatar.h"
 #include "connection.h"
+#include "logging_categories_p.h"
 #include "room.h"
 
 #include "csapi/content-repo.h"

@@ -6,12 +6,14 @@
 
 #include "connection.h"
 
+#include "logging_categories_p.h"
+
+#include "connection_p.h"
 #include "connectiondata.h"
 #include "qt_connection_util.h"
 #include "room.h"
 #include "settings.h"
 #include "user.h"
-#include "connection_p.h"
 
 // NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
 #include "moc_connection.cpp"

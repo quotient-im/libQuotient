@@ -5,6 +5,7 @@
 #include "accountregistry.h"
 
 #include "connection.h"
+#include "logging_categories_p.h"
 #include "settings.h"
 
 #include <QtCore/QCoreApplication>

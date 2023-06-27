@@ -5,12 +5,13 @@
 #pragma once
 
 #include "requestdata.h"
-#include <Quotient/logging.h>
-#include <Quotient/converters.h> // Common for csapi/ headers even though not used here
-#include <Quotient/quotient_common.h> // For DECL_DEPRECATED_ENUMERATOR
 
 #include <QtCore/QObject>
 #include <QtCore/QStringBuilder>
+#include <QtCore/QLoggingCategory>
+
+#include <Quotient/converters.h> // Common for csapi/ headers even though not used here
+#include <Quotient/quotient_common.h> // For DECL_DEPRECATED_ENUMERATOR
 
 class QNetworkRequest;
 class QNetworkReply;
@@ -431,10 +432,12 @@ protected:
     void setStatus(Status s);
     void setStatus(int code, QString message);
 
-    // Q_DECLARE_LOGGING_CATEGORY return different function types
-    // in different versions
-    using LoggingCategory = decltype(JOBS)*;
-    void setLoggingCategory(LoggingCategory lcf);
+    //! \brief Set the logging category for the given job instance
+    //!
+    //! \param lcf The logging category function to provide the category -
+    //!            the one you define with Q_LOGGING_CATEGORY (without
+    //!            parentheses, BaseJob will call it for you)
+    void setLoggingCategory(QMessageLogger::CategoryFunction lcf);
 
     // Job objects should only be deleted via QObject::deleteLater
     ~BaseJob() override;

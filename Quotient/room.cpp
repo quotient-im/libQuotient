@@ -9,14 +9,16 @@
 
 #include "room.h"
 
+#include "logging_categories_p.h"
+
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
+#include "eventstats.h"
+#include "qt_connection_util.h"
+#include "roomstateview.h"
 #include "syncdata.h"
 #include "user.h"
-#include "eventstats.h"
-#include "roomstateview.h"
-#include "qt_connection_util.h"
 
 // NB: since Qt 6, moc_room.cpp needs User fully defined
 #include "moc_room.cpp"

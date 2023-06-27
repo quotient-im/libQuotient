@@ -3,6 +3,8 @@
 
 #include "mediathumbnailjob.h"
 
+#include "../logging_categories_p.h"
+
 using namespace Quotient;
 
 QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,

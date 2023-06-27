@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "converters.h"
-#include "logging.h"
+
+#include "logging_categories_p.h"
 
 #include <QtCore/QVariant>
 

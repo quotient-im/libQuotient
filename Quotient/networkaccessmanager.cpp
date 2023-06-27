@@ -3,18 +3,17 @@
 
 #include "networkaccessmanager.h"
 
-#include "logging.h"
+#include "logging_categories_p.h"
 #include "mxcreply.h"
 
 #include "events/filesourceinfo.h"
-
 #include "jobs/downloadfilejob.h" // For DownloadFileJob::makeRequestUrl() only
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QReadWriteLock>
 #include <QtCore/QSettings>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QThread>
-#include <QtCore/QReadWriteLock>
 #include <QtNetwork/QNetworkReply>
 
 using namespace Quotient;

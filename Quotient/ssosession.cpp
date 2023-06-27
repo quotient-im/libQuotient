@@ -4,12 +4,15 @@
 #include "ssosession.h"
 
 #include "connection.h"
+#include "logging_categories_p.h"
+
 #include "csapi/sso_login_redirect.h"
 
-#include <QtNetwork/QTcpServer>
-#include <QtNetwork/QTcpSocket>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QStringBuilder>
+#include <QtNetwork/QTcpServer>
+#include <QtNetwork/QTcpSocket>
+
 #include <QNetworkProxy>
 
 using namespace Quotient;

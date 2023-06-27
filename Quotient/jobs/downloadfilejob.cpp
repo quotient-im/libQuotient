@@ -3,6 +3,8 @@
 
 #include "downloadfilejob.h"
 
+#include "../logging_categories_p.h"
+
 #include <QtCore/QFile>
 #include <QtCore/QTemporaryFile>
 #include <QtNetwork/QNetworkReply>

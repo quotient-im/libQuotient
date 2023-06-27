@@ -58,11 +58,7 @@ namespace _impl {
             database.saveOlmSession(senderKey, session,
                                     QDateTime::currentDateTime());
         }
-        void saveOlmAccount()
-        {
-            qCDebug(E2EE) << "Saving olm account";
-            database.storeOlmAccount(olmAccount);
-        }
+        void saveOlmAccount();
 
         std::pair<QByteArray, QByteArray> sessionDecryptMessage(
             const QJsonObject& personalCipherObject,

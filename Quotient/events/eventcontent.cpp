@@ -3,11 +3,12 @@
 
 #include "eventcontent.h"
 
-#include <Quotient/converters.h>
-#include <Quotient/logging.h>
+#include "../logging_categories_p.h"
 
-#include <QtCore/QMimeDatabase>
+#include "../converters.h"
+
 #include <QtCore/QFileInfo>
+#include <QtCore/QMimeDatabase>
 
 using namespace Quotient::EventContent;
 
