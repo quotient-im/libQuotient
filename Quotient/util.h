@@ -111,22 +111,55 @@ private:
     iterator to;
 };
 
+namespace _impl {
+    template <typename T>
+    concept Holds_NonConst_LValue_Ref = requires {
+        std::is_lvalue_reference_v<T>;
+        !std::is_const_v<std::remove_reference<T>>;
+    };
+}
+
+//! \brief An adaptor for Qt (hash-)maps to make them iterable in STL style
+//!
+//! QMap/QHash container iterators returned by begin() and end() dereference
+//! to values, unlike STL where similar iterators dereference to key-value
+//! pairs. It is a problem in range-for if you want to also access map keys.
+//! This adaptor allows to use range-for syntax with access to both keys and
+//! values in QMap/QHash containers. Just use
+//! `for (auto&& [key, value] : asKeyValueRange(myMap)` instead of
+//! `for (auto&& value : myMap)`.
+//! \note When an rvalue is passed as the constructor argument, asKeyValueRange
+//!       shallow-copies the map object to ensure its lifetime is maintained
+//!       throughout the loop; with lvalues, no copying occurs, assuming that
+//!       the map object outlives the range-for loop
 template <typename T>
 class asKeyValueRange
 {
 public:
-    asKeyValueRange(T& data)
+    explicit asKeyValueRange(T data)
         : m_data { data }
     {}
 
-    auto begin() { return m_data.keyValueBegin(); }
-    auto end() { return m_data.keyValueEnd(); }
+    auto begin() requires _impl::Holds_NonConst_LValue_Ref<T>
+    {
+        return m_data.keyValueBegin();
+    }
+    auto end() requires _impl::Holds_NonConst_LValue_Ref<T>
+    {
+        return m_data.keyValueEnd();
+    }
+    auto begin() const { return m_data.keyValueBegin(); }
+    auto end() const { return m_data.keyValueEnd(); }
 
 private:
-    T &m_data;
+    T m_data;
 };
-template <typename T>
-asKeyValueRange(T&) -> asKeyValueRange<T>;
+
+template <typename U>
+asKeyValueRange(U&) -> asKeyValueRange<U&>;
+
+template <typename U>
+asKeyValueRange(U&&) -> asKeyValueRange<U>;
 
 /** A replica of std::find_first_of that returns a pair of iterators
  *
