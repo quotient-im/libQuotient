@@ -12,15 +12,18 @@ namespace Quotient {
 namespace _impl {
     enum ConnectionType { SingleShot, Until };
 
-    template <ConnectionType CType>
-    inline auto connect(auto* sender, auto signal, auto* context, auto slotLike,
-                        Qt::ConnectionType connType)
+    template <ConnectionType CType, typename SlotT>
+    inline auto connect(auto* sender, auto signal, auto* context,
+                        SlotT&& slotLike, Qt::ConnectionType connType)
     {
         auto pConn = std::make_unique<QMetaObject::Connection>();
         auto& c = *pConn; // Save the reference before pConn is moved from
         c = QObject::connect(
             sender, signal, context,
-            [slotLike, pConn = std::move(pConn)](const auto&... args)
+            [
+                slotLike = std::forward<SlotT>(slotLike),
+                pConn = std::move(pConn)
+            ](const auto&... args)
             // The requires-expression below is necessary to prevent Qt
             // from eagerly trying to fill the lambda with more arguments
             // than slotLike() (i.e., the original slot) can handle
@@ -45,7 +48,7 @@ namespace _impl {
 
     template <typename SlotT, typename ReceiverT>
     concept PmfSlot =
-        (fn_arg_count_v<SlotT> > 0
+        (std::is_member_function_pointer_v<SlotT>
          && std::is_base_of_v<std::decay_t<fn_arg_t<SlotT, 0>>, ReceiverT>);
 } // namespace _impl
 
