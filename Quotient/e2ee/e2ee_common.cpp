@@ -14,10 +14,10 @@ using namespace Quotient;
 
 QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
 {
-    if (bufferSize < std::numeric_limits<QByteArray::size_type>::max())
+    if (std::in_range<QByteArray::size_type>(bufferSize))
         return { static_cast<QByteArray::size_type>(bufferSize), '\0' };
 
-    qCritical(E2EE) << "Too large buffer size:" << bufferSize;
+    qCritical(E2EE) << "Buffer size out of QByteArray range:" << bufferSize;
     // Zero-length QByteArray is an almost guaranteed way to cause
     // an internal error in QOlm* classes, unless checked
     return {};

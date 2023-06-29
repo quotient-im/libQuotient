@@ -97,8 +97,7 @@ public:
 
     QByteArray viewAsByteArray() const
     {
-        // Ensure static_cast<int> is safe
-        static_assert(TotalSecureHeapSize < std::numeric_limits<int>::max());
+        static_assert(std::in_range<QByteArray::size_type>(TotalSecureHeapSize));
         return QByteArray::fromRawData(reinterpret_cast<const char*>(data_),
                                        static_cast<QByteArray::size_type>(size_));
     }
