@@ -29,4 +29,4 @@ void PendingEventItem::setFileUploaded(const FileSourceInfo& uploadedFileData)
 
 // Not exactly sure why but this helps with the linker not finding
 // Quotient::EventStatus::staticMetaObject when building Quaternion
-#include "moc_eventitem.cpp"
+#include "moc_eventitem.cpp" // NOLINT(bugprone-suspicious-include)

@@ -21,7 +21,7 @@
 #include "user.h"
 
 // NB: since Qt 6, moc_room.cpp needs User fully defined
-#include "moc_room.cpp"
+#include "moc_room.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include "csapi/account-data.h"
 #include "csapi/banning.h"
