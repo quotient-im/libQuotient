@@ -100,7 +100,7 @@ public:
         // Ensure static_cast<int> is safe
         static_assert(TotalSecureHeapSize < std::numeric_limits<int>::max());
         return QByteArray::fromRawData(reinterpret_cast<const char*>(data_),
-                                       static_cast<int>(size_));
+                                       static_cast<QByteArray::size_type>(size_));
     }
     QByteArray toBase64(QByteArray::Base64Options options) const
     {
