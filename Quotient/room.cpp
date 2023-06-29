@@ -611,7 +611,7 @@ QStringList Room::altAliases() const
 
 QString Room::canonicalAlias() const
 {
-    return currentState().queryOr(&RoomCanonicalAliasEvent::alias, QString());
+    return currentState().content<RoomCanonicalAliasEvent>().canonicalAlias;
 }
 
 QString Room::displayName() const { return d->displayname; }
@@ -640,7 +640,7 @@ void Room::refreshDisplayName() { d->updateDisplayname(); }
 
 QString Room::topic() const
 {
-    return currentState().queryOr(&RoomTopicEvent::topic, QString());
+    return currentState().content<RoomTopicEvent>().value;
 }
 
 QString Room::avatarMediaId() const { return d->avatar.mediaId(); }
