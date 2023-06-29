@@ -127,7 +127,7 @@ PenaltyBreakComment: 45
 #PenaltyBreakOpenParenthesis: 0 # ClangFormat 14
 PenaltyBreakString: 200
 #PenaltyBreakTemplateDeclaration: 10
-PenaltyExcessCharacter: 40
+PenaltyExcessCharacter: 30
 PenaltyReturnTypeOnItsOwnLine: 200
 #PenaltyIndentedWhitespace: 0
 #PointerAlignment: Left
