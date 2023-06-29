@@ -7,6 +7,7 @@ Here's help on how to make contributions, divided into the following sections:
 The quick-read part:
 * general information,
 * vulnerability reporting,
+* code conventions overview,
 * documentation.
 
 The long-read part:
@@ -113,10 +114,90 @@ the top of the file. New files should begin with the following preamble:
 
 ## Vulnerability reporting (security issues) - see [SECURITY.md](./SECURITY.md)
 
+
+## Code changes
+
+The code should strive to be DRY (don't repeat yourself), clear, and obviously
+correct (i.e. buildable). Some technical debt is inevitable but glaring
+inconsistencies, duplications etc. will most likely cause a request for changes
+at the pull request review. Refactoring is always welcome; if you do it within
+another feature development, please arrange the refactoring before the feature,
+to make the review easier.
+
+### C++ feature set
+
+As of Quotient 0.8, the C++ standard for newly written code is C++20. Since none
+of the supported compilers (GCC 11, Clang 11, Apple Clang 12, MSVC 19.30 - see
+also the pre-requisites in [README](./README.md)) can handle the entire C++20
+feature set, we have to stick with a subset. Most notably:
+
+- `std::bind_front`, ranges, `std::format`, `std::source_location` can't be used
+  yet;
+- while concepts and constraints as a language feature are there, most library
+  concepts are not available as of Apple Clang 12;
+- No `constexpr` containers except `std::array` (but you can, and should,
+  use `QLatin1String` and `Quotient::operator""_ls` that creates it, for
+  constant Latin-1 strings).
+
+The [compiler support page](https://en.cppreference.com/w/cpp/compiler_support#cpp20),
+of cppreference.com, combined with the list of compiler versions above, can be
+used to check whether a given feature is there. Be mindful that Clang build
+configuration on Linux does not use Clang libc++ but rather the GNU standard
+library (i.e. you should look at Clang column for core language features but
+GCC libstdc++ for library features).
+
+### Code style and formatting
+
+The code style is defined by `.clang-format`, and in general, all C++ files
+should follow it. Reasonable deviations from the defined style are allowed;
+use `// clang-format off` and `// clang-format on` to protect them.
+
+Notable things from `.clang-format`:
+* We (mostly) use Webkit style: 4-space indents, no tabs, no trailing spaces,
+  no last empty lines. If you spot the code abusing these, fix it on the spot,
+  thank you.
+* Prefer keeping lines within 80 characters. Slight overflows are ok if that 
+  helps readability. Ideally, just use `clang-format` to format lines.
+
+### API conventions
+
+All non-inline symbols (functions, classes/structs, even namespace-level static
+variables) that are intended for use in client code must be declared with
+`QUOTIENT_API` macro (the macro itself is defined in the dedicated
+`quotient_export.h` file). This is concerned with symbols visibility in
+dynamic/shared libraries: the macro marks these symbols for exporting in
+the library symbol table. If you forget to use this macro where needed you will 
+get linkage errors if you're lucky, obscure runtime errors otherwise (such as
+split-brained singleton instances). You only need to use the macro on the 
+namespace level; inner symbols (member functions, e.g.) are exported if 
+their class is exported.
+
+Some header files of the library are not intended to be (directly) included by
+clients - these header files have names ending with `_p.h` (e.g. 
+`connection_p.h`). All other header files are considered a part of the library
+official API (and, respectively, ABI). Calls, data structures and other 
+symbols _not_ intended for usage in client code should _not_ be exposed in
+public header files, unless there's no way to keep them out. In particular, 
+this includes private members (functions, typedefs, or variables) in public 
+classes; use pimpl idiom to hide implementation details as much as possible.
+For cases when a definition has to be in the header file but should not be used
+in client code, use `_impl` namespace - anything in that namespace is not 
+covered by API guarantees either (but may still contribute to the ABI surface,
+so tread carefully).
+
+### Generated C++ code for CS API
+
+The code in `Quotient/csapi`, `Quotient/identity` and
+`Quotient/application-service`, although stored in Git, is actually generated
+from the official Matrix Client-Server API definition files. Make sure to read
+[CODE_GENERATION.md](./CODE_GENERATION.md) before trying to change anything
+there.
+
+
 ## Documentation changes
 
-Most of the documentation is in Markdown format. All Markdown files use the .md
-filename extension. Any help on fixing/extending these is more than welcome.
+Most of the documentation is in Markdown format. All Markdown files use the 
+`.md` filename extension.
 
 Where reasonable, limit yourself to Markdown that will be accepted by different
 markdown processors (e.g., what is specified by CommonMark or the original
@@ -144,127 +225,69 @@ Do not use trailing two spaces for line breaks, since these cannot be seen
 and may be silently removed by some tools. If, for whatever reason, a blank line
 is not an option, use <tt>&lt;br/&gt;</tt> (an HTML line break).
 
+
 ## End of TL;DR
 
 If you don't plan/have substantial contributions, you can stop reading here.
 Further sections are for those who's going to actively hack on the library code.
 
+
 ## Code changes
 
-The code should strive to be DRY (don't repeat yourself), clear, and obviously
-correct (i.e. buildable). Some technical debt is inevitable,
-just don't bankrupt us with it. Refactoring is welcome.
+### More on code style and formatting
 
-### C++ feature set
+* Do not use `struct` when you have protected or private members; only use it
+  to define plain-old-data structures, with maybe just a function or two among 
+  public members but no substantial behaviour. If you need access control or 
+  specific logic tightly coupled to the data structure, make it a `class`
+  instead and consider if you still want to keep its member variables public.
 
-As of Quotient 0.7, the C++ standard for newly written code is C++20. Since none
-of the supported compilers (GCC 11, Clang 11, Apple Clang 12, MSVC 19.30 - see
-also the pre-requeisites in [README](./README.md)) can handle the entire C++20
-feature set, we have to stick with a subset. Most notably:
-
-- `std::bind_front`, ranges, `std::format`, `std::source_location` can't be used
-  yet;
-- while concepts and constraints as a language feature is there, some library
-  concepts are not available (`std::derived_from`, in particular);
-- `std::string` and `std::vector` are not constexpr.
-
-[This page at cppreference.com](https://en.cppreference.com/w/cpp/compiler_support#cpp20)
-can be used to check whether a given feature is there.
-
-### Code style and formatting
-
-The code style is defined by `.clang-format`, and in general, all C++ files
-should follow it. Files with minor deviations from the defined style are still
-accepted in PRs; however, unless explicitly marked with `// clang-format off`
-and `// clang-format on`, these deviations will be rectified any commit soon
-after.
-
-Notable things from .clang-format:
-* 4-space indents, no tabs, no trailing spaces, no last empty lines. If you
-  spot the code abusing these - thank you for fixing it.
-* Prefer keeping lines within 80 characters. Slight overflows are ok only
-  if that helps readability. Ideally, just use `.clang-format` to format lines.
-
-Additionally:
-* Do not use `struct` next to protected or private members; try to use it
-  with plain-old-data structures, with maybe just a function or two among public
-  members. If you need access control or are adding yet another non-trivial
-  (construction, assignment) member function to a `struct`, make it a `class`
-  instead.
 * For newly created classes, keep to
-  [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three) -
-  make sure to read about the rule of zero if you haven't before, it's not
-  what you might think it is.
-* Qt containers are generally preferred to STL containers; however, there are
-  notable exceptions, and libQuotient already uses them:
-  * `std::array` and `std::deque` have no direct counterparts in Qt.
+  [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three).
+
+* Qt containers are generally preferred to STL containers, with exceptions 
+  listed below:
+  * `std::array` and `std::deque` have no direct counterparts in Qt and are 
+    unconditionally accepted in the backend code. They can't be mapped to 
+    QML though; see another bullet below for implications of that.
   * Because of COW semantics, Qt containers cannot hold uncopyable classes.
     Classes without a default constructor are a problem too. Examples of that
-    are `SyncRoomData` and `EventsArray<>`. Use STL containers for structures
-    having those but see the next point and also consider if you can supply
-    a reasonable copy/default constructor.
-  * STL containers can be freely used in code internal to a translation unit
-    (i.e., in a certain .cpp file) _as long as that is not exposed in the API_.
-    It's ok to use, e.g., `std::vector` instead of `QVector` to tighten up
-    code where you don't need COW, or when dealing with uncopyable
-    data structures (see the previous point). However, exposing STL containers
-    in the API is not encouraged (except where absolutely necessary, e.g. we use
-    `std::deque` for a timeline). Especially when it comes to API intended
-    for usage from QML (e.g. `Q_PROPERTY`), most STL containers or iterators are
-    unlikely to work and therefore unlikely to be accepted into `dev`.
-  * Notwithstanding the above (you're not going to use these with QML anyway),
-    prefer `std::unique_ptr<>` over `QScopedPointer<>` as it gives stronger
-    guarantees; also, some features of `QScopedPointer` are deprecated in Qt 6.
+    are `SyncRoomData` and `EventsArray<>`. Again, you can use STL containers 
+    for structures having those but consider the implications.
+  * So, the implications. Because QML doesn't known most of STL containers and
+    cannot pull data out of them, you're only free to use STL containers in 
+    backend code (in the simplest case, within one .cpp file). However, the API 
+    exposing these containers can only be used from C++ code, with `std::vector`
+    being a notable exception that can be copied to the QML side (note that
+    you can't read `std::vector` where it resides though - meaning, you can't
+    get a vector of events to the QML side this way, as the previous bullet 
+    already said). In such case you have to provide another means to iterate
+    through the container and consume data from it, with exposing a Qt item
+    model being the most natural to Qt code. Without such other means, expect
+    questions at your pull request.
+  * Notwithstanding the above (you're not going to use smart pointers with QML 
+    anyway), prefer `std::unique_ptr<>` over `QScopedPointer<>` as it gives
+    stronger guarantees; also, some features of `QScopedPointer` are deprecated
+    in Qt 6.
+
 * Always use `QVector` instead of `QList` unless Qt's own API uses it - see the
   [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
   for details. With Qt 6, these two become the same type matching what used
   to be `QVector` in Qt 5.
 
-  (Note: unfortunately, QVector is a type alias in Qt 6 and that breaks
+  (Note: unfortunately, `QVector` is a type alias in Qt 6 and that breaks
   templated code because type deduction doesn't work with aliases. This breakage
-  will go away in C++23 but we are far from that yet; in the meantime, the fix
-  boils down to specifying the template parameter of `QVector` explicitly.)
+  will go away as compilers adopt C++23 sufficiently but it may take a 
+  couple more years, as of this writing; in the meantime, the fix boils down
+  to specifying the template parameter of `QVector` explicitly.)
 
-* When you write logs within the library, always use logging categories defined
-  in `logging_categories_p.h`, instead of plain `qDebug()` (that assigns a log
-  line to the default category). `qCDebug(CATEGORY)` is the preferred form;
-  `qDebug(CATEGORY)` is accepted as well. Do not add new logging categories
-  without necessity; if you do, make sure to add the new category to
-  `logging_categories_p.h`, to make sure there's a central reference for all
-  of them (mentioned in README.md, by the way).
-
-### API conventions
-
-All non-inline symbols (functions, classes/structs, even namespace-level static
-variables) that are intended for use in client code must be declared with
-`QUOTIENT_API` macro (the macro itself is defined in the dedicated
-`quotient_export.h` file). This is concerned with symbols visibility in
-dynamic/shared libraries: the macro marks these symbols for exporting in
-the library symbol table. Without that clients will get, usually, linkage errors
-(but in some cases, only obscure runtime errors, such as split-brained singleton
-instances) once they attempt to use those symbols. You only need to use
-the macro on the namespace level; inner symbols (member functions, e.g.) are
-exported if their class is exported.
-
-On the other hand - it sounds obvious but calls, data structures and other
-symbols _not_ intended for usage in client code should _not_ be exposed in
-(public) .h files, unless they are necessary to declare other public symbols.
-In particular, this involves private members (functions, typedefs, or variables)
-in public classes; use pimpl idiom to hide implementation details as much
-as possible. This is to make it easier to change the inside machinery without
-breaking the API and ABI stability guarantees within a single major version.
-For cases when a definition has to be in the header file but should not be used
-in client code, use `_impl` namespace - anything in that namespace is
-not covered by API guarantees.
-
-### Generated C++ code for CS API
-
-The code in `Quotient/csapi`, `Quotient/identity` and
-`Quotient/application-service`, although stored in Git, is actually generated
-from the official Matrix Client-Server API definition files. Make sure to read
-[CODE_GENERATION.md](./CODE_GENERATION.md) before trying to change anything
-there.
-
+* When you write logs within the library always use logging categories defined
+  in `logging_categories_p.h` instead of plain `qDebug()`, to avoid a log line
+  being assigned the default category. `qCDebug(CATEGORY)` is the preferred 
+  form; `qDebug(CATEGORY)` (without `C`) is accepted as well. Do not add new 
+  logging categories without necessity; if you do, make sure to add the new
+  category to `logging_categories_p.h`, to make sure there's a central 
+  reference for all of them (mentioned in README.md, by the way).
 
 ### Comments
 
@@ -286,7 +309,9 @@ When commenting in-code:
 * That said, both C++ and Qt have their arcane/novel features and dark corners,
   and education of code readers is a great thing. Use your experience to figure
   what might be less well-known to readers and comment such cases: leave
-  references to web pages, Quotient wiki etc.
+  references to web pages, Quotient wiki etc. Do not comment `std::` calls
+  just because they are less known - readers are expected to know about 
+  cppreference.com and look it up. 
 * Make sure to document not so much "what" but more "why" certain code is done
   the way it is. In the worst case, the logic of the code can be
   reverse-engineered; but you can almost never reverse-engineer the line of
@@ -297,17 +322,18 @@ When commenting in-code:
 We gradually introduce autotests based on a combination of CTest and Qt Test
 frameworks - see `autotests/` directory. There are very few of those, as we
 have just started adding those to the new code (you guessed it; adding more
-tests to the old code is very welcome).
+tests to the old code is very welcome and also is a good exercise to get to
+know the library).
 
-Aside from that, libQuotient comes with a command-line end-to-end test suite
+On top of that, libQuotient comes with a command-line end-to-end test suite
 called Quotest. Any significant addition to the library API should be
 accompanied by a respective test in `autotests/` and/or in Quotest.
 
 To add a test to autotests:
-- In a new .cpp file in `autotests/`, define a test class derived from
+- In a new `.cpp` file in `autotests/`, define a test class derived from
   QObject and write tests as member functions in its `private slots:` section.
   If you feel more comfortable using a header file to define the class, that's
-  also fine but not necessary. If you're new to Qt Test framework, use existing
+  fine but not necessary. If you're new to Qt Test framework, use existing
   tests as a guidance.
 - Add a `quotient_add_test` macro call with your test to
   `autotests/CMakeLists.txt`
@@ -338,30 +364,31 @@ Pay attention to security, and work *with*, not against, the usual security
 hardening practices.
 
 `char *` and similar unchecked C-style read/write arrays are forbidden - use
-Qt containers or at the very least `std::array<>` instead. Where you see fit
-(usually with data structures), try to use smart pointers, especially
-`std::unique_ptr<>`, instead of bare pointers. When dealing with `QObject`s,
-organise them in parent-child trees and let Qt manage object lifecycles
-for you (this in turn is preferred to using smart pointers). If you find
-a particular use case where the strict semantic of unique pointers doesn't help
-and a shared pointer is necessary, feel free to step up with the working code
-and it will be considered for inclusion.
+Qt containers (`QString`/`QLatin1String` for strings, in particular) or at the 
+very least `std::array<>` instead. When dealing with `QObject`s, organise them
+in parent-child trees and let Qt manage object lifecycles for you. If that
+doesn't work in a given situation (no obvious parent, lifecycles not nested
+etc.) or outside of `QObject` framework, use `std::unique_ptr<>` and move it
+where appropriate to make sure the object has clear ownership. Shared pointers
+are not popular throughout the library but are totally fine to use, too. 
+Avoid bare pointers and direct pointer arithmetic wherever possible.
 
 Exercise the
 [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege)
 where reasonable and appropriate. Prefer internally cohesive code while avoiding
-too much external coupling (such as calling into a bunch of classes at several
-points).
+too much external coupling.
 
-Protect private information, in particular passwords and email addresses.
-Absolutely _don't_ spill around this information in logs, and only display
-those in UI where really needed. Do not forget about local access to data
-(in particular, be very careful when storing something in temporary files,
-let alone permanent configuration or state). Avoid mechanisms that could be
-used for tracking where possible (we do need to verify people are logged in
-but that's pretty much it), and ensure that third parties can't use interactions
-for tracking. Matrix protocols evolve towards decoupling
-the personally identifiable information from user activity entirely - follow
+Avoid dealing with any personal information (e.g. email addresses) and secrets 
+(passwords, tokens, keys) unless it is the specific and exclusive purpose
+of the given code. Absolutely _don't_ spill around this information in logs, 
+and only display those in UI where really needed. Do not forget about the 
+issue of local access (in particular, be very careful when storing something in 
+temporary files, let alone permanent configuration or state).
+
+Avoid mechanisms that could be used for tracking where possible (we do need 
+to verify people are logged in but that's pretty much it), and ensure that 
+third parties can't use interactions for tracking. Matrix protocols evolve 
+towards decoupling personal information from user activity entirely - follow
 this trend.
 
 ### Performance
@@ -381,20 +408,20 @@ GUI and execute it outside of the main thread with `QtConcurrent` facilities.
 
 Having said that, there's always a trade-off between various attributes;
 in particular, readability and maintainability of the code is more important
-than squeezing every bit out of that clumsy algorithm. Beware of premature
-optimization and profile the code before before diving into hardcore tweaking
-that might not give the benefits you think it would.
+than squeezing every bit out of a clumsy algorithm. Beware of premature
+optimization and profile the code before diving into hardcore tweaking that 
+might not give the benefits you think it would.
 
-Speaking of profiling logs (see README.md on how to turn them on) - if you
-expect some code to take considerable (more than 10k "simple operations") time
-you might want to setup a `QElapsedTimer` and drop the elapsed time into logs
-under `PROFILER` logging category. See the existing code for examples -
-`room.cpp` has quite a few. In order to reduce small timespan logging spam,
-`PROFILER` log lines are usually guarded by a check that the timer counted big
-enough time (200 microseconds by default, 20 microseconds for tighter parts);
-this threshold can be altered at compile-time by defining `PROFILER_LOG_USECS`
-preprocessor symbol (i.e. passing `-DPROFILE_LOG_USECS=<usecs>` to the compiler
-if you're on Linux/macOS).
+Speaking of profiling logs (see [README.md](./README.md) on how to turn them
+on) - if you expect some code to take considerable (more than 10k "simple 
+operations") time you might want to setup a `QElapsedTimer` and drop the 
+elapsed time into logs under `PROFILER` logging category. See the existing 
+code for examples - `room.cpp` has quite a few. In order to reduce small 
+timespan logging spam, `PROFILER` log lines are usually guarded by a check 
+that the timer counted big enough time (200 microseconds by default, 20 
+microseconds for tighter parts); this threshold can be altered at compile-time 
+by defining `PROFILER_LOG_USECS` preprocessor symbol (i.e. passing 
+`-DPROFILE_LOG_USECS=<usecs>` to the compiler if you're on Linux/macOS).
 
 ## How to check proposed changes before submitting them
 
@@ -411,7 +438,7 @@ considered errors (the compiler will keep going) but please treat them as such.
 If you want the IDE to be _really_ picky about your code you can use
 the following line for the Clang analyzer code model to enable most compiler
 warnings while keeping the number of false positives at bay (that does not
-include `clang-tidy`/`clazy` warnings - see below on those):
+include `clang-tidy`/`clazy` warnings - see the next section on those):
 `-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-string-conversion -Wno-return-std-move-in-c++11`.
 
 ### Static analysis tools
@@ -432,7 +459,9 @@ We use GitHub Actions to check buildability and smoke-testing on Linux
 (GCC, Clang), MacOS (Clang), and Windows (MSVC). Every PR will go through these,
 and you'll see the traffic lights from them on the PR page. If your PR fails
 on any platform double-check that it's not your code causing it - and fix
-(or ask how to fix if you don't know) if it is.
+(or ask how to fix if you don't know) if it is. Generally, pull requests are 
+not accepted until they build on all platforms.
+
 
 ## Git commit messages
 
@@ -451,6 +480,7 @@ When writing git commit messages, try to follow the guidelines in
     acceptable if a commit is huge - but maybe split a commit into smaller ones,
     to begin with?
 
+
 ## Reuse (libraries, frameworks, etc.)
 
 SDK/package management is unfortunately messy in C++, and we try to keep
@@ -462,10 +492,8 @@ Qt components as needed. Fortunately, even the Qt components now in use
 stuff.
 
 Some cases need additional explanation:
-* Before rolling out your own super-optimised container or algorithm written
-  from scratch, take a good long look through documentation on Qt and
-  C++ standard library. Please try to reuse the existing facilities
-  as much as possible.
+* Don't reinvent the wheel - look through documentation on Qt and C++ standard
+  library and use existing facilities as much as possible.
 * libQuotient is a library to build Qt applications; for that reason,
   components from KDE Frameworks should be really lightweight and useful
   to be accepted as a dependency. If the intention is to better integrate
@@ -473,11 +501,11 @@ Some cases need additional explanation:
   library on top of libQuotient. Consider people who run LXDE or even GNOME
   (as the author of these lines does) and normally don't have KDE frameworks
   installed (some even oppose installing those) - libQuotient caters to them too.
-* Never forget that libQuotient is aimed to be a non-visual library;
-  QtGui in dependencies is only there to allow (entirely offscreen) handling of
-  QImages. While there's a bunch of visual code (in C++ and QML) shared
-  between Quotient-enabled _applications_, this is likely to end up
-  in a separate (Quotient-backed) library, rather than libQuotient itself.
+* Never forget that libQuotient is an offscreen library; it only depends on
+  QtGui to handle `QImage` objects (entirely offscreen still). While there's
+  a bunch of visual code (in C++ and QML) shared between Quotient-enabled
+  _applications_, this is likely to end up in a separate (Quotient-backed)
+  library, rather than in libQuotient itself.
 * Also be mindful that libQuotient strives to be cross-platform inasmuch as Qt
   is. If the introduced dependency (even from inside Qt - e.g. DBus on Linux)
   is unavailable on one of the platforms already supported, it can only be added

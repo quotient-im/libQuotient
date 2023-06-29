@@ -1,4 +1,4 @@
-# libQuotient (former libQMatrixClient)
+# libQuotient
 
 <a href='https://matrix.org'><img src='https://matrix.org/docs/projects/images/made-for-matrix.png' alt='Made for Matrix' height=64 target=_blank /></a>
 
@@ -7,17 +7,16 @@
 [![release](https://img.shields.io/github/release/quotient-im/libQuotient/all.svg)](https://github.com/quotient-im/libQuotient/releases/latest)
 [![](https://img.shields.io/cii/percentage/1023.svg?label=CII%20best%20practices)](https://bestpractices.coreinfrastructure.org/projects/1023/badge)
 ![](https://img.shields.io/github/commit-activity/y/quotient-im/libQuotient.svg)
-![CI Status](https://img.shields.io/github/workflow/status/quotient-im/libQuotient/CI)
+![CI Status](https://img.shields.io/github/actions/workflow/status/quotient-im/libQuotient/ci.yml)
 ![Sonar Tech Debt](https://img.shields.io/sonar/tech_debt/quotient-im_libQuotient?server=https%3A%2F%2Fsonarcloud.io)
 ![Sonar Coverage](https://img.shields.io/sonar/coverage/quotient-im_libQuotient?server=https%3A%2F%2Fsonarcloud.io)
 ![Matrix](https://img.shields.io/matrix/quotient:matrix.org?logo=matrix)
 
-The Quotient project aims to produce a Qt5-based SDK to develop applications
+The Quotient project aims to produce a Qt-based SDK to develop applications
 for [Matrix](https://matrix.org). libQuotient is a library that enables client
 applications. It is the backbone of
 [Quaternion](https://github.com/quotient-im/Quaternion),
 [NeoChat](https://matrix.org/docs/projects/client/neo-chat) and other projects.
-Before version 0.5.x it was called libQMatrixClient.
 
 ## Contacts
 You can find Quotient developers in the Matrix room:
@@ -40,8 +39,7 @@ To use libQuotient (i.e. build or run applications with it), you'll need:
   and there's also limited positive experience with Android)
   - Recent enough Linux examples: Debian Bullseye; Fedora 35;
     openSUSE Leap 15.4; Ubuntu 22.04 LTS
-- Qt 5.15 or 6 (experimental, as of libQuotient 0.7) - either Open Source or
-  Commercial
+- Qt 5.15 or 6 - either Open Source or Commercial
 - QtKeychain (https://github.com/frankosterfeld/qtkeychain) - 0.12 or newer is
   recommended; the build configuration of both QtKeychain and libQuotient 
   must use the same Qt major version
@@ -52,9 +50,10 @@ To build applications with libQuotient, you'll also need:
   in particular):
   - GCC 11 (Windows, Linux, macOS), Clang 11 (Linux), Apple Clang 12 (macOS)
     and Visual Studio 2019 (Windows) are the oldest officially supported
-- If using E2EE (beta, as of libQuotient 0.7):
+- If using E2EE (beta, as of libQuotient 0.8):
   - libolm 3.2.5 or newer (the latest 3.x strongly recommended)
-  - OpenSSL (both 1.1.x and 3.x are known to work)
+  - OpenSSL (both 1.1.x and 3.x are known to work; 3.x is strongly 
+    recommended but should match the version libQuotient was/is built with)
 - Any build system that works with CMake should be fine; known to work are
   GNU Make and ninja (recommended) on any platform, NMake and jom on Windows
 
@@ -128,25 +127,30 @@ then add `Quotient` to your `target_link_libraries()` line.
 Building with dynamic linkage is only tested on Linux at the moment and is
 a recommended way of linking your application with libQuotient on this platform.
 Static linkage is the default on Windows/macOS; feel free to experiment
-with dynamic linking and submit PRs if you get reusable results.
+with dynamic linking and provide feedback with your results. 
 
-As for the actual API usage, a (very basic) overview can be found at
+As for the documentation on the library - a (very basic) overview can be found
+at
 [the respective wiki page](https://github.com/quotient-im/libQuotient/wiki/libQuotient-overview).
 Beyond that, looking at [Quotest](quotest) - the test application that comes
 with libQuotient - may help you with most common use cases such as sending
-messages, uploading files, setting room state etc. For more extensive usage
-feel free to check out (and copy, with appropriate attribution) the source code
-of [Quaternion](https://github.com/quotient-im/Quaternion) (the reference client
+messages, uploading files, setting room state etc. The Doxygen documentation
+for the library can be found at https://quotient-im.github.io/libQuotient/.
+
+For examples and patterns of more extensive usage feel free to check out (and 
+copy, with appropriate attribution) the source code of
+[Quaternion](https://github.com/quotient-im/Quaternion) (the reference client
 for libQuotient) or [NeoChat](https://invent.kde.org/network/neochat).
 
-As of Quotient 0.7.2, all header files of libQuotient
+Since Quotient 0.7.2, all header files of libQuotient
 *except those ending with `_p.h`* are considered public and covered by API/ABI
-stability guarantees as follows: the API and ABI are backwards compatible within
-every minor version (0.7.x releases) with every next minor version (0.8, e.g.)
-breaking the compatibility. Once we reach 1.0, this rule will apply to the major
-version, aligning with [semantic versioning](https://semver.org/) rules.
-`_p.h` files are not covered by these guarantees; definitions from those
-should not be directly used by clients.
+stability guarantees. Specifically, the API and ABI are backwards compatible 
+within every minor version (0.7.x releases) with every next minor version (0.
+8, e.g.) breaking the compatibility. Once we reach 1.0, this rule will apply 
+to the major version, aligning with [semantic versioning](https://semver.org/)
+rules. `_p.h` files are not covered by these guarantees; definitions from those
+should not be directly used by clients; these header files are not guaranteed
+to be available from Linux distributions, in particular.
 
 
 ## Building the library
@@ -201,22 +205,26 @@ the standard variables coming with CMake. On top of them, Quotient understands:
   setting room tags etc. This is useful to check the sanity of your library
   installation.
 - `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default - enable work-in-progress
-  E2EE code in the library. As of 0.6, this code is very incomplete and buggy;
-  you should NEVER use it. In 0.7, the enabled code is beta-quality and is
-  generally good for trying the technology but really not for mission-critical
-  applications.
+  E2EE code in the library. As of version 0.8, this code is beta-quality and
+  is generally good for trying the technology but really not for
+  mission-critical applications.
 
   Switching this on will define `Quotient_E2EE_ENABLED` macro (note
   the difference from the CMake switch) for compiler invocations on all
   Quotient and Quotient-dependent (if it uses `find_package(Quotient)`)
   code; so you can use `#ifdef Quotient_E2EE_ENABLED` to guard the code that
-  depends on parts of Quotient that only get built for E2EE.
+  depends on parts of Quotient that only get built for E2EE. Be mindful that
+  the _runtime_ default for E2EE is still to be off; you should either call
+  `Connection::setEncryptionDefault(true);` before creating any `Connection`
+  objects in your code, or call `Connection::enableEncryption()` on each
+  `Connection` object you want to enable it.
 - `MATRIX_SPEC_PATH` and `GTAD_PATH` - these two variables are used to point
   CMake to the directory with the matrix-doc repository containing API files
   and to a GTAD binary. These two are used to generate C++ files from Matrix
   Client-Server API description made in OpenAPI notation. This is not needed
   if you just need to build the library; if you're really into hacking on it,
-  please read the respective section in [CONTRIBUTING.md](./CONTRIBUTING.md).
+  please read the respective sections in [CONTRIBUTING.md](./CONTRIBUTING.md)
+  and [CODE_GENERATION.md](./CODE_GENERATION.md).
 - `QUOTIENT_FORCE_NAMESPACED_INCLUDES=<ON/OFF>`, since version 0.7.2, `OFF`
   by default (note that QUOTIENT is in caps here, unlike options above) - when
   this option is set to `ON`, CMake skips adding
@@ -315,9 +323,10 @@ QT_LOGGING_RULES="quotient.*.debug=true;quotient.jobs.debug=false"
 
 #### Cache format
 In case of troubles with room state and caching it may be useful to switch
-cache format from binary CBOR to plaintext JSON. To do that, set the following
-value in your client's configuration file/registry key (you might need to create
-the libQuotient key for that): `libQuotient/cache_type` to `json`.
-This will make cache saving and loading work slightly slower but the cache
-will be in text JSON files (very long and with no indentation; prepare a good
-JSON viewer or text editor with JSON formatting capabilities).
+cache format from binary CBOR to plaintext JSON. To do that, set
+`libQuotient/cache_type` key in your client's configuration file/registry 
+to `json` (you might need to create the libQuotient group as it's the only
+recognised key in it so far). This will make cache saving and loading work 
+slightly slower but the cache will be in text JSON files (very long and with 
+no indentation; prepare a good JSON viewer or text editor with JSON 
+formatting capabilities).
