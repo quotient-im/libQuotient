@@ -80,20 +80,19 @@ QString Quotient::cacheLocation(const QString& dirName)
     const QString cachePath =
         QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % u'/'
         % dirName % u'/';
-    QDir dir;
-    if (!dir.exists(cachePath))
-        dir.mkpath(cachePath);
+    if (const QDir dir(cachePath); !dir.exists())
+        dir.mkpath("."_ls);
     return cachePath;
 }
 
 qreal Quotient::stringToHueF(const QString& s)
 {
     Q_ASSERT(!s.isEmpty());
-    QByteArray hash = QCryptographicHash::hash(s.toUtf8(),
-                                               QCryptographicHash::Sha1);
+    const auto hash =
+        QCryptographicHash::hash(s.toUtf8(), QCryptographicHash::Sha1);
     QDataStream dataStream(hash.left(2));
     dataStream.setByteOrder(QDataStream::LittleEndian);
-    quint16 hashValue;
+    quint16 hashValue = 0;
     dataStream >> hashValue;
     const auto hueF = qreal(hashValue) / std::numeric_limits<quint16>::max();
     Q_ASSERT((0 <= hueF) && (hueF <= 1));
@@ -107,9 +106,9 @@ static const auto ServerPartRegEx = QStringLiteral(
 
 QString Quotient::serverPart(const QString& mxId)
 {
-    static QString re = "^[@!#$+].*?:("_ls // Localpart and colon
-                        % ServerPartRegEx % ")$"_ls;
-    static QRegularExpression parser(
+    static const QString re("^[@!#$+].*?:("_ls // Localpart and colon
+                            % ServerPartRegEx % ")$"_ls);
+    static const QRegularExpression parser(
         re,
         QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits
     Q_ASSERT(parser.isValid());
