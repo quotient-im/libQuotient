@@ -14,21 +14,18 @@ using namespace Quotient;
 
 QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
 {
-    // TODO: remove the check and inline the function once we move over to Qt 6
-    //       with its 64-bit qsizetype
-    if (bufferSize < std::numeric_limits<QByteArray::size_type>::max())
+    if (std::in_range<QByteArray::size_type>(bufferSize)) [[likely]]
         return { static_cast<QByteArray::size_type>(bufferSize), '\0' };
 
-    qCritical(E2EE) << "Too large buffer size:" << bufferSize;
+    qCritical(E2EE) << "Buffer size out of QByteArray range:" << bufferSize;
     // Zero-length QByteArray is an almost guaranteed way to cause
     // an internal error in QOlm* classes, unless checked
     return {};
 }
 
-void Quotient::_impl::checkForSpanShortfall(QByteArray::size_type inputSize,
-                                          size_t neededSize)
+void Quotient::_impl::checkForSpanShortfall(QByteArray::size_type inputSize, int neededSize)
 {
-    if (inputSize < static_cast<qsizetype>(neededSize)) {
+    if (inputSize < neededSize) {
         qCCritical(E2EE) << "Not enough bytes to create a valid span: "
                          << inputSize << '<' << neededSize
                          << "- undefined behaviour imminent";
