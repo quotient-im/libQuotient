@@ -4,8 +4,9 @@
 
 #include "filesourceinfo.h"
 
-#include <Quotient/logging.h>
-#include <Quotient/util.h>
+#include "../logging_categories_p.h"
+
+#include "../util.h"
 
 #include <QtCore/QReadWriteLock>
 

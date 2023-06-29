@@ -3,6 +3,8 @@
 
 #include "eventstats.h"
 
+#include "logging_categories_p.h"
+
 using namespace Quotient;
 
 EventStats EventStats::fromRange(const Room* room, const Room::rev_iter_t& from,

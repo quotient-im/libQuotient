@@ -8,6 +8,8 @@
 
 #include <QtCore/QLatin1String>
 #include <QtCore/QHashFunctions>
+#include <QtCore/QDebug>
+#include <QtCore/QElapsedTimer>
 
 #include <memory>
 #include <unordered_map>
@@ -325,4 +327,50 @@ constexpr auto E2EE_Enabled =
 #endif
 
 QUOTIENT_API bool encryptionSupported();
+
+// QDebug manipulators
+
+//! \brief QDebug manipulator to setup the stream for JSON output
+//!
+//! Originally made to encapsulate the change in QDebug behavior in Qt 5.4
+//! and the respective addition of QDebug::noquote().
+//! Together with the operator<<() helper, the proposed usage is
+//! (similar to std:: I/O manipulators):
+//! `qCDebug(MAIN) << formatJson << json_object; // (QJsonObject etc.)`
+inline QDebug formatJson(QDebug dbg) { return dbg.noquote(); }
+
+//! Suppress full qualification of enums/QFlags when logging
+inline QDebug terse(QDebug dbg)
+{
+    return dbg.verbosity(QDebug::MinimumVerbosity);
+}
+
+constexpr qint64 ProfilerMinNsecs =
+#ifdef PROFILER_LOG_USECS
+    PROFILER_LOG_USECS
+#else
+    200
+#endif
+    * 1000;
 } // namespace Quotient
+
+//! \brief A helper operator for QDebug manipulators, e.g. formatJson
+//!
+//! \param dbg to output the json to
+//! \param manipFn a QDebug manipulator
+//! \return a copy of dbg that has its mode altered by manipFn
+template <typename FnT>
+inline QDebug operator<<(QDebug dbg, FnT manipFn)
+    requires std::is_invocable_v<FnT, QDebug>
+// TODO: move over to std::invocable once on Apple Clang 14 (lib 0.9, i.e.)
+{
+    return std::invoke(manipFn, dbg);
+}
+
+inline QDebug operator<<(QDebug dbg, QElapsedTimer et)
+{
+    // NOLINTNEXTLINE(bugprone-integer-division)
+    dbg << static_cast<double>(et.nsecsElapsed() / 1000) / 1000
+                 << "ms"; // Show in ms with 3 decimal digits precision
+    return dbg;
+}

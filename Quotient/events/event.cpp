@@ -3,8 +3,8 @@
 
 #include "event.h"
 
+#include "../logging_categories_p.h"
 #include "callevents.h"
-#include <Quotient/logging.h>
 #include "stateevent.h"
 
 #include <QtCore/QJsonDocument>

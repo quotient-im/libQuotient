@@ -3,7 +3,7 @@
 
 #include "syncdata.h"
 
-#include "logging.h"
+#include "logging_categories_p.h"
 
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>

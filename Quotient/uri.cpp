@@ -3,8 +3,8 @@
 
 #include "uri.h"
 
+#include "logging_categories_p.h"
 #include "util.h"
-#include "logging.h"
 
 #include <QtCore/QRegularExpression>
 

@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "roommemberevent.h"
-#include <Quotient/logging.h>
+
+#include "../logging_categories_p.h"
 
 namespace Quotient {
 template <>

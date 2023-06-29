@@ -126,7 +126,7 @@ list(APPEND lib_SRCS
     Quotient/connection.h Quotient/connection.cpp
     Quotient/connection_p.h
     Quotient/ssosession.h Quotient/ssosession.cpp
-    Quotient/logging.h Quotient/logging.cpp
+    Quotient/logging_categories_p.h
     Quotient/room.h Quotient/room.cpp
     Quotient/roomstateview.h Quotient/roomstateview.cpp
     Quotient/user.h Quotient/user.cpp

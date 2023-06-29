@@ -3,8 +3,9 @@
 
 #include "roomevent.h"
 
-#include <Quotient/logging.h>
+#include "../logging_categories_p.h"
 #include "redactionevent.h"
+
 #ifdef Quotient_E2EE_ENABLED
 #include "encryptedevent.h"
 #endif

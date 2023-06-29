@@ -4,7 +4,7 @@
 #include "database.h"
 
 #include "connection.h"
-#include "logging.h"
+#include "logging_categories_p.h"
 
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolminboundsession.h"
@@ -55,7 +55,7 @@ int Database::version()
         if (ok)
             return value;
     } else {
-        qCritical() << "Failed to check database version";
+        qCritical(DATABASE) << "Failed to check database version";
     }
     return -1;
 }
@@ -64,9 +64,9 @@ QSqlQuery Database::execute(const QString& queryString)
 {
     auto query = database().exec(queryString);
     if (query.lastError().type() != QSqlError::NoError) {
-        qCritical() << "Failed to execute query";
-        qCritical() << query.lastQuery();
-        qCritical() << query.lastError();
+        qCritical(DATABASE) << "Failed to execute query";
+        qCritical(DATABASE) << query.lastQuery();
+        qCritical(DATABASE) << query.lastError();
     }
     return query;
 }
@@ -74,9 +74,9 @@ QSqlQuery Database::execute(const QString& queryString)
 void Database::execute(QSqlQuery& query)
 {
     if (!query.exec()) {
-        qCritical() << "Failed to execute query";
-        qCritical() << query.lastQuery();
-        qCritical() << query.lastError();
+        qCritical(DATABASE) << "Failed to execute query";
+        qCritical(DATABASE) << query.lastQuery();
+        qCritical(DATABASE) << query.lastError();
     }
 }
 

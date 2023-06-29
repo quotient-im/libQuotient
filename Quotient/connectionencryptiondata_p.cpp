@@ -1,9 +1,10 @@
 #include "connectionencryptiondata_p.h"
 
+#include "logging_categories_p.h"
+#include "qt_connection_util.h"
 #include "room.h"
 #include "syncdata.h"
 #include "user.h"
-#include "qt_connection_util.h"
 
 #include "e2ee/qolmutility.h"
 
@@ -776,4 +777,10 @@ ConnectionEncryptionData::ConnectionEncryptionData(Connection* connection,
 {
     QObject::connect(&olmAccount, &QOlmAccount::needsSave, q,
                      [this] { saveOlmAccount(); });
+}
+
+void ConnectionEncryptionData::saveOlmAccount()
+{
+    qCDebug(E2EE) << "Saving olm account";
+    database.storeOlmAccount(olmAccount);
 }

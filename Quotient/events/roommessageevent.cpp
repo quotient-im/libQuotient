@@ -5,12 +5,13 @@
 
 #include "roommessageevent.h"
 
-#include <Quotient/logging.h>
+#include "../logging_categories_p.h"
 #include "eventrelation.h"
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QImageReader>
+
 #if QT_VERSION_MAJOR < 6
 #    include <QtMultimedia/QMediaResource>
 #endif

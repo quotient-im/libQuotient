@@ -4,12 +4,13 @@
 
 #include "connectiondata.h"
 
-#include "logging.h"
+#include "logging_categories_p.h"
 #include "networkaccessmanager.h"
+
 #include "jobs/basejob.h"
 
-#include <QtCore/QTimer>
 #include <QtCore/QPointer>
+#include <QtCore/QTimer>
 
 #include <array>
 #include <queue>

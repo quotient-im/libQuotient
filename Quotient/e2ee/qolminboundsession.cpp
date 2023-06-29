@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include "qolminboundsession.h"
-#include "../logging.h"
+
+#include "../logging_categories_p.h"
+
+#include <olm/olm.h>
 
 #include <cstring>
 #include <iostream>
-#include <olm/olm.h>
 
 using namespace Quotient;
 
