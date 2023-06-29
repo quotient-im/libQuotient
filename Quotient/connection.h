@@ -401,7 +401,7 @@ public:
     //! 1) the library must be compiled with Quotient_E2EE_ENABLED;
     //! 2) encryption should be switched on explicitly with enableEncryption()
     //!
-    //! The reason for the latter is E2EE still being in beta state as of 0.7,
+    //! The reason for the latter is E2EE still being in beta state as of 0.8,
     //! so clients are strongly advised to keep E2EE off by default and warn
     //! users opting in that their E2EE things may fall apart, leak etc.
     //!

@@ -32,14 +32,13 @@ public:
 
     //! \brief Get a state event with the given event type and state key
     //! \return A state event corresponding to the pair of event type
-    //!         \p evtType and state key \p stateKey, or nullptr if there's
+    //!         \p evtType and state key \p stateKey, or `nullptr` if there's
     //!         no such \p evtType / \p stateKey combination in the current
     //!         state.
-    //! \warning In libQuotient 0.7 the return type changed to an OmittableCref
-    //!          which is effectively a nullable const reference wrapper. You
-    //!          have to check that it has_value() before using. Alternatively
-    //!          you can now use queryCurrentState() to access state safely.
-    //! \sa getCurrentStateContentJson
+    //! \warning The returned value is not guaranteed to be non-`nullptr`; you
+    //!          MUST check it before using or use other methods of this class
+    //!          such as query() and content() to access state safely.
+    //! \sa content, contentJson, query
     const StateEvent* get(const QString& evtType,
                           const QString& stateKey = {}) const;
 
