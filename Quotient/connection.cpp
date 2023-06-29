@@ -33,7 +33,6 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
-#include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "connectionencryptiondata_p.h"
