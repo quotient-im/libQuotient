@@ -153,7 +153,7 @@ EnumT enumFromJsonString(const QString& s, const EnumStringValuesT& enumValues,
     static_assert(std::is_unsigned_v<std::underlying_type_t<EnumT>>);
     if (const auto it = std::find(cbegin(enumValues), cend(enumValues), s);
         it != cend(enumValues))
-        return EnumT(it - cbegin(enumValues));
+        return static_cast<EnumT>(it - cbegin(enumValues));
 
     if (!s.isEmpty())
         _impl::warnUnknownEnumValue(s, qt_getEnumName(EnumT()));
@@ -200,7 +200,7 @@ FlagT flagFromJsonString(const QString& s, const FlagStringValuesT& flagValues,
     static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
     if (const auto it = std::find(cbegin(flagValues), cend(flagValues), s);
         it != cend(flagValues))
-        return FlagT(1U << (it - cbegin(flagValues)));
+        return static_cast<FlagT>(1U << (it - cbegin(flagValues)));
 
     if (!s.isEmpty())
         _impl::warnUnknownEnumValue(s, qt_getEnumName(FlagT()));
@@ -211,8 +211,9 @@ template <typename FlagT, typename FlagStringValuesT>
 QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
 {
     static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
-    if (const auto offset =
-            qCountTrailingZeroBits(std::underlying_type_t<FlagT>(v));
+    // TODO: use std::to_underlying once we require C++23
+    if (const auto offset = qCountTrailingZeroBits(
+            static_cast<std::underlying_type_t<FlagT>>(v));
         offset < size(flagValues)) //
     {
         return flagValues[offset];
