@@ -149,6 +149,7 @@ void AccountRegistry::invokeLogin()
                     connection->assumeIdentity(
                         account.userId(),
                         QString::fromUtf8(accessTokenLoadingJob->binaryData()));
+                    add(connection);
                 });
         accessTokenLoadingJob->start();
     }
