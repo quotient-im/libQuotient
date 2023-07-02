@@ -8,7 +8,7 @@
 #include "basejob.h"
 
 namespace Quotient {
-class SyncJob : public BaseJob {
+class QUOTIENT_API SyncJob : public BaseJob {
 public:
     explicit SyncJob(const QString& since = {}, const QString& filter = {},
                      int timeout = -1, const QString& presence = {});

@@ -84,7 +84,7 @@ public:
 // QVector cannot work with non-copyable objects, std::vector can.
 using SyncDataList = std::vector<SyncRoomData>;
 
-class SyncData {
+class QUOTIENT_API SyncData {
 public:
     SyncData() = default;
     explicit SyncData(const QString& cacheFileName);

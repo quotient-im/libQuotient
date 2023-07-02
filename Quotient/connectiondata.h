@@ -15,7 +15,7 @@ namespace Quotient {
 class NetworkAccessManager;
 class BaseJob;
 
-class ConnectionData {
+class QUOTIENT_API ConnectionData {
 public:
     explicit ConnectionData(QUrl baseUrl);
     Q_DISABLE_COPY_MOVE(ConnectionData)

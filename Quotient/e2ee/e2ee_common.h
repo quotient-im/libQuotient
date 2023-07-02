@@ -334,16 +334,18 @@ struct UnsignedOneTimeKeys
     QHash<QString, QString> curve25519() const { return keys[Curve25519Key]; }
 };
 
-class SignedOneTimeKey {
+class QUOTIENT_API SignedOneTimeKey {
 public:
     explicit SignedOneTimeKey(const QString& unsignedKey, const QString& userId,
                               const QString& deviceId,
                               const QByteArray& signature)
-        : payload { { "key"_ls, unsignedKey },
-                    { "signatures"_ls,
-                      QJsonObject {
-                          { userId, QJsonObject { { "ed25519:"_ls % deviceId,
-                                                    QString::fromUtf8(signature) } } } } } }
+        : payload{
+            { "key"_ls, unsignedKey },
+            { "signatures"_ls,
+              QJsonObject{
+                  { userId, QJsonObject{ { "ed25519:"_ls % deviceId,
+                                           QString::fromUtf8(signature) } } } } }
+        }
     {}
     explicit SignedOneTimeKey(const QJsonObject& jo = {})
         : payload(jo)
