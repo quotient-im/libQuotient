@@ -182,12 +182,6 @@ void Connection::loginWithToken(const QString& loginToken,
                      loginToken, deviceId, initialDeviceName);
 }
 
-void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
-                                [[maybe_unused]] const QString& deviceId)
-{
-    assumeIdentity(mxId, accessToken);
-}
-
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
 {
     d->checkAndConnect(mxId, [this, mxId, accessToken] {

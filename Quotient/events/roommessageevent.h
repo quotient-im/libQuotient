@@ -12,7 +12,8 @@
 class QFileInfo;
 
 namespace Quotient {
-namespace MessageEventContent = EventContent; // Back-compatibility
+//! \deprecated Use namespace EventContent instead
+namespace MessageEventContent = EventContent; // REMOVE after 0.9
 
 /**
  * The event class corresponding to m.room.message events
@@ -102,22 +103,6 @@ private:
 using MessageEventType = RoomMessageEvent::MsgType;
 
 namespace EventContent {
-
-    struct [[deprecated("Use Quotient::EventRelation instead")]] RelatesTo
-        : EventRelation {
-        static constexpr auto ReplyTypeId() { return ReplyType; }
-        static constexpr auto ReplacementTypeId() { return ReplacementType; }
-    };
-    [[deprecated("Use EventRelation::replyTo() instead")]]
-    inline auto replyTo(QString eventId)
-    {
-        return EventRelation::replyTo(std::move(eventId));
-    }
-    [[deprecated("Use EventRelation::replace() instead")]]
-    inline auto replacementOf(QString eventId)
-    {
-        return EventRelation::replace(std::move(eventId));
-    }
 
     // Additional event content types
 

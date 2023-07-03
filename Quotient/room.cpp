@@ -219,28 +219,6 @@ public:
 
     void getPreviousContent(int limit = 10, const QString &filter = {});
 
-    const StateEvent* getCurrentState(const StateEventKey& evtKey) const
-    {
-        const auto* evt = currentState.value(evtKey, nullptr);
-        if (!evt) {
-            if (stubbedState.find(evtKey) == stubbedState.end()) {
-                // In the absence of a real event, make a stub as-if an event
-                // with empty content has been received. Event classes should be
-                // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(
-                    evtKey, loadEvent<StateEvent>(evtKey.first, evtKey.second));
-                qCDebug(STATE) << "A new stub event created for key {"
-                               << evtKey.first << evtKey.second << "}";
-                qCDebug(STATE) << "Stubbed state size:" << stubbedState.size();
-            }
-            evt = stubbedState[evtKey].get();
-            Q_ASSERT(evt);
-        }
-        Q_ASSERT(evt->matrixType() == evtKey.first
-                 && evt->stateKey() == evtKey.second);
-        return evt;
-    }
-
     Changes updateStateFrom(StateEvents&& events)
     {
         Changes changes {};
@@ -967,7 +945,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     qCDebug(MESSAGES) << "Fully read marker in" << q->objectName() //
                       << "set to" << fullyReadUntilEventId;
 
-    QT_IGNORE_DEPRECATIONS(Changes changes = Change::ReadMarker|Change::Other;)
+    Changes changes = Change::Other;
     if (const auto rm = q->fullyReadMarker(); rm != historyEdge()) {
         // Pull read receipt if it's behind, and update statistics
         changes |= setLocalLastReadReceipt(rm);
@@ -981,9 +959,6 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
         Q_ASSERT(partiallyReadStats.isValidFor(q, rm)); // post-check
     }
     emit q->fullyReadMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
-    // TODO: Remove in 0.8
-    QT_IGNORE_DEPRECATIONS(
-        emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);)
     return changes;
 }
 
@@ -1070,14 +1045,10 @@ Notification Room::checkForNotifications(const TimelineItem &ti)
     return { Notification::None };
 }
 
-bool Room::hasUnreadMessages() const { return !d->partiallyReadStats.empty(); }
-
 int countFromStats(const EventStats& s)
 {
     return s.empty() ? -1 : int(s.notableCount);
 }
-
-int Room::unreadCount() const { return countFromStats(partiallyReadStats()); }
 
 EventStats Room::partiallyReadStats() const { return d->partiallyReadStats; }
 
@@ -1250,10 +1221,6 @@ void Room::setLastDisplayedEvent(TimelineItem::index_t index)
     setLastDisplayedEventId(findInTimeline(index)->event()->id());
 }
 
-Room::rev_iter_t Room::readMarker() const { return fullyReadMarker(); }
-
-QString Room::readMarkerEventId() const { return lastFullyReadEventId(); }
-
 ReadReceipt Room::lastReadReceipt(const QString& userId) const
 {
     return d->lastReadReceipts.value(userId);
@@ -1277,11 +1244,6 @@ Room::rev_iter_t Room::fullyReadMarker() const
 }
 
 QSet<QString> Room::userIdsAtEvent(const QString& eventId) const
-{
-    return d->eventIdReadUsers.value(eventId);
-}
-
-QSet<QString> Room::userIdsAtEvent(const QString& eventId)
 {
     return d->eventIdReadUsers.value(eventId);
 }
@@ -1594,12 +1556,6 @@ bool Room::usesEncryption() const
     return !currentState()
                 .queryOr(&EncryptionEvent::algorithm, QString())
                 .isEmpty();
-}
-
-const StateEvent* Room::getCurrentState(const QString& evtType,
-                                        const QString& stateKey) const
-{
-    return d->getCurrentState({ evtType, stateKey });
 }
 
 RoomStateView Room::currentState() const
@@ -1944,11 +1900,8 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
     if ((changes & (Change::RoomNames | Change::Members | Change::Summary)) > 0)
         updateDisplayname();
 
-    if ((changes & Change::PartiallyReadStats) > 0) {
-        QT_IGNORE_DEPRECATIONS(
-            emit q->unreadMessagesChanged(q);) // TODO: remove in 0.8
+    if ((changes & Change::PartiallyReadStats) > 0)
         emit q->partiallyReadStatsChanged();
-    }
 
     if ((changes & Change::UnreadStats) > 0)
         emit q->unreadStatsChanged();
@@ -2338,14 +2291,6 @@ void Room::sendCallCandidates(const QString& callId,
 {
     Q_ASSERT(supportsCalls());
     d->sendEvent<CallCandidatesEvent>(callId, candidates);
-}
-
-void Room::answerCall(const QString& callId, [[maybe_unused]] int lifetime,
-                      const QString& sdp)
-{
-    qCWarning(MAIN) << "To client developer: drop lifetime parameter from "
-                       "Room::answerCall(), it is no more accepted";
-    answerCall(callId, sdp);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
@@ -3285,10 +3230,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         qCDebug(STATE) << "Updated account data of type"
                        << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());
-        // TODO: Drop AccountDataChange in 0.8
-        // NB: GCC (at least 10) only accepts QT_IGNORE_DEPRECATIONS around
-        // a statement, not within a statement
-        QT_IGNORE_DEPRECATIONS(changes |= Change::AccountData | Change::Other;)
+        changes |= Change::Other;
     }
     return changes;
 }

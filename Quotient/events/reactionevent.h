@@ -20,10 +20,6 @@ public:
                == EventRelation::AnnotationType;
     }
 
-    [[deprecated("Use a two-argument constructor instead")]] // REMOVEME: 0.8
-    explicit ReactionEvent(const EventRelation& er)
-        : EventTemplate(er)
-    {}
     ReactionEvent(const QString& eventId, const QString& reactionKey)
         : EventTemplate(EventRelation::annotate(eventId, reactionKey))
     {}

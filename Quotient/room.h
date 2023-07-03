@@ -148,17 +148,8 @@ class QUOTIENT_API Room : public QObject {
                    setFirstDisplayedEventId NOTIFY firstDisplayedEventChanged)
     Q_PROPERTY(QString lastDisplayedEventId READ lastDisplayedEventId WRITE
                    setLastDisplayedEventId NOTIFY lastDisplayedEventChanged)
-    //! \deprecated since 0.7
-    Q_PROPERTY(QString readMarkerEventId READ readMarkerEventId WRITE
-                   markMessagesAsRead NOTIFY readMarkerMoved)
     Q_PROPERTY(QString lastFullyReadEventId READ lastFullyReadEventId WRITE
                    markMessagesAsRead NOTIFY fullyReadMarkerMoved)
-    //! \deprecated since 0.7
-    Q_PROPERTY(bool hasUnreadMessages READ hasUnreadMessages NOTIFY
-                   partiallyReadStatsChanged STORED false)
-    //! \deprecated since 0.7
-    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY partiallyReadStatsChanged
-                   STORED false)
     Q_PROPERTY(qsizetype highlightCount READ highlightCount
                    NOTIFY highlightCountChanged)
     Q_PROPERTY(qsizetype notificationCount READ notificationCount
@@ -195,10 +186,9 @@ public:
         DECL_DEPRECATED_ENUMERATOR(Name, RoomNames),
         DECL_DEPRECATED_ENUMERATOR(Aliases, RoomNames),
         DECL_DEPRECATED_ENUMERATOR(CanonicalAlias, RoomNames),
-        // Aliases/CanonicalAlias pre-0.8 = 0x2,
+        // Aliases/CanonicalAlias pre-0.8 = 0x2 - open for reuse
         Topic = 0x4, //!< \sa topicChanged
         PartiallyReadStats = 0x8, //!< \sa partiallyReadStatsChanged
-        DECL_DEPRECATED_ENUMERATOR(UnreadNotifs, PartiallyReadStats),
         Avatar = 0x10, //!< \sa avatarChanged
         JoinState = 0x20, //!< \sa joinStateChanged
         Tags = 0x40, //!< \sa tagsChanged
@@ -206,13 +196,9 @@ public:
         //!     displaynameChanged
         Members = 0x80,
         UnreadStats = 0x100, //!< \sa unreadStatsChanged
-        AccountData Q_DECL_ENUMERATOR_DEPRECATED_X(
-            "Change::AccountData will be merged into Change::Other in 0.8") =
-            0x200,
+        // AccountData pre-0.9 = 0x200,
         Summary = 0x400, //!< \sa summaryChanged, displaynameChanged
-        ReadMarker Q_DECL_ENUMERATOR_DEPRECATED_X(
-            "Change::ReadMarker will be merged into Change::Other in 0.8") =
-            0x800,
+        // ReadMarker pre-0.9 = 0x800,
         Highlights = 0x1000, //!< \sa highlightCountChanged
         //! A catch-all value that covers changes not listed above (such as
         //! encryption turned on or the room having been upgraded), as well as
@@ -398,22 +384,6 @@ public:
     void setLastDisplayedEventId(const QString& eventId);
     void setLastDisplayedEvent(TimelineItem::index_t index);
 
-    //! \brief Obtain the local user's fully-read marker
-    //! \deprecated Use fullyReadMarker instead
-    //!
-    //! See the documentation for the single-argument overload.
-    //! \sa fullyReadMarker
-    [[deprecated("Use localReadReceiptMarker() or fullyReadMarker()")]] //
-    rev_iter_t readMarker() const;
-    //! \brief Get the event id for the local user's fully-read marker
-    //! \deprecated Use lastFullyReadEventId instead
-    //!
-    //! See the readMarker documentation
-    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
-                 " lastFullyReadEventId() to get an event id that"
-                 " m.fully_read marker points to")]] //
-    QString readMarkerEventId() const;
-
     //! \brief Get the latest read receipt from a user
     //!
     //! The user id must be valid. A read receipt with an empty event id
@@ -468,8 +438,6 @@ public:
     //!       before operating on the result of this function.
     //! \sa lastReadReceipt, allMembersLoaded
     QSet<QString> userIdsAtEvent(const QString& eventId) const;
-
-    QSet<QString> userIdsAtEvent(const QString& eventId); // See #706
 
     //! \brief Mark the event with uptoEventId as fully read
     //!
@@ -549,36 +517,6 @@ public:
     //! \sa isEventNotable, lastLocalReadReceipt, partiallyReadStats,
     //!     highlightCount
     EventStats unreadStats() const;
-
-    [[deprecated(
-        "Use partiallyReadStats/unreadStats() and EventStats::empty()")]]
-    bool hasUnreadMessages() const;
-
-    //! \brief Get the number of notable events since the fully read marker
-    //!
-    //! \deprecated Since 0.7 there are two ways to count unread events: since
-    //! the fully read marker (used by libQuotient pre-0.7) and since the last
-    //! read receipt (as used by most of Matrix ecosystem, including the spec
-    //! and MSCs). This function currently returns a value derived from
-    //! partiallyReadStats() for compatibility with libQuotient 0.6; it will be
-    //! removed due to ambiguity. Use unreadStats() to obtain the spec-compliant
-    //! count of unread events and the highlight count; partiallyReadStats() to
-    //! obtain the unread events count since the fully read marker.
-    //!
-    //! \return -1 (_not 0_) when all messages are known to have been fully read,
-    //!         i.e. the fully read marker points to _the latest notable_ event
-    //!         loaded in the local timeline (which may be different from
-    //!         the latest event in the local timeline as that might not be
-    //!         notable);
-    //!         0 when there may be unread messages but the current local
-    //!         timeline doesn't have any notable ones (often but not always
-    //!         because it's entirely empty yet);
-    //!         a positive integer when there is (or estimated to be) a number
-    //!         of unread notable events as described above.
-    //!
-    //! \sa partiallyReadStats, unreadStats
-    [[deprecated("Use partiallyReadStats() or unreadStats() instead")]] //
-    int unreadCount() const;
 
     //! \brief Get the number of notifications since the last read receipt
     //!
@@ -710,32 +648,6 @@ public:
     /// Whether the current user is allowed to upgrade the room
     Q_INVOKABLE bool canSwitchVersions() const;
 
-    /// Get a state event with the given event type and state key
-    /*! This method returns a (potentially empty) state event corresponding
-     * to the pair of event type \p evtType and state key \p stateKey.
-     */
-    [[deprecated("Use currentState().get() instead; "
-                 "make sure to check its result for nullptrs")]] //
-    const StateEvent* getCurrentState(const QString& evtType,
-                                      const QString& stateKey = {}) const;
-
-    /// Get a state event with the given event type and state key
-    /*! This is a typesafe overload that accepts a C++ event type instead of
-     * its Matrix name.
-     */
-    template <typename EvT>
-    [[deprecated("Use currentState().get() instead; "
-                 "make sure to check its result for nullptrs")]] //
-    const EvT* getCurrentState(const QString& stateKey = {}) const
-    {
-        QT_IGNORE_DEPRECATIONS(const auto* evt = eventCast<const EvT>(
-                                   getCurrentState(EvT::TypeId, stateKey));)
-        Q_ASSERT(evt);
-        Q_ASSERT(evt->matrixType() == EvT::TypeId
-                 && evt->stateKey() == stateKey);
-        return evt;
-    }
-
     /// \brief Get the current room state
     RoomStateView currentState() const;
 
@@ -831,9 +743,6 @@ public Q_SLOTS:
     void inviteCall(const QString& callId, const int lifetime,
                     const QString& sdp);
     void sendCallCandidates(const QString& callId, const QJsonArray& candidates);
-    [[deprecated("Lifetime argument is no more passed; "
-                 "use 2-arg Room::answerCall() instead")]]
-    void answerCall(const QString& callId, int lifetime, const QString& sdp);
     void answerCall(const QString& callId, const QString& sdp);
     void hangupCall(const QString& callId);
 
@@ -954,11 +863,6 @@ Q_SIGNALS:
     //! \sa lastReadReceipt
     void lastReadEventChanged(QVector<QString> userIds);
     void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
-    [[deprecated("Since 0.7, use fullyReadMarkerMoved")]]
-    void readMarkerMoved(QString fromEventId, QString toEventId);
-    [[deprecated("Since 0.7, use either partiallyReadStatsChanged "
-                 "or unreadStatsChanged")]]
-    void unreadMessagesChanged(Quotient::Room* room);
     void partiallyReadStatsChanged();
     void unreadStatsChanged();
     void allHistoryLoadedChanged();

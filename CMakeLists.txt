@@ -141,7 +141,6 @@ list(APPEND lib_SRCS
     Quotient/accountregistry.h Quotient/accountregistry.cpp
     Quotient/mxcreply.h Quotient/mxcreply.cpp
     Quotient/events/event.h Quotient/events/event.cpp
-    Quotient/events/eventloader.h
     Quotient/events/roomevent.h Quotient/events/roomevent.cpp
     Quotient/events/stateevent.h Quotient/events/stateevent.cpp
     Quotient/events/single_key_value.h
