@@ -60,7 +60,6 @@ To build applications with libQuotient, you'll also need:
 The requirements to build libQuotient itself are basically the same except
 that you should install development libraries for the dependencies listed above.
 
-
 #### Linux
 Just install the prerequisites using your preferred package manager. If your Qt
 package base is fine-grained you might want to run CMake and look at error
