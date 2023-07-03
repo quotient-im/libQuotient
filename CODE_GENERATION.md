@@ -35,17 +35,19 @@ that also briefly touches on GTAD - the tool written for the purpose.
    stuff anyway).
 3. Get Matrix CS API definitions from a matrix-spec repo. Although the official
    repo is at https://github.com/matrix-org/matrix-spec.git` (formerly
-   https://github.com/matrix-org/matrix-doc.git), you may or may not be able
-   to generate working code from it because the way it evolves is not
-   necessarily in line with libQuotient needs. For that reason, a soft fork
-   of the official definitions is kept at
-   https://github.com/quotient-im/matrix-spec.git that guarantees buildability
+   https://github.com/matrix-org/matrix-doc.git), you cannot use its main branch
+   with GTAD 0.9 (used for the current - 0.8 - version of libQuotient) because
+   the project has recently moved to OpenAPI 3 and GTAD does not support it yet.
+   For that reason as well as build predictability (the official Matrix repo
+   doesn't check whether a particular change breaks code generation), a soft
+   fork of the official definitions is kept at
+   https://github.com/quotient-im/matrix-spec.git - that guarantees buildability
    of the generated code. This repo closely follows the official one (but maybe
    not its freshest commit), applying a few adjustments on top. And of course
    you can use your own repository if you need to change the API definition.
 4. If you plan to submit a PR with the generated code to libQuotient or just
    would like it to be properly formatted, you should either ensure you have
-   clang-format (version 10 at least) in your PATH or pass
+   clang-format (version 13 at least) in your PATH or pass
    `-DCLANG_FORMAT=<path>` to CMake, as mentioned in the next section.
 
 ## Generating CS API contents
@@ -100,8 +102,7 @@ It uses the following type attributes aside from pretty obvious `imports:`:
   `std::unique_ptr<>`).
 * `useOmittable` - wrap types that have no value with "null" semantics
   (i.e. number types and custom-defined data structures) into a special
-  `Omittable<>` template defined in `converters.h`, a drop-in upgrade over
-  `std::optional`.
+  `Omittable<>` - a drop-in upgrade over `std::optional`.
 * `omittedValue` - an alternative for `useOmittable`, just provide a value used
   for an omitted parameter. This is used for bool parameters which normally are
   considered false if omitted (or they have an explicit default value, passed
