@@ -94,18 +94,6 @@ private:
     index_t idx;
 };
 
-template <>
-inline const StateEvent* EventItemBase::viewAs<StateEvent>() const
-{
-    return evt->isStateEvent() ? weakPtrCast<const StateEvent>(evt) : nullptr;
-}
-
-template <>
-inline const CallEvent* EventItemBase::viewAs<CallEvent>() const
-{
-    return evt->is<CallEvent>() ? weakPtrCast<const CallEvent>(evt) : nullptr;
-}
-
 class QUOTIENT_API PendingEventItem : public EventItemBase {
 public:
     using EventItemBase::EventItemBase;

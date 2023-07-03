@@ -21,8 +21,6 @@ protected:
                                  const QString& callId, int version,
                                  QJsonObject contentJson = {});
 };
-using CallEventBase
-    [[deprecated("CallEventBase is CallEvent now")]] = CallEvent;
 
 template <typename EventT>
 class EventTemplate<EventT, CallEvent> : public CallEvent {

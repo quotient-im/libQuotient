@@ -4,14 +4,11 @@
 #include "event.h"
 
 #include "../logging_categories_p.h"
-#include "callevents.h"
 #include "stateevent.h"
 
 #include <QtCore/QJsonDocument>
 
 using namespace Quotient;
-
-QString EventTypeRegistry::getMatrixType(event_type_t typeId) { return typeId; }
 
 void AbstractEventMetaType::addDerived(const AbstractEventMetaType* newType)
 {
@@ -61,8 +58,6 @@ Event::~Event() = default;
 
 QString Event::matrixType() const { return fullJson()[TypeKey].toString(); }
 
-QByteArray Event::originalJson() const { return QJsonDocument(_json).toJson(); }
-
 const QJsonObject Event::contentJson() const
 {
     return fullJson()[ContentKey].toObject();
@@ -74,8 +69,6 @@ const QJsonObject Event::unsignedJson() const
 }
 
 bool Event::isStateEvent() const { return is<StateEvent>(); }
-
-bool Event::isCallEvent() const { return is<CallEvent>(); }
 
 void Event::dumpTo(QDebug dbg) const
 {

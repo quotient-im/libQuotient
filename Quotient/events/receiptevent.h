@@ -28,8 +28,5 @@ class QUOTIENT_API ReceiptEvent
 public:
     QUO_EVENT(ReceiptEvent, "m.receipt")
     using EventTemplate::EventTemplate;
-
-    [[deprecated("Use content() instead")]]
-    EventsWithReceipts eventsWithReceipts() const { return content(); }
 };
 } // namespace Quotient

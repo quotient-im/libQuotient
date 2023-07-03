@@ -156,7 +156,6 @@ list(APPEND lib_SRCS
     Quotient/mxcreply.h Quotient/mxcreply.cpp
     Quotient/e2ee/e2ee_common.h # because it's used by generated API
     Quotient/events/event.h Quotient/events/event.cpp
-    Quotient/events/eventloader.h
     Quotient/events/roomevent.h Quotient/events/roomevent.cpp
     Quotient/events/stateevent.h Quotient/events/stateevent.cpp
     Quotient/events/single_key_value.h
