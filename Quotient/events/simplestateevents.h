@@ -7,8 +7,10 @@
 #include "single_key_value.h"
 
 namespace Quotient {
-#define DEFINE_SIMPLE_STATE_EVENT(Name_, TypeId_, ValueType_, ContentKey_)   \
-    constexpr inline auto Name_##Key = #ContentKey_##_ls;                    \
+
+#define DEFINE_SIMPLE_STATE_EVENT(Name_, TypeId_, ValueType_, GetterName_,   \
+                                  JsonKey_)                                  \
+    constexpr inline auto Name_##Key = JsonKey_##_ls;                        \
     class QUOTIENT_API Name_                                                 \
         : public KeylessStateEventBase<                                      \
               Name_, EventContent::SingleKeyValue<ValueType_, Name_##Key>> { \
@@ -16,14 +18,18 @@ namespace Quotient {
         using value_type = ValueType_;                                       \
         QUO_EVENT(Name_, TypeId_)                                            \
         using KeylessStateEventBase::KeylessStateEventBase;                  \
-        auto ContentKey_() const { return content().value; }                 \
+        auto GetterName_() const { return content().value; }                 \
     };                                                                       \
-// End of macro
+    // End of macro
 
-DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name)
-DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic)
-DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEvent, "m.room.pinned_messages",
-                          QStringList, pinnedEvents)
+DEFINE_SIMPLE_STATE_EVENT(RoomNameEvent, "m.room.name", QString, name, "name")
+DEFINE_SIMPLE_STATE_EVENT(RoomTopicEvent, "m.room.topic", QString, topic,
+                          "topic")
+DEFINE_SIMPLE_STATE_EVENT(RoomPinnedEventsEvent, "m.room.pinned_events",
+                          QStringList, pinnedEvents, "pinned")
+using RoomPinnedEvent
+    [[deprecated("RoomPinnedEventsEvent is the new, correct name")]] =
+        RoomPinnedEventsEvent;
 
 constexpr inline auto RoomAliasesEventKey = "aliases"_ls;
 class QUOTIENT_API RoomAliasesEvent
