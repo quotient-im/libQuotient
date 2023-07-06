@@ -617,7 +617,7 @@ QString Room::canonicalAlias() const
 QString Room::displayName() const { return d->displayname; }
 
 QStringList Room::pinnedEventIds() const {
-    return currentState().queryOr(&RoomPinnedEvent::pinnedEvents, QStringList());
+    return currentState().content<RoomPinnedEventsEvent>().value;
 }
 
 QVector<const Quotient::RoomEvent*> Quotient::Room::pinnedEvents() const
@@ -2327,7 +2327,7 @@ void Room::setCanonicalAlias(const QString& newAlias)
 
 void Room::setPinnedEvents(const QStringList& events)
 {
-    setState<RoomPinnedEvent>(events);
+    setState<RoomPinnedEventsEvent>(events);
 }
 void Room::setLocalAliases(const QStringList& aliases)
 {
@@ -3185,7 +3185,7 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
             connection->updateRoomAliases(id, previousAltAliases, newAliases);
             return Change::RoomNames;
         },
-        [this](const RoomPinnedEvent&) {
+        [this](const RoomPinnedEventsEvent&) {
             emit q->pinnedEventsChanged();
             return Change::Other;
         },
