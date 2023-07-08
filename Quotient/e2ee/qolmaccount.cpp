@@ -117,8 +117,8 @@ IdentityKeys QOlmAccount::identityKeys() const
             qPrintable("Failed to get "_ls % accountId() % " identity keys"_ls));
     }
     const auto key = QJsonDocument::fromJson(keyBuffer).object();
-    return IdentityKeys{ key.value(QStringLiteral("curve25519")).toString(),
-                         key.value(QStringLiteral("ed25519")).toString() };
+    return { key.value(QStringLiteral("curve25519")).toString(),
+             key.value(QStringLiteral("ed25519")).toString() };
 }
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
