@@ -9,7 +9,7 @@
 
 namespace Quotient {
 
-struct EmailValidationData : RequestEmailValidation {
+struct EmailValidationData : public RequestEmailValidation {
     /// The hostname of the identity server to communicate with. May optionally
     /// include a port. This parameter is ignored when the homeserver handles
     /// 3PID verification.

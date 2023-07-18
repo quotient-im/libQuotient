@@ -9,7 +9,7 @@
 
 namespace Quotient {
 
-struct MsisdnValidationData : RequestMsisdnValidation {
+struct MsisdnValidationData : public RequestMsisdnValidation {
     /// The hostname of the identity server to communicate with. May optionally
     /// include a port. This parameter is ignored when the homeserver handles
     /// 3PID verification.
