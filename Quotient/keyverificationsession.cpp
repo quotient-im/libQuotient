@@ -108,6 +108,16 @@ void KeyVerificationSession::handleEvent(const KeyVerificationEvent& baseEvent)
             [this](const KeyVerificationAcceptEvent& event) {
                 if (state() != WAITINGFORACCEPT)
                     return false;
+                const auto& theirMac = event.messageAuthenticationCode();
+                for (const auto& mac : SupportedMacs) {
+                    if (mac == theirMac) {
+                        m_commonMacCodes.push_back(theirMac);
+                    }
+                }
+                if (m_commonMacCodes.isEmpty()) {
+                    cancelVerification(UNKNOWN_METHOD);
+                    return false;
+                }
                 m_commitment = event.commitment();
                 sendKey();
                 setState(WAITINGFORKEY);
