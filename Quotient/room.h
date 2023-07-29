@@ -809,6 +809,8 @@ public:
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
 
+    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index);
+
 public Q_SLOTS:
     /** Check whether the room should be upgraded */
     void checkVersion();

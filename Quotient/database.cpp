@@ -273,6 +273,9 @@ UnorderedMap<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSessions(
 void Database::saveMegolmSession(const QString& roomId,
                                  const QOlmInboundGroupSession& session)
 {
+    auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
+    deleteQuery.bindValue(":roomId"_ls, roomId);
+    deleteQuery.bindValue(":sessionId"_ls, session.sessionId());
     auto query = prepareQuery(
         QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId);"));
     query.bindValue(":roomId"_ls, roomId);
@@ -281,6 +284,7 @@ void Database::saveMegolmSession(const QString& roomId,
     query.bindValue(":senderId"_ls, session.senderId());
     query.bindValue(":olmSessionId"_ls, session.olmSessionId());
     transaction();
+    execute(deleteQuery);
     execute(query);
     commit();
 }
