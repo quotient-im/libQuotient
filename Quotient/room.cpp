@@ -404,7 +404,7 @@ public:
             return {};
         }
         auto& senderSession = groupSessionIt->second;
-        if (!senderSession.senderId().isEmpty() && senderSession.senderId() != senderId) {
+        if (senderSession.senderId() != "BACKUP"_ls && senderSession.senderId() != senderId) {
             qCWarning(E2EE) << "Sender from event does not match sender from session";
             return {};
         }
