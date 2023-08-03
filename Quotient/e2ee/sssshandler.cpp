@@ -91,9 +91,9 @@ void SSSSHandler::unlockSSSSFromPassword(const QString& password)
     }
 
     auto job = m_connection->callApi<GetRoomKeysVersionJob>();
-    connect(job, &BaseJob::finished, this, [=](){
+    connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey](){
         auto keysJob = m_connection->callApi<GetRoomKeysJob>(job->jsonData()["version"_ls].toString());
-        connect(keysJob, &BaseJob::finished, this, [=](){
+        connect(keysJob, &BaseJob::finished, this, [this, keysJob, megolmDecryptionKey](){
             const auto &rooms = keysJob->jsonData()["rooms"_ls].toObject();
             for (const auto& roomId : rooms.keys()) {
                 if (!m_connection->room(roomId)) {
