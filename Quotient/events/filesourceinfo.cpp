@@ -14,7 +14,7 @@
 #    include <Quotient/e2ee/e2ee_common.h>
 
 #    include <QtCore/QCryptographicHash>
-
+#    include "e2ee/cryptoutils.h"
 #    include <openssl/evp.h>
 #endif
 
@@ -33,24 +33,8 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
     auto _key = metadata.key.k;
     const auto keyBytes = QByteArray::fromBase64(
         _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
-    int length = -1;
-    auto* ctx = EVP_CIPHER_CTX_new();
-    QByteArray plaintext(ciphertext.size() + EVP_MAX_BLOCK_LENGTH - 1, '\0');
-    EVP_DecryptInit_ex(
-        ctx, EVP_aes_256_ctr(), nullptr,
-        reinterpret_cast<const unsigned char*>(keyBytes.data()),
-        reinterpret_cast<const unsigned char*>(
-            QByteArray::fromBase64(metadata.iv.toLatin1()).data()));
-    EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(plaintext.data()),
-                      &length,
-                      reinterpret_cast<const unsigned char*>(ciphertext.data()),
-                      static_cast<int>(ciphertext.size()));
-    EVP_DecryptFinal_ex(ctx,
-                        reinterpret_cast<unsigned char*>(plaintext.data())
-                            + length,
-                        &length);
-    EVP_CIPHER_CTX_free(ctx);
-    return plaintext.left(ciphertext.size());
+
+    return aesCtr256Decrypt(ciphertext, keyBytes, QByteArray::fromBase64(metadata.iv.toLatin1()));
 }
 
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
@@ -63,21 +47,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const JWK key = {
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
     };
-
-    int length = -1;
-    auto* ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, k.data(), iv.data());
-    const auto blockSize = EVP_CIPHER_CTX_block_size(ctx);
-    QByteArray cipherText(plainText.size() + blockSize - 1, '\0');
-    EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(cipherText.data()),
-                      &length,
-                      reinterpret_cast<const unsigned char*>(plainText.data()),
-                      static_cast<int>(plainText.size()));
-    EVP_EncryptFinal_ex(ctx,
-                        reinterpret_cast<unsigned char*>(cipherText.data())
-                            + length,
-                        &length);
-    EVP_CIPHER_CTX_free(ctx);
+    auto cipherText = aesCtr256Encrypt(plainText, k.viewAsByteArray(), iv.viewAsByteArray());
 
     auto hash = QCryptographicHash::hash(cipherText, QCryptographicHash::Sha256)
                     .toBase64(QByteArray::OmitTrailingEquals);
