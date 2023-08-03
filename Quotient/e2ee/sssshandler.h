@@ -6,19 +6,18 @@
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
 
-#include "connection.h"
+#include "../connection.h"
 
-class SSSSHandler : public QObject
+class QUOTIENT_API SSSSHandler : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(Quotient::Connection* connection READ connection WRITE setConnection NOTIFY connectionChanged)
 
 public:
-
-    SSSSHandler(QObject* parent = nullptr);
+    explicit SSSSHandler(QObject* parent = nullptr);
 
     //! \brief Unlock the secret backup from the given password
-    void unlockSSSSFromPassword(const QString& password);
+    Q_INVOKABLE void unlockSSSSFromPassword(const QString& password);
 
     //! \brief Decrypt the key with this name from the account data
     QByteArray decryptKey(const QString& name, const QByteArray& decryptionKey) const;
