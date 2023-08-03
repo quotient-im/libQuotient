@@ -33,6 +33,7 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
+#include "e2ee/cryptoutils.h"
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "connectionencryptiondata_p.h"
@@ -57,14 +58,7 @@
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
 
-#include <openssl/aes.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/kdf.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
-
-#include <olm/pk.h>
+#include <variant>
 
 using namespace Quotient;
 
@@ -1901,76 +1895,6 @@ Connection* Connection::makeMockConnection(const QString& mxId,
     return c;
 }
 
-QByteArray pbkdf2HmacSha512(const QString & password, const QByteArray& salt, int iterations, int keyLength)
-{
-    QByteArray output(keyLength, u'\0');
-    PKCS5_PBKDF2_HMAC(password.toLocal8Bit().data(), password.size(), reinterpret_cast<const unsigned char *>(salt.data()), salt.size(), iterations, EVP_sha512(), keyLength, reinterpret_cast<unsigned char *>(output.data()));
-    return output;
-}
-
-QByteArray aesCtr256Encrypt(const QString& plaintext, const QByteArray& aes256Key, const QByteArray& iv)
-{
-    EVP_CIPHER_CTX *ctx = nullptr;
-    int length = 0;
-    int ciphertextLength = 0;
-
-    auto encrypted = QByteArray(plaintext.size() + AES_BLOCK_SIZE, u'\0');
-    RAND_bytes(reinterpret_cast<unsigned char*>(encrypted.data()), encrypted.size());
-    auto data = encrypted.data();
-    constexpr auto mask = static_cast<std::uint8_t>(~(1U << (63 / 8)));
-    data[15 - 63 % 8] &= mask;
-    if (ctx = EVP_CIPHER_CTX_new(); !ctx) {
-        return {};
-    }
-
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char*>(aes256Key.data()), reinterpret_cast<const unsigned char*>(iv.data()));
-
-    EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(encrypted.data()), &length, reinterpret_cast<const unsigned char *>(&plaintext.toLatin1().data()[0]), (int)plaintext.size());
-
-    ciphertextLength = length;
-    EVP_EncryptFinal_ex(ctx, reinterpret_cast<unsigned char*>(encrypted.data()) + length, &length);
-    ciphertextLength += length;
-    encrypted.resize(ciphertextLength);
-    EVP_CIPHER_CTX_free(ctx);
-    return encrypted;
-}
-
-struct HkdfKeys {
-    QByteArray aes;
-    QByteArray mac;
-};
-
-HkdfKeys hkdfSha256(const QByteArray& key, const QByteArray& salt, const QByteArray& info)
-{
-    QByteArray result(64, u'\0');
-    auto context = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
-
-    EVP_PKEY_derive_init(context);
-    EVP_PKEY_CTX_set_hkdf_md(context, EVP_sha256());
-    EVP_PKEY_CTX_set1_hkdf_salt(context, reinterpret_cast<const unsigned char *>(salt.data()), salt.size());
-    EVP_PKEY_CTX_set1_hkdf_key(context, reinterpret_cast<const unsigned char *>(key.data()), key.size());
-    EVP_PKEY_CTX_add1_hkdf_info(context, reinterpret_cast<const unsigned char *>(info.data()), info.size());
-    std::size_t outputLength = result.size();
-    EVP_PKEY_derive(context, reinterpret_cast<unsigned char *>(result.data()), &outputLength);
-    EVP_PKEY_CTX_free(context);
-
-    if (outputLength != 64) {
-        return {};
-    }
-
-    QByteArray macKey = result.mid(32);
-    result.resize(32);
-    return {std::move(result), std::move(macKey)};
-}
-
-QByteArray hmacSha256(const QByteArray& hmacKey, const QByteArray& data)
-{
-    uint32_t len = SHA256_DIGEST_LENGTH;
-    QByteArray output(SHA256_DIGEST_LENGTH, u'\0');
-    HMAC(EVP_sha256(), hmacKey.data(), hmacKey.size(), reinterpret_cast<const unsigned char *>(data.data()), data.size(), reinterpret_cast<unsigned char *>(output.data()), &len);
-    return output;
-}
-
 namespace Quotient {
 class QUOTIENT_API GetRoomKeysVersionJob : public BaseJob {
 public:
@@ -2001,48 +1925,21 @@ public:
 };
 } // namespace Quotient
 
-QByteArray curve25519AesSha2Decrypt(QByteArray base64_ciphertext, const QByteArray &privateKey, const QByteArray &ephemeral, const QByteArray &mac)
+QByteArray Connection::decryptKey(const QString& name, const QByteArray& decryptionKey) const
 {
-    auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
+    const auto defaultKey = accountData("m.secret_storage.default_key"_ls)->contentPart<QString>("key"_ls);
+    const auto& encrypted = accountData(name)->contentPart<QJsonObject>("encrypted"_ls)[defaultKey];
 
-    QByteArray publicKey(olm_pk_key_length(), u'\0');
-    olm_pk_key_from_private(context.get(), publicKey.data(), publicKey.size(), privateKey.data(), privateKey.size());
+    auto keys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), QByteArrayLiteral("m.megolm_backup.v1"));
 
-    QByteArray plaintext(olm_pk_max_plaintext_length(context.get(), base64_ciphertext.size()), u'\0');
-    std::size_t decrypted_size = olm_pk_decrypt(context.get(), ephemeral.data(), ephemeral.size(), mac.data(), mac.size(), base64_ciphertext.data(), base64_ciphertext.size(), plaintext.data(), plaintext.size());
-
-    if (decrypted_size == olm_error()) {
+    auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
+    if (QString::fromLatin1(hmacSha256(keys.mac, rawCipher).toBase64()) != encrypted["mac"_ls].toString()) {
+        qWarning() << "MAC mismatch for" << name;
         return {};
     }
-    plaintext.resize(decrypted_size);
-    return plaintext;
+    return QByteArray::fromBase64(aesCtr256Decrypt(rawCipher, keys.aes, QByteArray::fromBase64(encrypted["iv"_ls].toString().toLatin1())));
+
 }
-
-QByteArray aesCtr256Decrypt(const QByteArray& ciphertext, const QByteArray& aes256Key, const QByteArray& iv)
-{
-    auto context = EVP_CIPHER_CTX_new();
-    Q_ASSERT(context);
-
-    int length = 0;
-    int plaintextLength = 0;
-    QByteArray decrypted(ciphertext.size(), u'\0');
-
-    EVP_DecryptInit_ex(context, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char *>(aes256Key.data()), reinterpret_cast<const unsigned char *>(iv.data()));
-
-    EVP_DecryptUpdate(context,
-                        reinterpret_cast<unsigned char *>(decrypted.data()),
-                        &length,
-                        reinterpret_cast<const unsigned char *>(&ciphertext.data()[0]),
-                        (int)ciphertext.size());
-    plaintextLength = length;
-
-    EVP_DecryptFinal_ex(context, reinterpret_cast<unsigned char *>(decrypted.data()) + length, &length);
-    plaintextLength += length;
-    decrypted.resize(plaintextLength);
-    EVP_CIPHER_CTX_free(context);
-    return decrypted;
-}
-
 
 void Connection::unlockSSSSFromPassword(const QString& password)
 {
@@ -2057,32 +1954,21 @@ void Connection::unlockSSSSFromPassword(const QString& password)
         qCWarning(E2EE) << "Unsupported SSSS passphrase algorithm" << passphraseJson["algorithm"_ls].toString() << " - aborting.";
         return;
     }
-    const auto iterations = passphraseJson["iterations"_ls].toInt();
-    const auto &salt = passphraseJson["salt"_ls].toString();
-    const auto &iv = keyEvent->contentPart<QString>("iv"_ls);
-    const auto &mac = keyEvent->contentPart<QString>("mac"_ls);
 
-    const auto &decryptionKey = pbkdf2HmacSha512(password, salt.toLatin1(), iterations, 32);
-
-    const auto &testKeys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), QByteArray());
-    const auto &encrypted = aesCtr256Encrypt(QString(32, u'\0'), testKeys.aes, QByteArray::fromBase64(iv.toLatin1()));
-    if (hmacSha256(testKeys.mac, encrypted) != QByteArray::fromBase64(mac.toLatin1())) {
+    const auto &decryptionKey = pbkdf2HmacSha512(password, passphraseJson["salt"_ls].toString().toLatin1(), passphraseJson["iterations"_ls].toInt(), 32);
+    const auto &testKeys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), {});
+    const auto &encrypted = aesCtr256Encrypt(QByteArray(32, u'\0'), testKeys.aes, QByteArray::fromBase64(keyEvent->contentPart<QString>("iv"_ls).toLatin1()));
+    if (hmacSha256(testKeys.mac, encrypted) != QByteArray::fromBase64(keyEvent->contentPart<QString>("mac"_ls).toLatin1())) {
         qCWarning(E2EE) << "MAC mismatch for secret storage key";
         emit keyBackupPasswordWrong();
         return;
     }
     emit keyBackupPasswordCorrect();
 
-    const auto& megolmBackupEncrypted = accountData("m.megolm_backup.v1"_ls)->contentPart<QJsonObject>("encrypted"_ls)[defaultKey];
-
-    auto keys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), QByteArrayLiteral("m.megolm_backup.v1"));
-
-    auto rawCipher = QByteArray::fromBase64(megolmBackupEncrypted["ciphertext"_ls].toString().toLatin1());
-    if (QString::fromLatin1(hmacSha256(keys.mac, rawCipher).toBase64()) != megolmBackupEncrypted["mac"_ls].toString()) {
-        qWarning() << "MAC mismatch for m.megolm_backup.v1";
+    auto megolmDecryptionKey = decryptKey("m.megolm_backup.v1"_ls, decryptionKey);
+    if (megolmDecryptionKey.isEmpty()) {
         return;
     }
-    const auto& megolmDecryptionKey = QByteArray::fromBase64(aesCtr256Decrypt(rawCipher, keys.aes, QByteArray::fromBase64(megolmBackupEncrypted["iv"_ls].toString().toLatin1())));
 
     auto job = callApi<GetRoomKeysVersionJob>();
     connect(job, &BaseJob::finished, this, [=](){
