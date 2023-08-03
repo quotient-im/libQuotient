@@ -415,13 +415,6 @@ public:
     //! \sa encryptionEnabled
     void enableEncryption(bool enable);
 
-    //! \brief Unlock the secret backup from the given password
-    void unlockSSSSFromPassword(const QString& password);
-
-    //! \brief Decrypt the key with this name from the account data
-    QByteArray decryptKey(const QString& name, const QByteArray& decryptionKey) const;
-
-
     //! \brief Load room state from a previously saved file
     //!
     //! Call this before first sync.
@@ -910,8 +903,6 @@ Q_SIGNALS:
         Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
     bool finishedQueryingKeys();
-    void keyBackupPasswordCorrect();
-    void keyBackupPasswordWrong();
 #endif
 
 protected:
