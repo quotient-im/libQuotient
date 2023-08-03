@@ -82,23 +82,6 @@ QByteArray Quotient::hmacSha256(const QByteArray& hmacKey, const QByteArray& dat
     return output;
 }
 
-QByteArray Quotient::curve25519AesSha2Decrypt(QByteArray base64_ciphertext, const QByteArray &privateKey, const QByteArray &ephemeral, const QByteArray &mac)
-{
-    auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
-
-    QByteArray publicKey(olm_pk_key_length(), u'\0');
-    olm_pk_key_from_private(context.get(), publicKey.data(), publicKey.size(), privateKey.data(), privateKey.size());
-
-    QByteArray plaintext(olm_pk_max_plaintext_length(context.get(), base64_ciphertext.size()), u'\0');
-    std::size_t decrypted_size = olm_pk_decrypt(context.get(), ephemeral.data(), ephemeral.size(), mac.data(), mac.size(), base64_ciphertext.data(), base64_ciphertext.size(), plaintext.data(), plaintext.size());
-
-    if (decrypted_size == olm_error()) {
-        return {};
-    }
-    plaintext.resize(decrypted_size);
-    return plaintext;
-}
-
 QByteArray Quotient::aesCtr256Decrypt(const QByteArray& ciphertext, const QByteArray& aes256Key, const QByteArray& iv)
 {
     auto context = EVP_CIPHER_CTX_new();
@@ -110,16 +93,52 @@ QByteArray Quotient::aesCtr256Decrypt(const QByteArray& ciphertext, const QByteA
 
     EVP_DecryptInit_ex(context, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char *>(aes256Key.data()), reinterpret_cast<const unsigned char *>(iv.data()));
 
-    EVP_DecryptUpdate(context,
-                        reinterpret_cast<unsigned char *>(decrypted.data()),
-                        &length,
-                        reinterpret_cast<const unsigned char *>(&ciphertext.data()[0]),
-                        (int)ciphertext.size());
+    EVP_DecryptUpdate(context, reinterpret_cast<unsigned char*>(decrypted.data()), &length, reinterpret_cast<const unsigned char*>(&ciphertext.data()[0]), (int) ciphertext.size());
     plaintextLength = length;
-
-    EVP_DecryptFinal_ex(context, reinterpret_cast<unsigned char *>(decrypted.data()) + length, &length);
+    EVP_DecryptFinal_ex(context, reinterpret_cast<unsigned char*>(decrypted.data()) + length, &length);
     plaintextLength += length;
     decrypted.resize(plaintextLength);
     EVP_CIPHER_CTX_free(context);
     return decrypted;
+}
+
+QByteArray Quotient::curve25519AesSha2Decrypt(QByteArray ciphertext, const QByteArray &privateKey, const QByteArray &ephemeral, const QByteArray &mac)
+{
+    auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
+
+    QByteArray publicKey(olm_pk_key_length(), u'\0');
+    olm_pk_key_from_private(context.get(), publicKey.data(), publicKey.size(), privateKey.data(), privateKey.size());
+
+    QByteArray plaintext(olm_pk_max_plaintext_length(context.get(), ciphertext.size()), u'\0');
+    auto result = olm_pk_decrypt(context.get(), ephemeral.data(), ephemeral.size(), mac.data(), mac.size(), ciphertext.data(), ciphertext.size(), plaintext.data(), plaintext.size());
+
+    if (result == olm_error()) {
+        return {};
+    }
+    plaintext.resize(result);
+    return plaintext;
+}
+
+Curve25519Encrypted Quotient::curve25519AesSha2Encrypt(const QByteArray& plaintext, const QByteArray& publicKey)
+{
+    auto context = makeCStruct(olm_pk_encryption, olm_pk_encryption_size, olm_clear_pk_encryption);
+
+    olm_pk_encryption_set_recipient_key(context.get(), publicKey.data(), publicKey.size());
+
+    QByteArray ephemeral(olm_pk_key_length(), 0);
+    QByteArray mac(olm_pk_mac_length(context.get()), 0);
+    QByteArray ciphertext(olm_pk_ciphertext_length(context.get(), plaintext.size()), 0);
+    QByteArray randomBuffer(olm_pk_encrypt_random_length(context.get()), 0);
+    RAND_bytes(reinterpret_cast<unsigned char*>(randomBuffer.data()), randomBuffer.size());
+
+    auto result = olm_pk_encrypt(context.get(), plaintext.data(), plaintext.size(), ciphertext.data(), ciphertext.size(), mac.data(), mac.size(), ephemeral.data(), ephemeral.size(), randomBuffer.data(), randomBuffer.size());
+
+    if (result == olm_error()) {
+        return {};
+    }
+    return Curve25519Encrypted {
+        .ciphertext = ciphertext,
+        .mac = mac,
+        .ephemeral = ephemeral,
+    };
 }

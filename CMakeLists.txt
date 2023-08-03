@@ -202,6 +202,7 @@ if (${PROJECT_NAME}_ENABLE_E2EE)
         Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
         Quotient/e2ee/qolmmessage.h Quotient/e2ee/qolmmessage.cpp
         Quotient/e2ee/cryptoutils.h Quotient/e2ee/cryptoutils.cpp
+        Quotient/e2ee/sssshandler.h Quotient/e2ee/sssshandler.cpp
         Quotient/events/keyverificationevent.h
     )
 endif()
