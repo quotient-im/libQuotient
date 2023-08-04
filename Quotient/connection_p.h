@@ -26,6 +26,14 @@ namespace Quotient {
 
 class EncryptedEvent;
 
+class AuthIssuerJob : public BaseJob
+{
+public:
+    explicit AuthIssuerJob()
+        : BaseJob(HttpVerb::Get, QStringLiteral("AuthIssuerJob"), "/_matrix/client/unstable/org.matrix.msc2965/auth_issuer", false)
+    {}
+};
+
 class Q_DECL_HIDDEN Quotient::Connection::Private {
 public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)
@@ -59,6 +67,7 @@ public:
     GetCapabilitiesJob::Capabilities capabilities;
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
+    QString authIssuer;
 
 #ifdef Quotient_E2EE_ENABLED
     static inline bool encryptionDefault = false;
@@ -69,7 +78,7 @@ public:
 #endif
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
-    QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;
+    QPointer<AuthIssuerJob> loginFlowsJob = nullptr;
 
     SyncJob* syncJob = nullptr;
     QPointer<LogoutJob> logoutJob = nullptr;

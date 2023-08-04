@@ -525,6 +525,8 @@ public:
     Q_INVOKABLE bool roomSucceeds(const QString& maybePredecessorId,
                                   const QString& maybeSuccessorId) const;
 
+    QString authIssuer() const;
+
 #ifdef Quotient_E2EE_ENABLED
     //! Set the E2EE default state for any Connection created further
     static void setEncryptionDefault(bool useByDefault);

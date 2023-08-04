@@ -11,12 +11,14 @@
 #include "connection_p.h"
 #include "connectiondata.h"
 #include "qt_connection_util.h"
+#include "quotient_common.h"
 #include "room.h"
 #include "settings.h"
 #include "user.h"
 
 // NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
 #include "moc_connection.cpp"
+#include "networkaccessmanager.h"
 
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
@@ -33,6 +35,11 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
+
+#include <QtNetworkAuth/QOAuthHttpServerReplyHandler>
+#include <QAuthenticator>
+
+#include <QOAuth2AuthorizationCodeFlow>
 #include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
@@ -57,6 +64,8 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
+
+#include <QDesktopServices>
 
 using namespace Quotient;
 
@@ -119,6 +128,64 @@ void Connection::resolveServer(const QString& mxid)
         d->data->setBaseUrl(oldBaseUrl);
         if (d->resolverJob->error() == BaseJob::Abandoned)
             return;
+
+        auto authData = d->resolverJob->data().additionalProperties["org.matrix.msc2965.authentication"_ls];
+        auto issuer = authData["issuer"_ls].toString();
+        auto account = authData["account"_ls].toString();
+
+        static auto nam = new NetworkAccessManager();
+        QNetworkRequest request(QUrl(issuer + ".well-known/openid-configuration"_ls));
+        auto reply = nam->get(request);
+        connect(reply, &QNetworkReply::finished, this, [=](){
+            auto json = QJsonDocument::fromJson(reply->readAll()).object();
+            auto registration = json["registration_endpoint"_ls].toString();
+            auto handler = new QOAuthHttpServerReplyHandler(1337, this);
+
+            QJsonObject clientInfo;
+            clientInfo["client_name"_ls] = "NeoChat"_ls;
+            clientInfo["client_uri"_ls] = "https://apps.kde.org/neochat/"_ls;
+            clientInfo["logo_uri"_ls] = "https://apps.kde.org/app-icons/org.kde.neochat.svg"_ls;
+            clientInfo["contacts"_ls] = QJsonArray {"tobias.fella@kde.org"_ls};
+            clientInfo["tos_uri"_ls] = "https://apps.kde.org/neochat/"_ls;
+            clientInfo["policy_uri"_ls] = "https://foo.apps.kde.org/neochat/"_ls;
+            clientInfo["redirect_uris"_ls] = QJsonArray {"http://127.0.0.1:1337/"_ls};
+            clientInfo["application_type"_ls] = "native"_ls;
+
+            QNetworkRequest request((QUrl(registration)));
+            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_ls);
+            auto response = nam->post(request, QJsonDocument(clientInfo).toJson());
+            connect(response, &QNetworkReply::finished, this, [=](){
+                auto registrationJson = QJsonDocument::fromJson(response->readAll()).object();
+                qWarning() << registrationJson;
+                auto oauth = new QOAuth2AuthorizationCodeFlow();
+                oauth->setNetworkAccessManager(new QNetworkAccessManager(this));
+                oauth->setClientIdentifier(registrationJson["client_id"_ls].toString());
+                oauth->setReplyHandler(handler);
+                oauth->setAuthorizationUrl(QUrl(json["authorization_endpoint"_ls].toString()));
+                oauth->setAccessTokenUrl(QUrl(json["token_endpoint"_ls].toString()));
+                oauth->setScope("openid urn:matrix:org.matrix.msc2967.client:api:* urn:matrix:org.matrix.msc2967.client:device:SOMERANDOMDEVICEID"_ls);
+                qWarning() << "NAM" << oauth->networkAccessManager();
+                connect(oauth->networkAccessManager(), &QNetworkAccessManager::authenticationRequired, this, [=](){
+                    qWarning() << "AUTHENTICATIONREQUIRED";
+                });
+
+                connect(oauth, &QOAuth2AuthorizationCodeFlow::statusChanged, [=](QAbstractOAuth2::Status status) {
+                    qWarning() << oauth->token();
+                    auto url = oauth->createAuthenticatedUrl(QUrl("https://kde.org"_ls));
+
+                    if (status == QAbstractOAuth::Status::Granted)
+                        qWarning( )<< "AUTHED";
+                });
+                oauth->setModifyParametersFunction([&](auto stage, auto parameters) {
+                    if (stage == QAbstractOAuth::Stage::RequestingAuthorization)
+                        parameters->insert("duration"_ls, "permanent"_ls);
+                });
+                connect(oauth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, this, [=](QUrl url){
+                    QDesktopServices::openUrl(url);
+                });
+                oauth->grant();
+            });
+        });
 
         if (d->resolverJob->error() != BaseJob::NotFound) {
             if (!d->resolverJob->status().good()) {
@@ -1462,10 +1529,12 @@ void Connection::setHomeserver(const QUrl& url)
     }
 
     // Whenever a homeserver is updated, retrieve available login flows from it
-    d->loginFlowsJob = callApi<GetLoginFlowsJob>(BackgroundRequest);
+    d->loginFlowsJob = callApi<AuthIssuerJob>(BackgroundRequest);
     connect(d->loginFlowsJob, &BaseJob::result, this, [this] {
-        if (d->loginFlowsJob->status().good())
-            d->loginFlows = d->loginFlowsJob->flows();
+        if (d->loginFlowsJob->status().good()) {
+            // d->loginFlows = d->loginFlowsJob->flows();
+            d->authIssuer = d->loginFlowsJob->jsonData()["issuer"_ls].toString();
+        }
         else
             d->loginFlows.clear();
         emit loginFlowsChanged();
@@ -1891,4 +1960,9 @@ Connection* Connection::makeMockConnection(const QString& mxId,
     c->enableEncryption(enableEncryption);
     c->d->completeSetup(mxId, true);
     return c;
+}
+
+QString Connection::authIssuer() const
+{
+    return d->authIssuer;
 }

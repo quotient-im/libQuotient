@@ -92,7 +92,7 @@ else()
     set(QtExtraModules "Multimedia") # See #483
 endif()
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
-find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
+find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test NetworkAuth ${QtExtraModules})
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
 find_package(${Qt}Keychain REQUIRED)
@@ -326,7 +326,7 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
+target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain Qt6::NetworkAuth)
 if (Qt STREQUAL Qt5) # See #483
     target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE ${Qt}::Multimedia)
 endif()
