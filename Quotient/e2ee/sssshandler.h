@@ -22,6 +22,9 @@ public:
     //! \brief Unlock the secret backup by requesting the password from other devices
     Q_INVOKABLE void unlockSSSSFromCrossSigning();
 
+    //! \brief Unclock the secret backup fromt the given security key
+    Q_INVOKABLE void unlockSSSSFromSecurityKey(const QString& securityKey);
+
     Quotient::Connection* connection() const;
     void setConnection(Quotient::Connection* connection);
 
@@ -36,4 +39,5 @@ private:
     QByteArray decryptKey(const QString& name, const QByteArray& decryptionKey) const;
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
+    void calculateDefaultKey(const QByteArray& secret, bool passphrase);
 };

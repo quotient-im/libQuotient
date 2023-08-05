@@ -25,7 +25,7 @@ struct QUOTIENT_API Curve25519Encrypted {
 /**
  * @brief Generate a key out of the given password
  */
-QUOTIENT_API QByteArray pbkdf2HmacSha512(const QString& password, const QByteArray& salt, int iterations, int keyLength);
+QUOTIENT_API QByteArray pbkdf2HmacSha512(const QByteArray& password, const QByteArray& salt, int iterations, int keyLength);
 
 /**
  * @brief Derives a key from the input data using HKDF-SHA256

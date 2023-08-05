@@ -17,10 +17,10 @@
 
 using namespace Quotient;
 
-QByteArray Quotient::pbkdf2HmacSha512(const QString & password, const QByteArray& salt, int iterations, int keyLength)
+QByteArray Quotient::pbkdf2HmacSha512(const QByteArray& password, const QByteArray& salt, int iterations, int keyLength)
 {
     QByteArray output(keyLength, u'\0');
-    PKCS5_PBKDF2_HMAC(password.toLocal8Bit().data(), password.size(), reinterpret_cast<const unsigned char *>(salt.data()), salt.size(), iterations, EVP_sha512(), keyLength, reinterpret_cast<unsigned char *>(output.data()));
+    PKCS5_PBKDF2_HMAC(password.data(), password.size(), reinterpret_cast<const unsigned char *>(salt.data()), salt.size(), iterations, EVP_sha512(), keyLength, reinterpret_cast<unsigned char *>(output.data()));
     return output;
 }
 
