@@ -57,7 +57,9 @@ bool EventStats::updateOnMarkerMove(const Room* room, const marker_t& oldMarker,
         return false;
 
     // Double-check consistency between the old marker and the old stats
-    Q_ASSERT(isValidFor(room, oldMarker));
+    if (!isValidFor(room, oldMarker)) {
+        qCWarning(EVENTS) << "oldMarker is invalid in room" << room->displayName();
+    }
     Q_ASSERT(oldMarker > newMarker);
 
     // A bit of optimisation: only calculate the difference if the marker moved
