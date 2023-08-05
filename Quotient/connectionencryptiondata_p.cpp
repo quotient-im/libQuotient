@@ -370,7 +370,12 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
                     << "is not found at the connection" << q->objectName();
             }
         },
-        [](const Event& evt) {
+        [this](const Event& evt) {
+            //TODO create an event subclass for this
+            if (evt.matrixType() == "m.secret.send"_ls) {
+                emit q->secretReceived(evt.contentPart<QString>("request_id"_ls), evt.contentPart<QString>("secret"_ls));
+                return;
+            }
             qCWarning(E2EE) << "Skipping encrypted to_device event, type"
                             << evt.matrixType();
         });

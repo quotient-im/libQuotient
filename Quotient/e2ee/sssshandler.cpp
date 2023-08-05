@@ -6,6 +6,7 @@
 #include "e2ee/cryptoutils.h"
 #include "room.h"
 #include "../logging_categories_p.h"
+#include "../qt_connection_util.h"
 
 using namespace Quotient;
 
@@ -90,6 +91,49 @@ void SSSSHandler::unlockSSSSFromPassword(const QString& password)
         return;
     }
 
+    loadMegolmBackup(megolmDecryptionKey);
+}
+
+void SSSSHandler::unlockSSSSFromCrossSigning()
+{
+    Q_ASSERT(m_connection);
+    Connection::UsersToDevicesToContent content;
+    const auto& requestId = m_connection->generateTxnId();
+    QJsonObject eventContent;
+    eventContent["action"_ls] = "request"_ls;
+    eventContent["name"_ls] = "m.megolm_backup.v1"_ls;
+    eventContent["request_id"_ls] = requestId;
+    eventContent["requesting_device_id"_ls] = m_connection->deviceId();
+    for (const auto& deviceId : m_connection->devicesForUser(m_connection->userId())) {
+        content[m_connection->userId()][deviceId] = eventContent;
+    }
+    m_connection->sendToDevices("m.secret.request"_ls, content);
+    connectUntil(m_connection.data(), &Connection::secretReceived, this, [this, requestId](const QString& receivedRequestId, const QString& secret) {
+        if (requestId != receivedRequestId) {
+            return false;
+        }
+        const auto& megolmDecryptionKey = QByteArray::fromBase64(secret.toLatin1());
+        loadMegolmBackup(megolmDecryptionKey);
+        return true;
+    });
+}
+
+Connection* SSSSHandler::connection() const
+{
+    return m_connection;
+}
+
+void SSSSHandler::setConnection(Connection* connection)
+{
+    if (connection == m_connection) {
+        return;
+    }
+    m_connection = connection;
+    Q_EMIT connectionChanged();
+}
+
+void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
+{
     auto job = m_connection->callApi<GetRoomKeysVersionJob>();
     connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey](){
         auto keysJob = m_connection->callApi<GetRoomKeysJob>(job->jsonData()["version"_ls].toString());
@@ -109,20 +153,6 @@ void SSSSHandler::unlockSSSSFromPassword(const QString& password)
             }
         });
     });
-}
-
-Connection* SSSSHandler::connection() const
-{
-    return m_connection;
-}
-
-void SSSSHandler::setConnection(Connection* connection)
-{
-    if (connection == m_connection) {
-        return;
-    }
-    m_connection = connection;
-    Q_EMIT connectionChanged();
 }
 
 

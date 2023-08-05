@@ -903,6 +903,7 @@ Q_SIGNALS:
         Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
     bool finishedQueryingKeys();
+    void secretReceived(const QString& requestId, const QString& secret);
 #endif
 
 protected:
