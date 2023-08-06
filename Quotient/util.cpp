@@ -49,12 +49,10 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
     htmlEscapedText.replace(EmailAddressRegExp,
-                            QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
-    htmlEscapedText.replace(FullUrlRegExp,
-                            QStringLiteral(R"(<a href="\1">\1</a>)"));
-    htmlEscapedText.replace(
-        MxIdRegExp,
-        QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
+                            R"(<a href='mailto:\2'>\1\2</a>)"_ls);
+    htmlEscapedText.replace(FullUrlRegExp, R"(<a href='\1'>\1</a>)"_ls);
+    htmlEscapedText.replace(MxIdRegExp,
+                            R"(\1<a href='https://matrix.to/#/\2'>\2</a>)"_ls);
 }
 
 QString Quotient::sanitized(const QString& plainText)
