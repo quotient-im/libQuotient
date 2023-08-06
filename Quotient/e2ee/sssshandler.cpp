@@ -52,7 +52,13 @@ DEFINE_SIMPLE_EVENT(SecretStorageDefaultKeyEvent, Event, "m.secret_storage.defau
 QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryptionKey) const
 {
     Q_ASSERT(m_connection);
+    if (!m_connection->hasAccountData("m.secret_storage.default_key"_ls)) {
+        return {};
+    }
     const auto defaultKey = m_connection->accountData<SecretStorageDefaultKeyEvent>()->key();
+    if (!m_connection->hasAccountData(name)) {
+        return {};
+    }
     const auto& encrypted = m_connection->accountData(name)->contentPart<QJsonObject>("encrypted"_ls)[defaultKey];
 
     auto keys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), name.toLatin1());
@@ -161,7 +167,13 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
 void SSSSHandler::calculateDefaultKey(const QByteArray& secret, bool passphrase)
 {
     auto key = secret;
-    const auto defaultKey = m_connection->accountData("m.secret_storage.default_key"_ls)->contentPart<QString>("key"_ls);
+    if (!m_connection->hasAccountData("m.secret_storage.default_key"_ls)) {
+        return;
+    }
+    const auto defaultKey = m_connection->accountData<SecretStorageDefaultKeyEvent>()->key();
+    if (!m_connection->hasAccountData("m.secret_storage.key."_ls + defaultKey)) {
+        return;
+    }
     const auto &keyEvent = m_connection->accountData("m.secret_storage.key."_ls + defaultKey);
     if (keyEvent->contentPart<QString>("algorithm"_ls) != "m.secret_storage.v1.aes-hmac-sha2"_ls) {
         qCWarning(E2EE) << "Unsupported SSSS key algorithm" << keyEvent->contentPart<QString>("algorithm"_ls) << " - aborting.";
