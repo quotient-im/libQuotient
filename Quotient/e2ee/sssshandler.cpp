@@ -9,6 +9,7 @@
 #include "../logging_categories_p.h"
 #include "../qt_connection_util.h"
 #include "database.h"
+#include "../events/event.h"
 
 using namespace Quotient;
 
@@ -46,13 +47,15 @@ public:
 };
 } // namespace Quotient
 
+DEFINE_SIMPLE_EVENT(SecretStorageDefaultKeyEvent, Event, "m.secret_storage.default_key", QString, key, "key");
+
 QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryptionKey) const
 {
     Q_ASSERT(m_connection);
-    const auto defaultKey = m_connection->accountData("m.secret_storage.default_key"_ls)->contentPart<QString>("key"_ls);
+    const auto defaultKey = m_connection->accountData<SecretStorageDefaultKeyEvent>()->key();
     const auto& encrypted = m_connection->accountData(name)->contentPart<QJsonObject>("encrypted"_ls)[defaultKey];
 
-    auto keys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), QByteArrayLiteral("m.megolm_backup.v1"));
+    auto keys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), name.toLatin1());
 
     auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
     if (QString::fromLatin1(hmacSha256(keys.mac, rawCipher).toBase64()) != encrypted["mac"_ls].toString()) {
