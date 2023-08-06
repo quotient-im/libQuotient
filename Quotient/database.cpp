@@ -10,6 +10,7 @@
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmoutboundsession.h"
 #include "e2ee/qolmsession.h"
+#include "e2ee/cryptoutils.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
@@ -41,7 +42,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 1: migrateTo2(); [[fallthrough]];
     case 2: migrateTo3(); [[fallthrough]];
     case 3: migrateTo4(); [[fallthrough]];
-    case 4: migrateTo5();
+    case 4: migrateTo5(); [[fallthrough]];
+    case 5: migrateTo6();
     }
 }
 
@@ -157,6 +159,16 @@ void Database::migrateTo5()
 
     execute(QStringLiteral("ALTER TABLE tracked_devices ADD verified BOOL;"));
     execute(QStringLiteral("PRAGMA user_version = 5"));
+    commit();
+}
+
+void Database::migrateTo6()
+{
+    qCDebug(DATABASE) << "Migrating database to version 6";
+    transaction();
+
+    execute(QStringLiteral("CREATE TABLE encrypted (name TEXT, cipher TEXT);"));
+    execute(QStringLiteral("PRAGMA user_version = 6"));
     commit();
 }
 
@@ -462,4 +474,42 @@ bool Database::isSessionVerified(const QString& edKey)
     query.bindValue(":edKey"_ls, edKey);
     execute(query);
     return query.next() && query.value("verified"_ls).toBool();
+}
+
+QString Database::edKeyForKeyId(const QString& userId, const QString& edKeyId)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT edKey FROM tracked_devices WHERE matrixId=:userId and edKeyId=:edKeyId;"));
+    query.bindValue(":matrixId"_ls, userId);
+    query.bindValue(":edKeyId"_ls, edKeyId);
+    execute(query);
+    if (!query.next()) {
+        return {};
+    }
+    return query.value("edKey"_ls).toString();
+}
+
+void Database::storeEncrypted(const QString& name, const QByteArray& key)
+{
+    auto cipher = aesCtr256Encrypt(key, m_picklingKey.viewAsByteArray().left(32), QByteArray(32, 0)).toBase64();
+    auto query = prepareQuery(QStringLiteral("INSERT INTO encrypted(name, cipher) VALUES(:name, :cipher);"));
+    auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM encrypted WHERE name=:name;"));
+    deleteQuery.bindValue(":name"_ls, name);
+    query.bindValue(":name"_ls, name);
+    query.bindValue(":cipher"_ls, cipher);
+    transaction();
+    execute(deleteQuery);
+    execute(query);
+    commit();
+}
+
+QByteArray Database::loadEncrypted(const QString& name)
+{
+    auto query = prepareQuery("SELECT cipher FROM encrypted WHERE name=:name;"_ls);
+    query.bindValue(":name"_ls, name);
+    execute(query);
+    if (!query.next()) {
+        return {};
+    }
+    auto cipher = QByteArray::fromBase64(query.value("cipher"_ls).toString().toLatin1());
+    return aesCtr256Decrypt(cipher, m_picklingKey.viewAsByteArray().left(32), QByteArray(32, 0));
 }

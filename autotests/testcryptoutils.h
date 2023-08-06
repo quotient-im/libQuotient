@@ -14,5 +14,5 @@ private Q_SLOTS:
     void pbkdfGenerateKey();
     void hmac();
     void curve25519AesEncryptDecrypt();
-
+    void decodeBase58();
 };

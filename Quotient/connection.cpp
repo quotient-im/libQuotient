@@ -1854,6 +1854,9 @@ bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
         return false;
     }
     auto olmSessionId = query.value("olmSessionId"_ls).toString();
+    if (olmSessionId == "BACKUP_VERIFIED"_ls) {
+        return true;
+    }
     query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_ls);
     query.bindValue(":sessionId"_ls, olmSessionId.toLatin1());
     database()->execute(query);

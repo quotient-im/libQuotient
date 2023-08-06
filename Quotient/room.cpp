@@ -3591,7 +3591,11 @@ void Room::addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteAr
         return;
     }
     d->groupSessions[sessionId] = QOlmInboundGroupSession::importSession(sessionKey).value();
-    d->groupSessions[sessionId].setOlmSessionId(QByteArrayLiteral("BACKUP"));
+    if (d->connection->isVerifiedSession(sessionId)) {
+        d->groupSessions[sessionId].setOlmSessionId(QByteArrayLiteral("BACKUP_VERIFIED"));
+    } else {
+        d->groupSessions[sessionId].setOlmSessionId(QByteArrayLiteral("BACKUP"));
+    }
     d->groupSessions[sessionId].setSenderId("BACKUP"_ls);
     d->connection->saveMegolmSession(this, d->groupSessions[sessionId]);
 }

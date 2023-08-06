@@ -62,4 +62,6 @@ QUOTIENT_API QByteArray aesCtr256Encrypt(const QByteArray& plaintext, const QByt
  */
 QUOTIENT_API QByteArray aesCtr256Decrypt(const QByteArray& ciphertext, const QByteArray& key, const QByteArray& iv);
 
+QUOTIENT_API QByteArray base58Decode(const QByteArray& encoded);
+
 } // namespace Quotient

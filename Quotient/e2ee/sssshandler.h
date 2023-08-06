@@ -22,15 +22,15 @@ public:
     //! \brief Unlock the secret backup by requesting the password from other devices
     Q_INVOKABLE void unlockSSSSFromCrossSigning();
 
-    //! \brief Unclock the secret backup fromt the given security key
-    Q_INVOKABLE void unlockSSSSFromSecurityKey(const QString& securityKey);
+    //! \brief Unlock the secret backup from the given security key
+    Q_INVOKABLE void unlockSSSSFromSecurityKey(const QString& key);
 
     Quotient::Connection* connection() const;
     void setConnection(Quotient::Connection* connection);
 
 Q_SIGNALS:
-    void keyBackupPasswordCorrect();
-    void keyBackupPasswordWrong();
+    void keyBackupUnlocked();
+    void keyBackupKeyWrong();
     void connectionChanged();
 private:
     QPointer<Quotient::Connection> m_connection;
@@ -40,4 +40,5 @@ private:
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
     void calculateDefaultKey(const QByteArray& secret, bool passphrase);
+    void requestKeyFromDevices(const QString& name, const std::function<void(const QByteArray&)>& then);
 };

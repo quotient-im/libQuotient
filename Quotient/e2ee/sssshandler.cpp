@@ -4,9 +4,11 @@
 #include "sssshandler.h"
 
 #include "e2ee/cryptoutils.h"
+#include "e2ee/qolmaccount.h"
 #include "room.h"
 #include "../logging_categories_p.h"
 #include "../qt_connection_util.h"
+#include "database.h"
 
 using namespace Quotient;
 
@@ -33,7 +35,7 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
                                QSize requestedSize);
 
-    GetRoomKeysJob(const QString& version)
+    explicit GetRoomKeysJob(const QString& version)
         : BaseJob(HttpVerb::Get, {},
               "/_matrix/client/v3/room_keys/keys")
     {
@@ -54,11 +56,12 @@ QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryp
 
     auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
     if (QString::fromLatin1(hmacSha256(keys.mac, rawCipher).toBase64()) != encrypted["mac"_ls].toString()) {
-        qWarning() << "MAC mismatch for" << name;
+        qCWarning(E2EE) << "MAC mismatch for" << name;
         return {};
     }
-    return QByteArray::fromBase64(aesCtr256Decrypt(rawCipher, keys.aes, QByteArray::fromBase64(encrypted["iv"_ls].toString().toLatin1())));
-
+    auto key = QByteArray::fromBase64(aesCtr256Decrypt(rawCipher, keys.aes, QByteArray::fromBase64(encrypted["iv"_ls].toString().toLatin1())));
+    m_connection->database()->storeEncrypted(name, key);
+    return key;
 }
 
 void SSSSHandler::unlockSSSSFromPassword(const QString& password)
@@ -67,28 +70,38 @@ void SSSSHandler::unlockSSSSFromPassword(const QString& password)
     calculateDefaultKey(password.toLatin1(), true);
 }
 
-void SSSSHandler::unlockSSSSFromCrossSigning()
+void SSSSHandler::requestKeyFromDevices(const QString& name, const std::function<void(const QByteArray&)>& then)
 {
-    Q_ASSERT(m_connection);
     Connection::UsersToDevicesToContent content;
     const auto& requestId = m_connection->generateTxnId();
     QJsonObject eventContent;
     eventContent["action"_ls] = "request"_ls;
-    eventContent["name"_ls] = "m.megolm_backup.v1"_ls;
+    eventContent["name"_ls] = name;
     eventContent["request_id"_ls] = requestId;
     eventContent["requesting_device_id"_ls] = m_connection->deviceId();
     for (const auto& deviceId : m_connection->devicesForUser(m_connection->userId())) {
         content[m_connection->userId()][deviceId] = eventContent;
     }
     m_connection->sendToDevices("m.secret.request"_ls, content);
-    connectUntil(m_connection.data(), &Connection::secretReceived, this, [this, requestId](const QString& receivedRequestId, const QString& secret) {
+    connectUntil(m_connection.data(), &Connection::secretReceived, this, [this, requestId, then, name](const QString& receivedRequestId, const QString& secret) {
         if (requestId != receivedRequestId) {
             return false;
         }
-        const auto& megolmDecryptionKey = QByteArray::fromBase64(secret.toLatin1());
-        loadMegolmBackup(megolmDecryptionKey);
+        const auto& key = QByteArray::fromBase64(secret.toLatin1());
+        m_connection->database()->storeEncrypted(name, key);
+        then(key);
         return true;
     });
+}
+
+void SSSSHandler::unlockSSSSFromCrossSigning()
+{
+    Q_ASSERT(m_connection);
+    requestKeyFromDevices("m.megolm_backup.v1"_ls, [this](const QByteArray &key){
+        loadMegolmBackup(key);
+    });
+    requestKeyFromDevices("m.cross_signing.user_signing"_ls, [](const QByteArray&){});
+    requestKeyFromDevices("m.cross_signing.self_signing"_ls, [](const QByteArray&){});
 }
 
 Connection* SSSSHandler::connection() const
@@ -109,9 +122,23 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
 {
     auto job = m_connection->callApi<GetRoomKeysVersionJob>();
     connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey](){
+        auto authData = job->jsonData()["auth_data"_ls].toObject();
+        for (const auto& key : authData["signatures"_ls].toObject()[m_connection->userId()].toObject().keys()) {
+            const auto& edKey = m_connection->database()->edKeyForKeyId(m_connection->userId(), key);
+            if (edKey.isEmpty()) {
+                continue;
+            }
+            const auto& signature = authData["signatures"_ls].toObject()[m_connection->userId()].toObject()[key].toString();
+            if (!ed25519VerifySignature(edKey, authData, signature)) {
+                qCWarning(E2EE) << "Signature mismatch for" << edKey;
+                return;
+            }
+        }
+        qCDebug(E2EE) << "Loading key backup" << job->jsonData()["version"_ls].toString();
         auto keysJob = m_connection->callApi<GetRoomKeysJob>(job->jsonData()["version"_ls].toString());
         connect(keysJob, &BaseJob::finished, this, [this, keysJob, megolmDecryptionKey](){
             const auto &rooms = keysJob->jsonData()["rooms"_ls].toObject();
+            qCDebug(E2EE) << rooms.size() << "rooms in the backup";
             for (const auto& roomId : rooms.keys()) {
                 if (!m_connection->room(roomId)) {
                     continue;
@@ -128,42 +155,9 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
     });
 }
 
-QByteArray decode_base58(const QByteArray& input)
-{
-    auto alphabet = QByteArrayLiteral("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
-    QByteArray reverse_alphabet(256, -1);
-    for (auto i = 0; i < 58; i++) {
-        reverse_alphabet[static_cast<uint8_t>(alphabet.at(i))] = static_cast<char>(i);
-    }
-
-    QByteArray result;
-    result.reserve(input.size() * 733 / 1000 + 1);
-
-    for (auto b : input) {
-        uint32_t carry = reverse_alphabet[b];
-        for (auto &j : result) {
-            carry += static_cast<uint8_t>(j) * 58;
-            j = static_cast<char>(static_cast<uint8_t>(carry % 0x100));
-            carry /= 0x100;
-        }
-        while (carry > 0) {
-            result.push_back(static_cast<char>(static_cast<uint8_t>(carry % 0x100)));
-            carry /= 0x100;
-        }
-    }
-
-    for (auto i = 0; i < input.length() && input[i] == '1'; i++) {
-        result.push_back(u'\0');
-    }
-
-    std::reverse(result.begin(), result.end());
-    return result;
-}
-
 void SSSSHandler::calculateDefaultKey(const QByteArray& secret, bool passphrase)
 {
     auto key = secret;
-
     const auto defaultKey = m_connection->accountData("m.secret_storage.default_key"_ls)->contentPart<QString>("key"_ls);
     const auto &keyEvent = m_connection->accountData("m.secret_storage.key."_ls + defaultKey);
     if (keyEvent->contentPart<QString>("algorithm"_ls) != "m.secret_storage.v1.aes-hmac-sha2"_ls) {
@@ -181,18 +175,21 @@ void SSSSHandler::calculateDefaultKey(const QByteArray& secret, bool passphrase)
         key = pbkdf2HmacSha512(secret, passphraseJson["salt"_ls].toString().toLatin1(), passphraseJson["iterations"_ls].toInt(), 32);
     }
 
-
     const auto &testKeys = hkdfSha256(key, QByteArray(32, u'\0'), {});
     const auto &encrypted = aesCtr256Encrypt(QByteArray(32, u'\0'), testKeys.aes, QByteArray::fromBase64(keyEvent->contentPart<QString>("iv"_ls).toLatin1()));
     if (hmacSha256(testKeys.mac, encrypted) != QByteArray::fromBase64(keyEvent->contentPart<QString>("mac"_ls).toLatin1())) {
         qCWarning(E2EE) << "MAC mismatch for secret storage key";
-        emit keyBackupPasswordWrong();
+        emit keyBackupKeyWrong();
         return;
     }
 
-    emit keyBackupPasswordCorrect();
+    emit keyBackupUnlocked();
 
     auto megolmDecryptionKey = decryptKey("m.megolm_backup.v1"_ls, key);
+
+    // These keys are only decrypted since this will automatically store them locally
+    decryptKey("m.cross_signing.self_signing"_ls, key);
+    decryptKey("m.cross_signing.user_signing"_ls, key);
     if (megolmDecryptionKey.isEmpty()) {
         return;
     }
@@ -203,7 +200,7 @@ void SSSSHandler::unlockSSSSFromSecurityKey(const QString& key)
 {
     auto securityKey = key;
     securityKey.remove(u' ');
-    auto decoded = decode_base58(securityKey.toLatin1());
+    auto decoded = base58Decode(securityKey.toLatin1());
     unsigned char parity = 0;
     for (const auto b : decoded) {
         parity ^= b;

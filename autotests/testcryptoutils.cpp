@@ -66,4 +66,10 @@ void TestCryptoUtils::curve25519AesEncryptDecrypt()
     auto decrypted = curve25519AesSha2Decrypt(encrypted.ciphertext, privateKey, encrypted.ephemeral, encrypted.mac);
     QCOMPARE(plain, decrypted);
 }
+
+void TestCryptoUtils::decodeBase58()
+{
+    QCOMPARE(base58Decode(QByteArrayLiteral("ABCDEFabcdef")).toBase64(), QByteArrayLiteral("DG3GmkxFR1TQ"));
+}
+
 QTEST_APPLESS_MAIN(TestCryptoUtils)
