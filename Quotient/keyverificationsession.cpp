@@ -455,6 +455,7 @@ KeyVerificationSession::State KeyVerificationSession::state() const
 
 void KeyVerificationSession::setState(KeyVerificationSession::State state)
 {
+    qCDebug(E2EE) << "KeyVerificationSession state" << m_state << "->" << state;
     m_state = state;
     emit stateChanged();
 }

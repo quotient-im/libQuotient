@@ -6,6 +6,8 @@
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolmsession.h"
 
+#include "logging_categories_p.h"
+
 namespace Quotient {
 
 struct DevicesList;
@@ -80,6 +82,7 @@ namespace _impl {
         {
             auto session =
                 new KeyVerificationSession(std::forward<ArgTs>(sessionArgs)...);
+            qCDebug(E2EE) << "Incoming key verification session from" << session->remoteDeviceId();
             verificationSessions.insert(session->transactionId(), session);
             QObject::connect(session, &QObject::destroyed, q,
                              [this, txnId = session->transactionId()] {

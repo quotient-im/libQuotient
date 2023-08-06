@@ -329,10 +329,14 @@ bool ConnectionEncryptionData::processIfVerificationEvent(const Event& evt,
                                         reqEvt, q, encrypted);
             return true;
         },
-        [](const KeyVerificationDoneEvent&) { return true; },
+        [](const KeyVerificationDoneEvent&) {
+            qCDebug(E2EE) << "Ignoring m.key.verification.done";
+            return true;
+        },
         [this](const KeyVerificationEvent& kvEvt) {
             if (auto* const session =
                     verificationSessions.value(kvEvt.transactionId())) {
+                qCDebug(E2EE) << "Handling" << kvEvt.matrixType();
                 session->handleEvent(kvEvt);
                 emit q->keyVerificationStateChanged(session, session->state());
             }
