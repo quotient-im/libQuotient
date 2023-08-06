@@ -3585,6 +3585,7 @@ void Room::activateEncryption()
     setState<EncryptionEvent>(EncryptionType::MegolmV1AesSha2);
 }
 
+#ifdef Quotient_E2EE_ENABLED
 void Room::addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index)
 {
     if (d->groupSessions.contains(sessionId) && d->groupSessions[sessionId].firstKnownIndex() <= index) {
@@ -3599,4 +3600,5 @@ void Room::addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteAr
     d->groupSessions[sessionId].setSenderId("BACKUP"_ls);
     d->connection->saveMegolmSession(this, d->groupSessions[sessionId]);
 }
+#endif
 
