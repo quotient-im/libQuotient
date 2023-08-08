@@ -4,10 +4,11 @@
 
 #pragma once
 
+#include <Quotient/jobs/basejob.h>
+
 #include <Quotient/application-service/definitions/location.h>
 #include <Quotient/application-service/definitions/protocol.h>
 #include <Quotient/application-service/definitions/user.h>
-#include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
 

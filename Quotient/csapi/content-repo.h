@@ -4,10 +4,10 @@
 
 #pragma once
 
+#include <Quotient/jobs/basejob.h>
+
 #include <QtCore/QIODevice>
 #include <QtNetwork/QNetworkReply>
-
-#include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
 

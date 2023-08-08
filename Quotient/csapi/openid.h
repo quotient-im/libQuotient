@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/openid_token.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {

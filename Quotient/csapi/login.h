@@ -6,6 +6,7 @@
 
 #include <Quotient/csapi/definitions/user_identifier.h>
 #include <Quotient/csapi/definitions/wellknown/full.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
