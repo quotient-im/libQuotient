@@ -10,42 +10,13 @@
 #include "../qt_connection_util.h"
 #include "database.h"
 #include "../events/event.h"
+#include "../csapi/key_backup.h"
 
 using namespace Quotient;
 
 SSSSHandler::SSSSHandler(QObject* parent)
     : QObject(parent)
 {}
-
-namespace Quotient {
-class QUOTIENT_API GetRoomKeysVersionJob : public BaseJob {
-public:
-    using BaseJob::makeRequestUrl;
-    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
-                               QSize requestedSize);
-
-    GetRoomKeysVersionJob()
-        : BaseJob(HttpVerb::Get, {},
-              "/_matrix/client/v3/room_keys/version")
-    {}
-};
-
-class QUOTIENT_API GetRoomKeysJob : public BaseJob {
-public:
-    using BaseJob::makeRequestUrl;
-    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
-                               QSize requestedSize);
-
-    explicit GetRoomKeysJob(const QString& version)
-        : BaseJob(HttpVerb::Get, {},
-              "/_matrix/client/v3/room_keys/keys")
-    {
-        QUrlQuery query;
-        addParam<>(query, QStringLiteral("version"), version);
-        setRequestQuery(query);
-    }
-};
-} // namespace Quotient
 
 DEFINE_SIMPLE_EVENT(SecretStorageDefaultKeyEvent, Event, "m.secret_storage.default_key", QString, key, "key");
 
@@ -129,7 +100,7 @@ void SSSSHandler::setConnection(Connection* connection)
 
 void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
 {
-    auto job = m_connection->callApi<GetRoomKeysVersionJob>();
+    auto job = m_connection->callApi<GetRoomKeysVersionCurrentJob>();
     connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey](){
         auto authData = job->jsonData()["auth_data"_ls].toObject();
         for (const auto& key : authData["signatures"_ls].toObject()[m_connection->userId()].toObject().keys()) {
