@@ -8,6 +8,7 @@
 #include <Quotient/csapi/definitions/request_email_validation.h>
 #include <Quotient/csapi/definitions/request_msisdn_validation.h>
 #include <Quotient/csapi/definitions/request_token_response.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {

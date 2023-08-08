@@ -6,6 +6,7 @@
 
 #include <Quotient/csapi/definitions/auth_data.h>
 #include <Quotient/csapi/definitions/client_device.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {

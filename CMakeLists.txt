@@ -244,7 +244,6 @@ if (API_GENERATION_ENABLED)
         ${ABS_GTAD_PATH} --config ../gtad/gtad.yaml --out ${CSAPI_DIR}
             ${FULL_CSAPI_SRC_DIR}
             old_sync.yaml- room_initial_sync.yaml- # deprecated
-            key_backup.yaml- # immature and buggy in terms of API definition
             sync.yaml- # we have a better handcrafted implementation
             ${GTAD_ARGS}
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/Quotient

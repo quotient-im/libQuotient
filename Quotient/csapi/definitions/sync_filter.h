@@ -4,9 +4,10 @@
 
 #pragma once
 
-#include <Quotient/converters.h>
 #include <Quotient/csapi/definitions/event_filter.h>
 #include <Quotient/csapi/definitions/room_event_filter.h>
+
+#include <Quotient/converters.h>
 
 namespace Quotient {
 /// Filters to be applied to room data.

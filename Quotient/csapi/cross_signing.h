@@ -6,6 +6,7 @@
 
 #include <Quotient/csapi/definitions/auth_data.h>
 #include <Quotient/csapi/definitions/cross_signing_key.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {

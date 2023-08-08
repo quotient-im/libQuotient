@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/public_rooms_response.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {

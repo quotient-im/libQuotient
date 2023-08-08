@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/auth_data.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
