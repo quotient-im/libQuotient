@@ -31,6 +31,9 @@ analyzer:
     login>/address: ""
     login</home_server: ""
     register</home_server: ""
+    # This is a quirk in the API - the same parameter with the same name is
+    # passed twice; the below removes the instance inside the request body
+    putRoomKeysVersion>/version: ""
 
   # Structure inside `types`:
   # - swaggerType: <targetTypeSpec>
