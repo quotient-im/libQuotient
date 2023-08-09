@@ -623,8 +623,7 @@ QStringList Room::pinnedEventIds() const {
 QVector<const Quotient::RoomEvent*> Quotient::Room::pinnedEvents() const
 {
     QVector<const RoomEvent*> pinnedEvents;
-    const auto eventIds = pinnedEventIds();
-    for (const auto& evtId : eventIds)
+    for (const auto eventIds = pinnedEventIds(); const auto& evtId : eventIds)
         if (const auto& it = findInTimeline(evtId); it != historyEdge())
             pinnedEvents.append(it->event());
 
@@ -1398,7 +1397,7 @@ QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
 
 QString safeFileName(QString rawName)
 {
-    static auto safeFileNameRegex = QRegularExpression("[/\\<>|\"*?:]"_ls);
+    static auto safeFileNameRegex = QRegularExpression(R"([/\<>|"*?:])"_ls);
     return rawName.replace(safeFileNameRegex, "_"_ls);
 }
 
