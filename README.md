@@ -320,6 +320,18 @@ if you want to switch on all debug logs except `jobs` you can set
 QT_LOGGING_RULES="quotient.*.debug=true;quotient.jobs.debug=false"
 ```
 
+(Thanks to [@eang:matrix.org](https://matrix.to/#/@eang:matrix.org]) for
+contributing the original libQuotient code for logging categories.)
+
+You may also want to set `QT_MESSAGE_PATTERN` to make logs slightly more
+informative (see https://doc.qt.io/qt-6/qtlogging.html#qSetMessagePattern
+for the format description). To give an example, here's what one of the library
+developers uses for `QT_MESSAGE_PATTERN`:
+```
+`%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}`
+```
+(the scary `%{if}`s are just encoding the logging level into its initial letter).
+
 #### Cache format
 In case of troubles with room state and caching it may be useful to switch
 cache format from binary CBOR to plaintext JSON. To do that, set

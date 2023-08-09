@@ -16,7 +16,7 @@
 #include "user.h"
 
 // NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
-#include "moc_connection.cpp"
+#include "moc_connection.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
@@ -33,7 +33,6 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
-#include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "connectionencryptiondata_p.h"

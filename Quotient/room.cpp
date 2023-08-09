@@ -21,7 +21,7 @@
 #include "user.h"
 
 // NB: since Qt 6, moc_room.cpp needs User fully defined
-#include "moc_room.cpp"
+#include "moc_room.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include "csapi/account-data.h"
 #include "csapi/banning.h"
@@ -611,7 +611,7 @@ QStringList Room::altAliases() const
 
 QString Room::canonicalAlias() const
 {
-    return currentState().queryOr(&RoomCanonicalAliasEvent::alias, QString());
+    return currentState().content<RoomCanonicalAliasEvent>().canonicalAlias;
 }
 
 QString Room::displayName() const { return d->displayname; }
@@ -623,8 +623,7 @@ QStringList Room::pinnedEventIds() const {
 QVector<const Quotient::RoomEvent*> Quotient::Room::pinnedEvents() const
 {
     QVector<const RoomEvent*> pinnedEvents;
-    const auto eventIds = pinnedEventIds();
-    for (const auto& evtId : eventIds)
+    for (const auto eventIds = pinnedEventIds(); const auto& evtId : eventIds)
         if (const auto& it = findInTimeline(evtId); it != historyEdge())
             pinnedEvents.append(it->event());
 
@@ -640,7 +639,7 @@ void Room::refreshDisplayName() { d->updateDisplayname(); }
 
 QString Room::topic() const
 {
-    return currentState().queryOr(&RoomTopicEvent::topic, QString());
+    return currentState().content<RoomTopicEvent>().value;
 }
 
 QString Room::avatarMediaId() const { return d->avatar.mediaId(); }
@@ -1398,7 +1397,7 @@ QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
 
 QString safeFileName(QString rawName)
 {
-    static auto safeFileNameRegex = QRegularExpression("[/\\<>|\"*?:]"_ls);
+    static auto safeFileNameRegex = QRegularExpression(R"([/\<>|"*?:])"_ls);
     return rawName.replace(safeFileNameRegex, "_"_ls);
 }
 
@@ -2735,7 +2734,7 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
                         << ti->id() << "already done, skipping";
         return true;
     }
-    if (const auto* messageEvent = ti.viewAs<RoomMessageEvent>())
+    if (ti->is<RoomMessageEvent>())
         FileMetadataMap::remove(id, ti->id());
 
     // Make a new event from the redacted JSON and put it in the timeline
