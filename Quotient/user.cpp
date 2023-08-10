@@ -8,6 +8,7 @@
 #include "connection.h"
 #include "logging_categories_p.h"
 #include "room.h"
+#include "userincontext.h"
 
 #include "csapi/content-repo.h"
 #include "csapi/profile.h"
@@ -21,6 +22,8 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTimer>
+#include <QGuiApplication>
+#include <QPalette>
 
 #include <functional>
 
@@ -219,3 +222,18 @@ QUrl User::avatarUrl(const Room* room) const
 }
 
 qreal User::hueF() const { return d->hueF; }
+
+QColor User::color() const
+{
+    const auto lightness = QGuiApplication::palette().color(QPalette::Active, QPalette::Window).lightnessF();
+    // https://github.com/quotient-im/libQuotient/wiki/User-color-coding-standard-draft-proposal
+    return QColor::fromHslF(hueF(), 1, -0.7 * lightness + 0.9, 1);
+}
+
+UserInContext*  User::userInContext(const Room* room)
+{
+    if (!room) {
+        return nullptr;
+    }
+    return new UserInContext(this, room);
+}
