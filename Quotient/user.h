@@ -5,11 +5,9 @@
 #pragma once
 
 #include "avatar.h"
-#include "userincontext.h"
 #include "util.h"
 
 #include <QtCore/QObject>
-#include <qcolor.h>
 
 namespace Quotient {
 class Connection;
@@ -22,7 +20,6 @@ class QUOTIENT_API User : public QObject {
     Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
     Q_PROPERTY(int hue READ hue CONSTANT)
     Q_PROPERTY(qreal hueF READ hueF CONSTANT)
-    Q_PROPERTY(QColor color READ color CONSTANT)
     Q_PROPERTY(QString name READ name NOTIFY defaultNameChanged)
     Q_PROPERTY(QString displayName READ displayname NOTIFY defaultNameChanged STORED false)
     Q_PROPERTY(QString fullName READ fullName NOTIFY defaultNameChanged STORED false)
@@ -80,8 +77,6 @@ public:
     int hue() const;
     qreal hueF() const;
 
-    QColor color() const;
-
     /// Get a reference to a user avatar object for a given room
     /*! This reference should be considered short-lived: processing the next
      * room member event for this user may (or may not) invalidate it.
@@ -96,8 +91,6 @@ public:
 
     QString avatarMediaId(const Room* room = nullptr) const;
     QUrl avatarUrl(const Room* room = nullptr) const;
-
-    UserInContext* userInContext(const Room* room);
 
 public Q_SLOTS:
     /// Set a new name in the global user profile
