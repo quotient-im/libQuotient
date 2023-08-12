@@ -19,7 +19,6 @@
 #include "roomstateview.h"
 #include "syncdata.h"
 #include "user.h"
-#include "userincontext.h"
 
 // NB: since Qt 6, moc_room.cpp needs User fully defined
 #include "moc_room.cpp"
@@ -666,9 +665,9 @@ QImage Room::avatar(int width, int height)
     return {};
 }
 
-UserInContext* Room::user(const QString& userId) const
+User* Room::user(const QString& userId) const
 {
-    return connection()->user(userId)->userInContext(this);
+    return connection()->user(userId);
 }
 
 JoinState Room::memberJoinState(User* user) const
@@ -768,7 +767,7 @@ Omittable<QString> Room::Private::setLastReadReceipt(const QString& userId,
     // receipts arrive. It can be called thousands of times during an initial
     // sync, e.g.
     // TODO: remove in 0.8
-    if (const auto member = q->connection()->user(userId); !isLocalUser(member))
+    if (const auto member = q->user(userId); !isLocalUser(member))
         QT_IGNORE_DEPRECATIONS(emit q->readMarkerForUserMoved(
             member, prevEventId, storedReceipt.eventId);)
     return prevEventId;
@@ -1224,10 +1223,10 @@ QSet<QString> Room::userIdsAtEvent(const QString& eventId) const
     return d->eventIdReadUsers.value(eventId);
 }
 
-QSet<UserInContext*> Room::usersAtEventId(const QString& eventId)
+QSet<User*> Room::usersAtEventId(const QString& eventId)
 {
     const auto& userIds = d->eventIdReadUsers.value(eventId);
-    QSet<UserInContext*> users;
+    QSet<User*> users;
     users.reserve(userIds.size());
     for (const auto& uId : userIds)
         users.insert(user(uId));
@@ -3069,7 +3068,7 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
 {
     newEvent.switchOnType(
         [this, curEvent](const RoomMemberEvent& rme) {
-            auto* u = q->connection()->user(rme.userId());
+            auto* u = q->user(rme.userId());
             if (!u) { // Some terribly malformed user id?
                 qCCritical(MAIN) << "Could not get a user object for"
                                  << rme.userId();
@@ -3198,7 +3197,7 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
         },
         [this, oldEvent](const RoomMemberEvent& evt) {
             // See also Room::P::preprocessStateEvent()
-            if (auto* u = q->connection()->user(evt.userId())) {
+            if (auto* u = q->user(evt.userId())) {
                 const auto prevMembership =
                     lift(&RoomMemberEvent::membership,
                          static_cast<const RoomMemberEvent*>(oldEvent))
@@ -3221,7 +3220,7 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
                     if (!usersInvited.contains(u))
                         usersInvited.push_back(u);
                     if (u == q->localUser() && evt.isDirect())
-                        connection->addToDirectChats(q, q->connection()->user(evt.senderId()));
+                        connection->addToDirectChats(q, q->user(evt.senderId()));
                     break;
                 case Membership::Knock:
                 case Membership::Ban:
@@ -3272,7 +3271,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             d->usersTyping.reserve(users.size()); // Assume all are members
             for (const auto& userId : users)
                 if (isMember(userId))
-                    d->usersTyping.append(connection()->user(userId));
+                    d->usersTyping.append(user(userId));
 
             if (d->usersTyping.size() > 3
                 || et.nsecsElapsed() >= ProfilerMinNsecs)
@@ -3383,7 +3382,7 @@ Room::Private::buildShortlist(const QStringList& userIds) const
     QList<User*> users;
     users.reserve(userIds.size());
     for (const auto& h : userIds)
-        users.push_back(q->connection()->user(h));
+        users.push_back(q->user(h));
     return buildShortlist(users);
 }
 

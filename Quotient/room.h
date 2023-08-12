@@ -10,6 +10,7 @@
 #pragma once
 
 #include "connection.h"
+#include "roommember.h"
 #include "roomstateview.h"
 #include "eventitem.h"
 #include "quotient_common.h"
@@ -37,7 +38,7 @@ class Avatar;
 class SyncRoomData;
 class RoomMemberEvent;
 class User;
-class UserInContext;
+class RoomMember;
 class MemberSorter;
 class LeaveRoomJob;
 class SetRoomStateWithKeyJob;
@@ -316,7 +317,7 @@ public:
      * \note The method will return a valid user regardless of
      *       the membership.
      */
-    Q_INVOKABLE Quotient::UserInContext* user(const QString& userId) const;
+    Q_INVOKABLE Quotient::User* user(const QString& userId) const;
 
     /**
      * \brief Check the join state of a given user in this room
@@ -516,7 +517,7 @@ public:
     QSet<QString> userIdsAtEvent(const QString& eventId) const;
 
     [[deprecated("Use userIdsAtEvent instead")]]
-    QSet<UserInContext*> usersAtEventId(const QString& eventId);
+    QSet<User*> usersAtEventId(const QString& eventId);
 
     //! \brief Mark the event with uptoEventId as fully read
     //!

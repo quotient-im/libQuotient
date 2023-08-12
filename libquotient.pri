@@ -33,7 +33,7 @@ HEADERS += \
     $$SRCPATH/eventitem.h \
     $$SRCPATH/room.h \
     $$SRCPATH/user.h \
-    $$SRCPATH/userincontext.h \
+    $$SRCPATH/roommember.h \
     $$SRCPATH/avatar.h \
     $$SRCPATH/uri.h \
     $$SRCPATH/uriresolver.h \
@@ -91,7 +91,7 @@ SOURCES += \
     $$SRCPATH/eventitem.cpp \
     $$SRCPATH/room.cpp \
     $$SRCPATH/user.cpp \
-    $$SRCPATH/userincontext.cpp \
+    $$SRCPATH/roommember.cpp \
     $$SRCPATH/avatar.cpp \
     $$SRCPATH/uri.cpp \
     $$SRCPATH/uriresolver.cpp \
