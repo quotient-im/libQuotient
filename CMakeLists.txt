@@ -130,7 +130,7 @@ list(APPEND lib_SRCS
     Quotient/room.h Quotient/room.cpp
     Quotient/roomstateview.h Quotient/roomstateview.cpp
     Quotient/user.h Quotient/user.cpp
-    Quotient/roommember.h Quotient/roommembert.cpp
+    Quotient/roommember.h Quotient/roommember.cpp
     Quotient/avatar.h Quotient/avatar.cpp
     Quotient/uri.h Quotient/uri.cpp
     Quotient/uriresolver.h Quotient/uriresolver.cpp

@@ -4,17 +4,17 @@
 #pragma once
 
 #include "util.h"
-#include "events/roommemberevent.h"
 
 #include <QtCore/QObject>
 
 namespace Quotient {
 class Room;
+class RoomMemberEvent;
 
 class QUOTIENT_API RoomMember {
     Q_GADGET
     Q_PROPERTY(QString id READ id CONSTANT)
-    Q_PROPERTY(QString displayName READ displayname)
+    Q_PROPERTY(QString displayName READ displayName)
     Q_PROPERTY(QString fullName READ fullName)
     Q_PROPERTY(int hue READ hue CONSTANT)
     Q_PROPERTY(qreal hueF READ hueF CONSTANT)

@@ -28,7 +28,18 @@ RoomMember::RoomMember(const RoomMemberEvent* member, const Room* room)
 
 QString RoomMember::id() const { return d->member->userId(); }
 
-QString RoomMember::displayName() const { return d->member->newDisplayName().emplace(); }
+QString RoomMember::displayName() const
+{
+    // See https://github.com/matrix-org/matrix-doc/issues/1375
+    if (d->member) {
+        if (d->member->newDisplayName())
+            return *d->member->newDisplayName();
+        if (d->member->prevContent() && d->member->prevContent()->displayName)
+            return *d->member->prevContent()->displayName;
+        return d->member->userId();
+    }
+    return {};
+}
 
 QString RoomMember::fullName() const { return displayName() % " ("_ls % id() % u')'; }
 

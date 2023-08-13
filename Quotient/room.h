@@ -277,6 +277,7 @@ public:
     QList<User*> membersLeft() const;
 
     Q_INVOKABLE QList<Quotient::User*> users() const;
+    QList<QSharedPointer<RoomMember>> members() const;
     Q_DECL_DEPRECATED_X("Use safeMemberNames() or htmlSafeMemberNames() instead") //
     QStringList memberNames() const;
     QStringList safeMemberNames() const;
@@ -318,6 +319,10 @@ public:
      *       the membership.
      */
     Q_INVOKABLE Quotient::User* user(const QString& userId) const;
+
+    Q_INVOKABLE QSharedPointer<RoomMember> member(const QString& userId) const;
+
+    QStringList memberIds() const;
 
     /**
      * \brief Check the join state of a given user in this room
@@ -955,6 +960,11 @@ Q_SIGNALS:
     void pinnedEventsChanged();
     void topicChanged();
     void avatarChanged();
+
+    void memberAdded(QString mxId);
+    void memberUpdated(QString mxId);
+    void memberRemoved(QString mxId);
+
     void userAdded(Quotient::User* user);
     void userRemoved(Quotient::User* user);
     void memberAboutToRename(Quotient::User* user, QString newName);
