@@ -55,13 +55,20 @@ QColor RoomMember::color() const
 }
 
 QUrl RoomMember::avatarUrl() const {
-    const auto baseUrl = d->member->newAvatarUrl().emplace();
-    if (baseUrl.isEmpty()) {
+    // See https://github.com/matrix-org/matrix-doc/issues/1375
+    QUrl baseUrl;
+    if (d->member->newAvatarUrl()) {
+        baseUrl = *d->member->newAvatarUrl();
+    }
+    if (d->member->prevContent() && d->member->prevContent()->avatarUrl) {
+        baseUrl = *d->member->prevContent()->avatarUrl;
+    }
+    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_ls) {
         return {};
     }
 
     const auto mediaUrl = d->room->connection()->makeMediaUrl(baseUrl);
-    if (mediaUrl.isValid() && mediaUrl.scheme() == QStringLiteral("mxc")) {
+    if (mediaUrl.isValid() && mediaUrl.scheme() == "mxc"_ls) {
         return mediaUrl;
     }
     return {};
