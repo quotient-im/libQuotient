@@ -32,10 +32,8 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
         QStringLiteral(
             R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp):(//)?\w|(magnet|matrix):)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
         RegExpOptions);
-    // email address:
-    // [word chars, dots or dashes]@[word chars, dots or dashes].[word chars]
     static const QRegularExpression EmailAddressRegExp(
-        QStringLiteral(R"(\b(mailto:)?((\w|\.|-)+@(\w|\.|-)+\.\w+\b))"),
+        QStringLiteral(R"((^|[][[:space:](){}`'";<>])(mailto:)?((\w|[!#$%&'*+=^_‘{|}~.-])+@(\w|\.|-)+\.\w+\b))"),
         RegExpOptions);
     // An interim liberal implementation of
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
@@ -49,12 +47,10 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
     htmlEscapedText.replace(EmailAddressRegExp,
-                            QStringLiteral(R"(<a href="mailto:\2">\1\2</a>)"));
-    htmlEscapedText.replace(FullUrlRegExp,
-                            QStringLiteral(R"(<a href="\1">\1</a>)"));
-    htmlEscapedText.replace(
-        MxIdRegExp,
-        QStringLiteral(R"(\1<a href="https://matrix.to/#/\2">\2</a>)"));
+                            R"(\1<a href='mailto:\3'>\2\3</a>)"_ls);
+    htmlEscapedText.replace(FullUrlRegExp, R"(<a href='\1'>\1</a>)"_ls);
+    htmlEscapedText.replace(MxIdRegExp,
+                            R"(\1<a href='https://matrix.to/#/\2'>\2</a>)"_ls);
 }
 
 QString Quotient::sanitized(const QString& plainText)
