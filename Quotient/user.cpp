@@ -71,6 +71,15 @@ void User::load()
 
 QString User::id() const { return d->id; }
 
+QString User::defaultName() const { return d->defaultName; }
+
+QString User::profileName() const { return d->defaultName.isEmpty() ? d->id : d->defaultName; }
+
+QString User::fullProfileName() const
+{
+    return defaultName().isEmpty() ? id() : (defaultName() % " ("_ls % id() % u')');
+}
+
 bool User::isGuest() const
 {
     Q_ASSERT(!d->id.isEmpty() && d->id.startsWith(u'@'));

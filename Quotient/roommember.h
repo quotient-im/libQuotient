@@ -29,6 +29,8 @@ public:
      */
     QString id() const;
 
+    QString name() const;
+
     /** Get the displayed user name
      * When \p room is null, this method returns result of name() if
      * the name is non-empty; otherwise it returns user id.
@@ -58,6 +60,7 @@ public:
 
     QColor color() const;
 
+    QString avatarMediaId() const;
     QUrl avatarUrl() const;
 
 private:
