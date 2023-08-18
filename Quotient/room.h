@@ -276,11 +276,13 @@ public:
     Q_INVOKABLE QList<Quotient::User*> usersTyping() const;
     QList<User*> membersLeft() const;
 
+    [[deprecated("Use joinedMembers() instead.")]]
     Q_INVOKABLE QList<Quotient::User*> users() const;
-    QList<QSharedPointer<RoomMember>> members() const;
     Q_DECL_DEPRECATED_X("Use safeMemberNames() or htmlSafeMemberNames() instead") //
     QStringList memberNames() const;
+    [[deprecated("Use members() instead and extract the names from the RoomMember objects.")]]
     QStringList safeMemberNames() const;
+    [[deprecated("Use members() instead and extract the names from the RoomMember objects.")]]
     QStringList htmlSafeMemberNames() const;
     int timelineSize() const;
     bool usesEncryption() const;
@@ -309,19 +311,16 @@ public:
      */
     Q_INVOKABLE QImage avatar(int width, int height);
 
-    /**
-     * \brief Get a user object for a given user id
-     * This is the recommended way to get a user object in a room
-     * context. The actual object type may be changed in further
-     * versions to provide room-specific user information (display name,
-     * avatar etc.).
-     * \note The method will return a valid user regardless of
-     *       the membership.
-     */
+    [[deprecated("Use member() instead.")]]
     Q_INVOKABLE Quotient::User* user(const QString& userId) const;
 
-    Q_INVOKABLE QSharedPointer<RoomMember> member(const QString& userId) const;
+    Q_INVOKABLE RoomMember* member(const QString& userId) const;
 
+    QList<RoomMember*> joinedMembers() const;
+
+    QList<RoomMember*> members() const;
+
+    [[deprecated("Use members() instead and extract the IDs from the RoomMember objects.")]]
     QStringList memberIds() const;
 
     /**
@@ -343,9 +342,7 @@ public:
     //! Check whether a user with the given id is a member of the room
     Q_INVOKABLE bool isMember(const QString& userId) const;
 
-    //! \brief Get a display name (without disambiguation) for the given member
-    //!
-    //! \sa safeMemberName, htmlSafeMemberName
+    [[deprecated("Use member(mxId)->name() instead.")]]
     Q_INVOKABLE QString memberName(const QString& mxId) const;
 
     //! \brief Get a disambiguated name for the given user in the room context
@@ -355,28 +352,16 @@ public:
     Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
-    /*!
-     * \brief Get a disambiguated name for the member with the given MXID
-     *
-     * This function should only be used for non-UI code; consider using
-     * safeMemberName() or htmlSafeMemberName() for displayed strings.
-     */
+    [[deprecated("Use member(mxId)->displayName() instead.")]]
     Q_INVOKABLE QString disambiguatedMemberName(const QString& mxId) const;
 
-    /*! Get a display-safe member name in the context of this room
-     *
-     * Display-safe means disambiguated and without RLO/LRO markers
-     * (see https://github.com/quotient-im/Quaternion/issues/545).
-     */
+    [[deprecated("Use member(mxId)->displayName() instead.")]]
     Q_INVOKABLE QString safeMemberName(const QString& userId) const;
 
-    /*! Get an HTML-safe member name in the context of this room
-     *
-     * This function adds HTML escaping on top of safeMemberName() safeguards.
-     */
+    [[deprecated("Use member(mxId)->displayName() instead.")]]
     Q_INVOKABLE QString htmlSafeMemberName(const QString& userId) const;
 
-    //! \brief Get an avatar for the member with the given MXID
+    [[deprecated("Use member(mxId)->avatarUrl() instead.")]]
     QUrl memberAvatarUrl(const QString& mxId) const;
 
     const Timeline& messageEvents() const;
@@ -962,13 +947,19 @@ Q_SIGNALS:
     void avatarChanged();
 
     void memberAdded(QString mxId);
-    void memberUpdated(QString mxId);
+    void memberNameUpdated(QString mxId);
+    void memberAvatarUpdated(QString mxId);
     void memberRemoved(QString mxId);
 
+    [[deprecated("Use memberAdded() instead.")]]
     void userAdded(Quotient::User* user);
+    [[deprecated("Use memberRemoved() instead.")]]
     void userRemoved(Quotient::User* user);
+    [[deprecated("Use memberNameUpdated() instead.")]]
     void memberAboutToRename(Quotient::User* user, QString newName);
+    [[deprecated("Use memberNameUpdated() instead.")]]
     void memberRenamed(Quotient::User* user);
+    [[deprecated("Use memberAvatarUpdated() instead.")]]
     void memberAvatarChanged(Quotient::User* user);
     /// The list of members has changed
     /** Emitted no more than once per sync, this is a good signal to

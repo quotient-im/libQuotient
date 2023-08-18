@@ -127,7 +127,6 @@ public:
     // about the timeline.
     EventStats partiallyReadStats {}, unreadStats {};
     members_map_t membersMap;
-    QMap<QString, QSharedPointer<RoomMember>> memberMap;
     QList<User*> usersTyping;
     QHash<QString, QSet<QString>> eventIdReadUsers;
     QList<User*> usersInvited;
@@ -209,9 +208,7 @@ public:
 
     // void inviteUser(User* u); // We might get it at some point in time.
     void insertMemberIntoMap(User* u);
-    void insertMemberIntoMap(const QString& memberId);
     void removeMemberFromMap(User* u);
-    void removeMemberFromMap(const QString& memberId);
 
     // This updates the room displayname field (which is the way a room
     // should be shown in the room list); called whenever the list of
@@ -517,6 +514,13 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             && d->shouldRotateMegolmSession()) {
             d->currentOutboundMegolmSession.reset();
         }
+        connect(this, &Room::memberRemoved, this, [this] {
+            if (d->hasValidMegolmSession()) {
+                qCDebug(E2EE)
+                    << "Rotating the megolm session because a user left";
+                d->createMegolmSession();
+            }
+        });
         connect(this, &Room::userRemoved, this, [this] {
             if (d->hasValidMegolmSession()) {
                 qCDebug(E2EE)
@@ -677,12 +681,41 @@ User* Room::user(const QString& userId) const
     return connection()->user(userId);
 }
 
-QSharedPointer<RoomMember> Room::member(const QString& userId) const
+RoomMember* Room::member(const QString& userId) const
 {
     if (auto memberEvent = currentState().get<RoomMemberEvent>(userId)) {
-        return QSharedPointer<RoomMember>(new RoomMember(memberEvent, this));
+        return new RoomMember(memberEvent, this);
     }
     return nullptr;
+}
+
+QList<RoomMember*> Room::joinedMembers() const
+{
+    QList<RoomMember*> members;
+    members.reserve(joinedCount());
+
+    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event);
+            memberEvent->membership() == Membership::Join) {
+            members.append(new RoomMember(memberEvent, this));
+        }
+    }
+    return members;
+}
+
+QList<RoomMember*> Room::members() const
+{
+    QList<RoomMember*> members;
+    members.reserve(totalMemberCount());
+
+    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event)) {
+            members.append(new RoomMember(memberEvent, this));
+        }
+    }
+    return members;
 }
 
 QStringList Room::memberIds() const
@@ -1551,8 +1584,6 @@ QList<User*> Room::usersTyping() const { return d->usersTyping; }
 QList<User*> Room::membersLeft() const { return d->membersLeft; }
 
 QList<User*> Room::users() const { return d->membersMap.values(); }
-
-QList<QSharedPointer<RoomMember>> Room::members() const { return d->memberMap.values(); }
 
 QStringList Room::memberNames() const
 {
@@ -3230,34 +3261,6 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
         [this, oldEvent](const RoomMemberEvent& evt) {
             // See also Room::P::preprocessStateEvent()
             // Handling for Quotient::RoomMember
-            const auto prevMembership =
-                lift(&RoomMemberEvent::membership,
-                    static_cast<const RoomMemberEvent*>(oldEvent))
-                    .value_or(Membership::Leave);
-            switch (evt.membership()) {
-            case Membership::Join:
-                // Add new member or override existing one.
-                memberMap.insert(evt.userId(), q->member(evt.userId()));
-                if (prevMembership != Membership::Join) {
-                    emit q->memberAdded(evt.userId());
-                } else {
-                    emit q->memberUpdated(evt.userId());
-                }
-                break;
-            case Membership::Invite:
-                if (!invites.contains(evt.userId())) {
-                    invites.insert(evt.userId(), q->member(evt.userId()));
-                }
-                break;
-            case Membership::Knock:
-            case Membership::Ban:
-            case Membership::Leave:
-                break;
-            case Membership::Undefined:
-                qCWarning(MEMBERS) << "Ignored undefined membership type";
-            }
-
-            // Current handling for Quotient::User Objects
             if (auto* u = q->user(evt.userId())) {
                 const auto prevMembership =
                     lift(&RoomMemberEvent::membership,
@@ -3268,13 +3271,16 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
                     if (prevMembership != Membership::Join) {
                         insertMemberIntoMap(u);
                         emit q->userAdded(u);
+                        emit q->memberAdded(evt.userId());
                     } else {
                         if (evt.newDisplayName()) {
                             insertMemberIntoMap(u);
                             emit q->memberRenamed(u);
+                            emit q->memberNameUpdated(evt.userId());
                         }
                         if (evt.newAvatarUrl()) {
                             emit q->memberAvatarChanged(u);
+                            emit q->memberAvatarUpdated(evt.userId());
                         }
                     }
                     break;
