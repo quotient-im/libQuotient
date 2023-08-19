@@ -4,6 +4,7 @@
 #include "roommember.h"
 
 #include "room.h"
+#include "util.h"
 #include "events/roommemberevent.h"
 
 #include <QGuiApplication>
@@ -32,15 +33,19 @@ QString RoomMember::name() const
 {
     // See https://github.com/matrix-org/matrix-doc/issues/1375
     if (d->member->newDisplayName())
-        return *d->member->newDisplayName();
+        return sanitized(*d->member->newDisplayName());
     if (d->member->prevContent() && d->member->prevContent()->displayName)
-        return *d->member->prevContent()->displayName;
+        return sanitized(*d->member->prevContent()->displayName);
     return {};
 }
 
 QString RoomMember::displayName() const { return !name().isEmpty() ? d->member->userId() : name(); }
 
+QString RoomMember::htmlSafeDisplayName() const { return displayName().toHtmlEscaped(); }
+
 QString RoomMember::fullName() const { return displayName() % " ("_ls % id() % u')'; }
+
+QString RoomMember::htmlSafeFullName() const { return fullName().toHtmlEscaped(); }
 
 int RoomMember::hue() const { return int(hueF() * 359); }
 
