@@ -676,6 +676,8 @@ QImage Room::avatar(int width, int height)
     return {};
 }
 
+RoomMember* Room::localMember() const { return member(connection()->userId()); }
+
 User* Room::user(const QString& userId) const
 {
     return connection()->user(userId);
@@ -716,6 +718,21 @@ QList<RoomMember*> Room::members() const
         }
     }
     return members;
+}
+
+QStringList Room::joinedMemberIds() const
+{
+    QStringList ids;
+    ids.reserve(totalMemberCount());
+
+    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event);
+            memberEvent->membership() == Membership::Join) {
+            ids.append(memberEvent->userId());
+        }
+    }
+    return ids;
 }
 
 QStringList Room::memberIds() const

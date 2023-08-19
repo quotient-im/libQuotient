@@ -39,7 +39,7 @@ QString RoomMember::name() const
     return {};
 }
 
-QString RoomMember::displayName() const { return !name().isEmpty() ? d->member->userId() : name(); }
+QString RoomMember::displayName() const { return name().isEmpty() ? d->member->userId() : name(); }
 
 QString RoomMember::htmlSafeDisplayName() const { return displayName().toHtmlEscaped(); }
 

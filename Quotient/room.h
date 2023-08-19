@@ -118,6 +118,7 @@ class QUOTIENT_API Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
     Q_PROPERTY(User* localUser READ localUser CONSTANT)
+    Q_PROPERTY(RoomMember* localMember READ localMember CONSTANT)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(QString version READ version NOTIFY baseStateLoaded)
     Q_PROPERTY(bool isUnstable READ isUnstable NOTIFY stabilityUpdated)
@@ -237,6 +238,8 @@ public:
     // Property accessors
 
     Connection* connection() const;
+    RoomMember* localMember() const;
+    [[deprecated("Use localMember() instead.")]]
     User* localUser() const;
     const QString& id() const;
     QString version() const;
@@ -320,7 +323,8 @@ public:
 
     QList<RoomMember*> members() const;
 
-    [[deprecated("Use members() instead and extract the IDs from the RoomMember objects.")]]
+    QStringList joinedMemberIds() const;
+
     QStringList memberIds() const;
 
     /**
