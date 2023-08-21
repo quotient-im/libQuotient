@@ -395,9 +395,8 @@ public:
      *   it must return an `id_server_unbind_result` of
      *   `no-support`.
      */
-    explicit DeactivateAccountJob(
-        const Omittable<AuthenticationData>& auth = none,
-        const QString& idServer = {});
+    explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none,
+                                  const QString& idServer = {});
 
     // Result properties
 

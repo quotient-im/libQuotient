@@ -122,8 +122,7 @@ QUrl CheckUsernameAvailabilityJob::makeRequestUrl(QUrl baseUrl,
                                    queryToCheckUsernameAvailability(username));
 }
 
-CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(
-    const QString& username)
+CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(const QString& username)
     : BaseJob(HttpVerb::Get, QStringLiteral("CheckUsernameAvailabilityJob"),
               makePath("/_matrix/client/v3", "/register/available"),
               queryToCheckUsernameAvailability(username), {}, false)

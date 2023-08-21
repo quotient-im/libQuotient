@@ -205,8 +205,7 @@ public:
  * token from page 1 and a `to` token from page 2 to paginate over the same
  * range, however.
  */
-class QUOTIENT_API GetRelatingEventsWithRelTypeAndEventTypeJob
-    : public BaseJob {
+class QUOTIENT_API GetRelatingEventsWithRelTypeAndEventTypeJob : public BaseJob {
 public:
     /*! \brief Get the child events for a given parent event, with a given
      * `relType` and `eventType`.
