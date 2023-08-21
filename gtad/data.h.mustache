@@ -12,7 +12,7 @@ namespace Quotient {
 {{#models}}
     {{#model}}
 {{>docCommentShort}}
-struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
+struct QUOTIENT_API {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
 {       {{#vars}}
 
     {{>docCommentShort}}
