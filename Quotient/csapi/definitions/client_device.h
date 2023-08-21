@@ -8,7 +8,7 @@
 
 namespace Quotient {
 /// A client device
-struct Device {
+struct QUOTIENT_API Device {
     /// Identifier of this device.
     QString deviceId;
 

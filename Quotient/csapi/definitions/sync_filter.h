@@ -11,7 +11,7 @@
 
 namespace Quotient {
 /// Filters to be applied to room data.
-struct RoomFilter {
+struct QUOTIENT_API RoomFilter {
     /// A list of room IDs to exclude. If this list is absent then no rooms are
     /// excluded. A matching room will be excluded even if it is listed in the
     /// `'rooms'` filter. This filter is applied before the filters in
@@ -66,7 +66,7 @@ struct JsonObjectConverter<RoomFilter> {
     }
 };
 
-struct Filter {
+struct QUOTIENT_API Filter {
     /// List of event fields to include. If this list is absent then all fields
     /// are included. The entries are [dot-separated paths for each
     /// property](/appendices#dot-separated-property-paths) to include. So

@@ -9,7 +9,7 @@
 namespace Quotient {
 /// Used by clients to submit authentication information to the
 /// interactive-authentication API
-struct AuthenticationData {
+struct QUOTIENT_API AuthenticationData {
     /// The authentication type that the client is attempting to complete.
     /// May be omitted if `session` is given, and the client is reissuing a
     /// request which it believes has been completed out-of-band (for example,

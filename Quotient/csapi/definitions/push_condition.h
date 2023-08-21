@@ -8,7 +8,7 @@
 
 namespace Quotient {
 
-struct PushCondition {
+struct QUOTIENT_API PushCondition {
     /// The kind of condition to apply. See
     /// [conditions](/client-server-api/#conditions) for more information on the
     /// allowed kinds and how they work.

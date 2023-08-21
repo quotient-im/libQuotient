@@ -8,7 +8,7 @@
 
 namespace Quotient {
 
-struct PublicRoomsChunk {
+struct QUOTIENT_API PublicRoomsChunk {
     /// The number of members joined to the room.
     int numJoinedMembers;
 

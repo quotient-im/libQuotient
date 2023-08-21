@@ -8,7 +8,7 @@
 
 namespace Quotient {
 
-struct EventFilter {
+struct QUOTIENT_API EventFilter {
     /// The maximum number of events to return, must be an integer greater than
     /// 0.
     ///

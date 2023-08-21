@@ -8,7 +8,7 @@
 
 namespace Quotient {
 /// Device identity keys
-struct DeviceKeys {
+struct QUOTIENT_API DeviceKeys {
     /// The ID of the user the device belongs to. Must match the user ID used
     /// when logging in.
     QString userId;

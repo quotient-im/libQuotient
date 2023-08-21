@@ -10,7 +10,7 @@
 
 namespace Quotient {
 /// The backed up keys for a room.
-struct RoomKeyBackup {
+struct QUOTIENT_API RoomKeyBackup {
     /// A map of session IDs to key data.
     QHash<QString, KeyBackupData> sessions;
 };

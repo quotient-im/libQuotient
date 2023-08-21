@@ -10,7 +10,7 @@
 
 namespace Quotient {
 
-struct RoomEventFilter : EventFilter {
+struct QUOTIENT_API RoomEventFilter : EventFilter {
     /// If `true`, enables per-[thread](/client-server-api/#threading)
     /// notification counts. Only applies to the `/sync` endpoint. Defaults to
     /// `false`.

@@ -8,7 +8,7 @@
 
 namespace Quotient {
 /// Cross signing key
-struct CrossSigningKey {
+struct QUOTIENT_API CrossSigningKey {
     /// The ID of the user the key belongs to.
     QString userId;
 

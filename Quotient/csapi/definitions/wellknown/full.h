@@ -12,7 +12,7 @@
 namespace Quotient {
 /// Used by clients to determine the homeserver, identity server, and other
 /// optional components they should be interacting with.
-struct DiscoveryInformation {
+struct QUOTIENT_API DiscoveryInformation {
     /// Used by clients to determine the homeserver, identity server, and other
     /// optional components they should be interacting with.
     HomeserverInformation homeserver;

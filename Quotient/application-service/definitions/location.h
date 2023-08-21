@@ -8,7 +8,7 @@
 
 namespace Quotient {
 
-struct ThirdPartyLocation {
+struct QUOTIENT_API ThirdPartyLocation {
     /// An alias for a matrix room.
     QString alias;
 

@@ -8,7 +8,7 @@
 
 namespace Quotient {
 /// Definition of valid values for a field.
-struct FieldType {
+struct QUOTIENT_API FieldType {
     /// A regular expression for validation of a field's value. This may be
     /// relatively coarse to verify the value as the application service
     /// providing this protocol may apply additional validation or filtering.
@@ -32,7 +32,7 @@ struct JsonObjectConverter<FieldType> {
     }
 };
 
-struct ProtocolInstance {
+struct QUOTIENT_API ProtocolInstance {
     /// A human-readable description for the protocol, such as the name.
     QString desc;
 
@@ -65,7 +65,7 @@ struct JsonObjectConverter<ProtocolInstance> {
     }
 };
 
-struct ThirdPartyProtocol {
+struct QUOTIENT_API ThirdPartyProtocol {
     /// Fields which may be used to identify a third-party user. These should be
     /// ordered to suggest the way that entities may be grouped, where higher
     /// groupings are ordered first. For example, the name of a network should
