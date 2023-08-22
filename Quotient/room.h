@@ -321,23 +321,22 @@ public:
     [[deprecated("Use member() instead.")]]
     Q_INVOKABLE Quotient::User* user(const QString& userId) const;
 
-    /**
-     * @brief Get a RoomMember object for the given user Matrix ID.
-     *
-     * Will return a nullptr if there is no m.room.member event for the user in
-     * the room so needs to be null checked.
-     */
-    Q_INVOKABLE RoomMember* member(const QString& userId) const;
+    //! \brief Get a RoomMember object for the given user Matrix ID.
+    //!
+    //! Will return a nullptr if there is no m.room.member event for the user in
+    //! the room so needs to be null checked.
+    //!
+    //! \note This can return a member in any state that is known to the room so
+    //!       check the state (using RoomMember::membershipState()) before use.
+    Q_INVOKABLE QSharedPointer<RoomMember> member(const QString& userId) const;
 
-    /**
-     * @brief Get a list of room members who have joined the room.
-     */
-    QList<RoomMember*> joinedMembers() const;
+    //! \brief Get a list of room members who have joined the room.
+    QList<QSharedPointer<RoomMember>> joinedMembers() const;
 
     /**
      * @brief Get a list of all members known to the room.
      */
-    QList<RoomMember*> members() const;
+    QList<QSharedPointer<RoomMember>> members() const;
 
     /**
      * @brief Get a list of room member Matrix IDs who have joined the room.

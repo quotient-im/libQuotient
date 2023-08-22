@@ -219,6 +219,14 @@ public:
 
     //! \brief Mark the room as a direct chat with the user
     //!
+    //! This function marks \p room as a direct chat with \p userId.
+    //! Emits the signal synchronously, without waiting to complete
+    //! synchronisation with the server.
+    //! \sa directChatsListChanged
+    void addToDirectChats(const Room* room, const QString& userId);
+
+    //! \brief Mark the room as a direct chat with the user
+    //!
     //! This function marks \p room as a direct chat with \p user.
     //! Emits the signal synchronously, without waiting to complete
     //! synchronisation with the server.

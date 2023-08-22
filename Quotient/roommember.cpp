@@ -29,6 +29,8 @@ RoomMember::RoomMember(const RoomMemberEvent* member, const Room* room)
 
 QString RoomMember::id() const { return d->member->userId(); }
 
+Membership RoomMember::membershipState() const { return d->member->membership(); }
+
 QString RoomMember::name() const
 {
     // See https://github.com/matrix-org/matrix-doc/issues/1375

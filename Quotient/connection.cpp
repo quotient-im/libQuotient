@@ -1257,6 +1257,19 @@ void Connection::Private::removeRoom(const QString& roomId)
         }
 }
 
+void Connection::addToDirectChats(const Room* room, const QString& userId)
+{
+    Q_ASSERT(room != nullptr && !userId.isEmpty());
+    const auto u = user(userId);
+    if (d->directChats.contains(u, room->id()))
+        return;
+    Q_ASSERT(!d->directChatUsers.contains(room->id(), u));
+    d->directChats.insert(u, room->id());
+    d->directChatUsers.insert(room->id(), u);
+    d->dcLocalAdditions.insert(u, room->id());
+    emit directChatsListChanged({ { u, room->id() } }, {});
+}
+
 void Connection::addToDirectChats(const Room* room, User* user)
 {
     Q_ASSERT(room != nullptr && user != nullptr);
