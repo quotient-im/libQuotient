@@ -54,7 +54,7 @@
 #include "events/typingevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include <Quotient/quotient_common.h>
+#include "Quotient/quotient_common.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>

@@ -49,7 +49,7 @@ QString RoomMember::fullName() const { return displayName() % " ("_ls % id() % u
 
 QString RoomMember::htmlSafeFullName() const { return fullName().toHtmlEscaped(); }
 
-int RoomMember::hue() const { return int(hueF() * 359); }
+int RoomMember::hue() const { return static_cast<int>(hueF() * 359); }
 
 qreal RoomMember::hueF() const { return d->hueF; }
 

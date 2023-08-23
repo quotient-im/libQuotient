@@ -15,8 +15,6 @@ class Room;
 class RoomMemberEvent;
 
 /**
- * @class User
- *
  * This class is designed to give interface with a given user's profile.
  *
  * @note The User class is not intended for getting the data to visualise a user
@@ -29,15 +27,12 @@ class RoomMemberEvent;
 class QUOTIENT_API User : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString id READ id CONSTANT)
-    Q_PROPERTY(QString defaultName READ defaultName NOTIFY defaultNameChanged)
-    Q_PROPERTY(QString profileName READ profileName NOTIFY defaultNameChanged)
-    Q_PROPERTY(QString fullProfileName READ fullProfileName NOTIFY defaultNameChanged)
-    Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
-    Q_PROPERTY(int hue READ hue CONSTANT)
-    Q_PROPERTY(qreal hueF READ hueF CONSTANT)
     Q_PROPERTY(QString name READ name NOTIFY defaultNameChanged)
     Q_PROPERTY(QString displayName READ displayname NOTIFY defaultNameChanged STORED false)
     Q_PROPERTY(QString fullName READ fullName NOTIFY defaultNameChanged STORED false)
+    Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
+    Q_PROPERTY(int hue READ hue CONSTANT)
+    Q_PROPERTY(qreal hueF READ hueF CONSTANT)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY defaultAvatarChanged STORED false)
     Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY defaultAvatarChanged)
 public:
@@ -63,10 +58,10 @@ public:
      *
      * @sa Quotient::RoomMember::name()
      */
-    QString defaultName() const;
+    QString name(const Room* room = nullptr) const;
 
     /**
-     * @brief Get the name top show on the user's profile.
+     * @brief Get the name to show on the user's profile.
      *
      * This is intended to always give you something that can be displayed in a
      * UI. If the user doesn't have a default name or one is not available the
@@ -78,7 +73,7 @@ public:
      *
      * @sa Quotient::RoomMember::displayname()
      */
-    QString profileName() const;
+    QString displayname(const Room* room = nullptr) const;
 
     /**
      * @brief Get user's profilename and id in one string.
@@ -93,13 +88,6 @@ public:
      *
      * @sa Quotient::RoomMember::fullName()
      */
-    QString fullProfileName() const;
-
-    [[deprecated("For visualizing a user in a room context use Quotient::RoomMember::name(), otherwise use defaultName().")]]
-    QString name(const Room* room = nullptr) const;
-    [[deprecated("For visualizing a user in a room context use Quotient::RoomMember::displayName(), otherwise use profileName().")]]
-    QString displayname(const Room* room = nullptr) const;
-    [[deprecated("For visualizing a user in a room context use Quotient::RoomMember::fullName(), otherwise use fullProfileName().")]]
     QString fullName(const Room* room = nullptr) const;
 
     /**

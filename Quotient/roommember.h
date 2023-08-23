@@ -13,8 +13,6 @@ class Room;
 class RoomMemberEvent;
 
 /**
- * @class RoomMember
- *
  * This class is for visualizing a user in a room context.
  *
  * The class is intentionally a read-only data object that is effectively a wrapper
@@ -33,12 +31,12 @@ class RoomMemberEvent;
 class QUOTIENT_API RoomMember {
     Q_GADGET
     Q_PROPERTY(QString id READ id CONSTANT)
-    Q_PROPERTY(QString displayName READ displayName)
-    Q_PROPERTY(QString fullName READ fullName)
+    Q_PROPERTY(QString displayName READ displayName CONSTANT)
+    Q_PROPERTY(QString fullName READ fullName CONSTANT)
     Q_PROPERTY(int hue READ hue CONSTANT)
     Q_PROPERTY(qreal hueF READ hueF CONSTANT)
     Q_PROPERTY(QColor color READ color CONSTANT)
-    Q_PROPERTY(QUrl avatarUrl READ avatarUrl)
+    Q_PROPERTY(QUrl avatarUrl READ avatarUrl CONSTANT)
 
 public:
     RoomMember(const RoomMemberEvent* member, const Room* room);

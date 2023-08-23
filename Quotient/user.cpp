@@ -71,13 +71,18 @@ void User::load()
 
 QString User::id() const { return d->id; }
 
-QString User::defaultName() const { return d->defaultName; }
+QString User::name(const Room* room) const { return room ? room->memberName(id()) : d->defaultName; }
 
-QString User::profileName() const { return d->defaultName.isEmpty() ? d->id : d->defaultName; }
-
-QString User::fullProfileName() const
+QString User::displayname(const Room* room) const
 {
-    return defaultName().isEmpty() ? id() : (defaultName() % " ("_ls % id() % u')');
+    return room ? room->safeMemberName(id())
+                : d->defaultName.isEmpty() ? d->id : d->defaultName;
+}
+
+QString User::fullName(const Room* room) const
+{
+    const auto displayName = name(room);
+    return displayName.isEmpty() ? id() : (displayName % " ("_ls % id() % u')');
 }
 
 bool User::isGuest() const
@@ -90,11 +95,6 @@ bool User::isGuest() const
 }
 
 int User::hue() const { return int(hueF() * 359); }
-
-QString User::name(const Room* room) const
-{
-    return room ? room->memberName(id()) : d->defaultName;
-}
 
 void User::rename(const QString& newName)
 {
@@ -178,18 +178,6 @@ void User::ignore() { connection()->addToIgnoredUsers(this); }
 void User::unmarkIgnore() { connection()->removeFromIgnoredUsers(this); }
 
 bool User::isIgnored() const { return connection()->isIgnored(this); }
-
-QString User::displayname(const Room* room) const
-{
-    return room ? room->safeMemberName(id())
-                : d->defaultName.isEmpty() ? d->id : d->defaultName;
-}
-
-QString User::fullName(const Room* room) const
-{
-    const auto displayName = name(room);
-    return displayName.isEmpty() ? id() : (displayName % " ("_ls % id() % u')');
-}
 
 const Avatar& User::avatarObject(const Room* room) const
 {
