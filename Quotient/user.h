@@ -125,19 +125,19 @@ public:
     QUrl avatarUrl(const Room* room = nullptr) const;
 
 public Q_SLOTS:
-    //! \brief Set a new name in the global user profile.
+    //! Set a new name in the global user profile.
     void rename(const QString& newName);
 
-    //! \brief Set a new name for the user in one room.
+    //! Set a new name for the user in one room.
     void rename(const QString& newName, Room* r);
 
-    //! \brief Upload the file and use it as an avatar.
+    //! Upload the file and use it as an avatar.
     bool setAvatar(const QString& fileName);
 
-    //! \brief Upload contents of the QIODevice and set that as an avatar.
+    //! Upload contents of the QIODevice and set that as an avatar.
     bool setAvatar(QIODevice* source);
 
-    //! \brief Removes the avatar from the profile.
+    //! Removes the avatar from the profile.
     void removeAvatar();
 
     //! \brief Create or find a direct chat with this user.
@@ -146,13 +146,13 @@ public Q_SLOTS:
     //! Connection::directChatAvailable().
     void requestDirectChat();
 
-    //! \brief Add the user to the ignore list.
+    //! Add the user to the ignore list.
     void ignore();
 
-    //! \brief Remove the user from the ignore list.
+    //! Remove the user from the ignore list.
     void unmarkIgnore();
 
-    //! \brief Check whether the user is in ignore list.
+    //! Check whether the user is in ignore list.
     bool isIgnored() const;
 
     //! \brief Force loading display name and avartar url.
@@ -162,10 +162,10 @@ public Q_SLOTS:
     void load();
 
 Q_SIGNALS:
-    //! \brief The default name of the user has changed.
+    //! The default name of the user has changed.
     void defaultNameChanged();
 
-    //! \brief The default avatar of the user has changed.
+    //! The default avatar of the user has changed.
     void defaultAvatarChanged();
 
 private:

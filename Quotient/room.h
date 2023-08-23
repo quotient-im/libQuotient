@@ -239,7 +239,7 @@ public:
 
     Connection* connection() const;
 
-    //! \brief Get a RoomMember object for local user.
+    //! Get a RoomMember object for local user.
     RoomMember* localMember() const;
     [[deprecated("Use localMember() instead.")]]
     User* localUser() const;
@@ -328,16 +328,16 @@ public:
     //!       check the state (using RoomMember::membershipState()) before use.
     Q_INVOKABLE QSharedPointer<RoomMember> member(const QString& userId) const;
 
-    //! \brief Get a list of room members who have joined the room.
+    //! Get a list of room members who have joined the room.
     QList<QSharedPointer<RoomMember>> joinedMembers() const;
 
-    //! \brief Get a list of all members known to the room.
+    //! Get a list of all members known to the room.
     QList<QSharedPointer<RoomMember>> members() const;
 
-    //! \brief Get a list of room member Matrix IDs who have joined the room.
+    //! Get a list of room member Matrix IDs who have joined the room.
     QStringList joinedMemberIds() const;
 
-    //! \brief Get a list of all member Matrix IDs known to the room.
+    //! Get a list of all member Matrix IDs known to the room.
     QStringList memberIds() const;
 
     /**
@@ -975,10 +975,10 @@ Q_SIGNALS:
     //! from Membership::Join to anything else.
     void memberLeft(QString mxId);
 
-    //! \brief A known joined member has updated their display name.
+    //! A known joined member has updated their display name.
     void memberNameUpdated(QString mxId);
 
-    //! \brief A known joined member has updated their avatar.
+    //! A known joined member has updated their avatar.
     void memberAvatarUpdated(QString mxId);
 
     [[deprecated("Use memberJoined() instead.")]]
