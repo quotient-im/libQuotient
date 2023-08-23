@@ -524,7 +524,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             && d->shouldRotateMegolmSession()) {
             d->currentOutboundMegolmSession.reset();
         }
-        connect(this, &Room::memberRemoved, this, [this] {
+        connect(this, &Room::memberLeft, this, [this] {
             if (d->hasValidMegolmSession()) {
                 qCDebug(E2EE)
                     << "Rotating the megolm session because a user left";
@@ -3175,7 +3175,7 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
                             << "Membership change from Join to Invite:" << rme;
                     // whatever the new membership, it's no more Join
                     joinedMembers.remove(rme.userId());
-                    emit q->memberRemoved(rme.userId());
+                    emit q->memberLeft(rme.userId());
                 }
                 break;
             case Membership::Ban:
@@ -3346,7 +3346,7 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
                 case Membership::Join:
                     if (prevMembership != Membership::Join) {
                         joinedMembers.insert(evt.userId(), QSharedPointer<RoomMember>(new RoomMember(eventRef, q)));
-                        emit q->memberAdded(evt.userId());
+                        emit q->memberJoined(evt.userId());
                     } else {
                         if (evt.newDisplayName()) {
                             emit q->memberNameUpdated(evt.userId());

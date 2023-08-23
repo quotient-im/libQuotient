@@ -239,9 +239,7 @@ public:
 
     Connection* connection() const;
 
-    /**
-     * @brief Get a RoomMember object for local user.
-     */
+    //! \brief Get a RoomMember object for local user.
     RoomMember* localMember() const;
     [[deprecated("Use localMember() instead.")]]
     User* localUser() const;
@@ -333,19 +331,13 @@ public:
     //! \brief Get a list of room members who have joined the room.
     QList<QSharedPointer<RoomMember>> joinedMembers() const;
 
-    /**
-     * @brief Get a list of all members known to the room.
-     */
+    //! \brief Get a list of all members known to the room.
     QList<QSharedPointer<RoomMember>> members() const;
 
-    /**
-     * @brief Get a list of room member Matrix IDs who have joined the room.
-     */
+    //! \brief Get a list of room member Matrix IDs who have joined the room.
     QStringList joinedMemberIds() const;
 
-    /**
-     * @brief Get a list of all member Matrix IDs known to the room.
-     */
+    //! \brief Get a list of all member Matrix IDs known to the room.
     QStringList memberIds() const;
 
     /**
@@ -971,14 +963,27 @@ Q_SIGNALS:
     void topicChanged();
     void avatarChanged();
 
-    void memberAdded(QString mxId);
-    void memberNameUpdated(QString mxId);
-    void memberAvatarUpdated(QString mxId);
-    void memberRemoved(QString mxId);
+    //! \brief A new member has been joined the room.
+    //!
+    //! This can be from any previous state or a member previously unknown to
+    //! the room.
+    void memberJoined(QString mxId);
 
-    [[deprecated("Use memberAdded() instead.")]]
+    //! \brief A member who previously joined has left.
+    //!
+    //! The member will still be known to the room their membership state has changed
+    //! from Membership::Join to anything else.
+    void memberLeft(QString mxId);
+
+    //! \brief A known joined member has updated their display name.
+    void memberNameUpdated(QString mxId);
+
+    //! \brief A known joined member has updated their avatar.
+    void memberAvatarUpdated(QString mxId);
+
+    [[deprecated("Use memberJoined() instead.")]]
     void userAdded(Quotient::User* user);
-    [[deprecated("Use memberRemoved() instead.")]]
+    [[deprecated("Use memberLeft() instead.")]]
     void userRemoved(Quotient::User* user);
     [[deprecated("Use memberNameUpdated() instead.")]]
     void memberAboutToRename(Quotient::User* user, QString newName);
