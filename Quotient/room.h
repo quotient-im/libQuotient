@@ -512,7 +512,9 @@ public:
     //!       it's recommended to ensure that all room members are loaded
     //!       before operating on the result of this function.
     //! \sa lastReadReceipt, allMembersLoaded
-    QSet<QString> userIdsAtEvent(const QString& eventId);
+    QSet<QString> userIdsAtEvent(const QString& eventId) const;
+
+    QSet<QString> userIdsAtEvent(const QString& eventId); // See #706
 
     [[deprecated("Use userIdsAtEvent instead")]]
     QSet<User*> usersAtEventId(const QString& eventId);

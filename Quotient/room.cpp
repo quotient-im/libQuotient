@@ -1218,6 +1218,11 @@ Room::rev_iter_t Room::fullyReadMarker() const
     return findInTimeline(d->fullyReadUntilEventId);
 }
 
+QSet<QString> Room::userIdsAtEvent(const QString& eventId) const
+{
+    return d->eventIdReadUsers.value(eventId);
+}
+
 QSet<QString> Room::userIdsAtEvent(const QString& eventId)
 {
     return d->eventIdReadUsers.value(eventId);
