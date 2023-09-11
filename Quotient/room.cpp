@@ -1989,7 +1989,7 @@ void Room::updateSlidingData(SlidingSyncRoom&& data)
     Changes roomChanges {};
     // The order of calculation is important - don't merge the lines!
     roomChanges |= d->updateStateFrom(std::move(data.requiredState));
-    //roomChanges |= d->setSummary(std::move(data.summary));
+    //roomChanges |= d->setSummary(std::move(data.summary)); //TODO remove probably
     roomChanges |= d->addNewMessageEvents(std::move(data.timeline));
 
     const auto oldName = d->slidingName;
@@ -2469,6 +2469,7 @@ void Room::getPreviousContent(int limit, const QString& filter)
 
 void Room::Private::getPreviousContent(int limit, const QString& filter)
 {
+    return; //TODO
     if (!prevBatch || isJobPending(eventsHistoryJob))
         return;
 

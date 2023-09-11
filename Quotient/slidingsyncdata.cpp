@@ -15,7 +15,6 @@ void SlidingSyncData::parseJson(const QJsonObject &data)
     for (const auto &key : data["lists"_ls].toObject().keys()) {
         lists[key] = SlidingSyncLists::fromJson(data["lists"_ls][key].toObject());
     }
-    qWarning() << data["rooms"_ls].toObject().keys().count();
     for (const auto &key : data["rooms"_ls].toObject().keys()) {
         rooms.push_back(std::move(SlidingSyncRoom(data["rooms"_ls][key].toObject(), key)));
     }

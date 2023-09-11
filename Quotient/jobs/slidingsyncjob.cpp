@@ -17,7 +17,7 @@ SlidingSyncJob::SlidingSyncJob(const QString& txnId, QString pos)
               "/_matrix/client/unstable/org.matrix.msc3575/sync")
 {
     QUrlQuery query;
-    if (pos > -1)
+    if (pos != ""_ls)
         query.addQueryItem("pos"_ls, pos);
     setRequestQuery(query);
 
@@ -43,7 +43,6 @@ SlidingSyncJob::SlidingSyncJob(const QString& txnId, QString pos)
         {"unsubscribe_rooms"_ls, QJsonArray{}},
         {"extensions"_ls, QJsonObject{}},
     };
-    qWarning() << requestData;
 
     auto request = QStringLiteral("{\"lists\":{\"0\":{\"ranges\":[[0,20]],\"filters\":{\"is_dm\":true},\"required_state\":[[\"m.room.avatar\",\"\"],[\"m.room.tombstone\",\"\"]],\"timeline_limit\":1,\"sort\":[\"by_highlight_count\",\"by_notification_count\",\"by_recency\"]},\"1\":{\"ranges\":[[0,20]],\"filters\":{\"is_dm\":false},\"required_state\":[[\"m.room.avatar\",\"\"],[\"m.room.tombstone\",\"\"]],\"timeline_limit\":1,\"sort\":[\"by_highlight_count\",\"by_notification_count\",\"by_recency\"]}}}");
     requestData = QJsonDocument::fromJson(request.toLatin1()).object();

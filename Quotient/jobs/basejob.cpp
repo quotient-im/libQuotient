@@ -293,7 +293,7 @@ QNetworkRequest BaseJob::Private::prepareRequest() const
     //TODO make this less hacked in
     QNetworkRequest req;
     if (QString::fromLatin1(apiEndpoint).contains("sync"_ls)) {
-        req = QNetworkRequest { makeRequestUrl(QUrl("https://slidingsync.lab.matrix.org"_ls), "/_matrix/client/unstable/org.matrix.msc3575/sync", requestQuery) };
+        req = QNetworkRequest { makeRequestUrl(QUrl("https://kde.modular.im"_ls), "/_matrix/client/unstable/org.matrix.msc3575/sync", requestQuery) };
     } else {
         req = QNetworkRequest { makeRequestUrl(connection->baseUrl(), apiEndpoint,
                              requestQuery) };

@@ -443,9 +443,9 @@ void Connection::sync(int timeout)
     if (slidingSync) {
         job = d->slidingSyncJob = callApi<SlidingSyncJob>(BackgroundRequest, generateTxnId(), d->nextPos);
         connect(job, &SyncJob::success, this, [this, job] {
+            qWarning() << job->jsonData();
             onSlidingSyncSuccess(static_cast<SlidingSyncJob *>(job)->takeData());
             d->slidingSyncJob = nullptr;
-            qWarning() << "slidingsyncdone";
             emit syncDone();
         });
     } else {
@@ -608,7 +608,7 @@ void Connection::Private::consumeSlidingRoomData(SlidingRoomsData&& roomData)
                            << terse << roomData.joinState
                            << "state - suspiciously fast turnaround";
         }*/
-        if (auto* r = q->provideRoom(room.id, JoinState::Join)) { // TODO joinstate?
+        if (auto r = q->provideRoom(room.id, JoinState::Join)) { // TODO joinstate?
             pendingStateRoomIds.removeOne(room.id);
             r->updateSlidingData(std::move(room));
         }

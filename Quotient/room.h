@@ -1038,7 +1038,7 @@ protected:
     {}
     virtual QJsonObject toJson() const;
     virtual void updateData(SyncRoomData&& data, bool fromCache = false);
-    virtual void updateSlidingData(SlidingSyncRoom&& data);
+    void updateSlidingData(SlidingSyncRoom&& data);
     virtual Notification checkForNotifications(const TimelineItem& ti);
 
 private:
