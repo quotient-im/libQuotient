@@ -514,6 +514,8 @@ public:
     //! \sa lastReadReceipt, allMembersLoaded
     QSet<QString> userIdsAtEvent(const QString& eventId) const;
 
+    QSet<QString> userIdsAtEvent(const QString& eventId); // See #706
+
     [[deprecated("Use userIdsAtEvent instead")]]
     QSet<User*> usersAtEventId(const QString& eventId);
 

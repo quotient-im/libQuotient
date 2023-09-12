@@ -1223,6 +1223,11 @@ QSet<QString> Room::userIdsAtEvent(const QString& eventId) const
     return d->eventIdReadUsers.value(eventId);
 }
 
+QSet<QString> Room::userIdsAtEvent(const QString& eventId)
+{
+    return d->eventIdReadUsers.value(eventId);
+}
+
 QSet<User*> Room::usersAtEventId(const QString& eventId)
 {
     const auto& userIds = d->eventIdReadUsers.value(eventId);
