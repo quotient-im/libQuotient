@@ -4,9 +4,9 @@
 
 set(quotest_SRCS quotest.cpp)
 
-find_package(${Qt} COMPONENTS Concurrent)
+find_package(Qt6 COMPONENTS Concurrent)
 add_executable(quotest ${quotest_SRCS})
-target_link_libraries(quotest PRIVATE ${Qt}::Core ${Qt}::Test ${Qt}::Concurrent ${QUOTIENT_LIB_NAME})
+target_link_libraries(quotest PRIVATE Qt6::Core Qt6::Test Qt6::Concurrent ${QUOTIENT_LIB_NAME})
 
 if (MSVC)
     target_compile_options(quotest PUBLIC /EHsc /W4
