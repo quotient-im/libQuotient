@@ -142,6 +142,7 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/eventitem.h
         Quotient/accountregistry.h
         Quotient/mxcreply.h
+        Quotient/blurhash.h
         Quotient/events/event.h
         Quotient/events/roomevent.h
         Quotient/events/stateevent.h
@@ -212,6 +213,7 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/eventitem.cpp
         Quotient/accountregistry.cpp
         Quotient/mxcreply.cpp
+        Quotient/blurhash.cpp
         Quotient/events/event.cpp
         Quotient/events/roomevent.cpp
         Quotient/events/stateevent.cpp
