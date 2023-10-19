@@ -97,20 +97,14 @@ set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-if (BUILD_WITH_QT6)
-    set(QtMinVersion "6.0")
-else()
-    set(QtMinVersion "5.15")
-    set(QtExtraModules "Multimedia") # See #483
-endif()
-string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
-find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
-get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
+set(QtMinVersion "6.0")
+find_package(Qt6 ${QtMinVersion} REQUIRED Core Network Gui Test)
+get_filename_component(Qt_Prefix "${Qt6_DIR}/../../../.." ABSOLUTE)
 
-find_package(${Qt}Keychain REQUIRED)
+find_package(Qt6Keychain REQUIRED)
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
-    find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
+    find_package(Qt6 ${QtMinVersion} REQUIRED Sql)
     find_package(Olm 3.2.5 REQUIRED)
     set_package_properties(Olm PROPERTIES
         DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
@@ -321,16 +315,13 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
-if (Qt STREQUAL Qt5) # See #483
-    target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE ${Qt}::Multimedia)
-endif()
+target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC Qt6::Core Qt6::Network Qt6::Gui qt6keychain)
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${QUOTIENT_LIB_NAME}
         PUBLIC
             Olm::Olm
-            ${Qt}::Sql
+            Qt6::Sql
         PRIVATE
             OpenSSL::Crypto
     )
@@ -404,8 +395,8 @@ endif(CMAKE_BUILD_TYPE)
 message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "  Header files install prefix: ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}")
-message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
-message(STATUS "Using QtKeychain ${${Qt}Keychain_VERSION} at ${${Qt}Keychain_DIR}")
+message(STATUS "Using Qt ${Qt6_VERSION} at ${Qt_Prefix}")
+message(STATUS "Using QtKeychain ${Qt6Keychain_VERSION} at ${Qt6Keychain_DIR}")
 if (${PROJECT_NAME}_ENABLE_E2EE)
     message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
     message(STATUS "Using OpenSSL libcrypto ${OPENSSL_VERSION} at ${OPENSSL_CRYPTO_LIBRARY}")
