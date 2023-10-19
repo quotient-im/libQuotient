@@ -14,19 +14,6 @@
 #include <memory>
 #include <unordered_map>
 
-#ifndef Q_DISABLE_MOVE
-// Q_DISABLE_MOVE was introduced in Q_VERSION_CHECK(5,13,0)
-    #define Q_DISABLE_MOVE(_ClassName)             \
-        _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
-        _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
-#endif
-
-#ifndef Q_DISABLE_COPY_MOVE
-    #define Q_DISABLE_COPY_MOVE(Class) \
-        Q_DISABLE_COPY(Class)          \
-        Q_DISABLE_MOVE(Class)
-#endif
-
 #define DISABLE_MOVE(_ClassName) \
 static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all used versions of Qt");
 
