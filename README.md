@@ -39,7 +39,7 @@ To use libQuotient (i.e. build or run applications with it), you'll need:
   and there's also limited positive experience with Android)
   - Recent enough Linux examples: Debian Bullseye; Fedora 35;
     openSUSE Leap 15.4; Ubuntu 22.04 LTS
-- Qt 5.15 or 6 - either Open Source or Commercial
+- Qt6 - either Open Source or Commercial
 - QtKeychain (https://github.com/frankosterfeld/qtkeychain) - 0.12 or newer is
   recommended; the build configuration of both QtKeychain and libQuotient 
   must use the same Qt major version
@@ -69,9 +69,7 @@ any on-screen drawing.
 
 #### macOS
 `brew install qt qtkeychain libolm openssl@3` should get you the most recent
-versions of the runtime libraries. Note that by default it installs Qt 6 and
-that's the only available configuration for QtKeychain in Homebrew. If you need
-to go with Qt 5, use `brew install qt@5` and build QtKeychain from the source.
+versions of the runtime libraries.
 
 You may need to add `$(brew --prefix qt)`, `$(brew --prefix qtkeychain)` etc.
 to `CMAKE_PREFIX_PATH` (see below) to make CMake aware of the library locations.
@@ -265,49 +263,11 @@ skipped by setting `Quotient_INSTALL_TESTS` to `OFF`.
 - If `cmake` fails with
   ```
   CMake Warning at CMakeLists.txt:11 (find_package):
-    By not providing "FindQt5Widgets.cmake" in CMAKE_MODULE_PATH this project
+    By not providing "FindQt6Widgets.cmake" in CMAKE_MODULE_PATH this project
     has asked CMake to find a package configuration file provided by
-    "Qt5Widgets", but CMake did not find one.
+    "Qt6Widgets", but CMake did not find one.
   ```
   then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
-  
-- If `cmake` fails with a message similar to:
-  ```
-  CMake Error at /usr/lib64/cmake/Qt6Core/Qt6CoreVersionlessTargets.cmake:37 (message):
-    Some (but not all) targets in this export set were already defined.
-  
-    Targets Defined: Qt::Core
-  
-    Targets not yet defined: Qt::CorePrivate
-  ```
-  then you likely have both Qt 5 and Qt 6 on your system, and your code uses
-  a different major version of Qt than Quotient. Make sure you configure the
-  build so that the same major Qt version is used both by libQuotient and
-  your code.
-
-- If you use GCC and get an "unknown declarator" compilation error in the file
-`qtconcurrentthreadengine.h` - unfortunately, it is an actual error in Qt 5.15
-sources, see https://bugreports.qt.io/browse/QTBUG-90568 (or
-https://bugreports.qt.io/browse/QTBUG-91909). The Qt company did not make
-an open source release with the fix, therefore:
-
-  - first off, consider switching to Qt 6 entirely; 0.8.x is the last
-    libQuotient strain to support Qt 5.15, libQuotient 0.9 will only build with
-    Qt 6.
-  - if/while you're stuck with Qt 5.15:
-    - on Linux and macOS, Clang happens to build the faulty header just fine,
-      as does MSVC on Windows; you might consider using these compilers instead;
-    - otherwise, on Linux, use Qt from your package management system, as this
-      bug is already patched in most distros;
-    - otherwise, or if you're on Windows+MinGW, just fix the Qt headers: locate
-      the file (the GCC error message tells exactly where it is), find the
-      `ThreadEngineStarter` constructor definition looking like
-      `ThreadEngineStarter<void>(ThreadEngine<void> *_threadEngine)`
-      and remove the template specialisation from the constructor name (but not
-      from `ThreadEngine`). The result should look like
-      `ThreadEngineStarter(ThreadEngine<void> *_threadEngine)`.
-      This will fix your build (and any other build involving QtConcurrent from
-      this installation of Qt - the fix is not specific to Quotient in any way).
 
 #### Logging configuration
 
