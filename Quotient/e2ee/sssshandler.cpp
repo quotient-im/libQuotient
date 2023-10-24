@@ -102,6 +102,7 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
 {
     auto job = m_connection->callApi<GetRoomKeysVersionCurrentJob>();
     connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey](){
+        m_connection->database()->storeEncrypted("etag"_ls, job->etag().toLatin1());
         auto authData = job->jsonData()["auth_data"_ls].toObject();
         for (const auto& key : authData["signatures"_ls].toObject()[m_connection->userId()].toObject().keys()) {
             const auto& edKey = m_connection->database()->edKeyForKeyId(m_connection->userId(), key);
