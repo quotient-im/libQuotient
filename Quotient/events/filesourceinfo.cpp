@@ -15,7 +15,6 @@
 
 #    include <QtCore/QCryptographicHash>
 #    include "e2ee/cryptoutils.h"
-#    include <openssl/evp.h>
 #endif
 
 using namespace Quotient;

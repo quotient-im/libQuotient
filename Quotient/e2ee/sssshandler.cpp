@@ -3,14 +3,17 @@
 
 #include "sssshandler.h"
 
-#include "e2ee/cryptoutils.h"
-#include "e2ee/qolmaccount.h"
-#include "room.h"
+#include "cryptoutils.h"
+#include "qolmaccount.h"
+
+#include "../csapi/key_backup.h"
+
+#include "../events/event.h"
+
+#include "../database.h"
 #include "../logging_categories_p.h"
 #include "../qt_connection_util.h"
-#include "database.h"
-#include "../events/event.h"
-#include "../csapi/key_backup.h"
+#include "../room.h"
 
 using namespace Quotient;
 

@@ -33,8 +33,6 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
-#include "e2ee/cryptoutils.h"
-#include <variant>
 
 #ifdef Quotient_E2EE_ENABLED
 #    include "connectionencryptiondata_p.h"
@@ -58,8 +56,6 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
-
-#include <variant>
 
 using namespace Quotient;
 
