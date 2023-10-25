@@ -2437,7 +2437,7 @@ void Room::Private::getPreviousContent(int limit, const QString& filter)
         {
             *prevBatch = newPrevBatch;
         } else {
-            qInfo(MESSAGES)
+            qCDebug(MESSAGES)
                 << "Room" << q->objectName() << "has loaded all history";
             prevBatch.reset();
         }

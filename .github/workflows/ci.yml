@@ -56,34 +56,33 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Install Qt
+    # Install on Linux via apt to get everything necessary in one go
+    - name: Install dependencies (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        COMMON_PKGS="libolm-dev ninja-build valgrind gnome-keyring"
+        sudo apt-get -qq update
+        sudo apt-get -qq install $COMMON_PKGS \
+            ${{ startsWith(matrix.qt-version, '5')
+                && 'qtmultimedia5-dev qttools5-dev qt5keychain-dev'
+                || 'qt6-base-dev libgl1-mesa-dev qt6-l10n-tools qt6-tools-dev qt6-tools-dev-tools qtkeychain-qt6-dev'
+            }}
+        gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
+
+    - name: Install dependencies (non-Linux)
+      if: "!startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v3.0.0
       with:
         version: '${{ matrix.qt-version }}.*'
         cache: true
         cache-key-prefix: Qt
-        tools: "tools_ninja${{ !startsWith(matrix.os, 'macos') && ' tools_openssl_x64' || '' }}"
-
-    - name: Install other dependencies (Linux)
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        sudo apt-get -qq install valgrind gnome-keyring
-        gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
-
-    - name: Install other dependencies (macOS)
-      if: startsWith(matrix.os, 'macos') && matrix.e2ee
-      run: brew install openssl
+        tools: "tools_ninja${{ startsWith(matrix.os, 'windows') && ' tools_opensslv3_x64' || '' }}"
 
     - name: Setup build environment
       run: |
         if [ '${{ matrix.override-compiler }}' == 'GCC' ]; then
             echo "CC=gcc" >>$GITHUB_ENV
             echo "CXX=g++" >>$GITHUB_ENV
-            if [ '${{ startsWith(matrix.qt-version, '5') }}' == 'true' ]; then
-                # Patch Qt to avoid GCC tumbling over QTBUG-90568/QTBUG-91909
-                sed -i 's/ThreadEngineStarter<void>(ThreadEngine<void> \*_threadEngine)/ThreadEngineStarter(ThreadEngine<void> \*_threadEngine)/' \
-                    $Qt5_DIR/include/QtConcurrent/qtconcurrentthreadengine.h
-            fi
             echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
         elif [[ '${{ runner.os }}' != 'Windows' ]]; then
             echo "CC=clang" >>$GITHUB_ENV
@@ -103,7 +102,7 @@ jobs:
         fi
 
         CMAKE_ARGS="-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                    -DCMAKE_MAKE_PROGRAM=$IQTA_TOOLS/Ninja/ninja \
+                    ${{ runner.os != 'Linux' && '-DCMAKE_MAKE_PROGRAM=$IQTA_TOOLS/Ninja/ninja' || '' }} \
                     -DBUILD_SHARED_LIBS=${{ runner.os == 'Linux' }} \
                     -DCMAKE_INSTALL_PREFIX=~/.local \
                     -DCMAKE_PREFIX_PATH=~/.local \
@@ -112,11 +111,10 @@ jobs:
 
         if [ -n '${{ matrix.e2ee }}' ]; then
             QUOTEST_ORIGIN="$QUOTEST_ORIGIN/E2EE"
-            if [ '${{ startsWith(runner.os, 'mac') }}' == 'true' ]; then
-                CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=`brew --prefix openssl@1.1`"
-            else
-                CMAKE_ARGS="$CMAKE_ARGS -DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSL/*/"
-            fi
+            CMAKE_ARGS="$CMAKE_ARGS \
+                ${{ runner.os == 'macOS' && '-DOPENSSL_ROOT_DIR=`brew --prefix openssl`' ||
+                    runner.os == 'Windows' && '-DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSLv3/Win_x64/' || '' }} \
+                "
         fi
 
         if [ '${{ matrix.static-analysis }}' == 'sonar' ]; then
