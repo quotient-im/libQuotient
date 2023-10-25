@@ -9,7 +9,18 @@
 
 #include <olm/pk.h>
 
-#include <qtest.h>
+class TestCryptoUtils : public QObject
+{
+    Q_OBJECT
+private Q_SLOTS:
+    void aesCtrEncryptDecryptData();
+    void hkdfSha256ExpandKeys();
+    void encryptDecryptFile();
+    void pbkdfGenerateKey();
+    void hmac();
+    void curve25519AesEncryptDecrypt();
+    void decodeBase58();
+};
 
 using namespace Quotient;
 
@@ -73,3 +84,4 @@ void TestCryptoUtils::decodeBase58()
 }
 
 QTEST_APPLESS_MAIN(TestCryptoUtils)
+#include "testcryptoutils.moc"
