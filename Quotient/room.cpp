@@ -3586,19 +3586,25 @@ void Room::activateEncryption()
 }
 
 #ifdef Quotient_E2EE_ENABLED
-void Room::addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index)
+void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteArray& sessionKey, uint32_t index)
 {
-    if (d->groupSessions.contains(sessionId) && d->groupSessions[sessionId].firstKnownIndex() <= index) {
+    const auto sessionIt = d->groupSessions.find(sessionId);
+    if (sessionIt != d->groupSessions.end() && sessionIt->second.firstKnownIndex() <= index)
         return;
-    }
-    d->groupSessions[sessionId] = QOlmInboundGroupSession::importSession(sessionKey).value();
-    if (d->connection->isVerifiedSession(sessionId)) {
-        d->groupSessions[sessionId].setOlmSessionId(QByteArrayLiteral("BACKUP_VERIFIED"));
-    } else {
-        d->groupSessions[sessionId].setOlmSessionId(QByteArrayLiteral("BACKUP"));
-    }
-    d->groupSessions[sessionId].setSenderId("BACKUP"_ls);
-    d->connection->saveMegolmSession(this, d->groupSessions[sessionId]);
+
+    auto&& importResult = QOlmInboundGroupSession::importSession(sessionKey);
+    if (!importResult)
+        return;
+    // NB: after the next line, sessionIt can be invalid.
+    auto& session = d->groupSessions
+                        .insert_or_assign(sessionIt, sessionId,
+                                          std::move(importResult.value()))
+                        ->second;
+    session.setOlmSessionId(d->connection->isVerifiedSession(sessionId)
+                                ? QByteArrayLiteral("BACKUP_VERIFIED")
+                                : QByteArrayLiteral("BACKUP"));
+    session.setSenderId("BACKUP"_ls);
+    d->connection->saveMegolmSession(this, session);
 }
 #endif
 

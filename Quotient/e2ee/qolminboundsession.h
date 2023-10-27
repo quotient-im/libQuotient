@@ -49,9 +49,8 @@ public:
     OlmErrorCode lastErrorCode() const;
     const char* lastError() const;
 
-    //TODO: why?
-    QOlmInboundGroupSession();
 private:
+    QOlmInboundGroupSession();
     CStructPtr<OlmInboundGroupSession> m_groupSession;
     QByteArray m_olmSessionId;
     QString m_senderId;
