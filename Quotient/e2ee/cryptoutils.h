@@ -22,10 +22,12 @@ struct QUOTIENT_API Curve25519Encrypted {
     QByteArray ephemeral;
 };
 
+constexpr auto DefaultPbkdf2KeyLength = 32;
+
 /**
  * @brief Generate a key out of the given password
  */
-QUOTIENT_API QByteArray pbkdf2HmacSha512(const QByteArray& password, const QByteArray& salt, int iterations, int keyLength);
+QUOTIENT_API QByteArray pbkdf2HmacSha512(const QByteArray& password, const QByteArray& salt, int iterations, int keyLength = DefaultPbkdf2KeyLength);
 
 /**
  * @brief Derives a key from the input data using HKDF-SHA256

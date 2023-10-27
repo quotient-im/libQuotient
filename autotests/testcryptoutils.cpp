@@ -56,7 +56,7 @@ void TestCryptoUtils::hkdfSha256ExpandKeys()
 
 void TestCryptoUtils::pbkdfGenerateKey()
 {
-    auto key = pbkdf2HmacSha512(QStringLiteral("PASSWORD").toLatin1(), QByteArray(32, u'\0'), 50000, 32);
+    auto key = pbkdf2HmacSha512(QStringLiteral("PASSWORD").toLatin1(), QByteArray(32, u'\0'), 50000);
     QCOMPARE(key, QByteArray::fromBase64("ejq90XW/J2J+cgi1ASgBj94M/YrEtWRKAPnsG+rdG4w="));
 }
 
