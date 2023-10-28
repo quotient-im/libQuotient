@@ -14,7 +14,7 @@ class QUOTIENT_API SSSSHandler : public QObject
     Q_PROPERTY(Quotient::Connection* connection READ connection WRITE setConnection NOTIFY connectionChanged)
 
 public:
-    explicit SSSSHandler(QObject* parent = nullptr);
+    using QObject::QObject;
 
     //! \brief Unlock the secret backup from the given password
     Q_INVOKABLE void unlockSSSSFromPassword(const QString& password);
@@ -32,6 +32,7 @@ Q_SIGNALS:
     void keyBackupUnlocked();
     void keyBackupKeyWrong();
     void connectionChanged();
+
 private:
     QPointer<Quotient::Connection> m_connection;
 
@@ -39,6 +40,6 @@ private:
     QByteArray decryptKey(const QString& name, const QByteArray& decryptionKey) const;
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
-    void calculateDefaultKey(const QByteArray& secret, bool passphrase);
+    void calculateDefaultKey(const QByteArray& secret, bool requirePassphrase);
     void requestKeyFromDevices(const QString& name, const std::function<void(const QByteArray&)>& then);
 };

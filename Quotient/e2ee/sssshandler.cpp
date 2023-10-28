@@ -17,16 +17,12 @@
 
 using namespace Quotient;
 
-SSSSHandler::SSSSHandler(QObject* parent)
-    : QObject(parent)
-{}
-
 DEFINE_SIMPLE_EVENT(SecretStorageDefaultKeyEvent, Event, "m.secret_storage.default_key", QString, key, "key");
 
 QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryptionKey) const
 {
     Q_ASSERT(m_connection);
-    if (!m_connection->hasAccountData("m.secret_storage.default_key"_ls)) {
+    if (!m_connection->hasAccountData(SecretStorageDefaultKeyEvent::TypeId)) {
         return {};
     }
     const auto defaultKey = m_connection->accountData<SecretStorageDefaultKeyEvent>()->key();
@@ -57,11 +53,11 @@ void SSSSHandler::requestKeyFromDevices(const QString& name, const std::function
 {
     Connection::UsersToDevicesToContent content;
     const auto& requestId = m_connection->generateTxnId();
-    QJsonObject eventContent;
-    eventContent["action"_ls] = "request"_ls;
-    eventContent["name"_ls] = name;
-    eventContent["request_id"_ls] = requestId;
-    eventContent["requesting_device_id"_ls] = m_connection->deviceId();
+    const QJsonObject eventContent{ { "action"_ls, "request"_ls },
+                                    { "name"_ls, name },
+                                    { "request_id"_ls, requestId },
+                                    { "requesting_device_id"_ls,
+                                      m_connection->deviceId() } };
     for (const auto& deviceId : m_connection->devicesForUser(m_connection->userId())) {
         content[m_connection->userId()][deviceId] = eventContent;
     }
@@ -98,13 +94,13 @@ void SSSSHandler::setConnection(Connection* connection)
         return;
     }
     m_connection = connection;
-    Q_EMIT connectionChanged();
+    emit connectionChanged();
 }
 
 void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
 {
     auto job = m_connection->callApi<GetRoomKeysVersionCurrentJob>();
-    connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey](){
+    connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey] {
         m_connection->database()->storeEncrypted("etag"_ls, job->etag().toLatin1());
         auto authData = job->jsonData()["auth_data"_ls].toObject();
         for (const auto& key : authData["signatures"_ls].toObject()[m_connection->userId()].toObject().keys()) {
@@ -139,10 +135,11 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
     });
 }
 
-void SSSSHandler::calculateDefaultKey(const QByteArray& secret, bool passphrase)
+void SSSSHandler::calculateDefaultKey(const QByteArray& secret,
+                                      bool requirePassphrase)
 {
     auto key = secret;
-    if (!m_connection->hasAccountData("m.secret_storage.default_key"_ls)) {
+    if (!m_connection->hasAccountData(SecretStorageDefaultKeyEvent::TypeId)) {
         return;
     }
     const auto defaultKey = m_connection->accountData<SecretStorageDefaultKeyEvent>()->key();
@@ -155,7 +152,7 @@ void SSSSHandler::calculateDefaultKey(const QByteArray& secret, bool passphrase)
         return;
     }
 
-    if (passphrase) {
+    if (requirePassphrase) {
         const auto &passphraseJson = keyEvent->contentPart<QJsonObject>("passphrase"_ls);
         if (passphraseJson["algorithm"_ls].toString() != "m.pbkdf2"_ls) {
             qCWarning(E2EE) << "Unsupported SSSS passphrase algorithm" << passphraseJson["algorithm"_ls].toString() << " - aborting.";
