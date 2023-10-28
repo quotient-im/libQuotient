@@ -189,7 +189,14 @@ public:
     template <EventClass EventT>
     const EventT* accountData() const
     {
+        // 0.9: use the default argument and fold into the next overload
         return eventCast<EventT>(accountData(EventT::TypeId));
+    }
+
+    template <EventClass EventT>
+    const EventT* accountData(const QString& keyName) const
+    {
+        return eventCast<EventT>(accountData(keyName));
     }
 
     //! \brief Get account data as a JSON object
