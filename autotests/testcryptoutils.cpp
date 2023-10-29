@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+#include <Quotient/connection.h>
+#include <Quotient/database.h>
 #include <Quotient/e2ee/cryptoutils.h>
 #include <Quotient/e2ee/e2ee_common.h>
 
@@ -22,6 +24,7 @@ private slots:
     void hmac();
     void curve25519AesEncryptDecrypt();
     void decodeBase58();
+    void testEncrypted();
 };
 
 namespace {
@@ -91,5 +94,15 @@ void TestCryptoUtils::decodeBase58()
     QCOMPARE(base58Decode(QByteArrayLiteral("ABCDEFabcdef")).toBase64(), QByteArrayLiteral("DG3GmkxFR1TQ"));
 }
 
-QTEST_APPLESS_MAIN(TestCryptoUtils)
+void TestCryptoUtils::testEncrypted()
+{
+    QByteArray key(32, '\0');
+    auto text = QByteArrayLiteral("This is a message");
+    auto connection = Connection::makeMockConnection("@foo:bar.com"_ls, true);
+    connection->database()->storeEncrypted("testKey"_ls, text);
+    auto decrypted = connection->database()->loadEncrypted("testKey"_ls);
+    QCOMPARE(text, decrypted);
+}
+
+QTEST_GUILESS_MAIN(TestCryptoUtils)
 #include "testcryptoutils.moc"

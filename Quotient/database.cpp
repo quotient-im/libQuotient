@@ -167,7 +167,7 @@ void Database::migrateTo6()
     qCDebug(DATABASE) << "Migrating database to version 6";
     transaction();
 
-    execute(QStringLiteral("CREATE TABLE encrypted (name TEXT, cipher TEXT);"));
+    execute(QStringLiteral("CREATE TABLE encrypted (name TEXT, cipher TEXT, iv TEXT);"));
     execute(QStringLiteral("PRAGMA user_version = 6"));
     commit();
 }
@@ -490,12 +490,14 @@ QString Database::edKeyForKeyId(const QString& userId, const QString& edKeyId)
 
 void Database::storeEncrypted(const QString& name, const QByteArray& key)
 {
-    auto cipher = aesCtr256Encrypt(key, m_picklingKey.viewAsByteArray().left(32), QByteArray(32, 0)).toBase64();
-    auto query = prepareQuery(QStringLiteral("INSERT INTO encrypted(name, cipher) VALUES(:name, :cipher);"));
+    auto iv = getRandom<16>();
+    auto cipher = aesCtr256Encrypt(key, m_picklingKey.viewAsByteArray().left(32), iv.viewAsByteArray()).toBase64();
+    auto query = prepareQuery(QStringLiteral("INSERT INTO encrypted(name, cipher, iv) VALUES(:name, :cipher, :iv);"));
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM encrypted WHERE name=:name;"));
     deleteQuery.bindValue(":name"_ls, name);
     query.bindValue(":name"_ls, name);
     query.bindValue(":cipher"_ls, cipher);
+    query.bindValue(":iv"_ls, iv.viewAsByteArray().toBase64());
     transaction();
     execute(deleteQuery);
     execute(query);
@@ -504,12 +506,13 @@ void Database::storeEncrypted(const QString& name, const QByteArray& key)
 
 QByteArray Database::loadEncrypted(const QString& name)
 {
-    auto query = prepareQuery("SELECT cipher FROM encrypted WHERE name=:name;"_ls);
+    auto query = prepareQuery("SELECT cipher, iv FROM encrypted WHERE name=:name;"_ls);
     query.bindValue(":name"_ls, name);
     execute(query);
     if (!query.next()) {
         return {};
     }
     auto cipher = QByteArray::fromBase64(query.value("cipher"_ls).toString().toLatin1());
-    return aesCtr256Decrypt(cipher, m_picklingKey.viewAsByteArray().left(32), QByteArray(32, 0));
+    auto iv = QByteArray::fromBase64(query.value("iv"_ls).toString().toLatin1());
+    return aesCtr256Decrypt(cipher, m_picklingKey.viewAsByteArray().left(32), iv);
 }
