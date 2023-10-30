@@ -61,6 +61,10 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         COMMON_PKGS="libolm-dev ninja-build valgrind gnome-keyring"
+        # Workaround for https://github.com/actions/runner-images/issues/8659
+        sudo rm -f /etc/apt/sources.list.d/ubuntu-toolchain-r-ubuntu-test-jammy.list
+        COMMON_PKGS="--allow-downgrades libc6=2.35-0ubuntu3.4 libc6-dev=2.35-0ubuntu3.4 libstdc++6=12.3.0-1ubuntu1~22.04 libgcc-s1=12.3.0-1ubuntu1~22.04 $COMMON_PKGS"
+        # End of workaround
         sudo apt-get -qq update
         sudo apt-get -qq install $COMMON_PKGS \
             ${{ startsWith(matrix.qt-version, '5')
