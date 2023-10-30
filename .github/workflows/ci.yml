@@ -144,7 +144,7 @@ jobs:
     - name: Set up Sonar Cloud tools
       id: sonar
       if: matrix.static-analysis == 'sonar'
-      uses: sonarsource/sonarcloud-github-c-cpp@v1
+      uses: sonarsource/sonarcloud-github-c-cpp@v2
 
     - name: Build and install QtKeychain
       run: |
