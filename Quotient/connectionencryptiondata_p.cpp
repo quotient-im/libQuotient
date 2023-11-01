@@ -27,7 +27,7 @@ Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& id,
 {
     if (mock) {
         qInfo(E2EE) << "Using a mock pickling key";
-        return PicklingKey::mock();
+        return PicklingKey::generate();
     }
 
     // TODO: Rewrite the whole thing in an async way to get rid of nested event
@@ -83,6 +83,11 @@ ConnectionEncryptionData::setup(Connection* connection, bool mock)
     if (auto&& maybePicklingKey = setupPicklingKey(connection->userId(), mock)) {
         auto&& encryptionData = std::make_unique<ConnectionEncryptionData>(
             connection, std::move(*maybePicklingKey));
+        if (mock) {
+            encryptionData->database.clear();
+            encryptionData->olmAccount.setupNewAccount();
+            return std::move(encryptionData);
+        }
         if (const auto outcome = encryptionData->database.setupOlmAccount(
                 encryptionData->olmAccount)) {
             // account already existing or there's an error unpickling it
