@@ -6,7 +6,6 @@
 #include "connection.h"
 #include "logging_categories_p.h"
 
-#include "events/eventcontent.h"
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtCore/QDir>
@@ -16,21 +15,22 @@
 #include <QtGui/QPainter>
 
 using namespace Quotient;
-using std::move;
 
-class Q_DECL_HIDDEN Avatar::Private {
+class Q_DECL_HIDDEN Avatar::Private : public QObject {
 public:
     explicit Private(QUrl url = {}) : _url(std::move(url)) {}
-    ~Private()
+    ~Private() override
     {
         if (isJobPending(_thumbnailRequest))
             _thumbnailRequest->abandon();
         if (isJobPending(_uploadRequest))
             _uploadRequest->abandon();
     }
+    Q_DISABLE_COPY_MOVE(Private)
 
     QImage get(Connection* connection, QSize size,
                get_callback_t callback) const;
+    void thumbnailRequestFinished();
     bool upload(UploadContentJob* job, upload_callback_t&& callback);
 
     bool checkUrl(const QUrl& url) const;
@@ -41,16 +41,15 @@ public:
     // The below are related to image caching, hence mutable
     mutable QImage _originalImage;
     mutable std::vector<std::pair<QSize, QImage>> _scaledImages;
-    mutable QSize _requestedSize;
-    mutable enum { Unknown, Cache, Network, Banned } _imageSource = Unknown;
+    mutable QSize _largestRequestedSize{};
+    enum ImageSource : quint8 { Unknown, Cache, Network, Invalid };
+    mutable ImageSource _imageSource = Unknown;
     mutable QPointer<MediaThumbnailJob> _thumbnailRequest = nullptr;
     mutable QPointer<BaseJob> _uploadRequest = nullptr;
-    mutable std::vector<get_callback_t> callbacks;
+    mutable std::vector<get_callback_t> callbacks{};
 };
 
-Avatar::Avatar()
-    : d(makeImpl<Private>())
-{}
+Avatar::Avatar() : d(makeImpl<Private>()) {}
 
 Avatar::Avatar(QUrl url) : d(makeImpl<Private>(std::move(url))) {}
 
@@ -87,53 +86,80 @@ QString Avatar::mediaId() const { return d->_url.authority() + d->_url.path(); }
 QImage Avatar::Private::get(Connection* connection, QSize size,
                             get_callback_t callback) const
 {
-    if (!callback) {
-        qCCritical(MAIN) << "Null callbacks are not allowed in Avatar::get";
-        Q_ASSERT(false);
-    }
-
     if (_imageSource == Unknown && _originalImage.load(localFile())) {
         _imageSource = Cache;
-        _requestedSize = _originalImage.size();
+        _largestRequestedSize = _originalImage.size();
     }
 
-    // Alternating between longer-width and longer-height requests is a sure way
-    // to trick the below code into constantly getting another image from
-    // the server because the existing one is alleged unsatisfactory.
-    // Client authors can only blame themselves if they do so.
+    // Assuming that all thumbnails for this avatar have the same aspect ratio,
+    // it's enough for the image requested before to be large enough in at least
+    // one dimension to be suitable for scaling down to the requested size;
+    // therefore the new size has to be larger in both dimensions to warrant a
+    // new request to the server
     if (((_imageSource == Unknown && !_thumbnailRequest)
-         || size.width() > _requestedSize.width()
-         || size.height() > _requestedSize.height())
+         || (size.width() > _largestRequestedSize.width()
+             && size.height() > _largestRequestedSize.height()))
         && checkUrl(_url)) {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
-        _requestedSize = size;
+        _largestRequestedSize = size;
         if (isJobPending(_thumbnailRequest))
             _thumbnailRequest->abandon();
         if (callback)
             callbacks.emplace_back(std::move(callback));
         _thumbnailRequest = connection->getThumbnail(_url, size);
-        QObject::connect(_thumbnailRequest, &MediaThumbnailJob::success,
-                         _thumbnailRequest, [this] {
-                             _imageSource = Network;
-                             _originalImage = _thumbnailRequest->scaledThumbnail(
-                                 _requestedSize);
-                             _originalImage.save(localFile());
-                             _scaledImages.clear();
-                             for (const auto& n : callbacks)
-                                 n();
-                             callbacks.clear();
-                         });
+        connect(_thumbnailRequest, &MediaThumbnailJob::finished, this,
+                &Private::thumbnailRequestFinished);
+        // The result of this request will only be returned when get() is
+        // called next time afterwards
     }
+    if (_imageSource == Invalid || _originalImage.isNull())
+        return {};
 
-    for (const auto& [scaledSize, scaledImage] : _scaledImages)
-        if (scaledSize == size)
+    // NB: because of KeepAspectRatio, scaledImage.size() might not be equal to
+    // requestedSize - this is why requestedSize is stored separately
+    for (const auto& [requestedSize, scaledImage] : _scaledImages)
+        if (requestedSize == size)
             return scaledImage;
-    auto result = _originalImage.isNull()
-                      ? QImage()
-                      : _originalImage.scaled(size, Qt::KeepAspectRatio,
-                                              Qt::SmoothTransformation);
+
+    const auto& result = _originalImage.scaled(size, Qt::KeepAspectRatio,
+                                               Qt::SmoothTransformation);
     _scaledImages.emplace_back(size, result);
     return result;
+}
+
+void Avatar::Private::thumbnailRequestFinished()
+{
+    // NB: The following code preserves _originalImage in case of
+    // most errors
+    switch (_thumbnailRequest->error()) {
+    case BaseJob::NoError: break;
+    case BaseJob::NetworkError:
+    case BaseJob::NetworkAuthRequired:
+    case BaseJob::TooManyRequests: // Shouldn't reach here but just in case
+    case BaseJob::Timeout:
+        return; // Make another attempt when requested again
+    default:
+        // Other errors are likely unrecoverable but just in case,
+        // check if there's a previous image to fall back to; if
+        // there is, assume that the error is temporary
+        if (_originalImage.isNull())
+            _imageSource = Invalid; // Can't do much with the rest
+        return;
+    }
+    auto&& img = _thumbnailRequest->thumbnail();
+    if (img.format() == QImage::Format_Invalid) {
+        qCWarning(MAIN) << "The request for" << _url
+                        << "was successful but the received image "
+                           "is invalid or unsupported";
+        return;
+    }
+    _imageSource = Network;
+    _originalImage = std::move(img);
+    _originalImage.save(localFile());
+    _scaledImages.clear();
+    for (const auto& n : callbacks)
+        n();
+    callbacks.clear();
 }
 
 bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t &&callback)
@@ -148,7 +174,7 @@ bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t &&callback
 
 bool Avatar::Private::checkUrl(const QUrl& url) const
 {
-    if (_imageSource == Banned || url.isEmpty())
+    if (_imageSource == Invalid || url.isEmpty())
         return false;
 
     // FIXME: Make "mxc" a library-wide constant and maybe even make
@@ -156,9 +182,9 @@ bool Avatar::Private::checkUrl(const QUrl& url) const
     if (!url.isValid() || url.scheme() != "mxc"_ls || url.path().count(u'/') != 1) {
         qCWarning(MAIN) << "Avatar URL is invalid or not mxc-based:"
                         << url.toDisplayString();
-        _imageSource = Banned;
+        _imageSource = Invalid;
     }
-    return _imageSource != Banned;
+    return _imageSource != Invalid;
 }
 
 QString Avatar::Private::localFile() const
@@ -176,6 +202,8 @@ bool Avatar::updateUrl(const QUrl& newUrl)
 
     d->_url = newUrl;
     d->_imageSource = Private::Unknown;
+    d->_originalImage = {};
+    d->_scaledImages.clear();
     if (isJobPending(d->_thumbnailRequest))
         d->_thumbnailRequest->abandon();
     return true;
