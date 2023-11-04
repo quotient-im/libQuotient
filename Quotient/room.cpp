@@ -3287,13 +3287,13 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
             switch (currMembership) {
             case Membership::Join:
                 if (prevMembership != Membership::Join) {
-                    emit q->memberJoined(evt.userId());
+                    emit q->memberJoined(q->member(evt.userId()));
                 } else {
                     if (evt.newDisplayName()) {
-                        emit q->memberNameUpdated(evt.userId());
+                        emit q->memberNameUpdated(q->member(evt.userId()));
                     }
                     if (evt.newAvatarUrl()) {
-                        emit q->memberAvatarUpdated(evt.userId());
+                        emit q->memberAvatarUpdated(q->member(evt.userId()));
                     }
                 }
                 break;
@@ -3305,7 +3305,7 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
             case Membership::Ban:
             case Membership::Leave:
                 if (prevMembership == Membership::Join) {
-                    emit q->memberLeft(evt.userId());
+                    emit q->memberLeft(q->member(evt.userId()));
                 }
                 break;
             case Membership::Undefined:
@@ -3663,9 +3663,28 @@ QJsonObject Room::toJson() const { return d->toJson(); }
 
 MemberSorter Room::memberSorter() const { return MemberSorter(this); }
 
+bool MemberSorter::operator()(RoomMember u1, RoomMember u2) const
+{
+    return operator()(u1, u2.displayName());
+}
+
 bool MemberSorter::operator()(User* u1, User* u2) const
 {
     return operator()(u1, room->disambiguatedMemberName(u2->id()));
+}
+
+bool MemberSorter::operator()(RoomMember u1, QStringView u2name) const
+{
+    auto n1 = u1.displayName();
+    if (n1.startsWith(u'@'))
+        n1.remove(0, 1);
+    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)
+#if QT_VERSION_MAJOR < 6
+        .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
+#endif
+        ;
+
+    return n1.localeAwareCompare(n2) < 0;
 }
 
 bool MemberSorter::operator()(User* u1, QStringView u2name) const

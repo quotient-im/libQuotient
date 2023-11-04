@@ -967,19 +967,19 @@ Q_SIGNALS:
     //!
     //! This can be from any previous state or a member previously unknown to
     //! the room.
-    void memberJoined(QString mxId);
+    void memberJoined(RoomMember member);
 
     //! \brief A member who previously joined has left.
     //!
     //! The member will still be known to the room their membership state has changed
     //! from Membership::Join to anything else.
-    void memberLeft(QString mxId);
+    void memberLeft(RoomMember member);
 
     //! A known joined member has updated their display name.
-    void memberNameUpdated(QString mxId);
+    void memberNameUpdated(RoomMember member);
 
     //! A known joined member has updated their avatar.
-    void memberAvatarUpdated(QString mxId);
+    void memberAvatarUpdated(RoomMember member);
 
     [[deprecated("Use memberJoined() instead.")]]
     void userAdded(Quotient::User* user);
@@ -1088,7 +1088,9 @@ class QUOTIENT_API MemberSorter {
 public:
     explicit MemberSorter(const Room* r) : room(r) {}
 
+    bool operator()(RoomMember u1, RoomMember u2) const;
     bool operator()(User* u1, User* u2) const;
+    bool operator()(RoomMember u1, QStringView u2name) const;
     bool operator()(User* u1, QStringView u2name) const;
 
     template <typename ContT, typename ValT>
