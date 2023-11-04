@@ -3278,11 +3278,41 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
         [this, oldEvent](const RoomMemberEvent& evt) {
             // See also Room::P::preprocessStateEvent()
             // Handling for Quotient::RoomMember
+            const auto currMembership = evt.membership();
+            const auto prevMembership =
+                lift(&RoomMemberEvent::membership,
+                        static_cast<const RoomMemberEvent*>(oldEvent))
+                    .value_or(Membership::Leave);
+
+            switch (currMembership) {
+            case Membership::Join:
+                if (prevMembership != Membership::Join) {
+                    emit q->memberJoined(evt.userId());
+                } else {
+                    if (evt.newDisplayName()) {
+                        emit q->memberNameUpdated(evt.userId());
+                    }
+                    if (evt.newAvatarUrl()) {
+                        emit q->memberAvatarUpdated(evt.userId());
+                    }
+                }
+                break;
+            case Membership::Invite:
+                if (evt.userId() == q->localMember().id() && evt.isDirect())
+                    connection->addToDirectChats(q, evt.userId());
+                break;
+            case Membership::Knock:
+            case Membership::Ban:
+            case Membership::Leave:
+                if (prevMembership == Membership::Join) {
+                    emit q->memberLeft(evt.userId());
+                }
+                break;
+            case Membership::Undefined:
+                qCWarning(MEMBERS) << "Ignored undefined membership type";
+            }
+
             if (auto* u = q->user(evt.userId())) {
-                const auto prevMembership =
-                    lift(&RoomMemberEvent::membership,
-                         static_cast<const RoomMemberEvent*>(oldEvent))
-                        .value_or(Membership::Leave);
                 switch (evt.membership()) {
                 case Membership::Join:
                     if (prevMembership != Membership::Join) {
