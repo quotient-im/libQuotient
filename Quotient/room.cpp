@@ -133,14 +133,6 @@ public:
     QList<User*> usersTyping;
     QList<User*> usersInvited;
 
-    // Instances of RoomMember to replace use of User.
-    QHash<QString, QSharedPointer<RoomMember>> joinedMembers;
-    QHash<QString, QSharedPointer<RoomMember>> invitedMembers;
-    QHash<QString, QSharedPointer<RoomMember>> knockingMembers;
-    QHash<QString, QSharedPointer<RoomMember>> leftMembers;
-    QHash<QString, QSharedPointer<RoomMember>> bannedMembers;
-    QHash<QString, QSharedPointer<RoomMember>> membersTyping;
-
     QHash<QString, QSet<QString>> eventIdReadUsers;
     bool displayed = false;
     QString firstDisplayedEventId;
@@ -686,51 +678,53 @@ QImage Room::avatar(int width, int height)
     return {};
 }
 
-RoomMember* Room::localMember() const { return member(connection()->userId()).data(); }
+RoomMember Room::localMember() const { return member(connection()->userId()); }
 
 User* Room::user(const QString& userId) const
 {
     return connection()->user(userId);
 }
 
-QSharedPointer<RoomMember> Room::member(const QString& userId) const
+RoomMember Room::member(const QString& userId) const
 {
     if (userId.isEmpty()) {
-        return nullptr;
+        return RoomMember(this);
     }
-    // Check a m.room.member event exists for the given ID to avoid checking all
-    // the RoomMember instance containers for an unknown user.
-    if (!currentState().contains<RoomMemberEvent>(userId)) {
-        return nullptr;
-    }
-    if (d->joinedMembers.contains(userId)) {
-        return d->joinedMembers.value(userId);
-    }
-    if (d->invitedMembers.contains(userId)) {
-        return d->invitedMembers.value(userId);
-    }
-    if (d->knockingMembers.contains(userId)) {
-        return d->knockingMembers.value(userId);
-    }
-    if (d->leftMembers.contains(userId)) {
-        return d->leftMembers.value(userId);
-    }
-    if (d->bannedMembers.contains(userId)) {
-        return d->bannedMembers.value(userId);
-    }
-    return nullptr;
+    return RoomMember(this, currentState().get<RoomMemberEvent>(userId));
 }
 
-QList<QSharedPointer<RoomMember>> Room::joinedMembers() const { return d->joinedMembers.values(); }
+QList<RoomMember> Room::joinedMembers() const
+{
+    QList<RoomMember> joinedMembers;
+    joinedMembers.reserve(joinedCount());
 
-QList<QSharedPointer<RoomMember>> Room::members() const {
-    return d->joinedMembers.values() + d->invitedMembers.values() + d->knockingMembers.values() + d->leftMembers.values() + d->bannedMembers.values();
+    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event);
+            memberEvent->membership() == Membership::Join) {
+            joinedMembers.append(RoomMember(this, memberEvent));
+        }
+    }
+    return joinedMembers;
+}
+
+QList<RoomMember> Room::members() const {
+    QList<RoomMember> members;
+    members.reserve(totalMemberCount());
+
+    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event)) {
+            members.append(RoomMember(this, memberEvent));
+        }
+    }
+    return members;
 }
 
 QStringList Room::joinedMemberIds() const
 {
     QStringList ids;
-    ids.reserve(totalMemberCount());
+    ids.reserve(joinedCount());
 
     const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
     for (const auto event : memberEvents) {
@@ -1183,7 +1177,7 @@ const RoomTombstoneEvent* Room::tombstone() const
 void Room::Private::getAllMembers()
 {
     // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= joinedMembers.size() || isJobPending(allMembersJob))
+    if (q->joinedCount() <= currentState.eventsOfType("m.room.member"_ls).size() || isJobPending(allMembersJob))
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
@@ -1728,7 +1722,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
 
 int Room::joinedCount() const
 {
-    return d->summary.joinedMemberCount.value_or(d->joinedMembers.size());
+    return d->summary.joinedMemberCount.value_or(0);
 }
 
 int Room::invitedCount() const
@@ -3154,58 +3148,6 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
 {
     newEvent.switchOnType(
         [this, curEvent](const RoomMemberEvent& rme) {
-            switch (const auto prevMembership =
-                        lift(&RoomMemberEvent::membership,
-                             eventCast<const RoomMemberEvent>(curEvent))
-                            .value_or(Membership::Leave)) {
-            case Membership::Invite:
-                if (rme.membership() != prevMembership) {
-                    invitedMembers.remove(rme.userId());
-                    Q_ASSERT(!invitedMembers.contains(rme.userId()));
-                }
-                break;
-            case Membership::Join:
-                if (rme.membership() == Membership::Join) {
-                    qCDebug(MEMBERS).nospace().noquote()
-                        << "No-op membership event for " << rme.userId()
-                        << ": " << rme;
-                } else {
-                    if (rme.membership() == Membership::Invite)
-                        qCWarning(MAIN)
-                            << "Membership change from Join to Invite:" << rme;
-                    // whatever the new membership, it's no more Join
-                    joinedMembers.remove(rme.userId());
-                    emit q->memberLeft(rme.userId());
-                }
-                break;
-            case Membership::Ban:
-                if (rme.membership() == Membership::Ban) {
-                    qCWarning(MAIN)
-                            << "Member " << rme.userId() << " was banned again.";
-                } else {
-                    bannedMembers.remove(rme.userId());
-                }
-                break;
-            case Membership::Knock:
-                if (rme.membership() == Membership::Knock) {
-                    qCWarning(MAIN)
-                            << "Member " << rme.userId() << " knocked again.";
-                } else {
-                    knockingMembers.remove(rme.userId());
-                }
-                break;
-            case Membership::Leave:
-                if (rme.membership() == Membership::Leave) {
-                    qCWarning(MAIN)
-                            << "Member " << rme.userId() << " left again.";
-                } else {
-                    leftMembers.remove(rme.userId());
-                }
-                break;
-            case Membership::Undefined:
-                ; // A warning will be dropped in Room::P::processStateEvent()
-            }
-
             auto* u = q->user(rme.userId());
             if (!u) { // Some terribly malformed user id?
                 qCCritical(MAIN) << "Could not get a user object for"
@@ -3336,49 +3278,6 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
         [this, oldEvent](const RoomMemberEvent& evt) {
             // See also Room::P::preprocessStateEvent()
             // Handling for Quotient::RoomMember
-
-            if (const auto eventRef = currentState.get<RoomMemberEvent>(evt.userId())) {
-                const auto prevMembership =
-                    lift(&RoomMemberEvent::membership,
-                        static_cast<const RoomMemberEvent*>(oldEvent))
-                        .value_or(Membership::Leave);
-                switch (evt.membership()) {
-                case Membership::Join:
-                    if (prevMembership != Membership::Join) {
-                        joinedMembers.insert(evt.userId(), QSharedPointer<RoomMember>(new RoomMember(eventRef, q)));
-                        emit q->memberJoined(evt.userId());
-                    } else {
-                        if (evt.newDisplayName()) {
-                            emit q->memberNameUpdated(evt.userId());
-                        }
-                        if (evt.newAvatarUrl()) {
-                            emit q->memberAvatarUpdated(evt.userId());
-                        }
-                    }
-                    break;
-                case Membership::Invite:
-                    if (!invitedMembers.contains(evt.userId()))
-                        invitedMembers.insert(evt.userId(), QSharedPointer<RoomMember>(new RoomMember(eventRef, q)));
-                    if (evt.userId() == q->localMember()->id() && evt.isDirect())
-                        connection->addToDirectChats(q, evt.userId());
-                    break;
-                case Membership::Knock:
-                    if (!knockingMembers.contains(evt.userId()))
-                        knockingMembers.insert(evt.userId(), QSharedPointer<RoomMember>(new RoomMember(eventRef, q)));
-                    break;
-                case Membership::Ban:
-                    if (!bannedMembers.contains(evt.userId()))
-                        bannedMembers.insert(evt.userId(), QSharedPointer<RoomMember>(new RoomMember(eventRef, q)));
-                    break;
-                case Membership::Leave:
-                    if (!leftMembers.contains(evt.userId()))
-                        leftMembers.insert(evt.userId(), QSharedPointer<RoomMember>(new RoomMember(eventRef, q)));
-                    break;
-                case Membership::Undefined:
-                    qCWarning(MEMBERS) << "Ignored undefined membership type";
-                }
-            }
-
             if (auto* u = q->user(evt.userId())) {
                 const auto prevMembership =
                     lift(&RoomMemberEvent::membership,

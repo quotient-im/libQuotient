@@ -118,7 +118,7 @@ class QUOTIENT_API Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
     Q_PROPERTY(User* localUser READ localUser CONSTANT)
-    Q_PROPERTY(RoomMember* localMember READ localMember CONSTANT)
+    Q_PROPERTY(RoomMember localMember READ localMember CONSTANT)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(QString version READ version NOTIFY baseStateLoaded)
     Q_PROPERTY(bool isUnstable READ isUnstable NOTIFY stabilityUpdated)
@@ -240,7 +240,7 @@ public:
     Connection* connection() const;
 
     //! Get a RoomMember object for local user.
-    RoomMember* localMember() const;
+    RoomMember localMember() const;
     [[deprecated("Use localMember() instead.")]]
     User* localUser() const;
     const QString& id() const;
@@ -326,13 +326,13 @@ public:
     //!
     //! \note This can return a member in any state that is known to the room so
     //!       check the state (using RoomMember::membershipState()) before use.
-    Q_INVOKABLE QSharedPointer<RoomMember> member(const QString& userId) const;
+    Q_INVOKABLE RoomMember member(const QString& userId) const;
 
     //! Get a list of room members who have joined the room.
-    QList<QSharedPointer<RoomMember>> joinedMembers() const;
+    QList<RoomMember> joinedMembers() const;
 
     //! Get a list of all members known to the room.
-    QList<QSharedPointer<RoomMember>> members() const;
+    QList<RoomMember> members() const;
 
     //! Get a list of room member Matrix IDs who have joined the room.
     QStringList joinedMemberIds() const;
