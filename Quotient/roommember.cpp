@@ -19,13 +19,7 @@ RoomMember::RoomMember(const Room* room, const RoomMemberEvent* member)
 {
 }
 
-bool RoomMember::operator==(const RoomMember& other) const
-{
-    if (id().isEmpty() || other.id().isEmpty()) {
-        return false;
-    }
-    return id() == other.id();
-}
+bool RoomMember::operator==(const RoomMember& other) const { return id() == other.id(); }
 
 QString RoomMember::id() const
 {
