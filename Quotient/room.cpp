@@ -688,7 +688,7 @@ User* Room::user(const QString& userId) const
 RoomMember Room::member(const QString& userId) const
 {
     if (userId.isEmpty()) {
-        return RoomMember(this);
+        return {};
     }
     return RoomMember(this, currentState().get<RoomMemberEvent>(userId));
 }
