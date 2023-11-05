@@ -40,6 +40,8 @@ class QUOTIENT_API RoomMember {
     Q_PROPERTY(QUrl avatarUrl READ avatarUrl CONSTANT)
 
 public:
+    RoomMember() = default;
+
     explicit RoomMember(const Room* room, const RoomMemberEvent* member = nullptr);
 
     bool operator==(const RoomMember& other) const;
