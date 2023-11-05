@@ -42,7 +42,7 @@ class QUOTIENT_API RoomMember {
 public:
     RoomMember() = default;
 
-    explicit RoomMember(const Room* room, const RoomMemberEvent* member = nullptr);
+    explicit RoomMember(const Room* room, const RoomMemberEvent* member);
 
     bool operator==(const RoomMember& other) const;
 

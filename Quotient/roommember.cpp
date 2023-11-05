@@ -39,7 +39,13 @@ Uri RoomMember::uri() const {
     qWarning() << id() << id().toLatin1();
     return Uri(id().toLatin1()); }
 
-bool RoomMember::isLocalMember() const { return id() == _room->localMember().id(); }
+bool RoomMember::isLocalMember() const
+{
+    if (_room == nullptr) {
+        return false;
+    }
+    return id() == _room->localMember().id();
+}
 
 Membership RoomMember::membershipState() const
 {
@@ -106,7 +112,7 @@ QString RoomMember::avatarMediaId() const
 }
 
 QUrl RoomMember::avatarUrl() const {
-    if (_member == nullptr) {
+    if (_room == nullptr || _member == nullptr) {
         return {};
     }
     // See https://github.com/matrix-org/matrix-doc/issues/1375
