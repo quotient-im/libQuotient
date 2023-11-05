@@ -27,16 +27,22 @@ bool RoomMember::operator==(const RoomMember& other) const
     return id() == other.id();
 }
 
-QString RoomMember::id() const {
+QString RoomMember::id() const
+{
     if (_member == nullptr) {
         return {};
     }
     return _member->userId();
 }
 
+Uri RoomMember::uri() const {
+    qWarning() << id() << id().toLatin1();
+    return Uri(id().toLatin1()); }
+
 bool RoomMember::isLocalMember() const { return id() == _room->localMember().id(); }
 
-Membership RoomMember::membershipState() const {
+Membership RoomMember::membershipState() const
+{
     if (_member == nullptr) {
         return Membership::Undefined;
     }
