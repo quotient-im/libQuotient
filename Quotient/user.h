@@ -14,7 +14,7 @@ class Connection;
 class Room;
 class RoomMemberEvent;
 
-//! This class provides an interface with a given user's profile.
+//! This class provides an interface to a given user's profile.
 //!
 //! \note The User class is not intended for getting the data to visualise a user
 //!       in the context of a particular room. For that a Quotient::RoomMember object
