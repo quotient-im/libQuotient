@@ -319,7 +319,7 @@ public:
     [[deprecated("Use member() instead.")]]
     Q_INVOKABLE Quotient::User* user(const QString& userId) const;
 
-    //! \brief Get a RoomMember object for the given user Matrix ID.
+    //! \brief Get a RoomMember object for the given user Matrix ID
     //!
     //! Will return a nullptr if there is no m.room.member event for the user in
     //! the room so needs to be null checked.
@@ -359,7 +359,7 @@ public:
     //! Check whether a user with the given id is a member of the room
     Q_INVOKABLE bool isMember(const QString& userId) const;
 
-    [[deprecated("Use member(mxId)->name() instead.")]]
+    [[deprecated("Use member(mxId).name() instead.")]]
     Q_INVOKABLE QString memberName(const QString& mxId) const;
 
     //! \brief Get a disambiguated name for the given user in the room context
@@ -369,16 +369,16 @@ public:
     Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
-    [[deprecated("Use member(mxId)->displayName() instead.")]]
+    [[deprecated("Use member(mxId).displayName() instead.")]]
     Q_INVOKABLE QString disambiguatedMemberName(const QString& mxId) const;
 
-    [[deprecated("Use member(mxId)->displayName() instead.")]]
+    [[deprecated("Use member(mxId).displayName() instead.")]]
     Q_INVOKABLE QString safeMemberName(const QString& userId) const;
 
-    [[deprecated("Use member(mxId)->displayName() instead.")]]
+    [[deprecated("Use member(mxId).displayName() instead.")]]
     Q_INVOKABLE QString htmlSafeMemberName(const QString& userId) const;
 
-    [[deprecated("Use member(mxId)->avatarUrl() instead.")]]
+    [[deprecated("Use member(mxId).avatarUrl() instead.")]]
     QUrl memberAvatarUrl(const QString& mxId) const;
 
     const Timeline& messageEvents() const;

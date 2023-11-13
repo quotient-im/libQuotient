@@ -7,8 +7,8 @@
 #include "room.h"
 #include "util.h"
 
-#include <QGuiApplication>
-#include <QPalette>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QPalette>
 
 using namespace Quotient;
 
@@ -95,8 +95,7 @@ QString RoomMember::avatarMediaId() const
     QUrl baseUrl;
     if (_member->newAvatarUrl()) {
         baseUrl = *_member->newAvatarUrl();
-    }
-    if (_member->prevContent() && _member->prevContent()->avatarUrl) {
+    } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
         baseUrl = *_member->prevContent()->avatarUrl;
     }
     if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_ls) {
@@ -113,8 +112,7 @@ QUrl RoomMember::avatarUrl() const {
     QUrl baseUrl;
     if (_member->newAvatarUrl()) {
         baseUrl = *_member->newAvatarUrl();
-    }
-    if (_member->prevContent() && _member->prevContent()->avatarUrl) {
+    } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
         baseUrl = *_member->prevContent()->avatarUrl;
     }
     if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_ls) {
