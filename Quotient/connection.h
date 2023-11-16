@@ -745,7 +745,7 @@ public Q_SLOTS:
     KeyVerificationSession* startKeyVerificationSession(const QString& userId,
                                                         const QString& deviceId);
 
-    void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
+    void encryptionUpdate(const Room* room, const QList<QString>& invited = {});
 #endif
 
     static Connection* makeMockConnection(const QString& mxId,

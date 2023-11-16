@@ -125,6 +125,32 @@ public:
     //! \sa fullName()
     QString htmlSafeFullName() const;
 
+    //! \brief Get the disambiguated user name
+    //!
+    //! This function always aims to return something that can be displayed in a
+    //! UI, so if no display name is set the just user's Matrix ID will be returned.
+    //! The output is equivalent to fullName() if there is another user in the room
+    //! with the same name. Otherwise it is equivalent to displayName().
+    //!
+    //! The output is sanitized and suitable for a plain text field. For a rich
+    //! field use htmlSafeDisambiguatedName().
+    //!
+    //! \sa htmlSafeDisambiguatedName(), fullName(), displayName()
+    QString disambiguatedName() const;
+
+    //! \brief Get the disambiguated user name
+    //!
+    //! This function always aims to return something that can be displayed in a
+    //! UI, so if no display name is set the just user's Matrix ID will be returned.
+    //! The output is equivalent to htmlSafeFullName() if there is another user in the room
+    //! with the same name. Otherwise it is equivalent to htmlSafeDisplayName().
+    //!
+    //! The output is sanitized and html escaped ready for a rich text field. For
+    //! a plain field use disambiguatedName().
+    //!
+    //! \sa disambiguatedName(), htmlSafeFullName(), htmlSafeDisplayName()
+    QString htmlSafeDisambiguatedName() const;
+
     //! \brief Hue color component of this user based on the user's Matrix ID
     //!
     //! The implementation is based on XEP-0392:

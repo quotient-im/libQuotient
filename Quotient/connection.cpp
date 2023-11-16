@@ -1743,10 +1743,17 @@ bool Connection::isQueryingKeys() const
            && d->encryptionData->currentQueryKeysJob != nullptr;
 }
 
-void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
+void Connection::encryptionUpdate(const Room* room, const QList<QString>& invited)
 {
-    if (d->encryptionData)
-        d->encryptionData->encryptionUpdate(room->users() + invited);
+    if (d->encryptionData) {
+        QList<User*> invitedUsers;
+        for (const auto id :invited) {
+            if (auto u = user(id)) {
+                invitedUsers.append(u);
+            }
+        }
+        d->encryptionData->encryptionUpdate(room->users() + invitedUsers);
+    }
 }
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)

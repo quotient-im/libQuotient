@@ -340,6 +340,9 @@ public:
     //! Get a list of all member Matrix IDs known to the room.
     QStringList memberIds() const;
 
+    //! Whether the name for the given member should be disambiguated
+    bool needsDisambiguation(const QString& userId) const;
+
     /**
      * \brief Check the join state of a given user in this room
      *
@@ -369,13 +372,13 @@ public:
     Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
     Q_INVOKABLE QString roomMembername(const QString& userId) const;
 
-    [[deprecated("Use member(mxId).displayName() instead.")]]
+    [[deprecated("Use member(mxId).disambiguatedName() instead.")]]
     Q_INVOKABLE QString disambiguatedMemberName(const QString& mxId) const;
 
-    [[deprecated("Use member(mxId).displayName() instead.")]]
+    [[deprecated("Use member(mxId).disambiguatedName() instead.")]]
     Q_INVOKABLE QString safeMemberName(const QString& userId) const;
 
-    [[deprecated("Use member(mxId).displayName() instead.")]]
+    [[deprecated("Use member(mxId).htmlSafeDisambiguatedName() instead.")]]
     Q_INVOKABLE QString htmlSafeMemberName(const QString& userId) const;
 
     [[deprecated("Use member(mxId).avatarUrl() instead.")]]
@@ -963,22 +966,25 @@ Q_SIGNALS:
     void topicChanged();
     void avatarChanged();
 
-    //! \brief A new member has been joined the room.
+    //! \brief A new member has been joined the room
     //!
     //! This can be from any previous state or a member previously unknown to
     //! the room.
     void memberJoined(RoomMember member);
 
-    //! \brief A member who previously joined has left.
+    //! \brief A member who previously joined has left
     //!
     //! The member will still be known to the room their membership state has changed
     //! from Membership::Join to anything else.
     void memberLeft(RoomMember member);
 
-    //! A known joined member has updated their display name.
+    //! A known joined member is about to update their display name
+    void memberNameAboutToUpdate(RoomMember member, QString newName);
+
+    //! A known joined member has updated their display name
     void memberNameUpdated(RoomMember member);
 
-    //! A known joined member has updated their avatar.
+    //! A known joined member has updated their avatar
     void memberAvatarUpdated(RoomMember member);
 
     [[deprecated("Use memberJoined() instead.")]]

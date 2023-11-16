@@ -75,6 +75,10 @@ QString RoomMember::fullName() const {
 
 QString RoomMember::htmlSafeFullName() const { return fullName().toHtmlEscaped(); }
 
+QString RoomMember::disambiguatedName() const { return _room->needsDisambiguation(id()) ? fullName() : displayName(); }
+
+QString RoomMember::htmlSafeDisambiguatedName() const { return disambiguatedName().toHtmlEscaped(); }
+
 int RoomMember::hue() const { return static_cast<int>(hueF() * 359); }
 
 qreal RoomMember::hueF() const { return _hueF; }
