@@ -5,7 +5,6 @@
 
 #include "quotient_common.h"
 #include "uri.h"
-#include "util.h"
 
 #include <QtCore/QObject>
 
