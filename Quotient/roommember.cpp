@@ -29,9 +29,7 @@ QString RoomMember::id() const
     return _member->userId();
 }
 
-Uri RoomMember::uri() const {
-    qWarning() << id() << id().toLatin1();
-    return Uri(id().toLatin1()); }
+Uri RoomMember::uri() const { return Uri(id().toLatin1()); }
 
 bool RoomMember::isLocalMember() const
 {
