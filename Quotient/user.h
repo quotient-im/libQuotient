@@ -25,12 +25,12 @@ class RoomMemberEvent;
 class QUOTIENT_API User : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString id READ id CONSTANT)
-    Q_PROPERTY(QString name READ name NOTIFY defaultNameChanged)
-    Q_PROPERTY(QString displayName READ displayname NOTIFY defaultNameChanged STORED false)
-    Q_PROPERTY(QString fullName READ fullName NOTIFY defaultNameChanged STORED false)
     Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
     Q_PROPERTY(int hue READ hue CONSTANT)
     Q_PROPERTY(qreal hueF READ hueF CONSTANT)
+    Q_PROPERTY(QString name READ name NOTIFY defaultNameChanged)
+    Q_PROPERTY(QString displayName READ displayname NOTIFY defaultNameChanged STORED false)
+    Q_PROPERTY(QString fullName READ fullName NOTIFY defaultNameChanged STORED false)
     Q_PROPERTY(QString avatarMediaId READ avatarMediaId NOTIFY defaultAvatarChanged STORED false)
     Q_PROPERTY(QUrl avatarUrl READ avatarUrl NOTIFY defaultAvatarChanged)
 public:
