@@ -89,7 +89,7 @@ public:
 
     [[deprecated("Quotient::RoomMember::hue() should be used instead.")]]
     int hue() const;
-    [[deprecated("RQuotient::RoomMember::hueF() should be used instead.")]]
+    [[deprecated("Quotient::RoomMember::hueF() should be used instead.")]]
     qreal hueF() const;
 
     [[deprecated("For visualising in a room context Quotient::RoomMember::avatarUrl() should be used instead, otherwise use avatarUrl().")]]

@@ -34,6 +34,7 @@ class QUOTIENT_API RoomMember {
     Q_PROPERTY(bool isLocalMember READ isLocalMember CONSTANT)
     Q_PROPERTY(QString displayName READ displayName CONSTANT)
     Q_PROPERTY(QString fullName READ fullName CONSTANT)
+    Q_PROPERTY(QString disambiguatedName READ disambiguatedName CONSTANT)
     Q_PROPERTY(int hue READ hue CONSTANT)
     Q_PROPERTY(qreal hueF READ hueF CONSTANT)
     Q_PROPERTY(QColor color READ color CONSTANT)
