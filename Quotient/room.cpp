@@ -363,6 +363,17 @@ public:
 
     bool isLocalMember(const QString& memberId) const { return memberId == connection->userId(); }
 
+    template<typename ListType>
+    QList<User*> usersFromIdList(const ListType& list) const
+    {
+        QList<User*> users;
+        users.reserve(list.size());
+        for (const auto& userId : std::as_const(list)) {
+            users.append(q->user(userId));
+        }
+        return users;
+    }
+
 #ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
     Omittable<QOlmOutboundGroupSession> currentOutboundMegolmSession = none;
@@ -1590,33 +1601,11 @@ QString Room::prettyPrint(const QString& plainText) const
     return Quotient::prettyPrint(plainText);
 }
 
-QList<User*> Room::usersTyping() const {
-    QList<User*> users;
-    users.reserve(d->usersTyping.size());
-    for (const auto& userId : std::as_const(d->usersTyping)) {
-        users.append(user(userId));
-    }
-    return users;
-}
+QList<User*> Room::usersTyping() const { return d->usersFromIdList(d->usersTyping); }
 
-QList<User*> Room::membersLeft() const {
-    QList<User*> users;
-    users.reserve(d->membersLeft.size());
-    for (const auto& userId : std::as_const(d->membersLeft)) {
-        users.append(user(userId));
-    }
-    return users;
-}
+QList<User*> Room::membersLeft() const { return d->usersFromIdList(d->membersLeft); }
 
-QList<User*> Room::users() const {
-    QList<User*> users;
-    users.reserve(d->memberNameMap.size());
-
-    for (const auto& userId :std::as_const(d->memberNameMap)) {
-        users.append(user(userId));
-    }
-    return users;
-}
+QList<User*> Room::users() const { return d->usersFromIdList(d->memberNameMap); }
 
 QStringList Room::memberNames() const
 {
