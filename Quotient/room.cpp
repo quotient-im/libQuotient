@@ -1819,8 +1819,8 @@ void Room::Private::removeMemberFromMap(const QString& memberId)
             qCDebug(MEMBERS) << "...done in" << et;
         if (it != memberNameMap.cend()) {
             // The assert (still) does more harm than good, it seems
-            // Q_ASSERT_X(false, __FUNCTION__,
-            //      "Mismatched name in the room members list");
+//            Q_ASSERT_X(false, __FUNCTION__,
+//                       "Mismatched name in the room members list");
             qCCritical(MEMBERS) << "Mismatched name in the room members list;"
                                    " avoiding the list corruption";
             memberNameMap.remove(it.key(), memberId);
