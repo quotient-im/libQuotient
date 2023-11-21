@@ -81,6 +81,7 @@ void SSSSHandler::unlockSSSSFromCrossSigning()
     });
     requestKeyFromDevices("m.cross_signing.user_signing"_ls, [](const QByteArray&){});
     requestKeyFromDevices("m.cross_signing.self_signing"_ls, [](const QByteArray&){});
+    requestKeyFromDevices("m.cross_signing.master"_ls, [](const QByteArray&){});
 }
 
 Connection* SSSSHandler::connection() const
