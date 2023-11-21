@@ -1756,6 +1756,12 @@ void Connection::encryptionUpdate(const Room* room, const QList<QString>& invite
     }
 }
 
+void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
+{
+    if (d->encryptionData)
+        d->encryptionData->encryptionUpdate(room->users() + invited);
+}
+
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
     if (auto r = room(notification[RoomIdKey].toString()))

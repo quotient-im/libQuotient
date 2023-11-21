@@ -361,7 +361,7 @@ public:
 
     QJsonObject toJson() const;
 
-    bool isLocalMember(const QString& memberId) const { return q->member(memberId) == q->localMember(); }
+    bool isLocalMember(const QString& memberId) const { return memberId == connection->userId(); }
 
 #ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
@@ -685,7 +685,7 @@ QList<RoomMember> Room::joinedMembers() const
     QList<RoomMember> joinedMembers;
     joinedMembers.reserve(joinedCount());
 
-    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
     for (const auto event : memberEvents) {
         if (const auto memberEvent = eventCast<const RoomMemberEvent>(event);
             memberEvent->membership() == Membership::Join) {
@@ -699,7 +699,7 @@ QList<RoomMember> Room::members() const {
     QList<RoomMember> members;
     members.reserve(totalMemberCount());
 
-    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
     for (const auto event : memberEvents) {
         if (const auto memberEvent = eventCast<const RoomMemberEvent>(event)) {
             members.append(RoomMember(this, memberEvent));
@@ -713,7 +713,7 @@ QStringList Room::joinedMemberIds() const
     QStringList ids;
     ids.reserve(joinedCount());
 
-    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
     for (const auto event : memberEvents) {
         if (const auto memberEvent = eventCast<const RoomMemberEvent>(event);
             memberEvent->membership() == Membership::Join) {
@@ -728,7 +728,7 @@ QStringList Room::memberIds() const
     QStringList ids;
     ids.reserve(totalMemberCount());
 
-    const auto memberEvents = currentState().eventsOfType("m.room.member"_ls);
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
     for (const auto event : memberEvents) {
         if (const auto memberEvent = eventCast<const RoomMemberEvent>(event)) {
             ids.append(memberEvent->userId());
@@ -739,8 +739,7 @@ QStringList Room::memberIds() const
 
 bool Room::needsDisambiguation(const QString& userId) const
 {
-    const auto member = this->member(userId);
-    return d->memberNameMap.count(member.name()) > 1;
+    return d->memberNameMap.count(member(userId).name()) > 1;
 }
 
 JoinState Room::memberJoinState(User* user) const
@@ -1171,7 +1170,7 @@ const RoomTombstoneEvent* Room::tombstone() const
 void Room::Private::getAllMembers()
 {
     // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= currentState.eventsOfType("m.room.member"_ls).size() || isJobPending(allMembersJob))
+    if (q->joinedCount() <= currentState.eventsOfType(RoomMemberEvent::TypeId).size() || isJobPending(allMembersJob))
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
@@ -1807,7 +1806,7 @@ void Room::Private::removeMemberFromMap(const QString& memberId)
     qCDebug(MEMBERS) << "removeMemberFromMap(), username" << userName
                      << "for user" << memberId;
 
-    QString namesakeId = QString();
+    QString namesakeId{};
     auto namesakes = memberNameMap.values(userName);
     // If there was one namesake besides the removed user, signal member
     // renaming for it because it doesn't need to be disambiguated any more.
@@ -3336,7 +3335,7 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
             case Membership::Invite:
                 if (!membersInvited.contains(evt.userId()))
                         membersInvited.push_back(evt.userId());
-                if (evt.userId() == q->localMember().id() && evt.isDirect())
+                if (evt.userId() == connection->userId() && evt.isDirect())
                     connection->addToDirectChats(q, evt.userId());
                 break;
             case Membership::Knock:
