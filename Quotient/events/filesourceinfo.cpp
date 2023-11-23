@@ -33,7 +33,11 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
     const auto keyBytes = QByteArray::fromBase64(
         _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
 
-    return aesCtr256Decrypt(ciphertext, keyBytes, QByteArray::fromBase64(metadata.iv.toLatin1()));
+    auto result = aesCtr256Decrypt(ciphertext, keyBytes, QByteArray::fromBase64(metadata.iv.toLatin1()));
+    if (!result.has_value()) {
+        //TODO: Error
+    }
+    return result.value();
 }
 
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
@@ -46,15 +50,18 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const JWK key = {
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
     };
-    auto cipherText = aesCtr256Encrypt(plainText, k.viewAsByteArray(), iv.viewAsByteArray());
+    auto result = aesCtr256Encrypt(plainText, k.viewAsByteArray(), iv.viewAsByteArray());
 
-    auto hash = QCryptographicHash::hash(cipherText, QCryptographicHash::Sha256)
+    if (!result.has_value()) {
+        //TODO: Error
+    }
+    auto hash = QCryptographicHash::hash(result.value(), QCryptographicHash::Sha256)
                     .toBase64(QByteArray::OmitTrailingEquals);
     auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
     const EncryptedFileMetadata efm = {
         {}, key, QString::fromLatin1(ivBase64), { { QStringLiteral("sha256"), QString::fromLatin1(hash) } }, "v2"_ls
     };
-    return { efm, cipherText };
+    return { efm, result.value() };
 }
 #endif
 

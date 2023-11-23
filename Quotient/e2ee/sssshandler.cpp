@@ -31,14 +31,26 @@ QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryp
     }
     const auto& encrypted = m_connection->accountData(name)->contentPart<QJsonObject>("encrypted"_ls)[defaultKey];
 
-    auto keys = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), name.toLatin1());
+    auto hkdfResult = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), name.toLatin1());
+    if (!hkdfResult.has_value()) {
+        //TODO: Error
+    }
+    auto keys = hkdfResult.value();
 
     auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
-    if (QString::fromLatin1(hmacSha256(keys.mac, rawCipher).toBase64()) != encrypted["mac"_ls].toString()) {
+    auto result = hmacSha256(keys.mac, rawCipher);
+    if (!result.has_value()) {
+        //TODO: Error
+    }
+    if (QString::fromLatin1(result.value().toBase64()) != encrypted["mac"_ls].toString()) {
         qCWarning(E2EE) << "MAC mismatch for" << name;
         return {};
     }
-    auto key = QByteArray::fromBase64(aesCtr256Decrypt(rawCipher, keys.aes, QByteArray::fromBase64(encrypted["iv"_ls].toString().toLatin1())));
+    auto decryptResult = aesCtr256Decrypt(rawCipher, keys.aes, QByteArray::fromBase64(encrypted["iv"_ls].toString().toLatin1()));
+    if (!decryptResult.has_value()) {
+        //TODO: Error
+    }
+    auto key = QByteArray::fromBase64(decryptResult.value());
     m_connection->database()->storeEncrypted(name, key);
     return key;
 }
@@ -128,7 +140,11 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
                 for (const auto& sessionId : sessions.keys()) {
                     const auto &session = sessions[sessionId].toObject();
                     const auto &sessionData = session["session_data"_ls].toObject();
-                    auto data = QJsonDocument::fromJson(curve25519AesSha2Decrypt(sessionData["ciphertext"_ls].toString().toLatin1(), megolmDecryptionKey, sessionData["ephemeral"_ls].toString().toLatin1(), sessionData["mac"_ls].toString().toLatin1())).object();
+                    auto result = curve25519AesSha2Decrypt(sessionData["ciphertext"_ls].toString().toLatin1(), megolmDecryptionKey, sessionData["ephemeral"_ls].toString().toLatin1(), sessionData["mac"_ls].toString().toLatin1());
+                    if (!result.has_value()) {
+                        //TODO: Error
+                    }
+                    auto data = QJsonDocument::fromJson(result.value()).object();
                     m_connection->room(roomId)->addMegolmSessionFromBackup(sessionId.toLatin1(), data["session_key"_ls].toString().toLatin1(), session["first_message_index"_ls].toInt());
                 }
             }
@@ -160,12 +176,27 @@ void SSSSHandler::calculateDefaultKey(const QByteArray& secret,
             return;
         }
 
-        key = pbkdf2HmacSha512(secret, passphraseJson["salt"_ls].toString().toLatin1(), passphraseJson["iterations"_ls].toInt(), 32);
+        auto result = pbkdf2HmacSha512(secret, passphraseJson["salt"_ls].toString().toLatin1(), passphraseJson["iterations"_ls].toInt(), 32);
+        if (result.has_value()) {
+            key = result.value();
+        } else {
+            //TODO: Error
+        }
     }
 
     const auto &testKeys = hkdfSha256(key, QByteArray(32, u'\0'), {});
-    const auto &encrypted = aesCtr256Encrypt(QByteArray(32, u'\0'), testKeys.aes, QByteArray::fromBase64(keyEvent->contentPart<QString>("iv"_ls).toLatin1()));
-    if (hmacSha256(testKeys.mac, encrypted) != QByteArray::fromBase64(keyEvent->contentPart<QString>("mac"_ls).toLatin1())) {
+    if (!testKeys.has_value()) {
+        //TODO: Error
+    }
+    const auto &encrypted = aesCtr256Encrypt(QByteArray(32, u'\0'), testKeys.value().aes, QByteArray::fromBase64(keyEvent->contentPart<QString>("iv"_ls).toLatin1()));
+    if (!encrypted.has_value()) {
+        //TODO: Error
+    }
+    const auto &result = hmacSha256(testKeys.value().mac, encrypted.value());
+    if (!result.has_value()) {
+        //TODO: Error
+    }
+    if (result.value() != QByteArray::fromBase64(keyEvent->contentPart<QString>("mac"_ls).toLatin1())) {
         qCWarning(E2EE) << "MAC mismatch for secret storage key";
         emit keyBackupKeyWrong();
         return;

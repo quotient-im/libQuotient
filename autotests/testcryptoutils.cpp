@@ -39,8 +39,10 @@ void TestCryptoUtils::aesCtrEncryptDecryptData()
     const auto key = zeroedByteArray();
     const auto iv = zeroedByteArray();
     auto cipher = aesCtr256Encrypt(plain, key, iv);
-    auto decrypted = aesCtr256Decrypt(cipher, key, iv);
-    QCOMPARE(plain, decrypted);
+    QVERIFY(cipher.has_value());
+    auto decrypted = aesCtr256Decrypt(cipher.value(), key, iv);
+    QVERIFY(decrypted.has_value());
+    QCOMPARE(plain, decrypted.value());
 }
 
 void TestCryptoUtils::encryptDecryptFile()
@@ -56,7 +58,9 @@ void TestCryptoUtils::encryptDecryptFile()
 
 void TestCryptoUtils::hkdfSha256ExpandKeys()
 {
-    auto keys = hkdfSha256(zeroedByteArray(), zeroedByteArray(), zeroedByteArray());
+    auto result = hkdfSha256(zeroedByteArray(), zeroedByteArray(), zeroedByteArray());
+    QVERIFY(result.has_value());
+    auto keys = result.value();
     QCOMPARE(keys.aes, QByteArray::fromBase64("WQvd7OvHEaSFkO5nPBLDHK9F0UW5r11S6MS83AjhHx8="));
     QCOMPARE(keys.mac, QByteArray::fromBase64("hZhUYGZQRYj4src+HzLcKRruQQ0wSr9kC/g105lej+s="));
 }
@@ -64,13 +68,15 @@ void TestCryptoUtils::hkdfSha256ExpandKeys()
 void TestCryptoUtils::pbkdfGenerateKey()
 {
     auto key = pbkdf2HmacSha512(QByteArrayLiteral("PASSWORD"), zeroedByteArray(32), 50000);
-    QCOMPARE(key, QByteArray::fromBase64("ejq90XW/J2J+cgi1ASgBj94M/YrEtWRKAPnsG+rdG4w="));
+    QVERIFY(key.has_value());
+    QCOMPARE(key.value(), QByteArray::fromBase64("ejq90XW/J2J+cgi1ASgBj94M/YrEtWRKAPnsG+rdG4w="));
 }
 
 void TestCryptoUtils::hmac()
 {
-    auto hmac = hmacSha256(zeroedByteArray(),  QByteArray(64, 1));
-    QCOMPARE(hmac, QByteArray::fromBase64("GfJTpEMByWSMA/NXBYH/KHW2qlKxSZu4r//jRsUuz24="));
+    auto result = hmacSha256(zeroedByteArray(),  QByteArray(64, 1));
+    QVERIFY(result.has_value());
+    QCOMPARE(result.value(), QByteArray::fromBase64("GfJTpEMByWSMA/NXBYH/KHW2qlKxSZu4r//jRsUuz24="));
 }
 
 void TestCryptoUtils::curve25519AesEncryptDecrypt()
@@ -85,8 +91,10 @@ void TestCryptoUtils::curve25519AesEncryptDecrypt()
     olm_pk_key_from_private(context.get(), publicKey.data(), publicKeySize, privateKey.data(), unsignedSize(privateKey));
 
     auto encrypted = curve25519AesSha2Encrypt(plain, publicKey);
-    auto decrypted = curve25519AesSha2Decrypt(encrypted.ciphertext, privateKey, encrypted.ephemeral, encrypted.mac);
-    QCOMPARE(plain, decrypted);
+    QVERIFY(encrypted.has_value());
+    auto decrypted = curve25519AesSha2Decrypt(encrypted.value().ciphertext, privateKey, encrypted.value().ephemeral, encrypted.value().mac);
+    QVERIFY(decrypted.has_value());
+    QCOMPARE(plain, decrypted.value());
 }
 
 void TestCryptoUtils::decodeBase58()

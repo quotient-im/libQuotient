@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
 
 #include "cryptoutils.h"
+#include "expected.h"
 
 #include <openssl/aes.h>
 #include <openssl/evp.h>
@@ -9,6 +10,7 @@
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+#include <openssl/err.h>
 
 #include <olm/pk.h>
 #include <olm/olm.h>
@@ -17,72 +19,125 @@
 
 using namespace Quotient;
 
-QByteArray Quotient::pbkdf2HmacSha512(const QByteArray& password, const QByteArray& salt, int iterations, int keyLength)
+Expected<QByteArray, uint64_t> Quotient::pbkdf2HmacSha512(const QByteArray& password, const QByteArray& salt, int iterations, int keyLength)
 {
     QByteArray output(keyLength, u'\0');
-    PKCS5_PBKDF2_HMAC(password.data(), password.size(), reinterpret_cast<const unsigned char *>(salt.data()), salt.size(), iterations, EVP_sha512(), keyLength, reinterpret_cast<unsigned char *>(output.data()));
+    bool success = PKCS5_PBKDF2_HMAC(password.data(), password.size(), reinterpret_cast<const unsigned char *>(salt.data()), salt.length(), iterations, EVP_sha512(), keyLength, reinterpret_cast<unsigned char *>(output.data()));
+    if (!success) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
     return output;
 }
 
-QByteArray Quotient::aesCtr256Encrypt(const QByteArray& plaintext, const QByteArray& key, const QByteArray& iv)
+Expected<QByteArray, uint64_t> Quotient::aesCtr256Encrypt(const QByteArray& plaintext, const QByteArray& key, const QByteArray& iv)
 {
     EVP_CIPHER_CTX* ctx = nullptr;
     int length = 0;
     int ciphertextLength = 0;
 
     auto encrypted = QByteArray(plaintext.size() + AES_BLOCK_SIZE, u'\0');
-    RAND_bytes(reinterpret_cast<unsigned char*>(encrypted.data()), encrypted.size());
+    int status = RAND_bytes(reinterpret_cast<unsigned char*>(encrypted.data()), encrypted.size());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
     auto data = encrypted.data();
     constexpr auto mask = static_cast<std::uint8_t>(~(1U << (63 / 8)));
     data[15 - 63 % 8] &= mask;
     if (ctx = EVP_CIPHER_CTX_new(); !ctx) {
-        return {};
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
     }
 
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char*>(key.data()), reinterpret_cast<const unsigned char*>(iv.data()));
+    status = EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char*>(key.data()), reinterpret_cast<const unsigned char*>(iv.data()));
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        EVP_CIPHER_CTX_free(ctx);
+        return ERR_get_error();
+    }
 
-    EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(encrypted.data()), &length, reinterpret_cast<const unsigned char *>(&plaintext.data()[0]), (int) plaintext.size());
+    status = EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(encrypted.data()), &length, reinterpret_cast<const unsigned char *>(&plaintext.data()[0]), (int) plaintext.size());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        EVP_CIPHER_CTX_free(ctx);
+        return ERR_get_error();
+    }
 
     ciphertextLength = length;
-    EVP_EncryptFinal_ex(ctx, reinterpret_cast<unsigned char*>(encrypted.data()) + length, &length);
+    status = EVP_EncryptFinal_ex(ctx, reinterpret_cast<unsigned char*>(encrypted.data()) + length, &length);
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        EVP_CIPHER_CTX_free(ctx);
+        return ERR_get_error();
+    }
+
     ciphertextLength += length;
     encrypted.resize(ciphertextLength);
     EVP_CIPHER_CTX_free(ctx);
     return encrypted;
 }
 
-HkdfKeys Quotient::hkdfSha256(const QByteArray& key, const QByteArray& salt, const QByteArray& info)
+Expected<HkdfKeys, uint64_t> Quotient::hkdfSha256(const QByteArray& key, const QByteArray& salt, const QByteArray& info)
 {
     QByteArray result(64, u'\0');
     auto context = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
 
-    EVP_PKEY_derive_init(context);
-    EVP_PKEY_CTX_set_hkdf_md(context, EVP_sha256());
-    EVP_PKEY_CTX_set1_hkdf_salt(context, reinterpret_cast<const unsigned char *>(salt.data()), salt.size());
-    EVP_PKEY_CTX_set1_hkdf_key(context, reinterpret_cast<const unsigned char *>(key.data()), key.size());
-    EVP_PKEY_CTX_add1_hkdf_info(context, reinterpret_cast<const unsigned char *>(info.data()), info.size());
+    int status = EVP_PKEY_derive_init(context);
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
+    status = EVP_PKEY_CTX_set_hkdf_md(context, EVP_sha256());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
+    status = EVP_PKEY_CTX_set1_hkdf_salt(context, reinterpret_cast<const unsigned char *>(salt.data()), salt.size());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
+    status = EVP_PKEY_CTX_set1_hkdf_key(context, reinterpret_cast<const unsigned char *>(key.data()), key.size());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
+    status = EVP_PKEY_CTX_add1_hkdf_info(context, reinterpret_cast<const unsigned char *>(info.data()), info.size());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
     std::size_t outputLength = result.size();
-    EVP_PKEY_derive(context, reinterpret_cast<unsigned char *>(result.data()), &outputLength);
+    status = EVP_PKEY_derive(context, reinterpret_cast<unsigned char *>(result.data()), &outputLength);
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
     EVP_PKEY_CTX_free(context);
 
     if (outputLength != 64) {
-        return {};
+        return static_cast<uint64_t>(1);
     }
 
     QByteArray macKey = result.mid(32);
     result.resize(32);
-    return {std::move(result), std::move(macKey)};
+    return HkdfKeys{std::move(result), std::move(macKey)};
 }
 
-QByteArray Quotient::hmacSha256(const QByteArray& hmacKey, const QByteArray& data)
+Expected<QByteArray, uint64_t> Quotient:: hmacSha256(const QByteArray& hmacKey, const QByteArray& data)
 {
     uint32_t len = SHA256_DIGEST_LENGTH;
     QByteArray output(SHA256_DIGEST_LENGTH, u'\0');
-    HMAC(EVP_sha256(), hmacKey.data(), hmacKey.size(), reinterpret_cast<const unsigned char *>(data.data()), data.size(), reinterpret_cast<unsigned char *>(output.data()), &len);
+    auto status = HMAC(EVP_sha256(), hmacKey.data(), hmacKey.size(), reinterpret_cast<const unsigned char *>(data.data()), data.size(), reinterpret_cast<unsigned char *>(output.data()), &len);
+    if (!status) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
     return output;
 }
 
-QByteArray Quotient::aesCtr256Decrypt(const QByteArray& ciphertext, const QByteArray& aes256Key, const QByteArray& iv)
+Expected<QByteArray, uint64_t> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext, const QByteArray& aes256Key, const QByteArray& iv)
 {
     auto context = EVP_CIPHER_CTX_new();
     Q_ASSERT(context);
@@ -91,50 +146,75 @@ QByteArray Quotient::aesCtr256Decrypt(const QByteArray& ciphertext, const QByteA
     int plaintextLength = 0;
     QByteArray decrypted(ciphertext.size(), u'\0');
 
-    EVP_DecryptInit_ex(context, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char *>(aes256Key.data()), reinterpret_cast<const unsigned char *>(iv.data()));
+    int status = EVP_DecryptInit_ex(context, EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char *>(aes256Key.data()), reinterpret_cast<const unsigned char *>(iv.data()));
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
 
-    EVP_DecryptUpdate(context, reinterpret_cast<unsigned char*>(decrypted.data()), &length, reinterpret_cast<const unsigned char*>(&ciphertext.data()[0]), (int) ciphertext.size());
+    status = EVP_DecryptUpdate(context, reinterpret_cast<unsigned char*>(decrypted.data()), &length, reinterpret_cast<const unsigned char*>(&ciphertext.data()[0]), (int) ciphertext.size());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
+
     plaintextLength = length;
-    EVP_DecryptFinal_ex(context, reinterpret_cast<unsigned char*>(decrypted.data()) + length, &length);
+    status = EVP_DecryptFinal_ex(context, reinterpret_cast<unsigned char*>(decrypted.data()) + length, &length);
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
+
     plaintextLength += length;
     decrypted.resize(plaintextLength);
     EVP_CIPHER_CTX_free(context);
     return decrypted;
 }
 
-QByteArray Quotient::curve25519AesSha2Decrypt(QByteArray ciphertext, const QByteArray &privateKey, const QByteArray &ephemeral, const QByteArray &mac)
+Expected<QByteArray, uint64_t> Quotient::curve25519AesSha2Decrypt(QByteArray ciphertext, const QByteArray &privateKey, const QByteArray &ephemeral, const QByteArray &mac)
 {
     auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
+    Q_ASSERT(context);
 
     QByteArray publicKey(olm_pk_key_length(), u'\0');
-    olm_pk_key_from_private(context.get(), publicKey.data(), publicKey.size(), privateKey.data(), privateKey.size());
+    auto status = olm_pk_key_from_private(context.get(), publicKey.data(), publicKey.size(), privateKey.data(), privateKey.size());
+    if (status == olm_error()) {
+        return olm_pk_decryption_last_error_code(context.get());
+    }
 
     QByteArray plaintext(olm_pk_max_plaintext_length(context.get(), ciphertext.size()), u'\0');
     auto result = olm_pk_decrypt(context.get(), ephemeral.data(), ephemeral.size(), mac.data(), mac.size(), ciphertext.data(), ciphertext.size(), plaintext.data(), plaintext.size());
 
     if (result == olm_error()) {
-        return {};
+        return olm_pk_decryption_last_error_code(context.get());
     }
     plaintext.resize(result);
     return plaintext;
 }
 
-Curve25519Encrypted Quotient::curve25519AesSha2Encrypt(const QByteArray& plaintext, const QByteArray& publicKey)
+Expected<Curve25519Encrypted, uint64_t> Quotient::curve25519AesSha2Encrypt(const QByteArray& plaintext, const QByteArray& publicKey)
 {
     auto context = makeCStruct(olm_pk_encryption, olm_pk_encryption_size, olm_clear_pk_encryption);
 
-    olm_pk_encryption_set_recipient_key(context.get(), publicKey.data(), publicKey.size());
+    auto status = olm_pk_encryption_set_recipient_key(context.get(), publicKey.data(), publicKey.size());
+    if (status == olm_error()) {
+        return olm_pk_encryption_last_error_code(context.get());
+    }
 
     QByteArray ephemeral(olm_pk_key_length(), 0);
     QByteArray mac(olm_pk_mac_length(context.get()), 0);
     QByteArray ciphertext(olm_pk_ciphertext_length(context.get(), plaintext.size()), 0);
     QByteArray randomBuffer(olm_pk_encrypt_random_length(context.get()), 0);
-    RAND_bytes(reinterpret_cast<unsigned char*>(randomBuffer.data()), randomBuffer.size());
+    status = RAND_bytes(reinterpret_cast<unsigned char*>(randomBuffer.data()), randomBuffer.size());
+    if (status != 1) {
+        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        return ERR_get_error();
+    }
 
     auto result = olm_pk_encrypt(context.get(), plaintext.data(), plaintext.size(), ciphertext.data(), ciphertext.size(), mac.data(), mac.size(), ephemeral.data(), ephemeral.size(), randomBuffer.data(), randomBuffer.size());
 
     if (result == olm_error()) {
-        return {};
+        return olm_pk_encryption_last_error_code(context.get());
     }
     return Curve25519Encrypted {
         .ciphertext = ciphertext,
