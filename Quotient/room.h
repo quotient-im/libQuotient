@@ -721,6 +721,9 @@ public:
     /// Check whether this room is a direct chat
     Q_INVOKABLE bool isDirectChat() const;
 
+    /// Get the list of members this room is a direct chat with
+    QList<RoomMember> directChatMembers() const;
+
     /// Get the list of users this room is a direct chat with
     QList<User*> directChatUsers() const;
 

@@ -236,6 +236,17 @@ public:
     //! \brief Unmark the room from direct chats
     //!
     //! This function removes the room id from direct chats either for
+    //! a specific \p user or for all users if \p userId is empty.
+    //! The room id is used to allow removal of, e.g., ids of forgotten
+    //! rooms; a Room object need not exist. Emits the signal
+    //! immediately, without waiting to complete synchronisation with
+    //! the server.
+    //! \sa directChatsListChanged
+    void removeFromDirectChats(const QString& roomId, const QString& userId = {});
+
+    //! \brief Unmark the room from direct chats
+    //!
+    //! This function removes the room id from direct chats either for
     //! a specific \p user or for all users if \p user in nullptr.
     //! The room id is used to allow removal of, e.g., ids of forgotten
     //! rooms; a Room object need not exist. Emits the signal
@@ -249,6 +260,12 @@ public:
 
     //! Get the whole map from users to direct chat rooms
     DirectChatsMap directChats() const;
+
+    //! \brief Retrieve the list of member IDs the room is a direct chat with
+    //!
+    //! \return The list of member IDs for which this room is marked as
+    //!         a direct chat; an empty list if the room is not a direct chat
+    QList<QString> directChatMemberIds(const Room* room) const;
 
     //! \brief Retrieve the list of users the room is a direct chat with
     //! \return The list of users for which this room is marked as

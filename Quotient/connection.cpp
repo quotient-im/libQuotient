@@ -576,6 +576,9 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                 remove_if(directChatUsers, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.value(), it.key());
                 });
+                remove_if(directChatMemberIds, [&remoteRemovals, this](auto it) {
+                    return remoteRemovals.contains(q->user(it.value()), it.key());
+                });
                 // Remove from dcLocalRemovals what the server already has.
                 remove_if(dcLocalRemovals, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.key(), it.value());
@@ -597,6 +600,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                             remoteAdditions.insert(u, it.value());
                             directChats.insert(u, it.value());
                             directChatUsers.insert(it.value(), u);
+                            directChatMemberIds.insert(it.value(), it.key());
                             qCDebug(MAIN) << "Marked room" << it.value()
                                           << "as a direct chat with" << u->id();
                         }
@@ -905,6 +909,7 @@ void Connection::doInDirectChat(User* u,
             d->directChats.remove(it.key(), it.value());
             d->directChatUsers.remove(it.value(),
                                       const_cast<User*>(it.key())); // FIXME
+            d->directChatMemberIds.remove(it.value(), it.key()->id());
         }
         emit directChatsListChanged({}, removals);
     }
@@ -1265,6 +1270,7 @@ void Connection::addToDirectChats(const Room* room, const QString& userId)
         return;
     Q_ASSERT(!d->directChatUsers.contains(room->id(), u));
     d->directChats.insert(u, room->id());
+    d->directChatMemberIds.insert(room->id(), userId);
     d->directChatUsers.insert(room->id(), u);
     d->dcLocalAdditions.insert(u, room->id());
     emit directChatsListChanged({ { u, room->id() } }, {});
@@ -1277,9 +1283,34 @@ void Connection::addToDirectChats(const Room* room, User* user)
         return;
     Q_ASSERT(!d->directChatUsers.contains(room->id(), user));
     d->directChats.insert(user, room->id());
+    d->directChatMemberIds.insert(room->id(), user->id());
     d->directChatUsers.insert(room->id(), user);
     d->dcLocalAdditions.insert(user, room->id());
     emit directChatsListChanged({ { user, room->id() } }, {});
+}
+
+void Connection::removeFromDirectChats(const QString& roomId, const QString& userId)
+{
+    Q_ASSERT(!roomId.isEmpty());
+    const auto u = user(userId);
+    if ((!userId.isEmpty() && !d->directChats.contains(u, roomId))
+        || d->directChats.key(roomId) == nullptr)
+        return;
+
+    DirectChatsMap removals;
+    if (u != nullptr) {
+        d->directChats.remove(u, roomId);
+        d->directChatUsers.remove(roomId, u);
+        d->directChatMemberIds.remove(roomId, u->id());
+        removals.insert(u, roomId);
+        d->dcLocalRemovals.insert(u, roomId);
+    } else {
+        removals = remove_if(d->directChats,
+                            [&roomId](auto it) { return it.value() == roomId; });
+        d->directChatUsers.remove(roomId);
+        d->dcLocalRemovals += removals;
+    }
+    emit directChatsListChanged({}, removals);
 }
 
 void Connection::removeFromDirectChats(const QString& roomId, User* user)
@@ -1293,6 +1324,7 @@ void Connection::removeFromDirectChats(const QString& roomId, User* user)
     if (user != nullptr) {
         d->directChats.remove(user, roomId);
         d->directChatUsers.remove(roomId, user);
+        d->directChatMemberIds.remove(roomId, user->id());
         removals.insert(user, roomId);
         d->dcLocalRemovals.insert(user, roomId);
     } else {
@@ -1306,7 +1338,13 @@ void Connection::removeFromDirectChats(const QString& roomId, User* user)
 
 bool Connection::isDirectChat(const QString& roomId) const
 {
-    return d->directChatUsers.contains(roomId);
+    return d->directChatMemberIds.contains(roomId);
+}
+
+QList<QString> Connection::directChatMemberIds(const Room* room) const
+{
+    Q_ASSERT(room != nullptr);
+    return d->directChatMemberIds.values(room->id());
 }
 
 QList<User*> Connection::directChatUsers(const Room* room) const
@@ -1438,7 +1476,7 @@ void Connection::setEncryptionDefault(bool useByDefault)
     Private::encryptionDefault = useByDefault;
 }
 #endif
-dialog
+
 void Connection::setRoomFactory(room_factory_t f)
 {
     _roomFactory = std::move(f);

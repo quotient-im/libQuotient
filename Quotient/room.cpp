@@ -1463,6 +1463,18 @@ bool Room::isServerNoticeRoom() const
 
 bool Room::isDirectChat() const { return connection()->isDirectChat(id()); }
 
+QList<RoomMember> Room::directChatMembers() const
+{
+    auto memberIds = connection()->directChatMemberIds(this);
+    QList<RoomMember> members;
+    for (const auto& memberId : memberIds) {
+        if (currentState().contains<RoomMemberEvent>(memberId)) {
+            members.append(RoomMember(this, currentState().get<RoomMemberEvent>(memberId)));
+        }
+    }
+    return members;
+}
+
 QList<User*> Room::directChatUsers() const
 {
     return connection()->directChatUsers(this);
