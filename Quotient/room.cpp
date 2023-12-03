@@ -369,7 +369,7 @@ public:
         QList<User*> users;
         users.reserve(list.size());
         for (const auto& userId : std::as_const(list)) {
-            users.append(q->user(userId));
+            QT_IGNORE_DEPRECATIONS(users.append(q->user(userId));)
         }
         return users;
     }
@@ -851,9 +851,9 @@ Omittable<QString> Room::Private::setLastReadReceipt(const QString& userId,
     // receipts arrive. It can be called thousands of times during an initial
     // sync, e.g.
     // TODO: remove in 0.8
-    if (const auto member = q->user(userId); !isLocalMember(userId))
+    if (!isLocalMember(userId))
         QT_IGNORE_DEPRECATIONS(emit q->readMarkerForUserMoved(
-            member, prevEventId, storedReceipt.eventId);)
+            q->user(userId), prevEventId, storedReceipt.eventId);)
     return prevEventId;
 }
 
@@ -1773,15 +1773,17 @@ void Room::Private::insertMemberIntoMap(const QString& memberId)
     // If there is exactly one namesake of the added user, signal member
     // renaming for that other one because the two should be disambiguated now
     if (namesakes.size() == 1) {
-        auto otherUser = q->user(namesakes.front());
-        emit q->memberAboutToRename(otherUser, otherUser->fullName(q));
+        QT_IGNORE_DEPRECATIONS(
+            auto otherUser = q->user(namesakes.front());
+            emit q->memberAboutToRename(otherUser, otherUser->fullName(q));
+        )
         auto otherMember = q->member(namesakes.front());
         emit q->memberNameAboutToUpdate(otherMember, otherMember.fullName());
     }
     memberNameMap.insert(userName, memberId);
     if (namesakes.size() == 1) {
         // TODO: remove when userMap removed.
-        emit q->memberRenamed(q->user(namesakes.front()));
+        QT_IGNORE_DEPRECATIONS(emit q->memberRenamed(q->user(namesakes.front()));)
         emit q->memberNameUpdated(q->member(namesakes.front()));
     }
 }
@@ -1803,7 +1805,7 @@ void Room::Private::removeMemberFromMap(const QString& memberId)
         namesakeId =
             namesakes.front() == memberId ? namesakes.back() : namesakes.front();
         Q_ASSERT_X(namesakeId != memberId, __FUNCTION__, "Room members list is broken");
-        emit q->memberAboutToRename(q->user(namesakeId), userName);
+        QT_IGNORE_DEPRECATIONS(emit q->memberAboutToRename(q->user(namesakeId), userName);)
         emit q->memberNameAboutToUpdate(q->member(namesakeId), userName);
     }
     if (memberNameMap.remove(userName, memberId) == 0) {
@@ -1827,7 +1829,7 @@ void Room::Private::removeMemberFromMap(const QString& memberId)
         }
     }
     if (!namesakeId.isEmpty()) {
-        emit q->memberRenamed(q->user(namesakeId));
+        QT_IGNORE_DEPRECATIONS(emit q->memberRenamed(q->user(namesakeId));)
         emit q->memberNameUpdated(q->member(namesakeId));
     }
 }
@@ -3162,7 +3164,6 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
 {
     newEvent.switchOnType(
         [this, curEvent](const RoomMemberEvent& rme) {
-            auto* u = q->user(rme.userId());
             switch (const auto prevMembership =
                         lift(&RoomMemberEvent::membership,
                              eventCast<const RoomMemberEvent>(curEvent))
@@ -3173,13 +3174,14 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
                     Q_ASSERT(!membersInvited.contains(rme.userId()));
                 }
                 break;
-            case Membership::Join:
+            case Membership::Join: {
+                QT_IGNORE_DEPRECATIONS(auto* u = q->user(rme.userId());)
                 if (rme.membership() == Membership::Join) {
                     // rename/avatar change or no-op
                     if (rme.newDisplayName()) {
                         emit q->memberNameAboutToUpdate(q->member(rme.userId()), *rme.newDisplayName());
                         if (u != nullptr) {
-                            emit q->memberAboutToRename(u, *rme.newDisplayName());
+                            QT_IGNORE_DEPRECATIONS(emit q->memberAboutToRename(u, *rme.newDisplayName());)
                         }
                         removeMemberFromMap(rme.userId());
                     }
@@ -3195,10 +3197,11 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
                     removeMemberFromMap(rme.userId());
                     emit q->memberLeft(q->member(rme.userId()));
                     if (u != nullptr) {
-                        emit q->userRemoved(u);
+                        QT_IGNORE_DEPRECATIONS(emit q->userRemoved(u);)
                     }
                 }
                 break;
+            }
             case Membership::Ban:
             case Membership::Knock:
             case Membership::Leave:
@@ -3296,31 +3299,32 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
                 lift(&RoomMemberEvent::membership,
                         static_cast<const RoomMemberEvent*>(oldEvent))
                     .value_or(Membership::Leave);
-            auto* u = q->user(evt.userId());
             switch (evt.membership()) {
-            case Membership::Join:
+            case Membership::Join: {
+                QT_IGNORE_DEPRECATIONS(auto* u = q->user(evt.userId());)
                 if (prevMembership != Membership::Join) {
                     insertMemberIntoMap(evt.userId());
                     emit q->memberJoined(q->member(evt.userId()));
                     if (u != nullptr) {
-                        emit q->userAdded(u);
+                        QT_IGNORE_DEPRECATIONS(emit q->userAdded(u);)
                     }
                 } else {
                     if (evt.newDisplayName()) {
                         insertMemberIntoMap(evt.userId());
                         emit q->memberNameUpdated(q->member(evt.userId()));
                         if (u != nullptr) {
-                            emit q->memberRenamed(u);
+                            QT_IGNORE_DEPRECATIONS(emit q->memberRenamed(u);)
                         }
                     }
                     if (evt.newAvatarUrl()) {
                         emit q->memberAvatarUpdated(q->member(evt.userId()));
                         if (u != nullptr) {
-                            emit q->memberAvatarChanged(u);
+                            QT_IGNORE_DEPRECATIONS(emit q->memberAvatarChanged(u);)
                         }
                     }
                 }
                 break;
+            }
             case Membership::Invite:
                 if (!membersInvited.contains(evt.userId()))
                         membersInvited.push_back(evt.userId());
@@ -3644,17 +3648,18 @@ QJsonObject Room::toJson() const { return d->toJson(); }
 
 MemberSorter Room::memberSorter() const { return MemberSorter(this); }
 
-bool MemberSorter::operator()(RoomMember u1, RoomMember u2) const
+bool MemberSorter::operator()(const RoomMember& u1, const RoomMember& u2) const
 {
     return operator()(u1, u2.displayName());
 }
 
 bool MemberSorter::operator()(User* u1, User* u2) const
 {
-    return operator()(u1, room->disambiguatedMemberName(u2->id()));
+    QT_IGNORE_DEPRECATIONS(
+        return operator()(u1, room->disambiguatedMemberName(u2->id()));)
 }
 
-bool MemberSorter::operator()(RoomMember u1, QStringView u2name) const
+bool MemberSorter::operator()(const RoomMember& u1, QStringView u2name) const
 {
     auto n1 = u1.displayName();
     if (n1.startsWith(u'@'))
@@ -3670,7 +3675,7 @@ bool MemberSorter::operator()(RoomMember u1, QStringView u2name) const
 
 bool MemberSorter::operator()(User* u1, QStringView u2name) const
 {
-    auto n1 = room->disambiguatedMemberName(u1->id());
+    QT_IGNORE_DEPRECATIONS(auto n1 = room->disambiguatedMemberName(u1->id());)
     if (n1.startsWith(u'@'))
         n1.remove(0, 1);
     const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)

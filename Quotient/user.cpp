@@ -71,11 +71,14 @@ void User::load()
 
 QString User::id() const { return d->id; }
 
-QString User::name(const Room* room) const { return room ? room->memberName(id()) : d->defaultName; }
+QString User::name(const Room* room) const
+{
+    return room ? room->member(id()).name() : d->defaultName;
+}
 
 QString User::displayname(const Room* room) const
 {
-    return room ? room->safeMemberName(id())
+    return room ? room->member(id()).disambiguatedName()
                 : d->defaultName.isEmpty() ? d->id : d->defaultName;
 }
 

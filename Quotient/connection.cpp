@@ -1438,7 +1438,7 @@ void Connection::setEncryptionDefault(bool useByDefault)
     Private::encryptionDefault = useByDefault;
 }
 #endif
-
+dialog
 void Connection::setRoomFactory(room_factory_t f)
 {
     _roomFactory = std::move(f);
@@ -1747,7 +1747,7 @@ void Connection::encryptionUpdate(const Room* room, const QList<QString>& invite
 {
     if (d->encryptionData) {
         QList<User*> invitedUsers;
-        for (const auto id :invited) {
+        for (const auto& id : invited) {
             if (auto u = user(id)) {
                 invitedUsers.append(u);
             }

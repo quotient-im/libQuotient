@@ -239,7 +239,7 @@ public:
 
     Connection* connection() const;
 
-    //! Get a RoomMember object for local user.
+    //! Get a RoomMember object for the local user.
     RoomMember localMember() const;
     [[deprecated("Use localMember() instead.")]]
     User* localUser() const;
@@ -991,7 +991,7 @@ Q_SIGNALS:
     void userAdded(Quotient::User* user);
     [[deprecated("Use memberLeft() instead.")]]
     void userRemoved(Quotient::User* user);
-    [[deprecated("Use memberNameUpdated() instead.")]]
+    [[deprecated("Use memberNameAboutToUpdate() instead.")]]
     void memberAboutToRename(Quotient::User* user, QString newName);
     [[deprecated("Use memberNameUpdated() instead.")]]
     void memberRenamed(Quotient::User* user);
@@ -1094,9 +1094,9 @@ class QUOTIENT_API MemberSorter {
 public:
     explicit MemberSorter(const Room* r) : room(r) {}
 
-    bool operator()(RoomMember u1, RoomMember u2) const;
+    bool operator()(const RoomMember& u1, const RoomMember& u2) const;
     bool operator()(User* u1, User* u2) const;
-    bool operator()(RoomMember u1, QStringView u2name) const;
+    bool operator()(const RoomMember& u1, QStringView u2name) const;
     bool operator()(User* u1, QStringView u2name) const;
 
     template <typename ContT, typename ValT>
