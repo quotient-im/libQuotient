@@ -1973,6 +1973,11 @@ QUrl Room::memberAvatarUrl(const QString &mxId) const
     return {};
 }
 
+const Avatar& Room::memberAvatar(const QString& memberId) const
+{
+    return connection()->userAvatar(member(memberId).avatarUrl());
+}
+
 Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
                                                      bool fromCache)
 {

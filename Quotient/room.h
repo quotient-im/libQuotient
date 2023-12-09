@@ -384,6 +384,8 @@ public:
     [[deprecated("Use member(mxId).avatarUrl() instead.")]]
     QUrl memberAvatarUrl(const QString& mxId) const;
 
+    const Avatar& memberAvatar(const QString& memberId) const;
+
     const Timeline& messageEvents() const;
     const PendingEvents& pendingEvents() const;
 

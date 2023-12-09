@@ -34,16 +34,8 @@ public:
     qreal hueF;
 
     QString defaultName;
-    Avatar defaultAvatar;
-    // NB: This container is ever-growing. Even if the user no more scrolls
-    // the timeline that far back, historical avatars are still kept around.
-    // This is consistent with the rest of Quotient, as room timelines
-    // are never vacuumed either. This will probably change in the future.
-    /// Map of mediaId to Avatar objects
-    static UnorderedMap<QString, Avatar> otherAvatars;
+    QUrl defaultAvatarUrl;
 };
-
-decltype(User::Private::otherAvatars) User::Private::otherAvatars {};
 
 User::User(QString userId, Connection* connection)
     : QObject(connection), d(makeImpl<Private>(std::move(userId)))
@@ -63,7 +55,7 @@ void User::load()
         connection()->callApi<GetUserProfileJob>(id());
     connect(profileJob, &BaseJob::result, this, [this, profileJob] {
         d->defaultName = profileJob->displayname();
-        d->defaultAvatar = Avatar(QUrl(profileJob->avatarUrl()));
+        d->defaultAvatarUrl = profileJob->avatarUrl();
         emit defaultNameChanged();
         emit defaultAvatarChanged();
     });
@@ -143,13 +135,13 @@ void User::rename(const QString& newName, Room* r)
 template <typename SourceT>
 inline bool User::doSetAvatar(SourceT&& source)
 {
-    return d->defaultAvatar.upload(
+    return connection()->userAvatar(d->defaultAvatarUrl).upload(
         connection(), source, [this](const QUrl& contentUri) {
             auto* j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
             connect(j, &BaseJob::success, this,
                     [this, contentUri] {
-                        if (contentUri == d->defaultAvatar.url()) {
-                            d->defaultAvatar.updateUrl(contentUri);
+                        if (contentUri == d->defaultAvatarUrl) {
+                            connection()->userAvatar(d->defaultAvatarUrl).updateUrl(contentUri);
                             emit defaultAvatarChanged();
                         } else
                             qCWarning(MAIN) << "User" << id()
@@ -185,11 +177,9 @@ bool User::isIgnored() const { return connection()->isIgnored(this); }
 const Avatar& User::avatarObject(const Room* room) const
 {
     if (!room)
-        return d->defaultAvatar;
+        return connection()->userAvatar(d->defaultAvatarUrl);
 
-    const auto& url = room->memberAvatarUrl(id());
-    const auto& mediaId = url.authority() + url.path();
-    return d->otherAvatars.try_emplace(mediaId, url).first->second;
+    return connection()->userAvatar(room->memberAvatarUrl(id()));
 }
 
 QImage User::avatar(int dimension, const Room* room) const

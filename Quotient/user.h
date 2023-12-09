@@ -92,15 +92,15 @@ public:
     [[deprecated("Quotient::RoomMember::hueF() should be used instead.")]]
     qreal hueF() const;
 
-    [[deprecated("For visualising in a room context Quotient::RoomMember::avatarUrl() should be used instead, otherwise use avatarUrl().")]]
+    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
     const Avatar& avatarObject(const Room* room = nullptr) const;
-    [[deprecated("For visualising in a room context Quotient::RoomMember::avatarUrl() should be used instead, otherwise use avatarUrl().")]]
+    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
     Q_INVOKABLE QImage avatar(int dimension,
                               const Quotient::Room* room = nullptr) const;
-    [[deprecated("For visualising in a room context Quotient::RoomMember::avatarUrl() should be used instead, otherwise use avatarUrl().")]]
+    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
     Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
                               const Quotient::Room* room = nullptr) const;
-    [[deprecated("For visualising in a room context Quotient::RoomMember::avatarUrl() should be used instead, otherwise use avatarUrl().")]]
+    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
     QImage avatar(int width, int height, const Room* room,
                   const Avatar::get_callback_t& callback) const;
 

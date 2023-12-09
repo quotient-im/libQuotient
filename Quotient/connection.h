@@ -32,6 +32,7 @@ Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
 namespace Quotient {
 
+class Avatar;
 class Room;
 class User;
 class ConnectionData;
@@ -330,6 +331,13 @@ public:
     const User* user() const;
     User* user();
     QString userId() const;
+
+    //! \brief Get an avatar object for the given user ID and media ID
+    Avatar& userAvatar(const QUrl& avatarUrl);
+
+    //! \brief Get an avatar object for the given user ID and media ID
+    Avatar& userAvatar(const QString& avatarMediaId);
+
     QString deviceId() const;
     QByteArray accessToken() const;
     bool isLoggedIn() const;

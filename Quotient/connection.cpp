@@ -1128,6 +1128,18 @@ User* Connection::user() { return user(userId()); }
 
 QString Connection::userId() const { return d->data->userId(); }
 
+Avatar& Connection::userAvatar(const QString& avatarMediaId)
+{
+
+    return userAvatar(QUrl(avatarMediaId));
+}
+
+Avatar& Connection::userAvatar(const QUrl& avatarUrl)
+{
+    const auto mediaId = avatarUrl.authority() + avatarUrl.path();
+    return d->userAvatarMap.try_emplace(mediaId, avatarUrl).first->second;
+}
+
 QString Connection::deviceId() const { return d->data->deviceId(); }
 
 QByteArray Connection::accessToken() const
