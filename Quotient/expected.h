@@ -9,13 +9,13 @@
 namespace Quotient {
 
 //! \brief A minimal subset of std::expected from C++23
-template <typename T, typename E,
-          std::enable_if_t<!std::is_same_v<T, E>, bool> = true>
+template <typename T, typename E>
+    requires (!std::is_same_v<T, E>)
 class Expected {
 private:
     template <typename X>
-    using enable_if_constructible_t = std::enable_if_t<
-        std::is_constructible_v<T, X> || std::is_constructible_v<E, X>>;
+    static constexpr auto is_constructible_v =
+        std::is_constructible_v<T, X> || std::is_constructible_v<E, X>;
 
 public:
     using value_type = T;
@@ -26,7 +26,8 @@ public:
     Expected(Expected&&) noexcept = default;
     ~Expected() = default;
 
-    template <typename X, typename = enable_if_constructible_t<X>>
+    template <typename X>
+        requires is_constructible_v<X>
     QUO_IMPLICIT Expected(X&& x) // NOLINT(google-explicit-constructor)
         : data(std::forward<X>(x))
     {}
@@ -34,7 +35,8 @@ public:
     Expected& operator=(const Expected&) = default;
     Expected& operator=(Expected&&) noexcept = default;
 
-    template <typename X, typename = enable_if_constructible_t<X>>
+    template <typename X>
+        requires is_constructible_v<X>
     Expected& operator=(X&& x)
     {
         data = std::forward<X>(x);
