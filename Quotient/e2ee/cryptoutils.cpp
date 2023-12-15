@@ -82,6 +82,15 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
     return encrypted;
 }
 
+#define CALL_OPENSSL(Call_)                                           \
+    do {                                                              \
+        if (Call_ != 1) {                                             \
+            qWarning() << ERR_error_string(ERR_get_error(), nullptr); \
+            EVP_PKEY_CTX_free(context);                               \
+            return ERR_get_error();                                   \
+        }                                                             \
+    } while (false) // End of macro
+
 SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
                                            const QByteArray& salt,
                                            const QByteArray& info)
@@ -89,44 +98,25 @@ SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
     QByteArray result(64, u'\0');
     auto context = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
 
-    int status = EVP_PKEY_derive_init(context);
-    if (status != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
-    status = EVP_PKEY_CTX_set_hkdf_md(context, EVP_sha256());
-    if (status != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
-    status = EVP_PKEY_CTX_set1_hkdf_salt(context, reinterpret_cast<const unsigned char *>(salt.data()), salt.size());
-    if (status != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
-    status = EVP_PKEY_CTX_set1_hkdf_key(context, reinterpret_cast<const unsigned char *>(key.data()), key.size());
-    if (status != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
-    status = EVP_PKEY_CTX_add1_hkdf_info(context, reinterpret_cast<const unsigned char *>(info.data()), info.size());
-    if (status != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
-    std::size_t outputLength = result.size();
-    status = EVP_PKEY_derive(context, reinterpret_cast<unsigned char *>(result.data()), &outputLength);
-    if (status != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    CALL_OPENSSL(EVP_PKEY_derive_init(context));
+    CALL_OPENSSL(EVP_PKEY_CTX_set_hkdf_md(context, EVP_sha256()));
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_salt(
+        context, reinterpret_cast<const unsigned char*>(salt.data()),
+        salt.size()));
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_key(
+        context, reinterpret_cast<const unsigned char*>(key.data()),
+        key.size()));
+    CALL_OPENSSL(EVP_PKEY_CTX_add1_hkdf_info(
+        context, reinterpret_cast<const unsigned char*>(info.data()),
+        info.size()));
+    auto outputLength = unsignedSize(result);
+    CALL_OPENSSL(EVP_PKEY_derive(context, reinterpret_cast<unsigned char *>(result.data()), &outputLength));
+
     EVP_PKEY_CTX_free(context);
 
-    if (outputLength != 64) {
-        return static_cast<uint64_t>(1);
-    }
+    Q_ASSERT(outputLength != 64);
 
-    QByteArray macKey = result.mid(32);
+    auto macKey = result.mid(32);
     result.resize(32);
     return HkdfKeys{std::move(result), std::move(macKey)};
 }
