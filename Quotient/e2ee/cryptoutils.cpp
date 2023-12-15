@@ -19,7 +19,9 @@
 
 using namespace Quotient;
 
-Expected<QByteArray, uint64_t> Quotient::pbkdf2HmacSha512(const QByteArray& password, const QByteArray& salt, int iterations, int keyLength)
+SslExpected<QByteArray> Quotient::pbkdf2HmacSha512(const QByteArray& password,
+                                                   const QByteArray& salt,
+                                                   int iterations, int keyLength)
 {
     QByteArray output(keyLength, u'\0');
     bool success = PKCS5_PBKDF2_HMAC(password.data(), password.size(), reinterpret_cast<const unsigned char *>(salt.data()), salt.length(), iterations, EVP_sha512(), keyLength, reinterpret_cast<unsigned char *>(output.data()));
@@ -30,7 +32,9 @@ Expected<QByteArray, uint64_t> Quotient::pbkdf2HmacSha512(const QByteArray& pass
     return output;
 }
 
-Expected<QByteArray, uint64_t> Quotient::aesCtr256Encrypt(const QByteArray& plaintext, const QByteArray& key, const QByteArray& iv)
+SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
+                                                   const QByteArray& key,
+                                                   const QByteArray& iv)
 {
     EVP_CIPHER_CTX* ctx = nullptr;
     int length = 0;
@@ -78,7 +82,9 @@ Expected<QByteArray, uint64_t> Quotient::aesCtr256Encrypt(const QByteArray& plai
     return encrypted;
 }
 
-Expected<HkdfKeys, uint64_t> Quotient::hkdfSha256(const QByteArray& key, const QByteArray& salt, const QByteArray& info)
+SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
+                                           const QByteArray& salt,
+                                           const QByteArray& info)
 {
     QByteArray result(64, u'\0');
     auto context = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
@@ -125,7 +131,8 @@ Expected<HkdfKeys, uint64_t> Quotient::hkdfSha256(const QByteArray& key, const Q
     return HkdfKeys{std::move(result), std::move(macKey)};
 }
 
-Expected<QByteArray, uint64_t> Quotient:: hmacSha256(const QByteArray& hmacKey, const QByteArray& data)
+SslExpected<QByteArray> Quotient::hmacSha256(const QByteArray& hmacKey,
+                                             const QByteArray& data)
 {
     uint32_t len = SHA256_DIGEST_LENGTH;
     QByteArray output(SHA256_DIGEST_LENGTH, u'\0');
@@ -137,7 +144,9 @@ Expected<QByteArray, uint64_t> Quotient:: hmacSha256(const QByteArray& hmacKey, 
     return output;
 }
 
-Expected<QByteArray, uint64_t> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext, const QByteArray& aes256Key, const QByteArray& iv)
+SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
+                                                   const QByteArray& aes256Key,
+                                                   const QByteArray& iv)
 {
     auto context = EVP_CIPHER_CTX_new();
     Q_ASSERT(context);
@@ -171,7 +180,9 @@ Expected<QByteArray, uint64_t> Quotient::aesCtr256Decrypt(const QByteArray& ciph
     return decrypted;
 }
 
-Expected<QByteArray, uint64_t> Quotient::curve25519AesSha2Decrypt(QByteArray ciphertext, const QByteArray &privateKey, const QByteArray &ephemeral, const QByteArray &mac)
+QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
+    QByteArray ciphertext, const QByteArray& privateKey,
+    const QByteArray& ephemeral, const QByteArray& mac)
 {
     auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
     Q_ASSERT(context);
@@ -192,7 +203,8 @@ Expected<QByteArray, uint64_t> Quotient::curve25519AesSha2Decrypt(QByteArray cip
     return plaintext;
 }
 
-Expected<Curve25519Encrypted, uint64_t> Quotient::curve25519AesSha2Encrypt(const QByteArray& plaintext, const QByteArray& publicKey)
+QOlmExpected<Curve25519Encrypted> Quotient::curve25519AesSha2Encrypt(
+    const QByteArray& plaintext, const QByteArray& publicKey)
 {
     auto context = makeCStruct(olm_pk_encryption, olm_pk_encryption_size, olm_clear_pk_encryption);
 
@@ -204,18 +216,17 @@ Expected<Curve25519Encrypted, uint64_t> Quotient::curve25519AesSha2Encrypt(const
     QByteArray ephemeral(olm_pk_key_length(), 0);
     QByteArray mac(olm_pk_mac_length(context.get()), 0);
     QByteArray ciphertext(olm_pk_ciphertext_length(context.get(), plaintext.size()), 0);
-    QByteArray randomBuffer(olm_pk_encrypt_random_length(context.get()), 0);
-    status = RAND_bytes(reinterpret_cast<unsigned char*>(randomBuffer.data()), randomBuffer.size());
-    if (status != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    const auto random = getRandom(olm_pk_encrypt_random_length(context.get()));
 
-    auto result = olm_pk_encrypt(context.get(), plaintext.data(), plaintext.size(), ciphertext.data(), ciphertext.size(), mac.data(), mac.size(), ephemeral.data(), ephemeral.size(), randomBuffer.data(), randomBuffer.size());
-
+    auto result = olm_pk_encrypt(context.get(), plaintext.data(),
+                                 plaintext.size(), ciphertext.data(),
+                                 ciphertext.size(), mac.data(), mac.size(),
+                                 ephemeral.data(), ephemeral.size(),
+                                 random.data(), random.size());
     if (result == olm_error()) {
         return olm_pk_encryption_last_error_code(context.get());
     }
+
     return Curve25519Encrypted {
         .ciphertext = ciphertext,
         .mac = mac,
