@@ -12,11 +12,15 @@
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+#include <openssl/err.h>
 
 #include <olm/pk.h>
 #include <olm/olm.h>
 
 using namespace Quotient;
+
+static_assert(std::is_same_v<SslErrorCode, decltype(ERR_get_error())>);
+static_assert(SslErrorUserOffset == ERR_LIB_USER);
 
 SslExpected<QByteArray> Quotient::pbkdf2HmacSha512(const QByteArray& password,
                                                    const QByteArray& salt,

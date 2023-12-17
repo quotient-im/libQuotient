@@ -11,8 +11,6 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
 
-#include <openssl/err.h>
-
 namespace Quotient {
 struct QUOTIENT_API HkdfKeys {
     //! @brief Key to be used for AES encryption / decryption
@@ -29,9 +27,12 @@ struct QUOTIENT_API Curve25519Encrypted {
 
 constexpr auto DefaultPbkdf2KeyLength = 32;
 
-using SslErrorCode = decltype(ERR_get_error()); // unsigned long
+// OpenSSL is a private dependency; can't refer to OpenSSL symbols from here
 
-constexpr SslErrorCode WrongDerivedKeyLength = ERR_LIB_USER + 1;
+using SslErrorCode = unsigned long; // decltype(ERR_get_error())
+
+constexpr SslErrorCode SslErrorUserOffset = 128; // ERR_LIB_USER
+constexpr SslErrorCode WrongDerivedKeyLength = SslErrorUserOffset + 1;
 
 //! Same as QOlmExpected but for wrapping OpenSSL instead of Olm calls
 template <typename T>
