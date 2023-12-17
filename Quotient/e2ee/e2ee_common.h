@@ -77,12 +77,20 @@ QUOTIENT_API QByteArray byteArrayForOlm(size_t bufferSize);
 
 //! \brief Get a size of Qt container coerced to size_t
 //!
-//! It's a safe cast since size_t can easily accommodate the range between
-//! 0 and INTMAX - 1 that Qt containers support; yet compilers complain...
+//! It's a safe cast since size_t can always accommodate the range between
+//! 0 and SIZE_MAX / 2 - 1 that Qt containers support; yet compilers complain...
 inline size_t unsignedSize(const auto& qtBuffer)
 {
     return static_cast<size_t>(qtBuffer.size());
 }
+
+// Can't use std::byte normally recommended for the purpose because both Olm
+// and OpenSSL get uint8_t* pointers, and std::byte* is not implicitly
+// convertible to uint8_t (and adding explicit casts in each case kinda defeats
+// the purpose of all the span machinery below meant to replace reinterpret_ or
+// any other casts).
+
+using byte_t = uint8_t;
 
 class QUOTIENT_API FixedBufferBase {
 public:
@@ -122,6 +130,11 @@ protected:
 
     uint8_t* dataForWriting() { return data_; }
     const uint8_t* data() const { return data_; }
+    const uint8_t& operator[](size_t idx) const
+    {
+        Q_ASSERT(idx < size());
+        return data()[idx];
+    }
 
 private:
     uint8_t* data_ = nullptr;
@@ -146,6 +159,12 @@ public:
 
     using FixedBufferBase::data;
     uint8_t* data() requires DataIsWriteable { return dataForWriting(); }
+    uint8_t& operator[](size_t idx)
+        requires DataIsWriteable
+    {
+        Q_ASSERT(idx < size());
+        return dataForWriting()[idx];
+    }
 };
 
 inline auto getRandom(size_t bytes)
@@ -158,6 +177,16 @@ inline auto getRandom()
 {
     return FixedBuffer<SizeN>{ FixedBufferBase::FillWithRandom };
 }
+
+//! \brief Fill the buffer with the securely generated random bytes
+//!
+//! You should use this throughout Quotient where pseudo-random generators
+//! are not enough (i.e. in crypto cases). Don't use it when proper randomness
+//! is not critical; it tries to rely on system entropy that is in (somewhat)
+//! limited supply.
+//! There's no fancy stuff internally, it's just a way to unify secure RNG usage
+//! in Quotient. See the function definition for details if you want/need.
+QUOTIENT_API void fillFromSecureRng(std::span<byte_t> bytes);
 
 class PicklingKey : public FixedBuffer<128, /*DataIsWriteable=*/false> {
 private:

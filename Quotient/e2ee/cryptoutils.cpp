@@ -56,17 +56,9 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
                                                    const QByteArray& key,
                                                    const QByteArray& iv)
 {
-    int length = 0;
-    int ciphertextLength = 0;
-
-    auto encrypted = QByteArray(plaintext.size() + AES_BLOCK_SIZE, u'\0');
-    if (RAND_bytes(reinterpret_cast<unsigned char*>(encrypted.data()), encrypted.size()) != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
-    auto data = encrypted.data();
+    auto encrypted = getRandom(unsignedSize(plaintext) + AES_BLOCK_SIZE);
     constexpr auto mask = static_cast<std::uint8_t>(~(1U << (63 / 8)));
-    data[15 - 63 % 8] &= mask;
+    encrypted[15 - 63 % 8] &= mask;
 
     const ContextHolder ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
     if (!ctx) {
@@ -79,20 +71,20 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
         return ERR_get_error();
     }
 
+    int length = 0;
     if (EVP_EncryptUpdate(ctx.get(), reinterpret_cast<unsigned char*>(encrypted.data()), &length, reinterpret_cast<const unsigned char *>(&plaintext.data()[0]), (int) plaintext.size()) != 1) {
         qWarning() << ERR_error_string(ERR_get_error(), nullptr);
         return ERR_get_error();
     }
 
-    ciphertextLength = length;
+    int ciphertextLength = length;
     if (EVP_EncryptFinal_ex(ctx.get(), reinterpret_cast<unsigned char*>(encrypted.data()) + length, &length) != 1) {
         qWarning() << ERR_error_string(ERR_get_error(), nullptr);
         return ERR_get_error();
     }
 
     ciphertextLength += length;
-    encrypted.resize(ciphertextLength);
-    return encrypted;
+    return encrypted.viewAsByteArray().left(ciphertextLength);
 }
 
 #define CALL_OPENSSL(Call_)                                           \

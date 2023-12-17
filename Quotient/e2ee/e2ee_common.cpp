@@ -23,6 +23,52 @@ QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
     return {};
 }
 
+void Quotient::fillFromSecureRng(std::span<byte_t> bytes)
+{
+    // Discussion of QRandomGenerator::system() vs. OpenSSL's RAND_bytes
+    //
+    // It is a rather close call between the two; to be honest, TL;DR from the
+    // below is "it doesn't really matter". Going through the source code of
+    // both libraries, along with reading others' investigations like
+    // https://github.com/golang/go/issues/33542, left me (@kitsune) with
+    // the following:
+    // 1. Both ultimately use more or less the same stuff internally - which is
+    //    is not surprising and is reassuring in TL;DR. Contrary to occasional
+    //    claims on interwebs though, QRandomGenerator does not rely on OpenSSL,
+    //    calling system primitives directly instead.
+    // 2. Qt's code is massively simpler - again, effectively it's a rather
+    //    thin wrapper around what I know for a reasonably good practice across
+    //    the platforms supported by Quotient.
+    // 3. OpenSSL is more flexible in that you can specify which RNG engine
+    //    you actually want: you can, e.g., explicitly use the hardware-based
+    //    (aka "true") RNG on modern Intel CPUs. QRandomGenerator "simply"
+    //    offers the nice Qt interface to whatever best the operating system
+    //    provides (and at least Linux kernel happens to also use true RNGs
+    //    where it can, so ¯\(ツ)/¯)
+    // 3. QRandomGenerator produces stuff in uint32_t (or uint64_t in case of
+    //    QRandomGenerator64) chunks; OpenSSL generates bytes, which is sorta
+    //    more convenient. Quotient never needs quantities of randomness that
+    //    are not multiples of 16 _bytes_; the Q_UNLIKELY branch below is merely
+    //    to cover an edge case that should never happen in the first place.
+    //    So, ¯\(ツ)/¯ again.
+    //
+    // Based on this, QRandomGenerator::system() wins by a tiny non-functional
+    // margin; my somewhat educated opinion for now is that both APIs are
+    // equally good from the functionality and security point of view.
+
+    // QRandomGenerator::fillRange works in terms of 32-bit words,
+    // and FixedBuffer happens to deal with sizes that are multiples
+    // of those (16, 32, etc.)
+    const qsizetype wordsCount = bytes.size() / 4;
+    QRandomGenerator::system()->fillRange(
+        reinterpret_cast<uint32_t*>(bytes.data()), wordsCount);
+    if (const int remainder = bytes.size() % 4; Q_UNLIKELY(remainder != 0)) {
+        // Not normal; but if it happens, apply best effort
+        QRandomGenerator::system()->generate(bytes.end() - remainder,
+                                             bytes.end());
+    }
+}
+
 auto initializeSecureHeap()
 {
 #if !defined(LIBRESSL_VERSION_NUMBER)
@@ -79,22 +125,9 @@ FixedBufferBase::FixedBufferBase(size_t bufferSize, InitOptions options)
     if (options == Uninitialized)
         return;
 
-    data_ = allocate(size_, options == FillWithZeros);
-    if (options == FillWithRandom) {
-        // QRandomGenerator::fillRange works in terms of 32-bit words,
-        // and FixedBuffer happens to deal with sizes that are multiples
-        // of those (16, 32, etc.)
-        const qsizetype wordsCount = size_ / 4;
-        QRandomGenerator::system()->fillRange(
-            reinterpret_cast<uint32_t*>(data_), wordsCount);
-        if (const auto remainder = size_ % 4; Q_UNLIKELY(remainder != 0)) {
-            // Not normal; but if it happens, apply best effort
-            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-            const auto end = data_ + size_;
-            QRandomGenerator::system()->generate(end - remainder, end);
-            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-        }
-    }
+    data_ = allocate(bufferSize, options == FillWithZeros);
+    if (options == FillWithRandom)
+        fillFromSecureRng({ data_, bufferSize });
 }
 
 void FixedBufferBase::fillFrom(QByteArray&& source)
