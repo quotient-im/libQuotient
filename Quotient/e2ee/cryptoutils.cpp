@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
 
 #include "cryptoutils.h"
-#include "expected.h"
+
+#include "../logging_categories_p.h"
+#include "../util.h"
 
 #include <openssl/aes.h>
 #include <openssl/evp.h>
@@ -10,12 +12,9 @@
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
-#include <openssl/err.h>
 
 #include <olm/pk.h>
 #include <olm/olm.h>
-
-#include <util.h>
 
 using namespace Quotient;
 
@@ -111,10 +110,14 @@ SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
         info.size()));
     auto outputLength = unsignedSize(result);
     CALL_OPENSSL(EVP_PKEY_derive(context, reinterpret_cast<unsigned char *>(result.data()), &outputLength));
+    if (outputLength != 64) {
+        qCCritical(E2EE) << "hkdfSha256: the derived key is" << outputLength
+                         << "bytes instead of 64";
+        Q_ASSERT(false);
+        return WrongDerivedKeyLength;
+    }
 
     EVP_PKEY_CTX_free(context);
-
-    Q_ASSERT(outputLength != 64);
 
     auto macKey = result.mid(32);
     result.resize(32);
