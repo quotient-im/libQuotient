@@ -27,10 +27,6 @@ private slots:
     void testEncrypted();
 };
 
-namespace {
-inline QByteArray zeroedByteArray(int n = 32) { return { n, u'\0' }; }
-}
-
 using namespace Quotient;
 
 void TestCryptoUtils::aesCtrEncryptDecryptData()
