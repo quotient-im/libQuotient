@@ -81,7 +81,7 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
     Q_ASSERT(!clamped); // Normally the caller should check this
 
     auto encrypted = getRandom(unsignedSize(plaintext) + AesBlockSize);
-    constexpr auto mask = ~(uint8_t{ 1 } << (63 / 8));
+    constexpr auto mask = static_cast<uint8_t>(~(1U << (63 / 8)));
     encrypted[15 - 63 % 8] &= mask;
 
     const ContextHolder ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
