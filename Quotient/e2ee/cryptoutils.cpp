@@ -43,8 +43,12 @@ public:
 template <class CryptoContext, typename Deleter>
 ContextHolder(CryptoContext*, Deleter) -> ContextHolder<CryptoContext>;
 
+template <typename SizeT>
+    requires (sizeof(SizeT) >= sizeof(int))
 inline std::pair<int, bool> checkedSize(
-    auto uncheckedSize, int maxSize = std::numeric_limits<int>::max())
+    SizeT uncheckedSize,
+    std::type_identity_t<SizeT> maxSize = std::numeric_limits<int>::max())
+// ^ NB: usage of type_identity_t disables type deduction
 {
     if (uncheckedSize < maxSize)
         return { static_cast<int>(uncheckedSize), false };
@@ -217,11 +221,12 @@ QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
         return olm_pk_decryption_last_error_code(context.get());
 
     auto plaintext = byteArrayForOlm(olm_pk_max_plaintext_length(context.get(), unsignedSize(ciphertext)));
-    auto result = olm_pk_decrypt(context.get(), ephemeral.data(), unsignedSize(ephemeral), mac.data(), unsignedSize(mac), ciphertext.data(), unsignedSize(ciphertext), plaintext.data(), unsignedSize(plaintext));
-    if (result == olm_error())
+    const auto resultSize = olm_pk_decrypt(context.get(), ephemeral.data(), unsignedSize(ephemeral), mac.data(), unsignedSize(mac), ciphertext.data(), unsignedSize(ciphertext), plaintext.data(), unsignedSize(plaintext));
+    if (resultSize == olm_error())
         return olm_pk_decryption_last_error_code(context.get());
 
-    plaintext.resize(result);
+    const auto checkedResultSize = checkedSize(resultSize).first;
+    plaintext.resize(checkedResultSize);
     return plaintext;
 }
 
