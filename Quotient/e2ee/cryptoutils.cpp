@@ -171,10 +171,10 @@ SslExpected<QByteArray> Quotient::hmacSha256(const QByteArray& hmacKey,
 }
 
 SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
-                                                   const QByteArray& aes256Key,
+                                                   const QByteArray& key,
                                                    const QByteArray& iv)
 {
-    const ContextHolder context(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    const ContextHolder context(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
     if (!context) {
         qCCritical(E2EE)
             << "aesCtr256Decrypt() failed to create cipher context:"
@@ -188,7 +188,7 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
     const int ciphertextSize = checkedSize(ciphertext.size()).first;
     auto decrypted = zeroedByteArray(ciphertext.size());
 
-    if (EVP_DecryptInit_ex(context.get(), EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char *>(aes256Key.constData()), reinterpret_cast<const unsigned char *>(iv.constData())) != 1) {
+    if (EVP_DecryptInit_ex(context.get(), EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char *>(key.constData()), reinterpret_cast<const unsigned char *>(iv.constData())) != 1) {
         qWarning() << ERR_error_string(ERR_get_error(), nullptr);
         return ERR_get_error();
     }
@@ -216,8 +216,12 @@ QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
     auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
     Q_ASSERT(context);
 
-    auto publicKey = byteArrayForOlm(olm_pk_key_length());
-    if (olm_pk_key_from_private(context.get(), publicKey.data(), unsignedSize(publicKey), privateKey.data(), unsignedSize(privateKey)) == olm_error())
+    // NB: The produced public key is not actually used, it's only a check
+    if (std::vector<uint8_t> publicKey(olm_pk_key_length());
+        olm_pk_key_from_private(context.get(), publicKey.data(),
+                                publicKey.size(), privateKey.data(),
+                                unsignedSize(privateKey))
+        == olm_error())
         return olm_pk_decryption_last_error_code(context.get());
 
     auto plaintext = byteArrayForOlm(olm_pk_max_plaintext_length(context.get(), unsignedSize(ciphertext)));
@@ -245,12 +249,13 @@ QOlmExpected<Curve25519Encrypted> Quotient::curve25519AesSha2Encrypt(
     auto mac = byteArrayForOlm(olm_pk_mac_length(context.get()));
     auto ciphertext = byteArrayForOlm(
         olm_pk_ciphertext_length(context.get(), unsignedSize(plaintext)));
-    const auto random = getRandom(olm_pk_encrypt_random_length(context.get()));
 
+    const auto randomLength = olm_pk_encrypt_random_length(context.get());
     if (olm_pk_encrypt(context.get(), plaintext.data(), unsignedSize(plaintext),
                        ciphertext.data(), unsignedSize(ciphertext), mac.data(),
                        unsignedSize(mac), ephemeral.data(),
-                       unsignedSize(ephemeral), random.data(), random.size())
+                       unsignedSize(ephemeral), getRandom(randomLength).data(),
+                       randomLength)
         == olm_error())
         return olm_pk_encryption_last_error_code(context.get());
 
@@ -265,7 +270,7 @@ QByteArray Quotient::base58Decode(const QByteArray& encoded)
 {
     auto alphabet = QByteArrayLiteral("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
     QByteArray reverse_alphabet(256, -1);
-    for (auto i = 0; i < 58; i++) {
+    for (auto i = 0; i < 58; ++i) {
         reverse_alphabet[static_cast<uint8_t>(alphabet.at(i))] = static_cast<char>(i);
     }
 
@@ -285,7 +290,7 @@ QByteArray Quotient::base58Decode(const QByteArray& encoded)
         }
     }
 
-    for (auto i = 0; i < encoded.length() && encoded[i] == '1'; i++) {
+    for (auto i = 0; i < encoded.length() && encoded[i] == '1'; ++i) {
         result.push_back(u'\0');
     }
 
