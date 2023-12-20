@@ -23,6 +23,13 @@ QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
     return {};
 }
 
+void Quotient::_impl::reportSpanShortfall(QByteArray::size_type inputSize,
+                                          size_t neededSize)
+{
+    qCCritical(E2EE) << "Not enough bytes to create a valid span: " << inputSize
+                     << '<' << neededSize << "- undefined behaviour imminent";
+}
+
 void Quotient::fillFromSecureRng(std::span<byte_t> bytes)
 {
     // Discussion of QRandomGenerator::system() vs. OpenSSL's RAND_bytes

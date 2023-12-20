@@ -23,34 +23,36 @@ using namespace Quotient;
 QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
                                  const EncryptedFileMetadata& metadata)
 {
-    if (QByteArray::fromBase64(metadata.hashes["sha256"_ls].toLatin1())
-        != QCryptographicHash::hash(ciphertext, QCryptographicHash::Sha256)) {
-        qCWarning(E2EE) << "Hash verification failed for file";
+    const auto key = QByteArray::fromBase64(metadata.key.k.toLatin1(),
+                                            QByteArray::Base64UrlEncoding);
+    if (key.size() < AesKeySize) {
+        qCWarning(E2EE)
+            << "Decoded key is too short for AES, need 32 bytes, got"
+            << key.size();
+        return {};
+    }
+    const auto iv = QByteArray::fromBase64(metadata.iv.toLatin1());
+    if (iv.size() < AesBlockSize) {
+        qCWarning(E2EE) << "Decoded iv is too short for AES, need"
+                        << AesBlockSize << "bytes, got" << iv.size();
         return {};
     }
 
-    auto _key = metadata.key.k;
-    const auto keyBytes = QByteArray::fromBase64(
-        _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
-
-    auto result = aesCtr256Decrypt(ciphertext, keyBytes, QByteArray::fromBase64(metadata.iv.toLatin1()));
-    if (!result.has_value()) {
-        //TODO: Error
-    }
-    return result.value();
+    return aesCtr256Decrypt(ciphertext, asCBytes<32>(key), asCBytes<16>(iv))
+        .move_value_or({});
 }
 
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
-    auto k = getRandom<32>();
+    auto k = getRandom<AesKeySize>();
     auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
                               | QByteArray::OmitTrailingEquals);
-    auto iv = getRandom<16>();
+    auto iv = getRandom<AesBlockSize>();
     const JWK key = {
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
     };
-    auto result = aesCtr256Encrypt(plainText, k.viewAsByteArray(), iv.viewAsByteArray());
+    auto result = aesCtr256Encrypt(plainText, k, iv);
 
     if (!result.has_value()) {
         //TODO: Error

@@ -86,15 +86,80 @@ inline size_t unsignedSize(const auto& qtBuffer)
 
 // Can't use std::byte normally recommended for the purpose because both Olm
 // and OpenSSL get uint8_t* pointers, and std::byte* is not implicitly
-// convertible to uint8_t (and adding explicit casts in each case kinda defeats
+// convertible to uint8_t* (and adding explicit casts in each case kinda defeats
 // the purpose of all the span machinery below meant to replace reinterpret_ or
 // any other casts).
 
 using byte_t = uint8_t;
 
+template <size_t N = std::dynamic_extent>
+using byte_view_t = std::span<const byte_t, N>;
+
+template <size_t N = std::dynamic_extent>
+using byte_span_t = std::span<byte_t, N>;
+
+namespace _impl {
+    QUOTIENT_API void reportSpanShortfall(QByteArray::size_type inputSize,
+                                          size_t neededSize);
+} // namespace _impl
+
+//! \brief Obtain an std::span<const byte_t> looking into the passed QByteArray
+//!
+//! This function returns an adaptor object that is suitable for OpenSSL/Olm
+//! invocations (via std::span<>::data() accessor) so that you don't have
+//! to wrap your QByteArray into ugly reinterpret_casts on every OpenSSL call.
+//! \note The caller is responsible for making sure that bytes.size() is small
+//!       enough to fit into an int (OpenSSL only handles int sizes atm) but
+//!       also large enough to have at least N bytes if N is not
+//!       `std::dynamic_extent`
+//! \sa spanForOpenSsl for the case when you need to pass a buffer for writing
+template <size_t N = std::dynamic_extent>
+inline auto asCBytes(const QByteArray& bytes)
+{
+    // OpenSSL only handles int sizes; Release builds will cut the tail off
+    Q_ASSERT_X(bytes.size() <= std::numeric_limits<int>::max(), __func__,
+               "Too long array for OpenSSL");
+    static_assert(N == std::dynamic_extent
+                  || N <= std::numeric_limits<int>::max());
+
+    if (N != std::dynamic_extent && bytes.size() < static_cast<qsizetype>(N)) {
+        _impl::reportSpanShortfall(bytes.size(), N);
+        Q_ASSERT(false);
+        // Can't help it in Release builds; a span of the given size has
+        // to be returned regardless, so UB
+    }
+    return byte_view_t<N>(reinterpret_cast<const byte_t*>(bytes.data()),
+                          unsignedSize(bytes));
+}
+
+// 0.9: use Ranges instead?
+template <class BufferT>
+inline auto asWritableCBytes(BufferT& buf) -> auto
+    requires(!std::is_const_v<typename BufferT::value_type>)
+{
+    return byte_span_t<BufferT::extent>(buf);
+}
+
+template <class BufferT>
+inline auto asCBytes(const BufferT& buf) -> auto
+{
+    return byte_view_t<BufferT::extent>(buf);
+}
+
+inline auto viewAsByteArray(const auto& aRange) -> auto
+{ // -> auto to activate SFINAE, it's always QByteArray when well-formed
+    return QByteArray::fromRawData(reinterpret_cast<const char*>(
+                                       std::data(aRange)),
+                                   static_cast<int>(std::size(aRange)));
+}
+
+//! Non-template base for owning byte span classes
 class QUOTIENT_API FixedBufferBase {
 public:
     enum InitOptions { Uninitialized, FillWithZeros, FillWithRandom };
+
+    using value_type = byte_t; // TODO, 0.9: uint8_t -> value_type below
+    using size_type = size_t; // TODO, 0.9: size_t -> size_type below
 
     static constexpr auto TotalSecureHeapSize = 65'536;
 
@@ -110,6 +175,17 @@ public:
         return QByteArray::fromRawData(reinterpret_cast<const char*>(data_),
                                        static_cast<int>(size_));
     }
+
+    QByteArray copyToByteArray(QByteArray::size_type untilPos = -1) const
+    {
+        if (untilPos < 0 || static_cast<size_type>(untilPos) > size_)
+            untilPos = static_cast<QByteArray::size_type>(size_);
+        return { reinterpret_cast<const char*>(data_), untilPos };
+    }
+
+    // TODO, 0.9: merge the overloads
+
+    QByteArray toBase64() const { return viewAsByteArray().toBase64(); }
     QByteArray toBase64(QByteArray::Base64Options options) const
     {
         return viewAsByteArray().toBase64(options);
@@ -130,11 +206,6 @@ protected:
 
     uint8_t* dataForWriting() { return data_; }
     const uint8_t* data() const { return data_; }
-    const uint8_t& operator[](size_t idx) const
-    {
-        Q_ASSERT(idx < size());
-        return data()[idx];
-    }
 
 private:
     uint8_t* data_ = nullptr;
@@ -148,9 +219,17 @@ public:
     static_assert(extent == std::dynamic_extent
                   || (extent < TotalSecureHeapSize / 2 && extent % 4 == 0));
 
-    explicit FixedBuffer(InitOptions fillMode) requires(extent
-                                                        != std::dynamic_extent)
+    FixedBuffer() // TODO, 0.9: merge with the next constructor
+        requires(extent != std::dynamic_extent)
+        : FixedBuffer(FillWithZeros)
+    {}
+    explicit FixedBuffer(InitOptions fillMode)
+        requires(extent != std::dynamic_extent)
         : FixedBufferBase(ExtentN, fillMode)
+    {}
+    explicit FixedBuffer(size_t bufferSize)
+        requires(extent == std::dynamic_extent)
+        : FixedBuffer(bufferSize, FillWithZeros)
     {}
     explicit FixedBuffer(size_t bufferSize, InitOptions fillMode)
         requires(extent == std::dynamic_extent)
@@ -159,11 +238,18 @@ public:
 
     using FixedBufferBase::data;
     uint8_t* data() requires DataIsWriteable { return dataForWriting(); }
-    uint8_t& operator[](size_t idx)
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    QUO_IMPLICIT operator byte_view_t<ExtentN>() const
+    {
+        return byte_view_t<ExtentN>(data(), size());
+    }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    QUO_IMPLICIT operator byte_span_t<ExtentN>()
         requires DataIsWriteable
     {
-        Q_ASSERT(idx < size());
-        return dataForWriting()[idx];
+        return byte_span_t<ExtentN>(dataForWriting(), size());
     }
 };
 
