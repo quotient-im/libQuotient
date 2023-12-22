@@ -282,15 +282,15 @@ QByteArray Quotient::base58Decode(const QByteArray& encoded)
     QByteArray result;
     result.reserve(encoded.size() * 733 / 1000 + 1);
 
-    for (auto b : encoded) {
-        uint32_t carry = reverse_alphabet[b];
+    for (const auto b : encoded) {
+        uint32_t carry = reverse_alphabet[static_cast<uint8_t>(b)];
         for (auto &j : result) {
             carry += static_cast<uint8_t>(j) * 58;
-            j = static_cast<char>(static_cast<uint8_t>(carry % 0x100));
+            j = static_cast<char>(carry % 0x100);
             carry /= 0x100;
         }
         while (carry > 0) {
-            result.push_back(static_cast<char>(static_cast<uint8_t>(carry % 0x100)));
+            result.push_back(static_cast<char>(carry % 0x100));
             carry /= 0x100;
         }
     }
