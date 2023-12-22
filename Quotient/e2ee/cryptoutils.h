@@ -19,14 +19,14 @@ namespace Quotient {
 // static_assert in the .cpp file to check it against the OpenSSL definition.
 
 constexpr auto DefaultPbkdf2KeyLength = 32u;
-constexpr auto AesKeySize = 32u;
+constexpr auto Aes256KeySize = 32u;
 constexpr auto AesBlockSize = 16u; // AES_BLOCK_SIZE
 constexpr auto HmacKeySize = 32u;
 
 struct QUOTIENT_API HkdfKeys
-    : public FixedBuffer<AesKeySize + HmacKeySize> {
+    : public FixedBuffer<Aes256KeySize + HmacKeySize> {
     //! \brief Key to be used for AES encryption / decryption
-    auto aes() const { return asCBytes(*this).first<AesKeySize>(); }
+    auto aes() const { return asCBytes(*this).first<Aes256KeySize>(); }
     //! \brief Key to be used for MAC creation / verification
     auto mac() const { return asCBytes(*this).last<HmacKeySize>(); }
 };
@@ -87,14 +87,14 @@ QUOTIENT_API QOlmExpected<Curve25519Encrypted> curve25519AesSha2Encrypt(
 //!
 //! key and iv have a length of 32 bytes
 QUOTIENT_API SslExpected<QByteArray> aesCtr256Encrypt(
-    const QByteArray& plaintext, byte_view_t<AesKeySize> key,
+    const QByteArray& plaintext, byte_view_t<Aes256KeySize> key,
     byte_view_t<AesBlockSize> iv);
 
 //! \brief Decrypt data using AES-CTR-256
 //!
 //! key and iv have a length of 32 bytes
 QUOTIENT_API SslExpected<QByteArray> aesCtr256Decrypt(
-    const QByteArray& ciphertext, byte_view_t<AesKeySize> key,
+    const QByteArray& ciphertext, byte_view_t<Aes256KeySize> key,
     byte_view_t<AesBlockSize> iv);
 
 QUOTIENT_API QByteArray base58Decode(const QByteArray& encoded);

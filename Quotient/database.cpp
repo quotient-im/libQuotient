@@ -492,7 +492,8 @@ void Database::storeEncrypted(const QString& name, const QByteArray& key)
 {
     auto iv = getRandom<AesBlockSize>();
     auto result =
-        aesCtr256Encrypt(key, asCBytes(m_picklingKey).first<AesKeySize>(), iv);
+        aesCtr256Encrypt(key, asCBytes(m_picklingKey).first<Aes256KeySize>(),
+                         iv);
     if (!result.has_value())
         return;
 
@@ -519,7 +520,7 @@ QByteArray Database::loadEncrypted(const QString& name)
     }
     auto cipher = QByteArray::fromBase64(query.value("cipher"_ls).toString().toLatin1());
     auto iv = QByteArray::fromBase64(query.value("iv"_ls).toString().toLatin1());
-    return aesCtr256Decrypt(cipher, asCBytes(m_picklingKey).first<AesKeySize>(),
+    return aesCtr256Decrypt(cipher, asCBytes(m_picklingKey).first<Aes256KeySize>(),
                             asCBytes<AesBlockSize>(iv))
         .move_value_or({});
 }

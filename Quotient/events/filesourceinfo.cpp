@@ -25,7 +25,7 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
 {
     const auto key = QByteArray::fromBase64(metadata.key.k.toLatin1(),
                                             QByteArray::Base64UrlEncoding);
-    if (key.size() < AesKeySize) {
+    if (key.size() < Aes256KeySize) {
         qCWarning(E2EE)
             << "Decoded key is too short for AES, need 32 bytes, got"
             << key.size();
@@ -45,7 +45,7 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
-    auto k = getRandom<AesKeySize>();
+    auto k = getRandom<Aes256KeySize>();
     auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
                               | QByteArray::OmitTrailingEquals);
     auto iv = getRandom<AesBlockSize>();

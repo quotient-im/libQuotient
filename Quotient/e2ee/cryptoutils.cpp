@@ -99,7 +99,7 @@ SslExpected<QByteArray> Quotient::pbkdf2HmacSha512(const QByteArray& password,
 }
 
 SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
-                                                   byte_view_t<AesKeySize> key,
+                                                   byte_view_t<Aes256KeySize> key,
                                                    byte_view_t<AesBlockSize> iv)
 {
     CLAMP_SIZE(plaintextSize, plaintext,
@@ -185,7 +185,7 @@ SslExpected<QByteArray> Quotient::hmacSha256(byte_view_t<HmacKeySize> hmacKey,
 }
 
 SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
-                                                   byte_view_t<AesKeySize> key,
+                                                   byte_view_t<Aes256KeySize> key,
                                                    byte_view_t<AesBlockSize> iv)
 {
     const ContextHolder context(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);

@@ -32,7 +32,7 @@ using namespace Quotient;
 void TestCryptoUtils::aesCtrEncryptDecryptData()
 {
     const QByteArray plain = "ABCDEF";
-    const FixedBuffer<AesKeySize> key{};
+    const FixedBuffer<Aes256KeySize> key{};
     const FixedBuffer<AesBlockSize> iv{};
     auto cipher = aesCtr256Encrypt(plain, key, iv);
     QVERIFY(cipher.has_value());
