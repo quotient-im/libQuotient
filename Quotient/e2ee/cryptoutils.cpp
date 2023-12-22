@@ -268,11 +268,16 @@ QOlmExpected<Curve25519Encrypted> Quotient::curve25519AesSha2Encrypt(
 
 QByteArray Quotient::base58Decode(const QByteArray& encoded)
 {
-    auto alphabet = QByteArrayLiteral("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
-    QByteArray reverse_alphabet(256, -1);
-    for (auto i = 0; i < 58; ++i) {
-        reverse_alphabet[static_cast<uint8_t>(alphabet.at(i))] = static_cast<char>(i);
-    }
+    // See https://spec.matrix.org/latest/client-server-api/#recovery-key
+    constexpr auto reverse_alphabet = []() constexpr {
+        std::array<uint8_t, 256> init{ static_cast<uint8_t>(-1) };
+        constexpr uint8_t alphabet[59] =
+            "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+        for (uint8_t i = 0; i < std::size(alphabet) - 1; ++i) {
+            init[alphabet[i]] = i;
+        }
+        return init;
+    }();
 
     QByteArray result;
     result.reserve(encoded.size() * 733 / 1000 + 1);
