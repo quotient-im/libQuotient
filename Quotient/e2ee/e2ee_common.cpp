@@ -23,11 +23,17 @@ QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
     return {};
 }
 
-void Quotient::_impl::reportSpanShortfall(QByteArray::size_type inputSize,
+void Quotient::_impl::checkForSpanShortfall(QByteArray::size_type inputSize,
                                           size_t neededSize)
 {
-    qCCritical(E2EE) << "Not enough bytes to create a valid span: " << inputSize
-                     << '<' << neededSize << "- undefined behaviour imminent";
+    if (inputSize < static_cast<qsizetype>(neededSize)) {
+        qCCritical(E2EE) << "Not enough bytes to create a valid span: "
+                         << inputSize << '<' << neededSize
+                         << "- undefined behaviour imminent";
+        Q_ASSERT(false);
+        // Can't help it in Release builds; a span of the given size has
+        // to be returned regardless, so UB
+    }
 }
 
 void Quotient::fillFromSecureRng(std::span<byte_t> bytes)

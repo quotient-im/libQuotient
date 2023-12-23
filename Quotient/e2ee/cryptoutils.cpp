@@ -93,10 +93,10 @@ SslExpected<QByteArray> Quotient::pbkdf2HmacSha512(const QByteArray& password,
     CLAMP_SIZE(passwordSize, password);
     CLAMP_SIZE(saltSize, salt);
     auto output = zeroedByteArray(keyLength);
-    CALL_OPENSSL(
-        PKCS5_PBKDF2_HMAC(password.data(), passwordSize, asCBytes(salt).data(),
-                          saltSize, iterations, EVP_sha512(), keyLength,
-                          reinterpret_cast<unsigned char*>(output.data())));
+    CALL_OPENSSL(PKCS5_PBKDF2_HMAC(password.data(), passwordSize,
+                                   asCBytes(salt).data(), saltSize, iterations,
+                                   EVP_sha512(), keyLength,
+                                   asWritableCBytes(output).data()));
     return output;
 }
 
@@ -123,9 +123,7 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
 
     int encryptedLength = 0;
     CALL_OPENSSL(EVP_EncryptUpdate(ctx.get(), encrypted.data(), &encryptedLength,
-                                   reinterpret_cast<const unsigned char*>(
-                                       plaintext.constData()),
-                                   plaintextSize));
+                                   asCBytes(plaintext).data(), plaintextSize));
     Q_ASSERT(encryptedLength >= 0);
 
     int tailLength = -1;
@@ -152,19 +150,14 @@ SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
 
     CALL_OPENSSL(EVP_PKEY_derive_init(context.get()));
     CALL_OPENSSL(EVP_PKEY_CTX_set_hkdf_md(context.get(), EVP_sha256()));
-    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_salt(
-        context.get(), reinterpret_cast<const unsigned char*>(salt.constData()),
-        saltSize));
-    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_key(
-        context.get(), reinterpret_cast<const unsigned char*>(key.constData()),
-        keySize));
-    CALL_OPENSSL(EVP_PKEY_CTX_add1_hkdf_info(
-        context.get(), reinterpret_cast<const unsigned char*>(info.constData()),
-        infoSize));
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_salt(context.get(),
+                                             asCBytes(salt).data(), saltSize));
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_key(context.get(), asCBytes(key).data(),
+                                            keySize));
+    CALL_OPENSSL(EVP_PKEY_CTX_add1_hkdf_info(context.get(),
+                                             asCBytes(info).data(), infoSize));
     size_t outputLength = result.size();
-    CALL_OPENSSL(EVP_PKEY_derive(context.get(),
-                                 reinterpret_cast<unsigned char*>(result.data()),
-                                 &outputLength));
+    CALL_OPENSSL(EVP_PKEY_derive(context.get(), result.data(), &outputLength));
     if (outputLength != result.size()) {
         qCCritical(E2EE) << "hkdfSha256: the shared secret is" << outputLength
                          << "bytes instead of" << result.size();
@@ -180,7 +173,9 @@ SslExpected<QByteArray> Quotient::hmacSha256(byte_view_t<HmacKeySize> hmacKey,
 {
     unsigned int len = SHA256_DIGEST_LENGTH;
     auto output = zeroedByteArray(SHA256_DIGEST_LENGTH);
-    if (!HMAC(EVP_sha256(), hmacKey.data(), hmacKey.size(), reinterpret_cast<const unsigned char *>(data.constData()), unsignedSize(data), reinterpret_cast<unsigned char *>(output.data()), &len)) {
+    if (HMAC(EVP_sha256(), hmacKey.data(), hmacKey.size(), asCBytes(data).data(),
+             unsignedSize(data), asWritableCBytes(output).data(), &len)
+        == nullptr) {
         qWarning() << ERR_error_string(ERR_get_error(), nullptr);
         return ERR_get_error();
     }
@@ -208,16 +203,17 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
                                     key.data(), iv.data()));
 
     int decryptedLength = 0;
-    CALL_OPENSSL(EVP_DecryptUpdate(
-        context.get(), decrypted.data(), &decryptedLength,
-        reinterpret_cast<const unsigned char*>(ciphertext.constData()),
-        ciphertextSize));
+    CALL_OPENSSL(
+        EVP_DecryptUpdate(context.get(), decrypted.data(), &decryptedLength,
+                          asCBytes(ciphertext).data(), ciphertextSize));
 
     int tailLength = -1;
-    CALL_OPENSSL(EVP_DecryptFinal_ex(
-        context.get(),
-        asWritableCBytes(decrypted).subspan(static_cast<size_t>(decryptedLength)).data(),
-        &tailLength));
+    CALL_OPENSSL(
+        EVP_DecryptFinal_ex(context.get(),
+                            asWritableCBytes(decrypted)
+                                .subspan(static_cast<size_t>(decryptedLength))
+                                .data(),
+                            &tailLength));
     Q_ASSUME(tailLength == 0); // Specific to AES CTR
 
     return decrypted.copyToByteArray(decryptedLength + tailLength);

@@ -99,11 +99,25 @@ template <size_t N = std::dynamic_extent>
 using byte_span_t = std::span<byte_t, N>;
 
 namespace _impl {
-    QUOTIENT_API void reportSpanShortfall(QByteArray::size_type inputSize,
+    QUOTIENT_API void checkForSpanShortfall(QByteArray::size_type inputSize,
                                           size_t neededSize);
+
+    template <typename SpanT>
+    inline auto spanFromByteArray(auto& byteArray)
+    {
+        // OpenSSL only handles int sizes; Release builds will cut the tail off
+        Q_ASSERT_X(byteArray.size() <= std::numeric_limits<int>::max(),
+                   __func__, "Too long array for OpenSSL");
+        if constexpr (SpanT::extent != std::dynamic_extent) {
+            static_assert(SpanT::extent <= std::numeric_limits<int>::max());
+            checkForSpanShortfall(byteArray.size(), SpanT::extent);
+        }
+        return SpanT(reinterpret_cast<typename SpanT::pointer>(byteArray.data()),
+                     std::min(SpanT::extent, unsignedSize(byteArray)));
+    }
 } // namespace _impl
 
-//! \brief Obtain a std::span<const byte_t> looking into the passed QByteArray
+//! \brief Obtain a std::span<const byte_t, N> looking into the passed buffer
 //!
 //! This function returns an adaptor object that is suitable for OpenSSL/Olm
 //! invocations (via std::span<>::data() accessor) so that you don't have
@@ -112,24 +126,18 @@ namespace _impl {
 //!       enough to fit into an int (OpenSSL only handles int sizes atm) but
 //!       also large enough to have at least N bytes if N is not
 //!       `std::dynamic_extent`
-//! \sa spanForOpenSsl for the case when you need to pass a buffer for writing
+//! \sa asWritableCBytes for the case when you need to pass a buffer for writing
 template <size_t N = std::dynamic_extent>
 inline auto asCBytes(const QByteArray& bytes)
 {
-    // OpenSSL only handles int sizes; Release builds will cut the tail off
-    Q_ASSERT_X(bytes.size() <= std::numeric_limits<int>::max(), __func__,
-               "Too long array for OpenSSL");
-    static_assert(N == std::dynamic_extent
-                  || N <= std::numeric_limits<int>::max());
+    return _impl::spanFromByteArray<byte_view_t<N>>(bytes);
+}
 
-    if (N != std::dynamic_extent && bytes.size() < static_cast<qsizetype>(N)) {
-        _impl::reportSpanShortfall(bytes.size(), N);
-        Q_ASSERT(false);
-        // Can't help it in Release builds; a span of the given size has
-        // to be returned regardless, so UB
-    }
-    return byte_view_t<N>(reinterpret_cast<const byte_t*>(bytes.data()),
-                          unsignedSize(bytes));
+//! Obtain a std::span<byte_t, N> looking into the passed buffer
+template <size_t N = std::dynamic_extent>
+inline auto asWritableCBytes(QByteArray& bytes)
+{
+    return _impl::spanFromByteArray<byte_span_t<N>>(bytes);
 }
 
 // 0.9: use Ranges instead?
