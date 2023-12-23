@@ -103,7 +103,7 @@ namespace _impl {
                                           size_t neededSize);
 } // namespace _impl
 
-//! \brief Obtain an std::span<const byte_t> looking into the passed QByteArray
+//! \brief Obtain a std::span<const byte_t> looking into the passed QByteArray
 //!
 //! This function returns an adaptor object that is suitable for OpenSSL/Olm
 //! invocations (via std::span<>::data() accessor) so that you don't have
