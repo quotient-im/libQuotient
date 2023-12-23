@@ -72,6 +72,7 @@ inline std::pair<int, bool> checkedSize(
         Q_ASSERT(!ByteArray_##Clamped); /* Always false */                 \
         return SslPayloadTooLong;                                          \
     }                                                                      \
+    do {} while (false)                                                    \
     // End of macro
 
 #define CALL_OPENSSL(Call_)                                                \
@@ -81,15 +82,16 @@ inline std::pair<int, bool> checkedSize(
                             << ERR_error_string(ERR_get_error(), nullptr); \
             return ERR_get_error();                                        \
         }                                                                  \
-    } while (false) // End of macro
+    } while (false)                                                        \
+// End of macro
 // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 SslExpected<QByteArray> Quotient::pbkdf2HmacSha512(const QByteArray& password,
                                                    const QByteArray& salt,
                                                    int iterations, int keyLength)
 {
-    CLAMP_SIZE(passwordSize, password)
-    CLAMP_SIZE(saltSize, salt)
+    CLAMP_SIZE(passwordSize, password);
+    CLAMP_SIZE(saltSize, salt);
     auto output = zeroedByteArray(keyLength);
     CALL_OPENSSL(
         PKCS5_PBKDF2_HMAC(password.data(), passwordSize, asCBytes(salt).data(),
@@ -102,8 +104,7 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
                                                    byte_view_t<Aes256KeySize> key,
                                                    byte_view_t<AesBlockSize> iv)
 {
-    CLAMP_SIZE(plaintextSize, plaintext,
-               std::numeric_limits<int>::max() - iv.size())
+    CLAMP_SIZE(plaintextSize, plaintext);
 
     auto encrypted = getRandom(static_cast<size_t>(plaintextSize) + iv.size());
     auto encryptedSpan = asWritableCBytes(encrypted);
@@ -127,11 +128,12 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
                                    plaintextSize));
     Q_ASSERT(encryptedLength >= 0);
 
-    int tailLength = -1; // Normally becomes 0 after the next call
+    int tailLength = -1;
     CALL_OPENSSL(EVP_EncryptFinal_ex(
         ctx.get(),
         encryptedSpan.subspan(static_cast<size_t>(encryptedLength)).data(),
         &tailLength));
+    Q_ASSUME(tailLength == 0); // Specific to AES CTR
 
     return encrypted.copyToByteArray(encryptedLength + tailLength);
 }
@@ -140,9 +142,10 @@ SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
                                            const QByteArray& salt,
                                            const QByteArray& info)
 {
-    const auto saltSize = checkedSize(salt.size()).first,
-               keySize = checkedSize(key.size()).first,
-               infoSize = checkedSize(info.size()).first;
+    CLAMP_SIZE(saltSize, salt);
+    CLAMP_SIZE(keySize, key);
+    CLAMP_SIZE(infoSize, info);
+
     HkdfKeys result;
     const ContextHolder context(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr),
                                 &EVP_PKEY_CTX_free);
@@ -197,12 +200,7 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
         return ERR_get_error();
     }
 
-    const auto [ciphertextSize, clamped] = checkedSize(ciphertext.size());
-    if (clamped) {
-        qCCritical(E2EE) << "The ciphertext is too long to be decrypted";
-        Q_ASSERT(!clamped); // We just don't deal with such sizes in Matrix?
-        return SslPayloadTooLong;
-    }
+    CLAMP_SIZE(ciphertextSize, ciphertext);
 
     FixedBuffer<> decrypted(static_cast<size_t>(ciphertextSize),
                             FixedBufferBase::FillWithZeros);
@@ -215,11 +213,12 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
         reinterpret_cast<const unsigned char*>(ciphertext.constData()),
         ciphertextSize));
 
-    int tailLength = -1; // Normally becomes 0 after the next call
+    int tailLength = -1;
     CALL_OPENSSL(EVP_DecryptFinal_ex(
         context.get(),
         asWritableCBytes(decrypted).subspan(static_cast<size_t>(decryptedLength)).data(),
         &tailLength));
+    Q_ASSUME(tailLength == 0); // Specific to AES CTR
 
     return decrypted.copyToByteArray(decryptedLength + tailLength);
 }

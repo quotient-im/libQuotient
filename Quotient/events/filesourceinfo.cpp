@@ -23,12 +23,16 @@ using namespace Quotient;
 QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
                                  const EncryptedFileMetadata& metadata)
 {
+    if (QByteArray::fromBase64(metadata.hashes["sha256"_ls].toLatin1())
+        != QCryptographicHash::hash(ciphertext, QCryptographicHash::Sha256)) {
+        qCWarning(E2EE) << "Hash verification failed for file";
+        return {};
+    }
     const auto key = QByteArray::fromBase64(metadata.key.k.toLatin1(),
                                             QByteArray::Base64UrlEncoding);
     if (key.size() < Aes256KeySize) {
-        qCWarning(E2EE)
-            << "Decoded key is too short for AES, need 32 bytes, got"
-            << key.size();
+        qCWarning(E2EE) << "Decoded key is too short for AES, need"
+                        << Aes256KeySize << "bytes, got" << key.size();
         return {};
     }
     const auto iv = QByteArray::fromBase64(metadata.iv.toLatin1());
