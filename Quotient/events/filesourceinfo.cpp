@@ -57,15 +57,15 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
     };
     auto result = aesCtr256Encrypt(plainText, k, iv);
+    if (!result.has_value())
+        return {};
 
-    if (!result.has_value()) {
-        //TODO: Error
-    }
     auto hash = QCryptographicHash::hash(result.value(), QCryptographicHash::Sha256)
                     .toBase64(QByteArray::OmitTrailingEquals);
     auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
     const EncryptedFileMetadata efm = {
-        {}, key, QString::fromLatin1(ivBase64), { { QStringLiteral("sha256"), QString::fromLatin1(hash) } }, "v2"_ls
+        {}, key, QString::fromLatin1(ivBase64),
+        { { "sha256"_ls, QString::fromLatin1(hash) } }, "v2"_ls
     };
     return { efm, result.value() };
 }

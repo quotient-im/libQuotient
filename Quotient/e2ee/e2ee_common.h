@@ -100,7 +100,7 @@ using byte_span_t = std::span<byte_t, N>;
 
 namespace _impl {
     QUOTIENT_API void checkForSpanShortfall(QByteArray::size_type inputSize,
-                                          size_t neededSize);
+                                            size_t neededSize);
 
     template <typename SpanT>
     inline auto spanFromByteArray(auto& byteArray)
@@ -155,6 +155,7 @@ inline auto asCBytes(const BufferT& buf) -> auto
 }
 
 inline auto viewAsByteArray(const auto& aRange) -> auto
+    requires (sizeof(*aRange.data()) == sizeof(char))
 { // -> auto to activate SFINAE, it's always QByteArray when well-formed
     return QByteArray::fromRawData(reinterpret_cast<const char*>(
                                        std::data(aRange)),
@@ -176,6 +177,15 @@ public:
 
     void clear();
 
+    //! \brief Access the bytes of the fixed buffer via QByteArray interface
+    //!
+    //! This uses QByteArray::fromRawData() to create a QByteArray object that
+    //! refers to the original fixed buffer, without copying.
+    //! \warning the lifetime of the returned QByteArray should not exceed the
+    //!          lifetime of the underlying buffer; in particular, you should
+    //!          never try using the result of viewAsByteArray() as a return
+    //!          value of your function
+    //! \sa copyToByteArray
     QByteArray viewAsByteArray() const
     {
         // Ensure static_cast<int> is safe
@@ -184,6 +194,10 @@ public:
                                        static_cast<int>(size_));
     }
 
+    //! \brief Copy the contents of the buffer to a QByteArray
+    //!
+    //! Unlike viewAsByteArray(), this function actually copies the buffer to
+    //! non-secure memory.
     QByteArray copyToByteArray(QByteArray::size_type untilPos = -1) const
     {
         if (untilPos < 0 || static_cast<size_type>(untilPos) > size_)

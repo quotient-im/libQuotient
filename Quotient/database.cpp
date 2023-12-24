@@ -520,6 +520,11 @@ QByteArray Database::loadEncrypted(const QString& name)
     }
     auto cipher = QByteArray::fromBase64(query.value("cipher"_ls).toString().toLatin1());
     auto iv = QByteArray::fromBase64(query.value("iv"_ls).toString().toLatin1());
+    if (iv.size() < AesBlockSize) {
+        qCWarning(E2EE) << "Corrupt iv at the database record for" << name;
+        return {};
+    }
+
     return aesCtr256Decrypt(cipher, asCBytes(m_picklingKey).first<Aes256KeySize>(),
                             asCBytes<AesBlockSize>(iv))
         .move_value_or({});

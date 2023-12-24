@@ -14,6 +14,8 @@ using namespace Quotient;
 
 QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
 {
+    // TODO: remove the check and inline the function once we move over to Qt 6
+    //       with its 64-bit qsizetype
     if (bufferSize < std::numeric_limits<QByteArray::size_type>::max())
         return { static_cast<QByteArray::size_type>(bufferSize), '\0' };
 

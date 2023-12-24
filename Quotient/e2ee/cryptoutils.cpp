@@ -226,7 +226,8 @@ QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
     auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
     Q_ASSERT(context);
 
-    // NB: The produced public key is not actually used, it's only a check
+    // NB: The produced public key is not actually used, the call is only
+    //     to fill the context with the private key for olm_pk_decrypt()
     if (std::vector<uint8_t> publicKey(olm_pk_key_length());
         olm_pk_key_from_private(context.get(), publicKey.data(),
                                 publicKey.size(), privateKey.data(),
