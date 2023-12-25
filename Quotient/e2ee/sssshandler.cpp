@@ -35,7 +35,7 @@ QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryp
     if (!hkdfResult.has_value()) {
         //TODO: Error
     }
-    auto&& keys = hkdfResult.value();
+    const auto& keys = hkdfResult.value();
 
     auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
     auto result = hmacSha256(keys.mac(), rawCipher);
