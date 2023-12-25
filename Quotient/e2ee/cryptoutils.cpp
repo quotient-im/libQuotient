@@ -50,7 +50,8 @@ inline std::pair<int, bool> checkedSize(
     std::type_identity_t<SizeT> maxSize = std::numeric_limits<int>::max())
 // ^ NB: usage of type_identity_t disables type deduction
 {
-    if (uncheckedSize < maxSize)
+    Q_ASSERT(uncheckedSize >= 0 && maxSize >= 0);
+    if (uncheckedSize <= maxSize)
         return { static_cast<int>(uncheckedSize), false };
 
     qCCritical(E2EE) << "Cryptoutils:" << uncheckedSize
@@ -59,111 +60,122 @@ inline std::pair<int, bool> checkedSize(
     return { maxSize, true };
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// TODO: remove NOLINT brackets once we're on clang-tidy 18
+#define CLAMP_SIZE(SizeVar_, ByteArray_, ...)                              \
+    const auto [SizeVar_, ByteArray_##Clamped] =                           \
+        checkedSize((ByteArray_).size() __VA_OPT__(, ) __VA_ARGS__);       \
+    if (ByteArray_##Clamped) {                                             \
+        qCCritical(E2EE).nospace()                                         \
+            << __func__ << ": " #ByteArray_ " is " << (ByteArray_).size()  \
+            << " bytes long, too much for OpenSSL and overall suspicious"; \
+        Q_ASSERT(!ByteArray_##Clamped); /* Always false */                 \
+        return SslPayloadTooLong;                                          \
+    }                                                                      \
+    do {} while (false)                                                    \
+    // End of macro
+
+#define CALL_OPENSSL(Call_)                                                \
+    do {                                                                   \
+        if ((Call_) <= 0) {                                                \
+            qCWarning(E2EE) << __func__ << "failed to call OpenSSL API:"   \
+                            << ERR_error_string(ERR_get_error(), nullptr); \
+            return ERR_get_error();                                        \
+        }                                                                  \
+    } while (false)                                                        \
+// End of macro
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+
 SslExpected<QByteArray> Quotient::pbkdf2HmacSha512(const QByteArray& password,
                                                    const QByteArray& salt,
                                                    int iterations, int keyLength)
 {
+    CLAMP_SIZE(passwordSize, password);
+    CLAMP_SIZE(saltSize, salt);
     auto output = zeroedByteArray(keyLength);
-    if (!PKCS5_PBKDF2_HMAC(password.data(), password.size(), reinterpret_cast<const unsigned char *>(salt.data()), salt.length(), iterations, EVP_sha512(), keyLength, reinterpret_cast<unsigned char *>(output.data()))) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    CALL_OPENSSL(PKCS5_PBKDF2_HMAC(password.data(), passwordSize,
+                                   asCBytes(salt).data(), saltSize, iterations,
+                                   EVP_sha512(), keyLength,
+                                   asWritableCBytes(output).data()));
     return output;
 }
 
 SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
-                                                   const QByteArray& key,
-                                                   const QByteArray& iv)
+                                                   byte_view_t<Aes256KeySize> key,
+                                                   byte_view_t<AesBlockSize> iv)
 {
-    const auto [plaintextSize, clamped] =
-        checkedSize(plaintext.size(),
-                    std::numeric_limits<int>::max() - AesBlockSize);
-    Q_ASSERT(!clamped); // Normally the caller should check this
+    CLAMP_SIZE(plaintextSize, plaintext);
 
-    auto encrypted = getRandom(unsignedSize(plaintext) + AesBlockSize);
+    auto encrypted = getRandom(static_cast<size_t>(plaintextSize) + iv.size());
+    auto encryptedSpan = asWritableCBytes(encrypted);
     constexpr auto mask = static_cast<uint8_t>(~(1U << (63 / 8)));
-    encrypted[15 - 63 % 8] &= mask;
+    encryptedSpan[15 - 63 % 8] &= mask;
 
     const ContextHolder ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
     if (!ctx) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
+        qCCritical(E2EE) << __func__ << "failed to create SSL context:"
+                         << ERR_error_string(ERR_get_error(), nullptr);
         return ERR_get_error();
     }
 
-    if (EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char*>(key.constData()), reinterpret_cast<const unsigned char*>(iv.constData())) != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    CALL_OPENSSL(EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_ctr(), nullptr,
+                                    key.data(), iv.data()));
 
-    int length = 0;
-    if (EVP_EncryptUpdate(ctx.get(), encrypted.data(), &length, reinterpret_cast<const unsigned char *>(plaintext.constData()), plaintextSize) != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    int encryptedLength = 0;
+    CALL_OPENSSL(EVP_EncryptUpdate(ctx.get(), encrypted.data(), &encryptedLength,
+                                   asCBytes(plaintext).data(), plaintextSize));
+    Q_ASSERT(encryptedLength >= 0);
 
-    int ciphertextLength = length;
-    if (EVP_EncryptFinal_ex(ctx.get(), encrypted.data() + length, &length) != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    int tailLength = -1;
+    CALL_OPENSSL(EVP_EncryptFinal_ex(
+        ctx.get(),
+        encryptedSpan.subspan(static_cast<size_t>(encryptedLength)).data(),
+        &tailLength));
+    Q_ASSUME(tailLength == 0); // Specific to AES CTR
 
-    ciphertextLength += length;
-    return encrypted.viewAsByteArray().left(ciphertextLength);
+    return encrypted.copyToByteArray(encryptedLength + tailLength);
 }
-
-#define CALL_OPENSSL(Call_)                                           \
-    do {                                                              \
-        if ((Call_) != 1) {                                           \
-            qWarning() << ERR_error_string(ERR_get_error(), nullptr); \
-            return ERR_get_error();                                   \
-        }                                                             \
-    } while (false) // End of macro
 
 SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
                                            const QByteArray& salt,
                                            const QByteArray& info)
 {
-    const auto saltSize = checkedSize(salt.size()).first,
-               keySize = checkedSize(key.size()).first,
-               infoSize = checkedSize(info.size()).first;
-    constexpr QByteArray::size_type ResultSize = 64u;
-    auto result = zeroedByteArray(ResultSize);
+    CLAMP_SIZE(saltSize, salt);
+    CLAMP_SIZE(keySize, key);
+    CLAMP_SIZE(infoSize, info);
+
+    HkdfKeys result;
     const ContextHolder context(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr),
                                 &EVP_PKEY_CTX_free);
 
     CALL_OPENSSL(EVP_PKEY_derive_init(context.get()));
     CALL_OPENSSL(EVP_PKEY_CTX_set_hkdf_md(context.get(), EVP_sha256()));
-    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_salt(
-        context.get(), reinterpret_cast<const unsigned char*>(salt.constData()),
-        saltSize));
-    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_key(
-        context.get(), reinterpret_cast<const unsigned char*>(key.constData()),
-        keySize));
-    CALL_OPENSSL(EVP_PKEY_CTX_add1_hkdf_info(
-        context.get(), reinterpret_cast<const unsigned char*>(info.constData()),
-        infoSize));
-    size_t outputLength = ResultSize;
-    CALL_OPENSSL(EVP_PKEY_derive(context.get(),
-                                 reinterpret_cast<unsigned char*>(result.data()),
-                                 &outputLength));
-    if (outputLength != ResultSize) {
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_salt(context.get(),
+                                             asCBytes(salt).data(), saltSize));
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_key(context.get(), asCBytes(key).data(),
+                                            keySize));
+    CALL_OPENSSL(EVP_PKEY_CTX_add1_hkdf_info(context.get(),
+                                             asCBytes(info).data(), infoSize));
+    size_t outputLength = result.size();
+    CALL_OPENSSL(EVP_PKEY_derive(context.get(), result.data(), &outputLength));
+    if (outputLength != result.size()) {
         qCCritical(E2EE) << "hkdfSha256: the shared secret is" << outputLength
-                         << "bytes instead of" << ResultSize;
+                         << "bytes instead of" << result.size();
         Q_ASSERT(false);
         return WrongDerivedKeyLength;
     }
 
-    auto macKey = result.mid(32);
-    result.resize(32);
-    return HkdfKeys{std::move(result), std::move(macKey)};
+    return result;
 }
 
-SslExpected<QByteArray> Quotient::hmacSha256(const QByteArray& hmacKey,
+SslExpected<QByteArray> Quotient::hmacSha256(byte_view_t<HmacKeySize> hmacKey,
                                              const QByteArray& data)
 {
     unsigned int len = SHA256_DIGEST_LENGTH;
     auto output = zeroedByteArray(SHA256_DIGEST_LENGTH);
-    if (!HMAC(EVP_sha256(), hmacKey.data(), hmacKey.size(), reinterpret_cast<const unsigned char *>(data.constData()), unsignedSize(data), reinterpret_cast<unsigned char *>(output.data()), &len)) {
+    if (HMAC(EVP_sha256(), hmacKey.data(), hmacKey.size(), asCBytes(data).data(),
+             unsignedSize(data), asWritableCBytes(output).data(), &len)
+        == nullptr) {
         qWarning() << ERR_error_string(ERR_get_error(), nullptr);
         return ERR_get_error();
     }
@@ -171,8 +183,8 @@ SslExpected<QByteArray> Quotient::hmacSha256(const QByteArray& hmacKey,
 }
 
 SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
-                                                   const QByteArray& key,
-                                                   const QByteArray& iv)
+                                                   byte_view_t<Aes256KeySize> key,
+                                                   byte_view_t<AesBlockSize> iv)
 {
     const ContextHolder context(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
     if (!context) {
@@ -183,30 +195,28 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
         return ERR_get_error();
     }
 
-    int length = 0;
-    int plaintextLength = 0;
-    const int ciphertextSize = checkedSize(ciphertext.size()).first;
-    auto decrypted = zeroedByteArray(ciphertext.size());
+    CLAMP_SIZE(ciphertextSize, ciphertext);
 
-    if (EVP_DecryptInit_ex(context.get(), EVP_aes_256_ctr(), nullptr, reinterpret_cast<const unsigned char *>(key.constData()), reinterpret_cast<const unsigned char *>(iv.constData())) != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    FixedBuffer<> decrypted(static_cast<size_t>(ciphertextSize),
+                            FixedBufferBase::FillWithZeros);
+    CALL_OPENSSL(EVP_DecryptInit_ex(context.get(), EVP_aes_256_ctr(), nullptr,
+                                    key.data(), iv.data()));
 
-    if (EVP_DecryptUpdate(context.get(), reinterpret_cast<unsigned char*>(decrypted.data()), &length, reinterpret_cast<const unsigned char*>(ciphertext.constData()), ciphertextSize) != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    int decryptedLength = 0;
+    CALL_OPENSSL(
+        EVP_DecryptUpdate(context.get(), decrypted.data(), &decryptedLength,
+                          asCBytes(ciphertext).data(), ciphertextSize));
 
-    plaintextLength = length;
-    if (EVP_DecryptFinal_ex(context.get(), reinterpret_cast<unsigned char*>(decrypted.data()) + length, &length) != 1) {
-        qWarning() << ERR_error_string(ERR_get_error(), nullptr);
-        return ERR_get_error();
-    }
+    int tailLength = -1;
+    CALL_OPENSSL(
+        EVP_DecryptFinal_ex(context.get(),
+                            asWritableCBytes(decrypted)
+                                .subspan(static_cast<size_t>(decryptedLength))
+                                .data(),
+                            &tailLength));
+    Q_ASSUME(tailLength == 0); // Specific to AES CTR
 
-    plaintextLength += length;
-    decrypted.resize(plaintextLength);
-    return decrypted;
+    return decrypted.copyToByteArray(decryptedLength + tailLength);
 }
 
 QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
@@ -216,7 +226,8 @@ QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
     auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
     Q_ASSERT(context);
 
-    // NB: The produced public key is not actually used, it's only a check
+    // NB: The produced public key is not actually used, the call is only
+    //     to fill the context with the private key for olm_pk_decrypt()
     if (std::vector<uint8_t> publicKey(olm_pk_key_length());
         olm_pk_key_from_private(context.get(), publicKey.data(),
                                 publicKey.size(), privateKey.data(),

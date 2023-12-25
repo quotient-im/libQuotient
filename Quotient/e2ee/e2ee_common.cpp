@@ -14,6 +14,8 @@ using namespace Quotient;
 
 QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
 {
+    // TODO: remove the check and inline the function once we move over to Qt 6
+    //       with its 64-bit qsizetype
     if (bufferSize < std::numeric_limits<QByteArray::size_type>::max())
         return { static_cast<QByteArray::size_type>(bufferSize), '\0' };
 
@@ -21,6 +23,19 @@ QByteArray Quotient::byteArrayForOlm(size_t bufferSize)
     // Zero-length QByteArray is an almost guaranteed way to cause
     // an internal error in QOlm* classes, unless checked
     return {};
+}
+
+void Quotient::_impl::checkForSpanShortfall(QByteArray::size_type inputSize,
+                                          size_t neededSize)
+{
+    if (inputSize < static_cast<qsizetype>(neededSize)) {
+        qCCritical(E2EE) << "Not enough bytes to create a valid span: "
+                         << inputSize << '<' << neededSize
+                         << "- undefined behaviour imminent";
+        Q_ASSERT(false);
+        // Can't help it in Release builds; a span of the given size has
+        // to be returned regardless, so UB
+    }
 }
 
 void Quotient::fillFromSecureRng(std::span<byte_t> bytes)

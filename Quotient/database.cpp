@@ -490,18 +490,20 @@ QString Database::edKeyForKeyId(const QString& userId, const QString& edKeyId)
 
 void Database::storeEncrypted(const QString& name, const QByteArray& key)
 {
-    auto iv = getRandom<16>();
-    auto result = aesCtr256Encrypt(key, m_picklingKey.viewAsByteArray().left(32), iv.viewAsByteArray());
-    if (!result.has_value()) {
-        //TODO: Error
-    }
+    auto iv = getRandom<AesBlockSize>();
+    auto result =
+        aesCtr256Encrypt(key, asCBytes(m_picklingKey).first<Aes256KeySize>(),
+                         iv);
+    if (!result.has_value())
+        return;
+
     auto cipher = result.value().toBase64();
     auto query = prepareQuery(QStringLiteral("INSERT INTO encrypted(name, cipher, iv) VALUES(:name, :cipher, :iv);"));
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM encrypted WHERE name=:name;"));
     deleteQuery.bindValue(":name"_ls, name);
     query.bindValue(":name"_ls, name);
     query.bindValue(":cipher"_ls, cipher);
-    query.bindValue(":iv"_ls, iv.viewAsByteArray().toBase64());
+    query.bindValue(":iv"_ls, iv.toBase64());
     transaction();
     execute(deleteQuery);
     execute(query);
@@ -518,9 +520,12 @@ QByteArray Database::loadEncrypted(const QString& name)
     }
     auto cipher = QByteArray::fromBase64(query.value("cipher"_ls).toString().toLatin1());
     auto iv = QByteArray::fromBase64(query.value("iv"_ls).toString().toLatin1());
-    auto result = aesCtr256Decrypt(cipher, m_picklingKey.viewAsByteArray().left(32), iv);
-    if (!result.has_value()) {
-        //TODO: Error
+    if (iv.size() < AesBlockSize) {
+        qCWarning(E2EE) << "Corrupt iv at the database record for" << name;
+        return {};
     }
-    return result.value();
+
+    return aesCtr256Decrypt(cipher, asCBytes(m_picklingKey).first<Aes256KeySize>(),
+                            asCBytes<AesBlockSize>(iv))
+        .move_value_or({});
 }

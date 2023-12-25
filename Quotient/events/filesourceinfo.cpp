@@ -28,38 +28,44 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
         qCWarning(E2EE) << "Hash verification failed for file";
         return {};
     }
-
-    auto _key = metadata.key.k;
-    const auto keyBytes = QByteArray::fromBase64(
-        _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
-
-    auto result = aesCtr256Decrypt(ciphertext, keyBytes, QByteArray::fromBase64(metadata.iv.toLatin1()));
-    if (!result.has_value()) {
-        //TODO: Error
+    const auto key = QByteArray::fromBase64(metadata.key.k.toLatin1(),
+                                            QByteArray::Base64UrlEncoding);
+    if (key.size() < Aes256KeySize) {
+        qCWarning(E2EE) << "Decoded key is too short for AES, need"
+                        << Aes256KeySize << "bytes, got" << key.size();
+        return {};
     }
-    return result.value();
+    const auto iv = QByteArray::fromBase64(metadata.iv.toLatin1());
+    if (iv.size() < AesBlockSize) {
+        qCWarning(E2EE) << "Decoded iv is too short for AES, need"
+                        << AesBlockSize << "bytes, got" << iv.size();
+        return {};
+    }
+
+    return aesCtr256Decrypt(ciphertext, asCBytes<32>(key), asCBytes<16>(iv))
+        .move_value_or({});
 }
 
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
-    auto k = getRandom<32>();
+    auto k = getRandom<Aes256KeySize>();
     auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
                               | QByteArray::OmitTrailingEquals);
-    auto iv = getRandom<16>();
+    auto iv = getRandom<AesBlockSize>();
     const JWK key = {
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
     };
-    auto result = aesCtr256Encrypt(plainText, k.viewAsByteArray(), iv.viewAsByteArray());
+    auto result = aesCtr256Encrypt(plainText, k, iv);
+    if (!result.has_value())
+        return {};
 
-    if (!result.has_value()) {
-        //TODO: Error
-    }
     auto hash = QCryptographicHash::hash(result.value(), QCryptographicHash::Sha256)
                     .toBase64(QByteArray::OmitTrailingEquals);
     auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
     const EncryptedFileMetadata efm = {
-        {}, key, QString::fromLatin1(ivBase64), { { QStringLiteral("sha256"), QString::fromLatin1(hash) } }, "v2"_ls
+        {}, key, QString::fromLatin1(ivBase64),
+        { { "sha256"_ls, QString::fromLatin1(hash) } }, "v2"_ls
     };
     return { efm, result.value() };
 }

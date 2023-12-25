@@ -38,7 +38,7 @@ QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryp
     const auto& keys = hkdfResult.value();
 
     auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
-    auto result = hmacSha256(keys.mac, rawCipher);
+    auto result = hmacSha256(keys.mac(), rawCipher);
     if (!result.has_value()) {
         //TODO: Error
     }
@@ -46,7 +46,10 @@ QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryp
         qCWarning(E2EE) << "MAC mismatch for" << name;
         return {};
     }
-    auto decryptResult = aesCtr256Decrypt(rawCipher, keys.aes, QByteArray::fromBase64(encrypted["iv"_ls].toString().toLatin1()));
+    auto decryptResult =
+        aesCtr256Decrypt(rawCipher, keys.aes(),
+                         asCBytes<AesBlockSize>(QByteArray::fromBase64(
+                             encrypted["iv"_ls].toString().toLatin1())));
     if (!decryptResult.has_value()) {
         //TODO: Error
     }
@@ -188,11 +191,14 @@ void SSSSHandler::calculateDefaultKey(const QByteArray& secret,
     if (!testKeys.has_value()) {
         //TODO: Error
     }
-    const auto &encrypted = aesCtr256Encrypt(QByteArray(32, u'\0'), testKeys.value().aes, QByteArray::fromBase64(keyEvent->contentPart<QString>("iv"_ls).toLatin1()));
+    const auto& encrypted = aesCtr256Encrypt(
+        QByteArray(32, u'\0'), testKeys.value().aes(),
+        asCBytes<AesBlockSize>(QByteArray::fromBase64(
+            keyEvent->contentPart<QString>("iv"_ls).toLatin1())));
     if (!encrypted.has_value()) {
         //TODO: Error
     }
-    const auto &result = hmacSha256(testKeys.value().mac, encrypted.value());
+    const auto &result = hmacSha256(testKeys.value().mac(), encrypted.value());
     if (!result.has_value()) {
         //TODO: Error
     }

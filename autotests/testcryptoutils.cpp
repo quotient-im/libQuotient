@@ -32,8 +32,8 @@ using namespace Quotient;
 void TestCryptoUtils::aesCtrEncryptDecryptData()
 {
     const QByteArray plain = "ABCDEF";
-    const auto key = zeroedByteArray();
-    const auto iv = zeroedByteArray();
+    const FixedBuffer<Aes256KeySize> key{};
+    const FixedBuffer<AesBlockSize> iv{};
     auto cipher = aesCtr256Encrypt(plain, key, iv);
     QVERIFY(cipher.has_value());
     auto decrypted = aesCtr256Decrypt(cipher.value(), key, iv);
@@ -56,9 +56,9 @@ void TestCryptoUtils::hkdfSha256ExpandKeys()
 {
     auto result = hkdfSha256(zeroedByteArray(), zeroedByteArray(), zeroedByteArray());
     QVERIFY(result.has_value());
-    auto keys = result.value();
-    QCOMPARE(keys.aes, QByteArray::fromBase64("WQvd7OvHEaSFkO5nPBLDHK9F0UW5r11S6MS83AjhHx8="));
-    QCOMPARE(keys.mac, QByteArray::fromBase64("hZhUYGZQRYj4src+HzLcKRruQQ0wSr9kC/g105lej+s="));
+    auto&& keys = result.value();
+    QCOMPARE(viewAsByteArray(keys.aes()), QByteArray::fromBase64("WQvd7OvHEaSFkO5nPBLDHK9F0UW5r11S6MS83AjhHx8="));
+    QCOMPARE(viewAsByteArray(keys.mac()), QByteArray::fromBase64("hZhUYGZQRYj4src+HzLcKRruQQ0wSr9kC/g105lej+s="));
 }
 
 void TestCryptoUtils::pbkdfGenerateKey()
@@ -70,7 +70,7 @@ void TestCryptoUtils::pbkdfGenerateKey()
 
 void TestCryptoUtils::hmac()
 {
-    auto result = hmacSha256(zeroedByteArray(),  QByteArray(64, 1));
+    auto result = hmacSha256(FixedBuffer<HmacKeySize>{}, QByteArray(64, 1));
     QVERIFY(result.has_value());
     QCOMPARE(result.value(), QByteArray::fromBase64("GfJTpEMByWSMA/NXBYH/KHW2qlKxSZu4r//jRsUuz24="));
 }
