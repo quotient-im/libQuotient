@@ -106,11 +106,6 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
 {
     CLAMP_SIZE(plaintextSize, plaintext);
 
-    auto encrypted = getRandom(static_cast<size_t>(plaintextSize) + iv.size());
-    auto encryptedSpan = asWritableCBytes(encrypted);
-    constexpr auto mask = static_cast<uint8_t>(~(1U << (63 / 8)));
-    encryptedSpan[15 - 63 % 8] &= mask;
-
     const ContextHolder ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
     if (!ctx) {
         qCCritical(E2EE) << __func__ << "failed to create SSL context:"
@@ -118,22 +113,37 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
         return ERR_get_error();
     }
 
-    CALL_OPENSSL(EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_ctr(), nullptr,
-                                    key.data(), iv.data()));
-
+    QByteArray encrypted(plaintextSize + static_cast<int>(iv.size()),
+                         Qt::Uninitialized);
     int encryptedLength = 0;
-    CALL_OPENSSL(EVP_EncryptUpdate(ctx.get(), encrypted.data(), &encryptedLength,
-                                   asCBytes(plaintext).data(), plaintextSize));
-    Q_ASSERT(encryptedLength >= 0);
+    {
+        // Working with `encrypted` the span adaptor in this scope, avoiding
+        // reinterpret_casts
+        auto encryptedSpan = asWritableCBytes(encrypted);
+        fillFromSecureRng(encryptedSpan); // Now `encrypted` is initialised
+        constexpr auto mask = static_cast<uint8_t>(~(1U << (63 / 8)));
+        encryptedSpan[15 - 63 % 8] &= mask;
 
-    int tailLength = -1;
-    CALL_OPENSSL(EVP_EncryptFinal_ex(
-        ctx.get(),
-        encryptedSpan.subspan(static_cast<size_t>(encryptedLength)).data(),
-        &tailLength));
-    Q_ASSUME(tailLength == 0); // Specific to AES CTR
+        CALL_OPENSSL(EVP_EncryptInit_ex(ctx.get(), EVP_aes_256_ctr(), nullptr,
+                                        key.data(), iv.data()));
 
-    return encrypted.copyToByteArray(encryptedLength + tailLength);
+        CALL_OPENSSL(
+            EVP_EncryptUpdate(ctx.get(), encryptedSpan.data(), &encryptedLength,
+                              asCBytes(plaintext).data(), plaintextSize));
+        Q_ASSERT(encryptedLength >= 0);
+
+        int tailLength = -1;
+        CALL_OPENSSL(EVP_EncryptFinal_ex(
+            ctx.get(),
+            encryptedSpan.subspan(static_cast<size_t>(encryptedLength)).data(),
+            &tailLength));
+        // In case of AES CTR, the below assumption holds and the addition
+        // can/should be optimised away by the compiler
+        Q_ASSUME(tailLength == 0);
+        encryptedLength += tailLength;
+    }
+    encrypted.resize(encryptedLength);
+    return encrypted;
 }
 
 SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
@@ -186,6 +196,8 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
                                                    byte_view_t<Aes256KeySize> key,
                                                    byte_view_t<AesBlockSize> iv)
 {
+    CLAMP_SIZE(ciphertextSize, ciphertext);
+
     const ContextHolder context(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
     if (!context) {
         qCCritical(E2EE)
@@ -195,28 +207,28 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
         return ERR_get_error();
     }
 
-    CLAMP_SIZE(ciphertextSize, ciphertext);
-
-    FixedBuffer<> decrypted(static_cast<size_t>(ciphertextSize),
-                            FixedBufferBase::FillWithZeros);
-    CALL_OPENSSL(EVP_DecryptInit_ex(context.get(), EVP_aes_256_ctr(), nullptr,
-                                    key.data(), iv.data()));
-
+    auto decrypted = zeroedByteArray(ciphertextSize);
     int decryptedLength = 0;
-    CALL_OPENSSL(
-        EVP_DecryptUpdate(context.get(), decrypted.data(), &decryptedLength,
-                          asCBytes(ciphertext).data(), ciphertextSize));
-
-    int tailLength = -1;
-    CALL_OPENSSL(
-        EVP_DecryptFinal_ex(context.get(),
-                            asWritableCBytes(decrypted)
-                                .subspan(static_cast<size_t>(decryptedLength))
-                                .data(),
-                            &tailLength));
-    Q_ASSUME(tailLength == 0); // Specific to AES CTR
-
-    return decrypted.copyToByteArray(decryptedLength + tailLength);
+    {
+        const auto decryptedSpan = asWritableCBytes(decrypted);
+        CALL_OPENSSL(EVP_DecryptInit_ex(context.get(), EVP_aes_256_ctr(),
+                                        nullptr, key.data(), iv.data()));
+        CALL_OPENSSL(EVP_DecryptUpdate(context.get(), decryptedSpan.data(),
+                                       &decryptedLength,
+                                       asCBytes(ciphertext).data(),
+                                       ciphertextSize));
+        int tailLength = -1;
+        CALL_OPENSSL(EVP_DecryptFinal_ex(
+            context.get(),
+            decryptedSpan.subspan(static_cast<size_t>(decryptedLength)).data(),
+            &tailLength));
+        // In case of AES CTR, the below assumption holds and the addition
+        // can/should be optimised away by the compiler
+        Q_ASSUME(tailLength == 0);
+        decryptedLength += tailLength;
+    }
+    decrypted.resize(decryptedLength);
+    return decrypted;
 }
 
 QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
