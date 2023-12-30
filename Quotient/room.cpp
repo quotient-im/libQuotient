@@ -2384,38 +2384,39 @@ void Room::checkVersion()
     }
 }
 
-void Room::inviteCall(const QString& callId, const int lifetime,
+void Room::inviteCall(const QString& callId, const QString& partyId, const int lifetime,
                       const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallInviteEvent>(callId, lifetime, sdp);
+    d->sendEvent<CallInviteEvent>(callId, partyId, lifetime, sdp);
 }
 
 void Room::sendCallCandidates(const QString& callId,
+                              const QString& partyId,
                               const QJsonArray& candidates)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallCandidatesEvent>(callId, candidates);
+    d->sendEvent<CallCandidatesEvent>(callId, partyId, candidates);
 }
 
-void Room::answerCall(const QString& callId, [[maybe_unused]] int lifetime,
+void Room::answerCall(const QString& callId, const QString& partyId, [[maybe_unused]] int lifetime,
                       const QString& sdp)
 {
     qCWarning(MAIN) << "To client developer: drop lifetime parameter from "
                        "Room::answerCall(), it is no more accepted";
-    answerCall(callId, sdp);
+    answerCall(callId, partyId, sdp);
 }
 
-void Room::answerCall(const QString& callId, const QString& sdp)
+void Room::answerCall(const QString& callId, const QString& partyId, const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallAnswerEvent>(callId, sdp);
+    d->sendEvent<CallAnswerEvent>(callId, partyId, sdp);
 }
 
-void Room::hangupCall(const QString& callId)
+void Room::hangupCall(const QString& callId, const QString& partyId)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallHangupEvent>(callId);
+    d->sendEvent<CallHangupEvent>(callId, partyId);
 }
 
 void Room::getPreviousContent(int limit, const QString& filter)

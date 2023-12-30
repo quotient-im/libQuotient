@@ -878,14 +878,14 @@ public Q_SLOTS:
     /// Switch the room's version (aka upgrade)
     void switchVersion(QString newVersion);
 
-    void inviteCall(const QString& callId, const int lifetime,
+    void inviteCall(const QString& callId, const QString& partyId, const int lifetime,
                     const QString& sdp);
-    void sendCallCandidates(const QString& callId, const QJsonArray& candidates);
+    void sendCallCandidates(const QString& callId, const QString& partyId, const QJsonArray& candidates);
     [[deprecated("Lifetime argument is no more passed; "
                  "use 2-arg Room::answerCall() instead")]]
-    void answerCall(const QString& callId, int lifetime, const QString& sdp);
-    void answerCall(const QString& callId, const QString& sdp);
-    void hangupCall(const QString& callId);
+    void answerCall(const QString& callId, const QString& partyId, int lifetime, const QString& sdp);
+    void answerCall(const QString& callId, const QString& partyId, const QString& sdp);
+    void hangupCall(const QString& callId, const QString& partyId);
 
     /**
      * Activates encryption for this room.

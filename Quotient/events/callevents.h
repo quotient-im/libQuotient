@@ -13,12 +13,13 @@ public:
 
     QUO_CONTENT_GETTER(QString, callId)
     QUO_CONTENT_GETTER(int, version)
+    QUO_CONTENT_GETTER(QString, partyId)
 
 protected:
     explicit CallEvent(const QJsonObject& json);
 
     static QJsonObject basicJson(const QString& matrixType,
-                                 const QString& callId, int version,
+                                 const QString& callId, int version, const QString& partyId,
                                  QJsonObject contentJson = {});
 };
 using CallEventBase
@@ -28,9 +29,9 @@ template <typename EventT>
 class EventTemplate<EventT, CallEvent> : public CallEvent {
 public:
     using CallEvent::CallEvent;
-    explicit EventTemplate(const QString& callId,
+    explicit EventTemplate(const QString& callId, const QString& partyId,
                            const QJsonObject& contentJson = {})
-        : EventTemplate(basicJson(EventT::TypeId, callId, 0, contentJson))
+        : EventTemplate(basicJson(EventT::TypeId, callId, 1, partyId, contentJson))
     {}
 };
 
@@ -40,10 +41,10 @@ class EventTemplate<EventT, CallEvent, ContentT>
 public:
     using EventTemplate<EventT, CallEvent>::EventTemplate;
     template <typename... ContentParamTs>
-    explicit EventTemplate(const QString& callId,
+    explicit EventTemplate(const QString& callId, const QString& partyId,
                            ContentParamTs&&... contentParams)
         : EventTemplate<EventT, CallEvent>(
-            callId,
+            callId, partyId,
             toJson(ContentT{ std::forward<ContentParamTs>(contentParams)... }))
     {}
 };
@@ -55,10 +56,11 @@ public:
 
     using EventTemplate::EventTemplate;
 
-    explicit CallInviteEvent(const QString& callId, int lifetime,
+    explicit CallInviteEvent(const QString& callId, const QString& partyId, int lifetime,
                              const QString& sdp);
 
     QUO_CONTENT_GETTER(int, lifetime)
+    QUO_CONTENT_GETTER(QString, invitee)
     QString sdp() const
     {
         return contentPart<QJsonObject>("offer"_ls).value("sdp"_ls).toString();
@@ -75,7 +77,7 @@ public:
 
     using EventTemplate::EventTemplate;
 
-    explicit CallAnswerEvent(const QString& callId, const QString& sdp);
+    explicit CallAnswerEvent(const QString& callId, const QString& partyId, const QString& sdp);
 
     QString sdp() const
     {
@@ -88,6 +90,39 @@ class QUOTIENT_API CallHangupEvent
 public:
     QUO_EVENT(CallHangupEvent, "m.call.hangup")
     using EventTemplate::EventTemplate;
+};
+
+class QUOTIENT_API CallNegotiateEvent
+    : public EventTemplate<CallNegotiateEvent, CallEvent> {
+public:
+    QUO_EVENT(CallNegotiateEvent, "m.call.negotiate")
+
+    using EventTemplate::EventTemplate;
+
+    explicit CallNegotiateEvent(const QString &callId,
+                                const QString& partyId,
+                                int lifetime,
+                                const QString &sdp);
+    QUO_CONTENT_GETTER(QString, sdp)
+};
+
+class QUOTIENT_API CallRejectEvent
+    : public EventTemplate<CallRejectEvent, CallEvent> {
+public:
+    QUO_EVENT(CallRejectEvent, "m.call.reject")
+
+    using EventTemplate::EventTemplate;
+};
+
+class QUOTIENT_API SelectAnswerEvent
+    : public EventTemplate<SelectAnswerEvent, CallEvent> {
+public:
+    QUO_EVENT(SelectAnswerEvent, "m.call.select_answer")
+
+    using EventTemplate::EventTemplate;
+
+    explicit SelectAnswerEvent();
+    QUO_CONTENT_GETTER(QString, selectedPartyId);
 };
 
 } // namespace Quotient
