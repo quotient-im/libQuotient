@@ -154,6 +154,7 @@ list(APPEND lib_SRCS
     Quotient/eventitem.h Quotient/eventitem.cpp
     Quotient/accountregistry.h Quotient/accountregistry.cpp
     Quotient/mxcreply.h Quotient/mxcreply.cpp
+    Quotient/blurhash.h Quotient/blurhash.cpp
     Quotient/e2ee/e2ee_common.h # because it's used by generated API
     Quotient/events/event.h Quotient/events/event.cpp
     Quotient/events/eventloader.h
