@@ -4,7 +4,7 @@
 #pragma once
 
 #include "e2ee_common.h"
-#include "expected.h"
+#include "../expected.h"
 
 #include "../quotient_export.h"
 
