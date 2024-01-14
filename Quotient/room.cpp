@@ -2462,7 +2462,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                     emit fileTransferCompleted(id, localFilename, fileMetadata);
                 });
         connect(job, &BaseJob::failure, this,
-                std::bind(&Private::failedTransfer, d, id, job->errorString()));
+                [this, id, job] { d->failedTransfer(id, job->errorString()); });
         emit newFileTransfer(id, localFilename);
     } else
         d->failedTransfer(id);
