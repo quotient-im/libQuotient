@@ -84,6 +84,7 @@ void Quotient::fillFromSecureRng(std::span<byte_t> bytes)
     }
 }
 
+namespace {
 auto initializeSecureHeap()
 {
 #if !defined(LIBRESSL_VERSION_NUMBER)
@@ -129,6 +130,8 @@ uint8_t* allocate(size_t bytes, bool initWithZeros = false)
 #endif
     return p;
 }
+
+} // namespace
 
 FixedBufferBase::FixedBufferBase(size_t bufferSize, InitOptions options)
     : size_(bufferSize)
