@@ -1599,11 +1599,13 @@ void Connection::saveState() const
     {
         QJsonObject roomsJson;
         QJsonObject inviteRoomsJson;
-        for (const auto* r: qAsConst(d->roomMap)) {
+        for (const auto* r: std::as_const(d->roomMap)) {
             if (r->joinState() == JoinState::Leave)
                 continue;
             (r->joinState() == JoinState::Invite ? inviteRoomsJson : roomsJson)
-                .insert(r->id(), QJsonValue::Null);
+                .insert(r->id(),
+                        QJsonObject{ { "$ref"_ls,
+                                       SyncData::fileNameForRoom(r->id()) } });
         }
 
         QJsonObject roomObj;
