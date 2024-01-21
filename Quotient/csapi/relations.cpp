@@ -102,11 +102,10 @@ QUrl GetRelatingEventsWithRelTypeAndEventTypeJob::makeRequestUrl(
         queryToGetRelatingEventsWithRelTypeAndEventType(from, to, limit, dir));
 }
 
-GetRelatingEventsWithRelTypeAndEventTypeJob::
-    GetRelatingEventsWithRelTypeAndEventTypeJob(
-        const QString& roomId, const QString& eventId, const QString& relType,
-        const QString& eventType, const QString& from, const QString& to,
-        Omittable<int> limit, const QString& dir)
+GetRelatingEventsWithRelTypeAndEventTypeJob::GetRelatingEventsWithRelTypeAndEventTypeJob(
+    const QString& roomId, const QString& eventId, const QString& relType,
+    const QString& eventType, const QString& from, const QString& to,
+    Omittable<int> limit, const QString& dir)
     : BaseJob(HttpVerb::Get,
               QStringLiteral("GetRelatingEventsWithRelTypeAndEventTypeJob"),
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/",

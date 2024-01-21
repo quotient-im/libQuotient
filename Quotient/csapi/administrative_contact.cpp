@@ -80,21 +80,21 @@ Unbind3pidFromAccountJob::Unbind3pidFromAccountJob(const QString& medium,
 }
 
 RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(
-    const EmailValidationData& body)
+    const EmailValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenTo3PIDEmailJob"),
               makePath("/_matrix/client/v3",
                        "/account/3pid/email/requestToken"),
               false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
 RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(
-    const MsisdnValidationData& body)
+    const MsisdnValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenTo3PIDMSISDNJob"),
               makePath("/_matrix/client/v3",
                        "/account/3pid/msisdn/requestToken"),
               false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }

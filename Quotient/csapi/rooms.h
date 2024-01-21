@@ -74,6 +74,11 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                const QString& eventType,
                                const QString& stateKey);
+
+    // Result properties
+
+    /// The content of the state event.
+    QJsonObject content() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
 /*! \brief Get all state events in the current state of a room.

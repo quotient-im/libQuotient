@@ -60,6 +60,11 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId,
                                const QString& type);
+
+    // Result properties
+
+    /// The account data content for the given type.
+    QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
 /*! \brief Set some account data for the user that is specific to a room.
@@ -122,6 +127,11 @@ public:
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId,
                                const QString& roomId, const QString& type);
+
+    // Result properties
+
+    /// The account data content for the given type.
+    QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
 } // namespace Quotient

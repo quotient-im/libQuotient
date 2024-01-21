@@ -35,7 +35,7 @@ public:
      * same access token; it will be used by the server to ensure idempotency of
      * requests.
      *
-     * \param body
+     * \param content
      *   This endpoint is used to send a message event to a room. Message events
      *   allow access to historical events and pagination, making them suited
      *   for "once-off" activity in a room.
@@ -46,7 +46,8 @@ public:
      * specification.
      */
     explicit SendMessageJob(const QString& roomId, const QString& eventType,
-                            const QString& txnId, const QJsonObject& body = {});
+                            const QString& txnId,
+                            const QJsonObject& content = {});
 
     // Result properties
 

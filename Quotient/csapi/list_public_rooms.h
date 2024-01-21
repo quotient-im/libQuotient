@@ -85,7 +85,7 @@ public:
      *
      * \param server
      *   The server to fetch the public room lists from. Defaults to the
-     *   local server.
+     *   local server. Case sensitive.
      */
     explicit GetPublicRoomsJob(Omittable<int> limit = none,
                                const QString& since = {},
@@ -155,7 +155,7 @@ public:
      *
      * \param server
      *   The server to fetch the public room lists from. Defaults to the
-     *   local server.
+     *   local server. Case sensitive.
      *
      * \param limit
      *   Limit the number of results returned.

@@ -321,7 +321,7 @@ public:
     /*! \brief Begins the validation process for an email address for
      * association with the user's account.
      *
-     * \param body
+     * \param data
      *   The homeserver must check that the given email address is **not**
      *   already associated with an account on this homeserver. This API should
      *   be used to request validation tokens when adding an email address to an
@@ -332,7 +332,7 @@ public:
      *   the email itself, either by sending a validation email itself or by
      * using a service it has control over.
      */
-    explicit RequestTokenTo3PIDEmailJob(const EmailValidationData& body);
+    explicit RequestTokenTo3PIDEmailJob(const EmailValidationData& data);
 
     // Result properties
 
@@ -363,7 +363,7 @@ public:
     /*! \brief Begins the validation process for a phone number for association
      * with the user's account.
      *
-     * \param body
+     * \param data
      *   The homeserver must check that the given phone number is **not**
      *   already associated with an account on this homeserver. This API should
      *   be used to request validation tokens when adding a phone number to an
@@ -374,7 +374,7 @@ public:
      *   the phone number itself, either by sending a validation message itself
      * or by using a service it has control over.
      */
-    explicit RequestTokenTo3PIDMSISDNJob(const MsisdnValidationData& body);
+    explicit RequestTokenTo3PIDMSISDNJob(const MsisdnValidationData& data);
 
     // Result properties
 

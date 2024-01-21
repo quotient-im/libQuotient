@@ -43,7 +43,6 @@ UploadContentToMXCJob::UploadContentToMXCJob(const QString& serverName,
 {
     setRequestHeader("Content-Type", contentType.toLatin1());
     setRequestData({ content });
-    setExpectedContentTypes({ "application/json", "*/*" });
 }
 
 QUrl CreateContentJob::makeRequestUrl(QUrl baseUrl)
@@ -87,7 +86,7 @@ GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId,
               queryToGetContent(allowRemote, timeoutMs, allowRedirect), {},
               false)
 {
-    setExpectedContentTypes({ "*/*" });
+    setExpectedContentTypes({ "application/octet-stream" });
 }
 
 auto queryToGetContentOverrideName(bool allowRemote, qint64 timeoutMs,
@@ -122,7 +121,7 @@ GetContentOverrideNameJob::GetContentOverrideNameJob(
                                             allowRedirect),
               {}, false)
 {
-    setExpectedContentTypes({ "*/*" });
+    setExpectedContentTypes({ "application/octet-stream" });
 }
 
 auto queryToGetContentThumbnail(int width, int height, const QString& method,

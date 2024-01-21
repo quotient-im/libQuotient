@@ -52,7 +52,6 @@ public:
  *
  * Publishes cross-signing signatures for the user.
  *
- * The request body is a map from user ID to key ID to signed JSON object.
  * The signed JSON object must match the key previously uploaded or
  * retrieved for the given key ID, with the exception of the `signatures`
  * property, which contains the new signature(s) to add.

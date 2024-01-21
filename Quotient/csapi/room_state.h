@@ -43,7 +43,7 @@ public:
      *   The state_key for the state to send. Defaults to the empty string. When
      *   an empty string, the trailing slash on this endpoint is optional.
      *
-     * \param body
+     * \param content
      *   State events can be sent using this endpoint.  These events will be
      *   overwritten if `<room id>`, `<event type>` and `<state key>` all
      *   match.
@@ -66,7 +66,7 @@ public:
     explicit SetRoomStateWithKeyJob(const QString& roomId,
                                     const QString& eventType,
                                     const QString& stateKey,
-                                    const QJsonObject& body = {});
+                                    const QJsonObject& content = {});
 
     // Result properties
 

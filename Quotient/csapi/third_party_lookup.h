@@ -131,7 +131,7 @@ public:
      * the user.
      */
     explicit QueryUserByProtocolJob(const QString& protocol,
-                                    const QString& fields = {});
+                                    const QHash<QString, QString>& fields = {});
 
     /*! \brief Construct a URL without creating a full-fledged job object
      *
@@ -139,7 +139,7 @@ public:
      * is necessary but the job itself isn't.
      */
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol,
-                               const QString& fields = {});
+                               const QHash<QString, QString>& fields = {});
 
     // Result properties
 

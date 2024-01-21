@@ -164,13 +164,13 @@ public:
     /*! \brief Begins the validation process for an email to be used during
      * registration.
      *
-     * \param body
+     * \param data
      *   The homeserver must check that the given email address is **not**
      *   already associated with an account on this homeserver. The homeserver
      *   should validate the email itself, either by sending a validation email
      *   itself or by using a service it has control over.
      */
-    explicit RequestTokenToRegisterEmailJob(const EmailValidationData& body);
+    explicit RequestTokenToRegisterEmailJob(const EmailValidationData& data);
 
     // Result properties
 
@@ -196,13 +196,13 @@ public:
     /*! \brief Requests a validation token be sent to the given phone number for
      * the purpose of registering an account
      *
-     * \param body
+     * \param data
      *   The homeserver must check that the given phone number is **not**
      *   already associated with an account on this homeserver. The homeserver
      *   should validate the phone number itself, either by sending a validation
      *   message itself or by using a service it has control over.
      */
-    explicit RequestTokenToRegisterMSISDNJob(const MsisdnValidationData& body);
+    explicit RequestTokenToRegisterMSISDNJob(const MsisdnValidationData& data);
 
     // Result properties
 
@@ -279,7 +279,7 @@ public:
     /*! \brief Requests a validation token be sent to the given email address
      * for the purpose of resetting a user's password
      *
-     * \param body
+     * \param data
      *   The homeserver must check that the given email address **is
      *   associated** with an account on this homeserver. This API should be
      *   used to request validation tokens when authenticating for the
@@ -296,7 +296,7 @@ public:
      *   The homeserver should validate the email itself, either by sending a
      *   validation email itself or by using a service it has control over.
      */
-    explicit RequestTokenToResetPasswordEmailJob(const EmailValidationData& body);
+    explicit RequestTokenToResetPasswordEmailJob(const EmailValidationData& data);
 
     // Result properties
 
@@ -331,7 +331,7 @@ public:
     /*! \brief Requests a validation token be sent to the given phone number for
      * the purpose of resetting a user's password.
      *
-     * \param body
+     * \param data
      *   The homeserver must check that the given phone number **is
      *   associated** with an account on this homeserver. This API should be
      *   used to request validation tokens when authenticating for the
@@ -350,7 +350,7 @@ public:
      * over.
      */
     explicit RequestTokenToResetPasswordMSISDNJob(
-        const MsisdnValidationData& body);
+        const MsisdnValidationData& data);
 
     // Result properties
 
@@ -395,9 +395,8 @@ public:
      *   it must return an `id_server_unbind_result` of
      *   `no-support`.
      */
-    explicit DeactivateAccountJob(
-        const Omittable<AuthenticationData>& auth = none,
-        const QString& idServer = {});
+    explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none,
+                                  const QString& idServer = {});
 
     // Result properties
 

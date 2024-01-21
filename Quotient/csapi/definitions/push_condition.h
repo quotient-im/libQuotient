@@ -14,7 +14,8 @@ struct PushCondition {
     /// allowed kinds and how they work.
     QString kind;
 
-    /// Required for `event_match` conditions. The dot-separated field of the
+    /// Required for `event_match`, `event_property_is` and
+    /// `event_property_contains` conditions. The dot-separated field of the
     /// event to match.
     ///
     /// Required for `sender_notification_permission` conditions. The field in
@@ -32,6 +33,11 @@ struct PushCondition {
     /// rooms where the member count is strictly less than the given number and
     /// so forth. If no prefix is present, this parameter defaults to ==.
     QString is{};
+
+    /// Required for `event_property_is` and `event_property_contains`
+    /// conditions. A non-compound [canonical JSON](/appendices#canonical-json)
+    /// value to match against.
+    QVariant value{};
 };
 
 template <>
@@ -42,6 +48,7 @@ struct JsonObjectConverter<PushCondition> {
         addParam<IfNotEmpty>(jo, QStringLiteral("key"), pod.key);
         addParam<IfNotEmpty>(jo, QStringLiteral("pattern"), pod.pattern);
         addParam<IfNotEmpty>(jo, QStringLiteral("is"), pod.is);
+        addParam<IfNotEmpty>(jo, QStringLiteral("value"), pod.value);
     }
     static void fillFrom(const QJsonObject& jo, PushCondition& pod)
     {
@@ -49,6 +56,7 @@ struct JsonObjectConverter<PushCondition> {
         fillFromJson(jo.value("key"_ls), pod.key);
         fillFromJson(jo.value("pattern"_ls), pod.pattern);
         fillFromJson(jo.value("is"_ls), pod.is);
+        fillFromJson(jo.value("value"_ls), pod.value);
     }
 };
 

@@ -29,11 +29,11 @@ public:
      *   The user to request an OpenID token for. Should be the user who
      *   is authenticated for the request.
      *
-     * \param body
+     * \param dontUse
      *   An empty object. Reserved for future expansion.
      */
     explicit RequestOpenIdTokenJob(const QString& userId,
-                                   const QJsonObject& body = {});
+                                   const QJsonObject& dontUse = {});
 
     // Result properties
 

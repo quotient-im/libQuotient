@@ -9,11 +9,11 @@ using namespace Quotient;
 SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId,
                                                const QString& eventType,
                                                const QString& stateKey,
-                                               const QJsonObject& body)
+                                               const QJsonObject& content)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomStateWithKeyJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/state/",
                        eventType, "/", stateKey))
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(content) });
     addExpectedKey("event_id");
 }

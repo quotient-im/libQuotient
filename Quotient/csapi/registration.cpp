@@ -41,21 +41,21 @@ RegisterJob::RegisterJob(const QString& kind,
 }
 
 RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(
-    const EmailValidationData& body)
+    const EmailValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToRegisterEmailJob"),
               makePath("/_matrix/client/v3", "/register/email/requestToken"),
               false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
 RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
-    const MsisdnValidationData& body)
+    const MsisdnValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToRegisterMSISDNJob"),
               makePath("/_matrix/client/v3", "/register/msisdn/requestToken"),
               false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
 ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
@@ -73,25 +73,25 @@ ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
 }
 
 RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(
-    const EmailValidationData& body)
+    const EmailValidationData& data)
     : BaseJob(HttpVerb::Post,
               QStringLiteral("RequestTokenToResetPasswordEmailJob"),
               makePath("/_matrix/client/v3",
                        "/account/password/email/requestToken"),
               false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
 RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
-    const MsisdnValidationData& body)
+    const MsisdnValidationData& data)
     : BaseJob(HttpVerb::Post,
               QStringLiteral("RequestTokenToResetPasswordMSISDNJob"),
               makePath("/_matrix/client/v3",
                        "/account/password/msisdn/requestToken"),
               false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
 DeactivateAccountJob::DeactivateAccountJob(
@@ -122,8 +122,7 @@ QUrl CheckUsernameAvailabilityJob::makeRequestUrl(QUrl baseUrl,
                                    queryToCheckUsernameAvailability(username));
 }
 
-CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(
-    const QString& username)
+CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(const QString& username)
     : BaseJob(HttpVerb::Get, QStringLiteral("CheckUsernameAvailabilityJob"),
               makePath("/_matrix/client/v3", "/register/available"),
               queryToCheckUsernameAvailability(username), {}, false)
