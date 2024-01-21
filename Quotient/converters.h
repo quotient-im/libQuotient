@@ -557,7 +557,7 @@ inline void addParam(ContT& container, const QString& key, ValT&& value)
 
 // This is a facility function to convert camelCase method/variable names
 // used throughout Quotient to snake_case JSON keys - see usage in
-// single_key_value.h and event.h (DEFINE_CONTENT_GETTER macro).
+// single_key_value.h and event.h (QUO_CONTENT_GETTER macro).
 inline auto toSnakeCase(QLatin1String s)
 {
     QString result { s };

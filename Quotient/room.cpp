@@ -193,6 +193,7 @@ public:
     QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
     const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
+    // FIXME: move to RoomMessageEvent in 0.9
     QString fileNameToDownload(const RoomMessageEvent* event) const;
 
     Changes setSummary(RoomSummary&& newSummary);
@@ -879,6 +880,9 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
         return Change::None; // What's arrived is already fully read
 
     // If there's no read marker in the whole room, initialise it
+    // REMOVEME: it's not the library's business; the room might be offscreen,
+    // or the creation event not shown, whatever. Let the clients tackle that
+    // properly.
     if (fullyReadMarker == historyEdge() && q->allHistoryLoaded())
         return setFullyReadMarker(timeline.front()->id());
 
