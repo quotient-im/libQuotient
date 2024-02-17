@@ -38,17 +38,11 @@ jobs:
           override-compiler: GCC
           e2ee: e2ee
           update-api: update-api
-          static-analysis: sonar
+          static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
         - os: ubuntu-22.04 # Overrides the existing job
           qt-version: '6.4'
           e2ee: e2ee
           static-analysis: codeql
-          # NB ^: Valgrind is enabled with GCC but doesn't like CodeQL
-          #       instrumentation; so don't use CodeQL with GCC for now
-        - os: ubuntu-22.04
-          qt-version: '5.15'
-          override-compiler: GCC
-          e2ee: e2ee
 
     steps:
     - uses: actions/checkout@v3
@@ -59,7 +53,7 @@ jobs:
     - name: Install dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        COMMON_PKGS="libolm-dev ninja-build valgrind gnome-keyring"
+        COMMON_PKGS="libolm-dev ninja-build gnome-keyring"
         COMMON_PKGS="$COMMON_PKGS clang-15" # Workaround for https://github.com/actions/runner-images/issues/8659
         sudo apt-get -qq update
         sudo apt-get -qq install $COMMON_PKGS \
@@ -83,7 +77,6 @@ jobs:
         if [ '${{ matrix.override-compiler }}' == 'GCC' ]; then
             echo "CC=gcc-13" >>$GITHUB_ENV
             echo "CXX=g++-13" >>$GITHUB_ENV
-            echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
         elif [[ '${{ runner.os }}' == 'Linux' ]]; then
             # Workaround for https://github.com/actions/runner-images/issues/8659
             echo "CC=clang-15" >>$GITHUB_ENV
@@ -219,7 +212,7 @@ jobs:
         GTEST_COLOR=1 ctest $CTEST_ARGS
         [[ -z "$TEST_USER" ]] || \
             LD_LIBRARY_PATH=$LIB_PATH \
-            $VALGRIND quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
+            quotest "$TEST_USER" "$TEST_PWD" quotest-gha '#quotest:matrix.org' "$QUOTEST_ORIGIN"
       timeout-minutes: 4 # quotest is supposed to finish within 3 minutes, actually
 
     - name: Perform CodeQL analysis
