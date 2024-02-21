@@ -1891,3 +1891,13 @@ Connection* Connection::makeMockConnection(const QString& mxId,
     c->d->completeSetup(mxId, true);
     return c;
 }
+
+QStringList Connection::accountDataEventTypes() const
+{
+    QStringList events;
+    events.reserve(d->accountData.size());
+    for (const auto& [key, value] : std::as_const(d->accountData)) {
+        events += key;
+    }
+    return events;
+}
