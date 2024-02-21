@@ -130,6 +130,7 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
     Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
     Q_PROPERTY(bool encryptionEnabled READ encryptionEnabled WRITE enableEncryption NOTIFY encryptionChanged)
+    Q_PROPERTY(QStringList accountDataEventTypes READ accountDataEventTypes NOTIFY accountDataChanged)
 
 public:
     using UsersToDevicesToContent = QHash<QString, QHash<QString, QJsonObject>>;
@@ -204,6 +205,9 @@ public:
 
     Q_INVOKABLE void setAccountData(const QString& type,
                                     const QJsonObject& content);
+
+    //! Lists the types of account data that exist for this connection;
+    QStringList accountDataEventTypes() const;
 
     //! \brief Get all Invited and Joined rooms grouped by tag
     //! \return a hashmap from tag name to a vector of room pointers,
