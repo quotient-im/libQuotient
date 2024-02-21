@@ -1330,6 +1330,16 @@ void Connection::addToIgnoredUsers(const User* user)
     }
 }
 
+void Connection::addToIgnoredUsers(const QString& userId)
+{
+    auto ignoreList = ignoredUsers();
+    if (!ignoreList.contains(userId)) {
+        ignoreList.insert(userId);
+        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
+        emit ignoredUsersListChanged({ { userId } }, {});
+    }
+}
+
 void Connection::removeFromIgnoredUsers(const User* user)
 {
     Q_ASSERT(user != nullptr);
@@ -1338,6 +1348,15 @@ void Connection::removeFromIgnoredUsers(const User* user)
     if (ignoreList.remove(user->id()) != 0) {
         d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
         emit ignoredUsersListChanged({}, { { user->id() } });
+    }
+}
+
+void Connection::removeFromIgnoredUsers(const QString& userId)
+{
+    auto ignoreList = ignoredUsers();
+    if (ignoreList.remove(userId) != 0) {
+        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
+        emit ignoredUsersListChanged({}, { { userId } });
     }
 }
 
