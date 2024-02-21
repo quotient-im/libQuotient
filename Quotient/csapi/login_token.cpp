@@ -1,13 +1,10 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "login_token.h"
 
 using namespace Quotient;
 
-GenerateLoginTokenJob::GenerateLoginTokenJob(
-    const Omittable<AuthenticationData>& auth)
+GenerateLoginTokenJob::GenerateLoginTokenJob(const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, QStringLiteral("GenerateLoginTokenJob"),
               makePath("/_matrix/client/v1", "/login/get_token"))
 {

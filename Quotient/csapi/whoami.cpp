@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "whoami.h"
 
@@ -8,8 +6,8 @@ using namespace Quotient;
 
 QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(
-        std::move(baseUrl), makePath("/_matrix/client/v3", "/account/whoami"));
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+                                   makePath("/_matrix/client/v3", "/account/whoami"));
 }
 
 GetTokenOwnerJob::GetTokenOwnerJob()

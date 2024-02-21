@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "room_event_by_timestamp.h"
 
@@ -14,20 +12,18 @@ auto queryToGetEventByTimestamp(int ts, const QString& dir)
     return _q;
 }
 
-QUrl GetEventByTimestampJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
-                                            int ts, const QString& dir)
+QUrl GetEventByTimestampJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, int ts,
+                                            const QString& dir)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v1", "/rooms/",
-                                            roomId, "/timestamp_to_event"),
+                                   makePath("/_matrix/client/v1", "/rooms/", roomId,
+                                            "/timestamp_to_event"),
                                    queryToGetEventByTimestamp(ts, dir));
 }
 
-GetEventByTimestampJob::GetEventByTimestampJob(const QString& roomId, int ts,
-                                               const QString& dir)
+GetEventByTimestampJob::GetEventByTimestampJob(const QString& roomId, int ts, const QString& dir)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetEventByTimestampJob"),
-              makePath("/_matrix/client/v1", "/rooms/", roomId,
-                       "/timestamp_to_event"),
+              makePath("/_matrix/client/v1", "/rooms/", roomId, "/timestamp_to_event"),
               queryToGetEventByTimestamp(ts, dir))
 {
     addExpectedKey("event_id");

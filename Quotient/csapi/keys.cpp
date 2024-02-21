@@ -1,29 +1,23 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "keys.h"
 
 using namespace Quotient;
 
 UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys,
-                             const OneTimeKeys& oneTimeKeys,
-                             const OneTimeKeys& fallbackKeys)
+                             const OneTimeKeys& oneTimeKeys, const OneTimeKeys& fallbackKeys)
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadKeysJob"),
               makePath("/_matrix/client/v3", "/keys/upload"))
 {
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("device_keys"), deviceKeys);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("one_time_keys"),
-                         oneTimeKeys);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("fallback_keys"),
-                         fallbackKeys);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("one_time_keys"), oneTimeKeys);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("fallback_keys"), fallbackKeys);
     setRequestData({ _dataJson });
     addExpectedKey("one_time_key_counts");
 }
 
-QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
-                           Omittable<int> timeout)
+QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, Omittable<int> timeout)
     : BaseJob(HttpVerb::Post, QStringLiteral("QueryKeysJob"),
               makePath("/_matrix/client/v3", "/keys/query"))
 {
@@ -33,9 +27,8 @@ QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
     setRequestData({ _dataJson });
 }
 
-ClaimKeysJob::ClaimKeysJob(
-    const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
-    Omittable<int> timeout)
+ClaimKeysJob::ClaimKeysJob(const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
+                           Omittable<int> timeout)
     : BaseJob(HttpVerb::Post, QStringLiteral("ClaimKeysJob"),
               makePath("/_matrix/client/v3", "/keys/claim"))
 {
@@ -54,17 +47,14 @@ auto queryToGetKeysChanges(const QString& from, const QString& to)
     return _q;
 }
 
-QUrl GetKeysChangesJob::makeRequestUrl(QUrl baseUrl, const QString& from,
-                                       const QString& to)
+QUrl GetKeysChangesJob::makeRequestUrl(QUrl baseUrl, const QString& from, const QString& to)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3",
-                                            "/keys/changes"),
+                                   makePath("/_matrix/client/v3", "/keys/changes"),
                                    queryToGetKeysChanges(from, to));
 }
 
 GetKeysChangesJob::GetKeysChangesJob(const QString& from, const QString& to)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetKeysChangesJob"),
-              makePath("/_matrix/client/v3", "/keys/changes"),
-              queryToGetKeysChanges(from, to))
+              makePath("/_matrix/client/v3", "/keys/changes"), queryToGetKeysChanges(from, to))
 {}

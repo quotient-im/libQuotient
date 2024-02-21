@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "search.h"
 
@@ -13,11 +11,9 @@ auto queryToSearch(const QString& nextBatch)
     return _q;
 }
 
-SearchJob::SearchJob(const Categories& searchCategories,
-                     const QString& nextBatch)
+SearchJob::SearchJob(const Categories& searchCategories, const QString& nextBatch)
     : BaseJob(HttpVerb::Post, QStringLiteral("SearchJob"),
-              makePath("/_matrix/client/v3", "/search"),
-              queryToSearch(nextBatch))
+              makePath("/_matrix/client/v3", "/search"), queryToSearch(nextBatch))
 {
     QJsonObject _dataJson;
     addParam<>(_dataJson, QStringLiteral("search_categories"), searchCategories);

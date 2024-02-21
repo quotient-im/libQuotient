@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "directory.h"
 
@@ -18,21 +16,18 @@ SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId
 QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3",
-                                            "/directory/room/", roomAlias));
+                                   makePath("/_matrix/client/v3", "/directory/room/", roomAlias));
 }
 
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomIdByAliasJob"),
-              makePath("/_matrix/client/v3", "/directory/room/", roomAlias),
-              false)
+              makePath("/_matrix/client/v3", "/directory/room/", roomAlias), false)
 {}
 
 QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3",
-                                            "/directory/room/", roomAlias));
+                                   makePath("/_matrix/client/v3", "/directory/room/", roomAlias));
 }
 
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
@@ -43,8 +38,7 @@ DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
 QUrl GetLocalAliasesJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/rooms/",
-                                            roomId, "/aliases"));
+                                   makePath("/_matrix/client/v3", "/rooms/", roomId, "/aliases"));
 }
 
 GetLocalAliasesJob::GetLocalAliasesJob(const QString& roomId)

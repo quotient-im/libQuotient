@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "administrative_contact.h"
 
@@ -8,8 +6,8 @@ using namespace Quotient;
 
 QUrl GetAccount3PIDsJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(
-        std::move(baseUrl), makePath("/_matrix/client/v3", "/account/3pid"));
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+                                   makePath("/_matrix/client/v3", "/account/3pid"));
 }
 
 GetAccount3PIDsJob::GetAccount3PIDsJob()
@@ -51,8 +49,7 @@ Bind3PIDJob::Bind3PIDJob(const QString& clientSecret, const QString& idServer,
     setRequestData({ _dataJson });
 }
 
-Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium,
-                                                   const QString& address,
+Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium, const QString& address,
                                                    const QString& idServer)
     : BaseJob(HttpVerb::Post, QStringLiteral("Delete3pidFromAccountJob"),
               makePath("/_matrix/client/v3", "/account/3pid/delete"))
@@ -65,8 +62,7 @@ Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium,
     addExpectedKey("id_server_unbind_result");
 }
 
-Unbind3pidFromAccountJob::Unbind3pidFromAccountJob(const QString& medium,
-                                                   const QString& address,
+Unbind3pidFromAccountJob::Unbind3pidFromAccountJob(const QString& medium, const QString& address,
                                                    const QString& idServer)
     : BaseJob(HttpVerb::Post, QStringLiteral("Unbind3pidFromAccountJob"),
               makePath("/_matrix/client/v3", "/account/3pid/unbind"))
@@ -79,22 +75,16 @@ Unbind3pidFromAccountJob::Unbind3pidFromAccountJob(const QString& medium,
     addExpectedKey("id_server_unbind_result");
 }
 
-RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(
-    const EmailValidationData& data)
+RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(const EmailValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenTo3PIDEmailJob"),
-              makePath("/_matrix/client/v3",
-                       "/account/3pid/email/requestToken"),
-              false)
+              makePath("/_matrix/client/v3", "/account/3pid/email/requestToken"), false)
 {
     setRequestData({ toJson(data) });
 }
 
-RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(
-    const MsisdnValidationData& data)
+RequestTokenTo3PIDMSISDNJob::RequestTokenTo3PIDMSISDNJob(const MsisdnValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenTo3PIDMSISDNJob"),
-              makePath("/_matrix/client/v3",
-                       "/account/3pid/msisdn/requestToken"),
-              false)
+              makePath("/_matrix/client/v3", "/account/3pid/msisdn/requestToken"), false)
 {
     setRequestData({ toJson(data) });
 }

@@ -1,29 +1,25 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #pragma once
 
 #include <Quotient/converters.h>
 
 namespace Quotient {
-/// The key data
+//! The key data
 struct KeyBackupData {
-    /// The index of the first message in the session that the key can decrypt.
+    //! The index of the first message in the session that the key can decrypt.
     int firstMessageIndex;
 
-    /// The number of times this key has been forwarded via key-sharing between
-    /// devices.
+    //! The number of times this key has been forwarded via key-sharing between devices.
     int forwardedCount;
 
-    /// Whether the device backing up the key verified the device that the key
-    /// is from.
+    //! Whether the device backing up the key verified the device that the key
+    //! is from.
     bool isVerified;
 
-    /// Algorithm-dependent data.  See the documentation for the backup
-    /// algorithms in [Server-side key
-    /// backups](/client-server-api/#server-side-key-backups) for more
-    /// information on the expected format of the data.
+    //! Algorithm-dependent data.  See the documentation for the backup
+    //! algorithms in [Server-side key backups](/client-server-api/#server-side-key-backups) for
+    //! more information on the expected format of the data.
     QJsonObject sessionData;
 };
 
@@ -31,8 +27,7 @@ template <>
 struct JsonObjectConverter<KeyBackupData> {
     static void dumpTo(QJsonObject& jo, const KeyBackupData& pod)
     {
-        addParam<>(jo, QStringLiteral("first_message_index"),
-                   pod.firstMessageIndex);
+        addParam<>(jo, QStringLiteral("first_message_index"), pod.firstMessageIndex);
         addParam<>(jo, QStringLiteral("forwarded_count"), pod.forwardedCount);
         addParam<>(jo, QStringLiteral("is_verified"), pod.isVerified);
         addParam<>(jo, QStringLiteral("session_data"), pod.sessionData);
