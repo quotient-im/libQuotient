@@ -23,7 +23,6 @@ jobs:
         override-compiler: [ '', GCC ] # Defaults: MSVC on Windows, Clang elsewhere
         # Not using binary values here, to make the job captions more readable
         e2ee: [ e2ee, '' ]
-        update-api: [ '' ]
         exclude: # Drop less important combinations to lower the jobs number
         - qt-version: '5.15'
           e2ee: ''
@@ -40,7 +39,7 @@ jobs:
           override-compiler: GCC
           static-analysis: sonar
         - os: ubuntu-22.04 # Overrides the existing job
-          qt-version: '5.15'
+          qt-version: '6.4'
           e2ee: e2ee
           update-api: update-api
           static-analysis: codeql
@@ -49,7 +48,7 @@ jobs:
         - os: ubuntu-22.04
           qt-version: '5.15'
           override-compiler: GCC
-          update-api: update-api
+          e2ee: e2ee
 
     steps:
     - uses: actions/checkout@v3
