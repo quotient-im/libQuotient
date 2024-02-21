@@ -240,12 +240,7 @@ mustache:
     # This is for structures that don't expect a summary (e.g., JSON schema)
     docCommentShort: |-
       {{#description}}
-      /// {{_}}{{/description}}
-    # For structures with the summary, a common partial for summary is here;
-    # the main part is different in different places
-    docCommentSummary: |-
-      {{#summary}} \brief {{summary}}
-       *{{/summary}}
+      //! {{_}}{{/description}}
 
   templates:
     data:
