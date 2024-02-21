@@ -261,7 +261,7 @@ public:
     //! to complete synchronisation with the server.
     //!
     //! \sa ignoredUsersListChanged
-    Q_INVOKABLE void addToIgnoredUsers(const Quotient::User* user);
+    Q_INVOKABLE [[deprecated]] void addToIgnoredUsers(const Quotient::User* user);
 
     //! \brief Add the user to the ignore list
     //! The change signal is emitted synchronously, without waiting
@@ -274,7 +274,7 @@ public:
     //!
     //! Similar to adding, the change signal is emitted synchronously.
     //! \sa ignoredUsersListChanged
-    Q_INVOKABLE void removeFromIgnoredUsers(const Quotient::User* user);
+    Q_INVOKABLE [[deprecated]] void removeFromIgnoredUsers(const Quotient::User* user);
 
     //! \brief Remove the user from the ignore list
     //!
