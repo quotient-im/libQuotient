@@ -485,6 +485,14 @@ namespace _impl {
             q.addQueryItem(k, v);
     }
 
+    template <typename ValT>
+    inline void addTo(QUrlQuery& q, const QString&,
+                      const QHash<QString, ValT>& fields)
+    {
+        for (const auto& [k, v] : asKeyValueRange(fields))
+            addTo(q, k, v);
+    }
+
     // This one is for types that don't have isEmpty() and for all types
     // when Force is true
     template <typename ValT, bool Force = true, typename = bool>
