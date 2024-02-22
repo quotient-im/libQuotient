@@ -35,13 +35,13 @@ jobs:
         include:
         - os: ubuntu-22.04 # Overrides the existing job
           qt-version: '6.4'
-          e2ee: e2ee
           override-compiler: GCC
+          e2ee: e2ee
+          update-api: update-api
           static-analysis: sonar
         - os: ubuntu-22.04 # Overrides the existing job
           qt-version: '6.4'
           e2ee: e2ee
-          update-api: update-api
           static-analysis: codeql
           # NB ^: Valgrind is enabled with GCC but doesn't like CodeQL
           #       instrumentation; so don't use CodeQL with GCC for now
@@ -81,8 +81,8 @@ jobs:
     - name: Setup build environment
       run: |
         if [ '${{ matrix.override-compiler }}' == 'GCC' ]; then
-            echo "CC=gcc" >>$GITHUB_ENV
-            echo "CXX=g++" >>$GITHUB_ENV
+            echo "CC=gcc-13" >>$GITHUB_ENV
+            echo "CXX=g++-13" >>$GITHUB_ENV
             echo "VALGRIND=valgrind --tool=memcheck --leak-check=yes --gen-suppressions=all --suppressions=$GITHUB_WORKSPACE/quotest/.valgrind.supp" >>$GITHUB_ENV
         elif [[ '${{ runner.os }}' == 'Linux' ]]; then
             # Workaround for https://github.com/actions/runner-images/issues/8659
