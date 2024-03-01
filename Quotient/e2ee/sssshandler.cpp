@@ -18,20 +18,25 @@
 using namespace Quotient;
 
 DEFINE_SIMPLE_EVENT(SecretStorageDefaultKeyEvent, Event, "m.secret_storage.default_key", QString, key, "key");
+DEFINE_SIMPLE_EVENT(CrossSigningMasterKey, Event, "m.cross_signing.master", QJsonObject, encrypted, "encrypted")
+DEFINE_SIMPLE_EVENT(CrossSigningSelfSigningKey, Event, "m.cross_signing.self_signing", QJsonObject, encrypted, "encrypted")
+DEFINE_SIMPLE_EVENT(CrossSigningUserSigningKey, Event, "m.cross_signing.user_signing", QJsonObject, encrypted, "encrypted")
+DEFINE_SIMPLE_EVENT(MegolmBackupKey, Event, "m.megolm_backup.v1", QJsonObject, encrypted, "encrypted")
 
-QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryptionKey) const
+template<EventClass EventType>
+QByteArray SSSSHandler::decryptKey(const QByteArray& decryptionKey) const
 {
     Q_ASSERT(m_connection);
     if (!m_connection->hasAccountData(SecretStorageDefaultKeyEvent::TypeId)) {
         return {};
     }
     const auto defaultKey = m_connection->accountData<SecretStorageDefaultKeyEvent>()->key();
-    if (!m_connection->hasAccountData(name)) {
+    if (!m_connection->hasAccountData(EventType::TypeId)) {
         return {};
     }
-    const auto& encrypted = m_connection->accountData(name)->contentPart<QJsonObject>("encrypted"_ls)[defaultKey];
+    const auto& encrypted = m_connection->accountData<EventType>()->encrypted().value(defaultKey).toObject();
 
-    auto hkdfResult = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), name.toLatin1());
+    auto hkdfResult = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), EventType::TypeId.data());
     if (!hkdfResult.has_value()) {
         //TODO: Error
     }
@@ -43,7 +48,7 @@ QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryp
         //TODO: Error
     }
     if (QString::fromLatin1(result.value().toBase64()) != encrypted["mac"_ls].toString()) {
-        qCWarning(E2EE) << "MAC mismatch for" << name;
+        qCWarning(E2EE) << "MAC mismatch for" << EventType::TypeId;
         return {};
     }
     auto decryptResult =
@@ -54,7 +59,7 @@ QByteArray SSSSHandler::decryptKey(const QString& name, const QByteArray& decryp
         //TODO: Error
     }
     auto key = QByteArray::fromBase64(decryptResult.value());
-    m_connection->database()->storeEncrypted(name, key);
+    m_connection->database()->storeEncrypted(EventType::TypeId, key);
     return key;
 }
 
@@ -210,11 +215,12 @@ void SSSSHandler::calculateDefaultKey(const QByteArray& secret,
 
     emit keyBackupUnlocked();
 
-    auto megolmDecryptionKey = decryptKey("m.megolm_backup.v1"_ls, key);
+    auto megolmDecryptionKey = decryptKey<MegolmBackupKey>(key);
 
     // These keys are only decrypted since this will automatically store them locally
-    decryptKey("m.cross_signing.self_signing"_ls, key);
-    decryptKey("m.cross_signing.user_signing"_ls, key);
+    decryptKey<CrossSigningSelfSigningKey>(key);
+    decryptKey<CrossSigningUserSigningKey>(key);
+    decryptKey<CrossSigningMasterKey>(key);
     if (megolmDecryptionKey.isEmpty()) {
         return;
     }

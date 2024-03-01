@@ -7,6 +7,7 @@
 #include <QtCore/QPointer>
 
 #include "../connection.h"
+#include "../event.h"
 
 class QUOTIENT_API SSSSHandler : public QObject
 {
@@ -37,7 +38,7 @@ private:
     QPointer<Quotient::Connection> m_connection;
 
     //! \brief Decrypt the key with this name from the account data
-    QByteArray decryptKey(const QString& name, const QByteArray& decryptionKey) const;
+    template<Quotient::EventClass EventType> QByteArray decryptKey(const QByteArray& decryptionKey) const;
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
     void calculateDefaultKey(const QByteArray& secret, bool requirePassphrase);
