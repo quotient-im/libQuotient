@@ -15,6 +15,16 @@ class QUOTIENT_API SSSSHandler : public QObject
     Q_PROPERTY(Quotient::Connection* connection READ connection WRITE setConnection NOTIFY connectionChanged)
 
 public:
+    enum Error
+    {
+        WrongKeyError,
+        NoKeyError,
+        DecryptionError,
+        InvalidSignatureError,
+        UnsupportedAlgorithmError,
+    };
+    Q_ENUM(Error);
+
     using QObject::QObject;
 
     //! \brief Unlock the secret backup from the given password
@@ -31,14 +41,14 @@ public:
 
 Q_SIGNALS:
     void keyBackupUnlocked();
-    void keyBackupKeyWrong();
+    void error(Error error);
     void connectionChanged();
 
 private:
     QPointer<Quotient::Connection> m_connection;
 
     //! \brief Decrypt the key with this name from the account data
-    template<Quotient::EventClass EventType> QByteArray decryptKey(const QByteArray& decryptionKey) const;
+    template<Quotient::EventClass EventType> QByteArray decryptKey(const QByteArray& decryptionKey);
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
     void calculateDefaultKey(const QByteArray& secret, bool requirePassphrase);
