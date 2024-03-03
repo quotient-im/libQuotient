@@ -361,6 +361,8 @@ public:
 
     bool isLocalUser(const User* u) const { return u == q->localUser(); }
 
+    void processRedactionsAndEdits(RoomEvents& events);
+
 #ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
     Omittable<QOlmOutboundGroupSession> currentOutboundMegolmSession = none;
@@ -2878,6 +2880,51 @@ inline bool isEditing(const RoomEventPtr& ep)
                      false);
 }
 
+void Room::Private::processRedactionsAndEdits(RoomEvents& events)
+{
+    // Pre-process redactions and edits so that events that get
+    // redacted/replaced in the same batch landed in the timeline already
+    // treated.
+    // NB: We have to store redacting/replacing events to the timeline too -
+    // see #220.
+    auto it = std::find_if(events.begin(), events.end(), isEditing);
+    for (const auto& eptr : RoomEventsRange(it, events.end())) {
+        if (auto* r = eventCast<RedactionEvent>(eptr)) {
+            // Try to find the target in the timeline, then in the batch.
+            if (processRedaction(*r))
+                continue;
+            if (auto targetIt = std::find_if(events.begin(), events.end(),
+                    [id = r->redactedEvent()](const RoomEventPtr& ep) {
+                        return ep->id() == id;
+                    }); targetIt != events.end())
+                *targetIt = makeRedacted(**targetIt, *r);
+            else
+                qCDebug(STATE)
+                    << "Redaction" << r->id() << "ignored: target event"
+                    << r->redactedEvent() << "is not found";
+            // If the target event comes later, it comes already redacted.
+        }
+        if (auto* msg = eventCast<RoomMessageEvent>(eptr);
+                msg && !msg->replacedEvent().isEmpty()) {
+            if (processReplacement(*msg))
+                continue;
+            auto targetIt = std::find_if(events.begin(), events.end(),
+                    [id = msg->replacedEvent()](const RoomEventPtr& ep) {
+                        return ep->id() == id;
+                    });
+            if (targetIt != events.end())
+                *targetIt = makeReplaced(**targetIt, *msg);
+            else // FIXME: hide the replacing event when target arrives later
+                qCDebug(EVENTS)
+                    << "Replacing event" << msg->id()
+                    << "ignored: target event" << msg->replacedEvent()
+                    << "is not found";
+            // Same as with redactions above, the replaced event coming
+            // later will come already with the new content.
+        }
+    }
+}
+
 Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
     dropExtraneousEvents(events);
@@ -2889,49 +2936,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     QElapsedTimer et;
     et.start();
 
-    {
-        // Pre-process redactions and edits so that events that get
-        // redacted/replaced in the same batch landed in the timeline already
-        // treated.
-        // NB: We have to store redacting/replacing events to the timeline too -
-        // see #220.
-        auto it = std::find_if(events.begin(), events.end(), isEditing);
-        for (const auto& eptr : RoomEventsRange(it, events.end())) {
-            if (auto* r = eventCast<RedactionEvent>(eptr)) {
-                // Try to find the target in the timeline, then in the batch.
-                if (processRedaction(*r))
-                    continue;
-                if (auto targetIt = std::find_if(events.begin(), events.end(),
-                        [id = r->redactedEvent()](const RoomEventPtr& ep) {
-                            return ep->id() == id;
-                        }); targetIt != events.end())
-                    *targetIt = makeRedacted(**targetIt, *r);
-                else
-                    qCDebug(STATE)
-                        << "Redaction" << r->id() << "ignored: target event"
-                        << r->redactedEvent() << "is not found";
-                // If the target event comes later, it comes already redacted.
-            }
-            if (auto* msg = eventCast<RoomMessageEvent>(eptr);
-                    msg && !msg->replacedEvent().isEmpty()) {
-                if (processReplacement(*msg))
-                    continue;
-                auto targetIt = std::find_if(events.begin(), it,
-                        [id = msg->replacedEvent()](const RoomEventPtr& ep) {
-                            return ep->id() == id;
-                        });
-                if (targetIt != it)
-                    *targetIt = makeReplaced(**targetIt, *msg);
-                else // FIXME: hide the replacing event when target arrives later
-                    qCDebug(EVENTS)
-                        << "Replacing event" << msg->id()
-                        << "ignored: target event" << msg->replacedEvent()
-                        << "is not found";
-                // Same as with redactions above, the replaced event coming
-                // later will come already with the new content.
-            }
-        }
-    }
+    processRedactionsAndEdits(events);
 
     // State changes arrive as a part of timeline; the current room state gets
     // updated before merging events to the timeline because that's what
@@ -3033,6 +3038,8 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
         return;
 
     decryptIncomingEvents(events);
+
+    processRedactionsAndEdits(events);
 
     QElapsedTimer et;
     et.start();
