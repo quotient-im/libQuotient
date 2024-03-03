@@ -32,15 +32,16 @@ jobs:
           override-compiler: GCC
         - os: windows-2019
           override-compiler: GCC
-        include:
-        - os: ubuntu-22.04 # Overrides the existing job
+        include: # Attach API updating and static analysis to a couple of jobs
+        - os: ubuntu-22.04
           qt-version: '6.4'
           override-compiler: GCC
           e2ee: e2ee
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
-        - os: ubuntu-22.04 # Overrides the existing job
+        - os: ubuntu-22.04
           qt-version: '6.4'
+          override-compiler: ''
           e2ee: e2ee
           static-analysis: codeql
 
@@ -169,7 +170,7 @@ jobs:
 
     - name: Initialize CodeQL tools
       if: matrix.static-analysis == 'codeql'
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: cpp
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -217,7 +218,7 @@ jobs:
 
     - name: Perform CodeQL analysis
       if: matrix.static-analysis == 'codeql'
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
 
     - name: Run sonar-scanner
       if: matrix.static-analysis == 'sonar'
@@ -228,7 +229,7 @@ jobs:
       run: |
         mkdir .coverage && pushd .coverage
         find $BUILD_PATH -name '*.gcda' -print0 \
-            | xargs -0 gcov -s $GITHUB_WORKSPACE -pr
+            | xargs -0 gcov-13 -s $GITHUB_WORKSPACE -pr
         # Coverage of the test source code is not tracked, as it is always 100%
         # (if not, some tests failed and broke the build at an earlier stage)
         rm -f quotest* autotests*
