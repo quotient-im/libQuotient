@@ -1367,6 +1367,21 @@ const ConnectionData* Connection::connectionData() const
     return d->data.get();
 }
 
+void Connection::addRoom(Room *room, bool invite)
+{
+    const std::pair roomKey { room->id(), invite };
+    d->roomMap.insert(roomKey, room);
+    connect(room, &Room::beforeDestruction, this,
+            &Connection::aboutToDeleteRoom);
+    connect(room, &Room::baseStateLoaded, this, [this, room] {
+        emit loadedRoomState(room);
+        if (d->capabilities.roomVersions)
+            room->checkVersion();
+        // Otherwise, the version will be checked in reloadCapabilities()
+    });
+    emit newRoom(room);
+}
+
 Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
 {
     // TODO: This whole function is a strong case for a RoomManager class.
@@ -1397,16 +1412,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
             qCCritical(MAIN) << "Failed to create a room" << id;
             return nullptr;
         }
-        d->roomMap.insert(roomKey, room);
-        connect(room, &Room::beforeDestruction, this,
-                &Connection::aboutToDeleteRoom);
-        connect(room, &Room::baseStateLoaded, this, [this, room] {
-            emit loadedRoomState(room);
-            if (d->capabilities.roomVersions)
-                room->checkVersion();
-            // Otherwise, the version will be checked in reloadCapabilities()
-        });
-        emit newRoom(room);
+        addRoom(room, roomKey.second);
     }
     if (!joinState)
         return room;
@@ -1901,6 +1907,14 @@ bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& 
 }
 
 #endif
+
+Connection* Connection::makeMockConnection(Connection *c, const QString& mxId,
+                                           bool enableEncryption)
+{
+    c->enableEncryption(enableEncryption);
+    c->d->completeSetup(mxId, true);
+    return c;
+}
 
 Connection* Connection::makeMockConnection(const QString& mxId,
                                            bool enableEncryption)

@@ -760,6 +760,9 @@ public Q_SLOTS:
     static Connection* makeMockConnection(const QString& mxId,
                                           bool enableEncryption = E2EE_Enabled);
 
+    static Connection* makeMockConnection(Connection *connection, const QString& mxId,
+                                          bool enableEncryption = E2EE_Enabled);
+
 Q_SIGNALS:
     //! \brief Initial server resolution has failed
     //!
@@ -946,6 +949,9 @@ protected:
     //! failed to create a Room object.
     Room* provideRoom(const QString& roomId,
                       Omittable<JoinState> joinState = none);
+
+    //! Add room to the connection
+    void addRoom(Room *room, bool invite = false);
 
     //! Process sync data from a successful sync request
     void onSyncSuccess(SyncData&& data, bool fromCache = false);
