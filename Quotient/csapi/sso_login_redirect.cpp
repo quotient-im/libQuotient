@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "sso_login_redirect.h"
 
@@ -16,8 +14,7 @@ auto queryToRedirectToSSO(const QString& redirectUrl)
 QUrl RedirectToSSOJob::makeRequestUrl(QUrl baseUrl, const QString& redirectUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3",
-                                            "/login/sso/redirect"),
+                                   makePath("/_matrix/client/v3", "/login/sso/redirect"),
                                    queryToRedirectToSSO(redirectUrl));
 }
 
@@ -34,17 +31,14 @@ auto queryToRedirectToIdP(const QString& redirectUrl)
     return _q;
 }
 
-QUrl RedirectToIdPJob::makeRequestUrl(QUrl baseUrl, const QString& idpId,
-                                      const QString& redirectUrl)
+QUrl RedirectToIdPJob::makeRequestUrl(QUrl baseUrl, const QString& idpId, const QString& redirectUrl)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3",
-                                            "/login/sso/redirect/", idpId),
+                                   makePath("/_matrix/client/v3", "/login/sso/redirect/", idpId),
                                    queryToRedirectToIdP(redirectUrl));
 }
 
-RedirectToIdPJob::RedirectToIdPJob(const QString& idpId,
-                                   const QString& redirectUrl)
+RedirectToIdPJob::RedirectToIdPJob(const QString& idpId, const QString& redirectUrl)
     : BaseJob(HttpVerb::Get, QStringLiteral("RedirectToIdPJob"),
               makePath("/_matrix/client/v3", "/login/sso/redirect/", idpId),
               queryToRedirectToIdP(redirectUrl), {}, false)

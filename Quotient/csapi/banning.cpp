@@ -1,13 +1,10 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "banning.h"
 
 using namespace Quotient;
 
-BanJob::BanJob(const QString& roomId, const QString& userId,
-               const QString& reason)
+BanJob::BanJob(const QString& roomId, const QString& userId, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("BanJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/ban"))
 {
@@ -17,8 +14,7 @@ BanJob::BanJob(const QString& roomId, const QString& userId,
     setRequestData({ _dataJson });
 }
 
-UnbanJob::UnbanJob(const QString& roomId, const QString& userId,
-                   const QString& reason)
+UnbanJob::UnbanJob(const QString& roomId, const QString& userId, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("UnbanJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/unban"))
 {

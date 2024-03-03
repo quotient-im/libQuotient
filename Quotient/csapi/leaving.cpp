@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "leaving.h"
 
@@ -18,8 +16,7 @@ LeaveRoomJob::LeaveRoomJob(const QString& roomId, const QString& reason)
 QUrl ForgetRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/rooms/",
-                                            roomId, "/forget"));
+                                   makePath("/_matrix/client/v3", "/rooms/", roomId, "/forget"));
 }
 
 ForgetRoomJob::ForgetRoomJob(const QString& roomId)

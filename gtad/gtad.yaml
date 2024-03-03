@@ -16,6 +16,16 @@ analyzer:
     m.room_versions: roomVersions
     AuthenticationData/additionalProperties: authInfo
     /^/(Location|Protocol|User)$/: 'ThirdParty$1'
+    # Change some request body parameter names
+    /.*AccountData.*>/data/: content
+    uploadCrossSigningSignatures>/data: signatures
+    defineFilter>/data: filter
+    putRoomKeysByRoomId>/data: backupData
+    uploadContent>/data: content
+    uploadContentToMXC>/data: content
+    sendMessage>/data: content
+    setRoomStateWithKey>/data: content
+    requestOpenIdToken>/data: dontUse # parameter reserved for future use
     # Change some response names
     /requestTokenTo.*</data/: response
     requestOpenIdToken</data: tokenData
@@ -24,6 +34,7 @@ analyzer:
     getProtocols</data: protocols
     getOneRoomEvent</data: event
     getRoomState</data: events
+    getRoomStateWithKey</data: content
     getPushRule</data: pushRule
     # These parameters are deprecated and unused in Quotient; so drop them
     login>/user: ""
@@ -136,7 +147,7 @@ analyzer:
           imports: '<Quotient/e2ee/e2ee_common.h>'
       - //: *UseOmittable
     - array:
-      - string: QStringList
+      - /^string(,null)?$/: QStringList
       - +set: { moveOnly: }
         +on:
         - /^Notification|Result|ChildRoomsChunk$/: "std::vector<{{1}}>"
@@ -229,12 +240,7 @@ mustache:
     # This is for structures that don't expect a summary (e.g., JSON schema)
     docCommentShort: |-
       {{#description}}
-      /// {{_}}{{/description}}
-    # For structures with the summary, a common partial for summary is here;
-    # the main part is different in different places
-    docCommentSummary: |-
-      {{#summary}} \brief {{summary}}
-       *{{/summary}}
+      //! {{_}}{{/description}}
 
   templates:
     data:
