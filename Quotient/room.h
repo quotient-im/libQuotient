@@ -971,7 +971,7 @@ Q_SIGNALS:
     void topicChanged();
     void avatarChanged();
 
-    //! \brief A new member has been joined the room
+    //! \brief A new member has joined the room
     //!
     //! This can be from any previous state or a member previously unknown to
     //! the room.

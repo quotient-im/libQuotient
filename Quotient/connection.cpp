@@ -1130,7 +1130,6 @@ QString Connection::userId() const { return d->data->userId(); }
 
 Avatar& Connection::userAvatar(const QString& avatarMediaId)
 {
-
     return userAvatar(QUrl(avatarMediaId));
 }
 
