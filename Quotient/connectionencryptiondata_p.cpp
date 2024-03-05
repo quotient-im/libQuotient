@@ -434,12 +434,12 @@ void ConnectionEncryptionData::handleQueryKeys(const QueryKeysJob* job)
                   });
 }
 
-void ConnectionEncryptionData::encryptionUpdate(const QList<User*>& forUsers)
+void ConnectionEncryptionData::encryptionUpdate(const QList<QString>& forUsers)
 {
-    for (const auto& user : forUsers)
-        if (!trackedUsers.contains(user->id())) {
-            trackedUsers += user->id();
-            outdatedUsers += user->id();
+    for (const auto& userId : forUsers)
+        if (!trackedUsers.contains(userId)) {
+            trackedUsers += userId;
+            outdatedUsers += userId;
             encryptionUpdateRequired = true;
         }
 }

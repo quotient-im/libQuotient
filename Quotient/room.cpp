@@ -16,6 +16,7 @@
 #include "converters.h"
 #include "eventstats.h"
 #include "qt_connection_util.h"
+#include "roommember.h"
 #include "roomstateview.h"
 #include "syncdata.h"
 #include "user.h"
@@ -39,6 +40,7 @@
 
 #include "events/callevents.h"
 #include "events/encryptionevent.h"
+#include "events/event.h"
 #include "events/reactionevent.h"
 #include "events/receiptevent.h"
 #include "events/redactionevent.h"
@@ -52,6 +54,7 @@
 #include "events/typingevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
+#include "Quotient/quotient_common.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -63,6 +66,7 @@
 #include <array>
 #include <cmath>
 #include <functional>
+#include <qhash.h>
 
 #ifdef Quotient_E2EE_ENABLED
 #include "e2ee/e2ee_common.h"
@@ -82,10 +86,6 @@ enum EventsPlacement : int { Older = -1, Newer = 1 };
 
 class Q_DECL_HIDDEN Room::Private {
 public:
-    /// Map of user names to users
-    /** User names potentially duplicate, hence QMultiHash. */
-    using members_map_t = QMultiHash<QString, User*>;
-
     Private(Connection* c, QString id_, JoinState initialJoinState)
         : connection(c)
         , id(std::move(id_))
@@ -123,11 +123,14 @@ public:
     // Starting up with estimate event statistics as there's zero knowledge
     // about the timeline.
     EventStats partiallyReadStats {}, unreadStats {};
-    members_map_t membersMap;
-    QList<User*> usersTyping;
+
+    // For storing a list of current member names for the purpose of disambiguation.
+    QMultiHash<QString, QString> memberNameMap;
+    QStringList membersInvited;
+    QStringList membersLeft;
+    QStringList usersTyping;
+
     QHash<QString, QSet<QString>> eventIdReadUsers;
-    QList<User*> usersInvited;
-    QList<User*> membersLeft;
     bool displayed = false;
     QString firstDisplayedEventId;
     QString lastDisplayedEventId;
@@ -202,9 +205,8 @@ public:
     Change processStateEvent(const RoomEvent& curEvent,
                              const RoomEvent* oldEvent);
 
-    // void inviteUser(User* u); // We might get it at some point in time.
-    void insertMemberIntoMap(User* u);
-    void removeMemberFromMap(User* u);
+    void insertMemberIntoMap(const QString& memberId);
+    void removeMemberFromMap(const QString& memberId);
 
     // This updates the room displayname field (which is the way a room
     // should be shown in the room list); called whenever the list of
@@ -359,7 +361,18 @@ public:
 
     QJsonObject toJson() const;
 
-    bool isLocalUser(const User* u) const { return u == q->localUser(); }
+    bool isLocalMember(const QString& memberId) const { return memberId == connection->userId(); }
+
+    template<typename ListType>
+    QList<User*> usersFromIdList(const ListType& list) const
+    {
+        QList<User*> users;
+        users.reserve(list.size());
+        for (const auto& userId : std::as_const(list)) {
+            QT_IGNORE_DEPRECATIONS(users.append(q->user(userId));)
+        }
+        return users;
+    }
 
 #ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
@@ -467,9 +480,9 @@ public:
     QMultiHash<QString, QString> getDevicesWithoutKey() const
     {
         QMultiHash<QString, QString> devices;
-        for (const auto& user : q->users() + usersInvited)
-            for (const auto& deviceId : connection->devicesForUser(user->id()))
-                devices.insert(user->id(), deviceId);
+        for (const auto& user : memberNameMap.values() + membersInvited)
+            for (const auto& deviceId : connection->devicesForUser(user))
+                devices.insert(user, deviceId);
 
         return connection->database()->devicesWithoutKey(
             id, devices, currentOutboundMegolmSession->sessionId());
@@ -477,9 +490,7 @@ public:
 #endif // Quotient_E2EE_ENABLED
 
 private:
-    using users_shortlist_t = std::array<User*, 3>;
-    template <typename ContT>
-    users_shortlist_t buildShortlist(const ContT& users) const;
+    using users_shortlist_t = std::array<QString, 3>;
     users_shortlist_t buildShortlist(const QStringList& userIds) const;
 };
 
@@ -500,7 +511,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         });
         connect(this, &Room::memberListChanged, this, [this, connection] {
             if(usesEncryption()) {
-                connection->encryptionUpdate(this, d->usersInvited);
+                connection->encryptionUpdate(this, d->membersInvited);
             }
         });
         d->groupSessions = connection->loadRoomMegolmSessions(this);
@@ -510,7 +521,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             && d->shouldRotateMegolmSession()) {
             d->currentOutboundMegolmSession.reset();
         }
-        connect(this, &Room::userRemoved, this, [this] {
+        connect(this, &Room::memberLeft, this, [this] {
             if (d->hasValidMegolmSession()) {
                 qCDebug(E2EE)
                     << "Rotating the megolm session because a user left";
@@ -665,15 +676,88 @@ QImage Room::avatar(int width, int height)
     return {};
 }
 
+RoomMember Room::localMember() const { return member(connection()->userId()); }
+
 User* Room::user(const QString& userId) const
 {
     return connection()->user(userId);
 }
 
+RoomMember Room::member(const QString& userId) const
+{
+    if (userId.isEmpty()) {
+        return {};
+    }
+    return RoomMember(this, currentState().get<RoomMemberEvent>(userId));
+}
+
+QList<RoomMember> Room::joinedMembers() const
+{
+    QList<RoomMember> joinedMembers;
+    joinedMembers.reserve(joinedCount());
+
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event);
+            memberEvent->membership() == Membership::Join) {
+            joinedMembers.append(RoomMember(this, memberEvent));
+        }
+    }
+    return joinedMembers;
+}
+
+QList<RoomMember> Room::members() const {
+    QList<RoomMember> members;
+    members.reserve(totalMemberCount());
+
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event)) {
+            members.append(RoomMember(this, memberEvent));
+        }
+    }
+    return members;
+}
+
+QStringList Room::joinedMemberIds() const
+{
+    QStringList ids;
+    ids.reserve(joinedCount());
+
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event);
+            memberEvent->membership() == Membership::Join) {
+            ids.append(memberEvent->userId());
+        }
+    }
+    return ids;
+}
+
+QStringList Room::memberIds() const
+{
+    QStringList ids;
+    ids.reserve(totalMemberCount());
+
+    const auto memberEvents = currentState().eventsOfType(RoomMemberEvent::TypeId);
+    for (const auto event : memberEvents) {
+        if (const auto memberEvent = eventCast<const RoomMemberEvent>(event)) {
+            ids.append(memberEvent->userId());
+        }
+    }
+    return ids;
+}
+
+bool Room::needsDisambiguation(const QString& userId) const
+{
+    return d->memberNameMap.count(member(userId).name()) > 1;
+}
+
 JoinState Room::memberJoinState(User* user) const
 {
-    return d->membersMap.contains(user->name(this), user) ? JoinState::Join
-                                                          : JoinState::Leave;
+    return currentState().queryOr(user->id(), &RoomMemberEvent::membership, Membership::Leave) == Membership::Join
+        ? JoinState::Join
+        : JoinState::Leave;
 }
 
 Membership Room::memberState(const QString& userId) const
@@ -767,9 +851,9 @@ Omittable<QString> Room::Private::setLastReadReceipt(const QString& userId,
     // receipts arrive. It can be called thousands of times during an initial
     // sync, e.g.
     // TODO: remove in 0.8
-    if (const auto member = q->user(userId); !isLocalUser(member))
+    if (!isLocalMember(userId))
         QT_IGNORE_DEPRECATIONS(emit q->readMarkerForUserMoved(
-            member, prevEventId, storedReceipt.eventId);)
+            q->user(userId), prevEventId, storedReceipt.eventId);)
     return prevEventId;
 }
 
@@ -1097,7 +1181,7 @@ const RoomTombstoneEvent* Room::tombstone() const
 void Room::Private::getAllMembers()
 {
     // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= membersMap.size() || isJobPending(allMembersJob))
+    if (q->joinedCount() <= currentState.eventsOfType(RoomMemberEvent::TypeId).size() || isJobPending(allMembersJob))
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
@@ -1384,6 +1468,18 @@ bool Room::isServerNoticeRoom() const
 
 bool Room::isDirectChat() const { return connection()->isDirectChat(id()); }
 
+QList<RoomMember> Room::directChatMembers() const
+{
+    auto memberIds = connection()->directChatMemberIds(this);
+    QList<RoomMember> members;
+    for (const auto& memberId : memberIds) {
+        if (currentState().contains<RoomMemberEvent>(memberId)) {
+            members.append(RoomMember(this, currentState().get<RoomMemberEvent>(memberId)));
+        }
+    }
+    return members;
+}
+
 QList<User*> Room::directChatUsers() const
 {
     return connection()->directChatUsers(this);
@@ -1523,11 +1619,11 @@ QString Room::prettyPrint(const QString& plainText) const
     return Quotient::prettyPrint(plainText);
 }
 
-QList<User*> Room::usersTyping() const { return d->usersTyping; }
+QList<User*> Room::usersTyping() const { return d->usersFromIdList(d->usersTyping); }
 
-QList<User*> Room::membersLeft() const { return d->membersLeft; }
+QList<User*> Room::membersLeft() const { return d->usersFromIdList(d->membersLeft); }
 
-QList<User*> Room::users() const { return d->membersMap.values(); }
+QList<User*> Room::users() const { return d->usersFromIdList(d->memberNameMap); }
 
 QStringList Room::memberNames() const
 {
@@ -1537,9 +1633,9 @@ QStringList Room::memberNames() const
 QStringList Room::safeMemberNames() const
 {
     QStringList res;
-    res.reserve(d->membersMap.size());
-    for (const auto* u: std::as_const(d->membersMap))
-        res.append(safeMemberName(u->id()));
+    res.reserve(d->memberNameMap.size());
+    for (const auto& userId: std::as_const(d->memberNameMap))
+        res.append(safeMemberName(userId));
 
     return res;
 }
@@ -1547,9 +1643,9 @@ QStringList Room::safeMemberNames() const
 QStringList Room::htmlSafeMemberNames() const
 {
     QStringList res;
-    res.reserve(d->membersMap.size());
-    for (const auto* u: std::as_const(d->membersMap))
-        res.append(htmlSafeMemberName(u->id()));
+    res.reserve(d->memberNameMap.size());
+    for (const auto& userId: std::as_const(d->memberNameMap))
+        res.append(htmlSafeMemberName(userId));
 
     return res;
 }
@@ -1648,7 +1744,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
 
 int Room::joinedCount() const
 {
-    return d->summary.joinedMemberCount.value_or(d->membersMap.size());
+    return d->summary.joinedMemberCount.value_or(0);
 }
 
 int Room::invitedCount() const
@@ -1671,56 +1767,66 @@ Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
     return Change::Summary;
 }
 
-void Room::Private::insertMemberIntoMap(User* u)
+void Room::Private::insertMemberIntoMap(const QString& memberId)
 {
     const auto maybeUserName =
-        currentState.query(u->id(), &RoomMemberEvent::newDisplayName);
+        currentState.query(memberId, &RoomMemberEvent::newDisplayName);
     if (!maybeUserName)
-        qCDebug(MEMBERS) << "insertMemberIntoMap():" << u->id()
+        qCDebug(MEMBERS) << "insertMemberIntoMap():" << memberId
                            << "has no name (even empty)";
     const auto userName = maybeUserName.value_or(QString());
-    const auto namesakes = membersMap.values(userName);
-    qCDebug(MEMBERS) << "insertMemberIntoMap(), user" << u->id()
+    const auto namesakes = memberNameMap.values(userName);
+    qCDebug(MEMBERS) << "insertMemberIntoMap(), user" << memberId
                      << "with name" << userName << '-'
                      << namesakes.size() << "namesake(s) found";
 
     // Callers should make sure they are not adding an existing user once more
-    Q_ASSERT(!namesakes.contains(u));
-    if (namesakes.contains(u)) { // Release version whines but continues
-        qCCritical(MEMBERS) << "Trying to add a user" << u->id() << "to room"
+    Q_ASSERT(!namesakes.contains(memberId));
+    if (namesakes.contains(memberId)) { // Release version whines but continues
+        qCCritical(MEMBERS) << "Trying to add a user" << memberId << "to room"
                             << q->objectName() << "but that's already in it";
         return;
     }
 
     // If there is exactly one namesake of the added user, signal member
     // renaming for that other one because the two should be disambiguated now
-    if (namesakes.size() == 1)
-        emit q->memberAboutToRename(namesakes.front(),
-                                    namesakes.front()->fullName(q));
-    membersMap.insert(userName, u);
-    if (namesakes.size() == 1)
-        emit q->memberRenamed(namesakes.front());
+    if (namesakes.size() == 1) {
+        QT_IGNORE_DEPRECATIONS(
+            auto otherUser = q->user(namesakes.front());
+            emit q->memberAboutToRename(otherUser, otherUser->fullName(q));
+        )
+        auto otherMember = q->member(namesakes.front());
+        emit q->memberNameAboutToUpdate(otherMember, otherMember.fullName());
+    }
+    memberNameMap.insert(userName, memberId);
+    if (namesakes.size() == 1) {
+        // TODO: remove when userMap removed.
+        QT_IGNORE_DEPRECATIONS(emit q->memberRenamed(q->user(namesakes.front()));)
+        emit q->memberNameUpdated(q->member(namesakes.front()));
+    }
 }
 
-void Room::Private::removeMemberFromMap(User* u)
+void Room::Private::removeMemberFromMap(const QString& memberId)
 {
-    const auto userName = currentState.queryOr(u->id(),
+    const auto userName = currentState.queryOr(memberId,
                                                &RoomMemberEvent::newDisplayName,
                                                QString());
 
     qCDebug(MEMBERS) << "removeMemberFromMap(), username" << userName
-                     << "for user" << u->id();
-    User* namesake = nullptr;
-    auto namesakes = membersMap.values(userName);
+                     << "for user" << memberId;
+
+    QString namesakeId{};
+    auto namesakes = memberNameMap.values(userName);
     // If there was one namesake besides the removed user, signal member
     // renaming for it because it doesn't need to be disambiguated any more.
     if (namesakes.size() == 2) {
-        namesake =
-            namesakes.front() == u ? namesakes.back() : namesakes.front();
-        Q_ASSERT_X(namesake != u, __FUNCTION__, "Room members list is broken");
-        emit q->memberAboutToRename(namesake, userName);
+        namesakeId =
+            namesakes.front() == memberId ? namesakes.back() : namesakes.front();
+        Q_ASSERT_X(namesakeId != memberId, __FUNCTION__, "Room members list is broken");
+        QT_IGNORE_DEPRECATIONS(emit q->memberAboutToRename(q->user(namesakeId), userName);)
+        emit q->memberNameAboutToUpdate(q->member(namesakeId), userName);
     }
-    if (membersMap.remove(userName, u) == 0) {
+    if (memberNameMap.remove(userName, memberId) == 0) {
         qCDebug(MEMBERS) << "No entries removed; checking the whole list";
         // Unless at the stage of initial filling, this no removed entries
         // is suspicious; double-check that this user is not found in
@@ -1728,20 +1834,22 @@ void Room::Private::removeMemberFromMap(User* u)
         // (for release builds) if there's one. That search is O(n), which
         // may come rather expensive for larger rooms.
         QElapsedTimer et;
-        auto it = std::find(membersMap.cbegin(), membersMap.cend(), u);
+        auto it = std::find(memberNameMap.cbegin(), memberNameMap.cend(), memberId);
         if (et.nsecsElapsed() > ProfilerMinNsecs / 10)
             qCDebug(MEMBERS) << "...done in" << et;
-        if (it != membersMap.cend()) {
+        if (it != memberNameMap.cend()) {
             // The assert (still) does more harm than good, it seems
 //            Q_ASSERT_X(false, __FUNCTION__,
 //                       "Mismatched name in the room members list");
             qCCritical(MEMBERS) << "Mismatched name in the room members list;"
                                    " avoiding the list corruption";
-            membersMap.remove(it.key(), u);
+            memberNameMap.remove(it.key(), memberId);
         }
     }
-    if (namesake)
-        emit q->memberRenamed(namesake);
+    if (!namesakeId.isEmpty()) {
+        QT_IGNORE_DEPRECATIONS(emit q->memberRenamed(q->user(namesakeId));)
+        emit q->memberNameUpdated(q->member(namesakeId));
+    }
 }
 
 inline auto makeErrorStr(const Event& e, QByteArray msg)
@@ -1834,16 +1942,16 @@ QString Room::disambiguatedMemberName(const QString& mxId) const
     if (username.isEmpty())
         return mxId;
 
-    auto namesakesIt = qAsConst(d->membersMap).find(username);
+    auto namesakesIt = qAsConst(d->memberNameMap).find(username);
 
     // We expect a user to be a member of the room - but technically it is
     // possible to invoke this function even for non-members. In such case
     // we return the full name, just in case.
-    if (namesakesIt == d->membersMap.cend())
+    if (namesakesIt == d->memberNameMap.cend())
         return makeFullUserName(username, mxId);
 
     auto nextUserIt = namesakesIt;
-    if (++nextUserIt == d->membersMap.cend() || nextUserIt.key() != username)
+    if (++nextUserIt == d->memberNameMap.cend() || nextUserIt.key() != username)
         return username; // No disambiguation necessary
 
     return makeFullUserName(username, mxId); // Disambiguate fully
@@ -1869,6 +1977,11 @@ QUrl Room::memberAvatarUrl(const QString &mxId) const
             return *rme->prevContent()->avatarUrl;
     }
     return {};
+}
+
+const Avatar& Room::memberAvatar(const QString& memberId) const
+{
+    return connection()->userAvatar(member(memberId).avatarUrl());
 }
 
 Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
@@ -3074,28 +3187,26 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
 {
     newEvent.switchOnType(
         [this, curEvent](const RoomMemberEvent& rme) {
-            auto* u = q->user(rme.userId());
-            if (!u) { // Some terribly malformed user id?
-                qCCritical(MAIN) << "Could not get a user object for"
-                                 << rme.userId();
-                return; // See also Room::Private::processStateEvent()
-            }
             switch (const auto prevMembership =
                         lift(&RoomMemberEvent::membership,
                              eventCast<const RoomMemberEvent>(curEvent))
                             .value_or(Membership::Leave)) {
             case Membership::Invite:
                 if (rme.membership() != prevMembership) {
-                    usersInvited.removeOne(u);
-                    Q_ASSERT(!usersInvited.contains(u));
+                    membersInvited.removeOne(rme.userId());
+                    Q_ASSERT(!membersInvited.contains(rme.userId()));
                 }
                 break;
-            case Membership::Join:
+            case Membership::Join: {
+                QT_IGNORE_DEPRECATIONS(auto* u = q->user(rme.userId());)
                 if (rme.membership() == Membership::Join) {
                     // rename/avatar change or no-op
                     if (rme.newDisplayName()) {
-                        emit q->memberAboutToRename(u, *rme.newDisplayName());
-                        removeMemberFromMap(u);
+                        emit q->memberNameAboutToUpdate(q->member(rme.userId()), *rme.newDisplayName());
+                        if (u != nullptr) {
+                            QT_IGNORE_DEPRECATIONS(emit q->memberAboutToRename(u, *rme.newDisplayName());)
+                        }
+                        removeMemberFromMap(rme.userId());
                     }
                     if (!rme.newDisplayName() && !rme.newAvatarUrl())
                         qCDebug(MEMBERS).nospace().noquote()
@@ -3106,17 +3217,21 @@ void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
                         qCWarning(MAIN)
                             << "Membership change from Join to Invite:" << rme;
                     // whatever the new membership, it's no more Join
-                    removeMemberFromMap(u);
-                    emit q->userRemoved(u);
+                    removeMemberFromMap(rme.userId());
+                    emit q->memberLeft(q->member(rme.userId()));
+                    if (u != nullptr) {
+                        QT_IGNORE_DEPRECATIONS(emit q->userRemoved(u);)
+                    }
                 }
                 break;
+            }
             case Membership::Ban:
             case Membership::Knock:
             case Membership::Leave:
                 if (rme.membership() == Membership::Invite
                     || rme.membership() == Membership::Join) {
-                    membersLeft.removeOne(u);
-                    Q_ASSERT(!membersLeft.contains(u));
+                    membersLeft.removeOne(rme.userId());
+                    Q_ASSERT(!membersLeft.contains(rme.userId()));
                 }
                 break;
             case Membership::Undefined:
@@ -3203,40 +3318,50 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
         },
         [this, oldEvent](const RoomMemberEvent& evt) {
             // See also Room::P::preprocessStateEvent()
-            if (auto* u = q->user(evt.userId())) {
-                const auto prevMembership =
-                    lift(&RoomMemberEvent::membership,
-                         static_cast<const RoomMemberEvent*>(oldEvent))
-                        .value_or(Membership::Leave);
-                switch (evt.membership()) {
-                case Membership::Join:
-                    if (prevMembership != Membership::Join) {
-                        insertMemberIntoMap(u);
-                        emit q->userAdded(u);
-                    } else {
-                        if (evt.newDisplayName()) {
-                            insertMemberIntoMap(u);
-                            emit q->memberRenamed(u);
-                        }
-                        if (evt.newAvatarUrl())
-                            emit q->memberAvatarChanged(u);
+            const auto prevMembership =
+                lift(&RoomMemberEvent::membership,
+                        static_cast<const RoomMemberEvent*>(oldEvent))
+                    .value_or(Membership::Leave);
+            switch (evt.membership()) {
+            case Membership::Join: {
+                QT_IGNORE_DEPRECATIONS(auto* u = q->user(evt.userId());)
+                if (prevMembership != Membership::Join) {
+                    insertMemberIntoMap(evt.userId());
+                    emit q->memberJoined(q->member(evt.userId()));
+                    if (u != nullptr) {
+                        QT_IGNORE_DEPRECATIONS(emit q->userAdded(u);)
                     }
-                    break;
-                case Membership::Invite:
-                    if (!usersInvited.contains(u))
-                        usersInvited.push_back(u);
-                    if (u == q->localUser() && evt.isDirect())
-                        connection->addToDirectChats(q, q->user(evt.senderId()));
-                    break;
-                case Membership::Knock:
-                case Membership::Ban:
-                case Membership::Leave:
-                    if (!membersLeft.contains(u))
-                        membersLeft.append(u);
-                    break;
-                case Membership::Undefined:
-                    qCWarning(MEMBERS) << "Ignored undefined membership type";
+                } else {
+                    if (evt.newDisplayName()) {
+                        insertMemberIntoMap(evt.userId());
+                        emit q->memberNameUpdated(q->member(evt.userId()));
+                        if (u != nullptr) {
+                            QT_IGNORE_DEPRECATIONS(emit q->memberRenamed(u);)
+                        }
+                    }
+                    if (evt.newAvatarUrl()) {
+                        emit q->memberAvatarUpdated(q->member(evt.userId()));
+                        if (u != nullptr) {
+                            QT_IGNORE_DEPRECATIONS(emit q->memberAvatarChanged(u);)
+                        }
+                    }
                 }
+                break;
+            }
+            case Membership::Invite:
+                if (!membersInvited.contains(evt.userId()))
+                        membersInvited.push_back(evt.userId());
+                if (evt.userId() == connection->userId() && evt.isDirect())
+                    connection->addToDirectChats(q, evt.userId());
+                break;
+            case Membership::Knock:
+            case Membership::Ban:
+            case Membership::Leave:
+                if (!membersLeft.contains(evt.userId()))
+                    membersLeft.append(evt.userId());
+                break;
+            case Membership::Undefined:
+                qCWarning(MEMBERS) << "Ignored undefined membership type";
             }
             return Change::Members;
         },
@@ -3277,7 +3402,7 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
             d->usersTyping.reserve(users.size()); // Assume all are members
             for (const auto& userId : users)
                 if (isMember(userId))
-                    d->usersTyping.append(user(userId));
+                    d->usersTyping.append(userId);
 
             if (d->usersTyping.size() > 3
                 || et.nsecsElapsed() >= ProfilerMinNsecs)
@@ -3362,9 +3487,8 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
     return changes;
 }
 
-template <typename ContT>
 Room::Private::users_shortlist_t
-Room::Private::buildShortlist(const ContT& users) const
+Room::Private::buildShortlist(const QStringList& userIds) const
 {
     // To calculate room display name the spec requires to sort users
     // lexicographically by state_key (user id) and use disambiguated
@@ -3373,23 +3497,13 @@ Room::Private::buildShortlist(const ContT& users) const
     // slightly extending the spec.
     users_shortlist_t shortlist {}; // Prefill with nullptrs
     std::partial_sort_copy(
-        users.begin(), users.end(), shortlist.begin(), shortlist.end(),
-        [this](const User* u1, const User* u2) {
+        userIds.begin(), userIds.end(), shortlist.begin(), shortlist.end(),
+        [this](const QString& u1, const QString& u2) {
             // localUser(), if it's in the list, is sorted
             // below all others
-            return isLocalUser(u2) || (!isLocalUser(u1) && u1->id() < u2->id());
+            return isLocalMember(u2) || (!isLocalMember(u1) && u1 < u2);
         });
     return shortlist;
-}
-
-Room::Private::users_shortlist_t
-Room::Private::buildShortlist(const QStringList& userIds) const
-{
-    QList<User*> users;
-    users.reserve(userIds.size());
-    for (const auto& h : userIds)
-        users.push_back(q->user(h));
-    return buildShortlist(users);
 }
 
 QString Room::Private::calculateDisplayname() const
@@ -3422,35 +3536,35 @@ QString Room::Private::calculateDisplayname() const
     // "heroes" if available.
     const bool localUserIsIn = joinState == JoinState::Join;
     const bool emptyRoom =
-        membersMap.isEmpty()
-        || (membersMap.size() == 1 && isLocalUser(*membersMap.cbegin()));
+        memberNameMap.isEmpty()
+        || (memberNameMap.size() == 1 && isLocalMember(*memberNameMap.cbegin()));
     const bool nonEmptySummary = summary.heroes && !summary.heroes->empty();
     auto shortlist = nonEmptySummary ? buildShortlist(*summary.heroes)
-                                     : !emptyRoom ? buildShortlist(membersMap)
+                                     : !emptyRoom ? buildShortlist(memberNameMap.values())
                                                   : users_shortlist_t {};
 
     // When the heroes list is there, we can rely on it. If the heroes list is
     // missing, the below code gathers invited, or, if there are no invitees,
     // left members.
-    if (!shortlist.front() && localUserIsIn)
-        shortlist = buildShortlist(usersInvited);
+    if (shortlist.front().isEmpty() && localUserIsIn)
+        shortlist = buildShortlist(membersInvited);
 
-    if (!shortlist.front())
+    if (shortlist.front().isEmpty())
         shortlist = buildShortlist(membersLeft);
 
     QStringList names;
-    for (const auto* u : shortlist) {
-        if (u == nullptr || isLocalUser(u))
+    for (const auto& u : shortlist) {
+        if (u.isEmpty() || isLocalMember(u))
             break;
         // Only disambiguate if the room is not empty
-        names.push_back(u->displayname(emptyRoom ? nullptr : q));
+        names.push_back(q->member(u).displayName());
     }
 
     const auto usersCountExceptLocal =
         !emptyRoom
             ? q->joinedCount() - int(joinState == JoinState::Join)
-            : !usersInvited.empty()
-                  ? usersInvited.count()
+            : !membersInvited.empty()
+                  ? membersInvited.count()
                   : membersLeft.size() - int(joinState == JoinState::Leave);
     if (usersCountExceptLocal > int(shortlist.size()))
         names << tr(
@@ -3464,7 +3578,7 @@ QString Room::Private::calculateDisplayname() const
         return namesList;
 
     // (Spec extension) Invited users
-    if (!usersInvited.empty())
+    if (!membersInvited.empty())
         return tr("Empty room (invited: %1)").arg(namesList);
 
     // Users that previously left the room
@@ -3557,14 +3671,34 @@ QJsonObject Room::toJson() const { return d->toJson(); }
 
 MemberSorter Room::memberSorter() const { return MemberSorter(this); }
 
+bool MemberSorter::operator()(const RoomMember& u1, const RoomMember& u2) const
+{
+    return operator()(u1, u2.displayName());
+}
+
 bool MemberSorter::operator()(User* u1, User* u2) const
 {
-    return operator()(u1, room->disambiguatedMemberName(u2->id()));
+    QT_IGNORE_DEPRECATIONS(
+        return operator()(u1, room->disambiguatedMemberName(u2->id()));)
+}
+
+bool MemberSorter::operator()(const RoomMember& u1, QStringView u2name) const
+{
+    auto n1 = u1.displayName();
+    if (n1.startsWith(u'@'))
+        n1.remove(0, 1);
+    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)
+#if QT_VERSION_MAJOR < 6
+        .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
+#endif
+        ;
+
+    return n1.localeAwareCompare(n2) < 0;
 }
 
 bool MemberSorter::operator()(User* u1, QStringView u2name) const
 {
-    auto n1 = room->disambiguatedMemberName(u1->id());
+    QT_IGNORE_DEPRECATIONS(auto n1 = room->disambiguatedMemberName(u1->id());)
     if (n1.startsWith(u'@'))
         n1.remove(0, 1);
     const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)

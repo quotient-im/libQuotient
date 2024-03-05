@@ -4,6 +4,7 @@
 // SPDX-FileCopyrightText: 2019 Alexey Andreyev <aa13q@ya.ru>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
+#include "avatar.h"
 #include "connection.h"
 #include "connectiondata.h"
 #include "settings.h"
@@ -45,7 +46,9 @@ public:
     QVector<QString> roomIdsToForget;
     QVector<QString> pendingStateRoomIds;
     QMap<QString, User*> userMap;
+    UnorderedMap<QString, Avatar> userAvatarMap;
     DirectChatsMap directChats;
+    QMultiHash<QString, QString> directChatMemberIds;
     DirectChatUsersMap directChatUsers;
     // The below two variables track local changes between sync completions.
     // See https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
