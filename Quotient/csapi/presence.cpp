@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "presence.h"
 
@@ -20,8 +18,7 @@ SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
 QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/presence/",
-                                            userId, "/status"));
+                                   makePath("/_matrix/client/v3", "/presence/", userId, "/status"));
 }
 
 GetPresenceJob::GetPresenceJob(const QString& userId)

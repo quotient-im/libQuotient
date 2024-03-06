@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #pragma once
 
@@ -9,72 +7,63 @@
 
 namespace Quotient {
 
-/*! \brief Gets a list of events that the user has been notified about
- *
- * This API is used to paginate through the list of events that the
- * user has been, or would have been notified about.
- */
+//! \brief Gets a list of events that the user has been notified about
+//!
+//! This API is used to paginate through the list of events that the
+//! user has been, or would have been notified about.
 class QUOTIENT_API GetNotificationsJob : public BaseJob {
 public:
     // Inner data structures
 
-    /// This API is used to paginate through the list of events that the
-    /// user has been, or would have been notified about.
     struct Notification {
-        /// The action(s) to perform when the conditions for this rule are met.
-        /// See [Push Rules: API](/client-server-api/#push-rules-api).
+        //! The action(s) to perform when the conditions for this rule are met.
+        //! See [Push Rules: API](/client-server-api/#push-rules-api).
         QVector<QVariant> actions;
-        /// The Event object for the event that triggered the notification.
+        //! The Event object for the event that triggered the notification.
         EventPtr event;
-        /// Indicates whether the user has sent a read receipt indicating
-        /// that they have read this message.
+        //! Indicates whether the user has sent a read receipt indicating
+        //! that they have read this message.
         bool read;
-        /// The ID of the room in which the event was posted.
+        //! The ID of the room in which the event was posted.
         QString roomId;
-        /// The unix timestamp at which the event notification was sent,
-        /// in milliseconds.
+        //! The unix timestamp at which the event notification was sent,
+        //! in milliseconds.
         qint64 ts;
-        /// The profile tag of the rule that matched this event.
+        //! The profile tag of the rule that matched this event.
         QString profileTag{};
     };
 
     // Construction/destruction
 
-    /*! \brief Gets a list of events that the user has been notified about
-     *
-     * \param from
-     *   Pagination token to continue from. This should be the `next_token`
-     *   returned from an earlier call to this endpoint.
-     *
-     * \param limit
-     *   Limit on the number of events to return in this request.
-     *
-     * \param only
-     *   Allows basic filtering of events returned. Supply `highlight`
-     *   to return only events where the notification had the highlight
-     *   tweak set.
-     */
-    explicit GetNotificationsJob(const QString& from = {},
-                                 Omittable<int> limit = none,
+    //! \param from
+    //!   Pagination token to continue from. This should be the `next_token`
+    //!   returned from an earlier call to this endpoint.
+    //!
+    //! \param limit
+    //!   Limit on the number of events to return in this request.
+    //!
+    //! \param only
+    //!   Allows basic filtering of events returned. Supply `highlight`
+    //!   to return only events where the notification had the highlight
+    //!   tweak set.
+    explicit GetNotificationsJob(const QString& from = {}, Omittable<int> limit = none,
                                  const QString& only = {});
 
-    /*! \brief Construct a URL without creating a full-fledged job object
-     *
-     * This function can be used when a URL for GetNotificationsJob
-     * is necessary but the job itself isn't.
-     */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {},
-                               Omittable<int> limit = none,
+    //! \brief Construct a URL without creating a full-fledged job object
+    //!
+    //! This function can be used when a URL for GetNotificationsJob
+    //! is necessary but the job itself isn't.
+    static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {}, Omittable<int> limit = none,
                                const QString& only = {});
 
     // Result properties
 
-    /// The token to supply in the `from` param of the next
-    /// `/notifications` request in order to request more
-    /// events. If this is absent, there are no more results.
+    //! The token to supply in the `from` param of the next
+    //! `/notifications` request in order to request more
+    //! events. If this is absent, there are no more results.
     QString nextToken() const { return loadFromJson<QString>("next_token"_ls); }
 
-    /// The list of events that triggered notifications.
+    //! The list of events that triggered notifications.
     std::vector<Notification> notifications()
     {
         return takeFromJson<std::vector<Notification>>("notifications"_ls);
@@ -83,8 +72,7 @@ public:
 
 template <>
 struct JsonObjectConverter<GetNotificationsJob::Notification> {
-    static void fillFrom(const QJsonObject& jo,
-                         GetNotificationsJob::Notification& result)
+    static void fillFrom(const QJsonObject& jo, GetNotificationsJob::Notification& result)
     {
         fillFromJson(jo.value("actions"_ls), result.actions);
         fillFromJson(jo.value("event"_ls), result.event);

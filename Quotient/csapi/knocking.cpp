@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "knocking.h"
 
@@ -13,11 +11,10 @@ auto queryToKnockRoom(const QStringList& serverName)
     return _q;
 }
 
-KnockRoomJob::KnockRoomJob(const QString& roomIdOrAlias,
-                           const QStringList& serverName, const QString& reason)
+KnockRoomJob::KnockRoomJob(const QString& roomIdOrAlias, const QStringList& serverName,
+                           const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("KnockRoomJob"),
-              makePath("/_matrix/client/v3", "/knock/", roomIdOrAlias),
-              queryToKnockRoom(serverName))
+              makePath("/_matrix/client/v3", "/knock/", roomIdOrAlias), queryToKnockRoom(serverName))
 {
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);

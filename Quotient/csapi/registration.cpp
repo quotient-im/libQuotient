@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "registration.h"
 
@@ -13,89 +11,70 @@ auto queryToRegister(const QString& kind)
     return _q;
 }
 
-RegisterJob::RegisterJob(const QString& kind,
-                         const Omittable<AuthenticationData>& auth,
-                         const QString& username, const QString& password,
-                         const QString& deviceId,
-                         const QString& initialDeviceDisplayName,
-                         Omittable<bool> inhibitLogin,
+RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData>& auth,
+                         const QString& username, const QString& password, const QString& deviceId,
+                         const QString& initialDeviceDisplayName, Omittable<bool> inhibitLogin,
                          Omittable<bool> refreshToken)
     : BaseJob(HttpVerb::Post, QStringLiteral("RegisterJob"),
-              makePath("/_matrix/client/v3", "/register"),
-              queryToRegister(kind), {}, false)
+              makePath("/_matrix/client/v3", "/register"), queryToRegister(kind), {}, false)
 {
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("username"), username);
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("password"), password);
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("device_id"), deviceId);
-    addParam<IfNotEmpty>(_dataJson,
-                         QStringLiteral("initial_device_display_name"),
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("initial_device_display_name"),
                          initialDeviceDisplayName);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("inhibit_login"),
-                         inhibitLogin);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("refresh_token"),
-                         refreshToken);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("inhibit_login"), inhibitLogin);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("refresh_token"), refreshToken);
     setRequestData({ _dataJson });
     addExpectedKey("user_id");
 }
 
-RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(
-    const EmailValidationData& body)
+RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(const EmailValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToRegisterEmailJob"),
-              makePath("/_matrix/client/v3", "/register/email/requestToken"),
-              false)
+              makePath("/_matrix/client/v3", "/register/email/requestToken"), false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
-RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(
-    const MsisdnValidationData& body)
+RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(const MsisdnValidationData& data)
     : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToRegisterMSISDNJob"),
-              makePath("/_matrix/client/v3", "/register/msisdn/requestToken"),
-              false)
+              makePath("/_matrix/client/v3", "/register/msisdn/requestToken"), false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
-ChangePasswordJob::ChangePasswordJob(const QString& newPassword,
-                                     bool logoutDevices,
+ChangePasswordJob::ChangePasswordJob(const QString& newPassword, bool logoutDevices,
                                      const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, QStringLiteral("ChangePasswordJob"),
               makePath("/_matrix/client/v3", "/account/password"))
 {
     QJsonObject _dataJson;
     addParam<>(_dataJson, QStringLiteral("new_password"), newPassword);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("logout_devices"),
-                         logoutDevices);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("logout_devices"), logoutDevices);
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
     setRequestData({ _dataJson });
 }
 
 RequestTokenToResetPasswordEmailJob::RequestTokenToResetPasswordEmailJob(
-    const EmailValidationData& body)
-    : BaseJob(HttpVerb::Post,
-              QStringLiteral("RequestTokenToResetPasswordEmailJob"),
-              makePath("/_matrix/client/v3",
-                       "/account/password/email/requestToken"),
-              false)
+    const EmailValidationData& data)
+    : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToResetPasswordEmailJob"),
+              makePath("/_matrix/client/v3", "/account/password/email/requestToken"), false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
 RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
-    const MsisdnValidationData& body)
-    : BaseJob(HttpVerb::Post,
-              QStringLiteral("RequestTokenToResetPasswordMSISDNJob"),
-              makePath("/_matrix/client/v3",
-                       "/account/password/msisdn/requestToken"),
-              false)
+    const MsisdnValidationData& data)
+    : BaseJob(HttpVerb::Post, QStringLiteral("RequestTokenToResetPasswordMSISDNJob"),
+              makePath("/_matrix/client/v3", "/account/password/msisdn/requestToken"), false)
 {
-    setRequestData({ toJson(body) });
+    setRequestData({ toJson(data) });
 }
 
-DeactivateAccountJob::DeactivateAccountJob(
-    const Omittable<AuthenticationData>& auth, const QString& idServer)
+DeactivateAccountJob::DeactivateAccountJob(const Omittable<AuthenticationData>& auth,
+                                           const QString& idServer)
     : BaseJob(HttpVerb::Post, QStringLiteral("DeactivateAccountJob"),
               makePath("/_matrix/client/v3", "/account/deactivate"))
 {
@@ -113,17 +92,14 @@ auto queryToCheckUsernameAvailability(const QString& username)
     return _q;
 }
 
-QUrl CheckUsernameAvailabilityJob::makeRequestUrl(QUrl baseUrl,
-                                                  const QString& username)
+QUrl CheckUsernameAvailabilityJob::makeRequestUrl(QUrl baseUrl, const QString& username)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3",
-                                            "/register/available"),
+                                   makePath("/_matrix/client/v3", "/register/available"),
                                    queryToCheckUsernameAvailability(username));
 }
 
-CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(
-    const QString& username)
+CheckUsernameAvailabilityJob::CheckUsernameAvailabilityJob(const QString& username)
     : BaseJob(HttpVerb::Get, QStringLiteral("CheckUsernameAvailabilityJob"),
               makePath("/_matrix/client/v3", "/register/available"),
               queryToCheckUsernameAvailability(username), {}, false)

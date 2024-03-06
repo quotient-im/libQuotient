@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #pragma once
 
@@ -10,18 +8,14 @@
 #include <Quotient/converters.h>
 
 namespace Quotient {
-/// Used by clients to determine the homeserver, identity server, and other
-/// optional components they should be interacting with.
+//! Used by clients to determine the homeserver, identity server, and other
+//! optional components they should be interacting with.
 struct DiscoveryInformation {
-    /// Used by clients to determine the homeserver, identity server, and other
-    /// optional components they should be interacting with.
     HomeserverInformation homeserver;
 
-    /// Used by clients to determine the homeserver, identity server, and other
-    /// optional components they should be interacting with.
     Omittable<IdentityServerInformation> identityServer{};
 
-    /// Application-dependent keys using Java package naming convention.
+    //! Application-dependent keys using Java package naming convention.
     QHash<QString, QJsonObject> additionalProperties{};
 };
 
@@ -31,8 +25,7 @@ struct JsonObjectConverter<DiscoveryInformation> {
     {
         fillJson(jo, pod.additionalProperties);
         addParam<>(jo, QStringLiteral("m.homeserver"), pod.homeserver);
-        addParam<IfNotEmpty>(jo, QStringLiteral("m.identity_server"),
-                             pod.identityServer);
+        addParam<IfNotEmpty>(jo, QStringLiteral("m.identity_server"), pod.identityServer);
     }
     static void fillFrom(QJsonObject jo, DiscoveryInformation& pod)
     {

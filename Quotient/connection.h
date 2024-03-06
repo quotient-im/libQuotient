@@ -32,6 +32,7 @@ Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
 namespace Quotient {
 
+class Avatar;
 class Room;
 class User;
 class ConnectionData;
@@ -130,6 +131,7 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
     Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
     Q_PROPERTY(bool encryptionEnabled READ encryptionEnabled WRITE enableEncryption NOTIFY encryptionChanged)
+    Q_PROPERTY(QStringList accountDataEventTypes READ accountDataEventTypes NOTIFY accountDataChanged)
 
 public:
     using UsersToDevicesToContent = QHash<QString, QHash<QString, QJsonObject>>;
@@ -212,6 +214,9 @@ public:
     Q_INVOKABLE void setAccountData(const QString& type,
                                     const QJsonObject& content);
 
+    //! Lists the types of account data that exist for this connection;
+    QStringList accountDataEventTypes() const;
+
     //! \brief Get all Invited and Joined rooms grouped by tag
     //! \return a hashmap from tag name to a vector of room pointers,
     //!         sorted by their order in the tag - details are at
@@ -226,11 +231,30 @@ public:
 
     //! \brief Mark the room as a direct chat with the user
     //!
+    //! This function marks \p room as a direct chat with \p userId.
+    //! Emits the signal synchronously, without waiting to complete
+    //! synchronisation with the server.
+    //! \sa directChatsListChanged
+    void addToDirectChats(const Room* room, const QString& userId);
+
+    //! \brief Mark the room as a direct chat with the user
+    //!
     //! This function marks \p room as a direct chat with \p user.
     //! Emits the signal synchronously, without waiting to complete
     //! synchronisation with the server.
     //! \sa directChatsListChanged
     void addToDirectChats(const Room* room, User* user);
+
+    //! \brief Unmark the room from direct chats
+    //!
+    //! This function removes the room id from direct chats either for
+    //! a specific \p user or for all users if \p userId is empty.
+    //! The room id is used to allow removal of, e.g., ids of forgotten
+    //! rooms; a Room object need not exist. Emits the signal
+    //! immediately, without waiting to complete synchronisation with
+    //! the server.
+    //! \sa directChatsListChanged
+    void removeFromDirectChats(const QString& roomId, const QString& userId = {});
 
     //! \brief Unmark the room from direct chats
     //!
@@ -248,6 +272,12 @@ public:
 
     //! Get the whole map from users to direct chat rooms
     DirectChatsMap directChats() const;
+
+    //! \brief Retrieve the list of member IDs the room is a direct chat with
+    //!
+    //! \return The list of member IDs for which this room is marked as
+    //!         a direct chat; an empty list if the room is not a direct chat
+    QList<QString> directChatMemberIds(const Room* room) const;
 
     //! \brief Retrieve the list of users the room is a direct chat with
     //! \return The list of users for which this room is marked as
@@ -268,13 +298,26 @@ public:
     //! to complete synchronisation with the server.
     //!
     //! \sa ignoredUsersListChanged
-    Q_INVOKABLE void addToIgnoredUsers(const Quotient::User* user);
+    Q_INVOKABLE [[deprecated]] void addToIgnoredUsers(const Quotient::User* user);
+
+    //! \brief Add the user to the ignore list
+    //! The change signal is emitted synchronously, without waiting
+    //! to complete synchronisation with the server.
+    //!
+    //! \sa ignoredUsersListChanged
+    Q_INVOKABLE void addToIgnoredUsers(const QString& userId);
 
     //! \brief Remove the user from the ignore list
     //!
     //! Similar to adding, the change signal is emitted synchronously.
     //! \sa ignoredUsersListChanged
-    Q_INVOKABLE void removeFromIgnoredUsers(const Quotient::User* user);
+    Q_INVOKABLE [[deprecated]] void removeFromIgnoredUsers(const Quotient::User* user);
+
+    //! \brief Remove the user from the ignore list
+    //!
+    //! Similar to adding, the change signal is emitted synchronously.
+    //! \sa ignoredUsersListChanged
+    Q_INVOKABLE void removeFromIgnoredUsers(const QString& userId);
 
     //! Get the full list of users known to this account
     QMap<QString, User*> users() const;
@@ -312,6 +355,13 @@ public:
     const User* user() const;
     User* user();
     QString userId() const;
+
+    //! \brief Get an avatar object for the given user ID and media ID
+    Avatar& userAvatar(const QUrl& avatarUrl);
+
+    //! \brief Get an avatar object for the given user ID and media ID
+    Avatar& userAvatar(const QString& avatarMediaId);
+
     QString deviceId() const;
     QByteArray accessToken() const;
     bool isLoggedIn() const;
@@ -744,6 +794,7 @@ public Q_SLOTS:
     KeyVerificationSession* startKeyVerificationSession(const QString& userId,
                                                         const QString& deviceId);
 
+    void encryptionUpdate(const Room* room, const QList<QString>& invitedIds);
     void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
 #endif
 

@@ -575,6 +575,9 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                 remove_if(directChatUsers, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.value(), it.key());
                 });
+                remove_if(directChatMemberIds, [&remoteRemovals, this](auto it) {
+                    return remoteRemovals.contains(q->user(it.value()), it.key());
+                });
                 // Remove from dcLocalRemovals what the server already has.
                 remove_if(dcLocalRemovals, [&remoteRemovals](auto it) {
                     return remoteRemovals.contains(it.key(), it.value());
@@ -596,6 +599,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                             remoteAdditions.insert(u, it.value());
                             directChats.insert(u, it.value());
                             directChatUsers.insert(it.value(), u);
+                            directChatMemberIds.insert(it.value(), it.key());
                             qCDebug(MAIN) << "Marked room" << it.value()
                                           << "as a direct chat with" << u->id();
                         }
@@ -904,6 +908,7 @@ void Connection::doInDirectChat(User* u,
             d->directChats.remove(it.key(), it.value());
             d->directChatUsers.remove(it.value(),
                                       const_cast<User*>(it.key())); // FIXME
+            d->directChatMemberIds.remove(it.value(), it.key()->id());
         }
         emit directChatsListChanged({}, removals);
     }
@@ -1122,6 +1127,17 @@ User* Connection::user() { return user(userId()); }
 
 QString Connection::userId() const { return d->data->userId(); }
 
+Avatar& Connection::userAvatar(const QString& avatarMediaId)
+{
+    return userAvatar(QUrl(avatarMediaId));
+}
+
+Avatar& Connection::userAvatar(const QUrl& avatarUrl)
+{
+    const auto mediaId = avatarUrl.authority() + avatarUrl.path();
+    return d->userAvatarMap.try_emplace(mediaId, avatarUrl).first->second;
+}
+
 QString Connection::deviceId() const { return d->data->deviceId(); }
 
 QByteArray Connection::accessToken() const
@@ -1256,6 +1272,20 @@ void Connection::Private::removeRoom(const QString& roomId)
         }
 }
 
+void Connection::addToDirectChats(const Room* room, const QString& userId)
+{
+    Q_ASSERT(room != nullptr && !userId.isEmpty());
+    const auto u = user(userId);
+    if (d->directChats.contains(u, room->id()))
+        return;
+    Q_ASSERT(!d->directChatUsers.contains(room->id(), u));
+    d->directChats.insert(u, room->id());
+    d->directChatMemberIds.insert(room->id(), userId);
+    d->directChatUsers.insert(room->id(), u);
+    d->dcLocalAdditions.insert(u, room->id());
+    emit directChatsListChanged({ { u, room->id() } }, {});
+}
+
 void Connection::addToDirectChats(const Room* room, User* user)
 {
     Q_ASSERT(room != nullptr && user != nullptr);
@@ -1263,9 +1293,34 @@ void Connection::addToDirectChats(const Room* room, User* user)
         return;
     Q_ASSERT(!d->directChatUsers.contains(room->id(), user));
     d->directChats.insert(user, room->id());
+    d->directChatMemberIds.insert(room->id(), user->id());
     d->directChatUsers.insert(room->id(), user);
     d->dcLocalAdditions.insert(user, room->id());
     emit directChatsListChanged({ { user, room->id() } }, {});
+}
+
+void Connection::removeFromDirectChats(const QString& roomId, const QString& userId)
+{
+    Q_ASSERT(!roomId.isEmpty());
+    const auto u = user(userId);
+    if ((!userId.isEmpty() && !d->directChats.contains(u, roomId))
+        || d->directChats.key(roomId) == nullptr)
+        return;
+
+    DirectChatsMap removals;
+    if (u != nullptr) {
+        d->directChats.remove(u, roomId);
+        d->directChatUsers.remove(roomId, u);
+        d->directChatMemberIds.remove(roomId, u->id());
+        removals.insert(u, roomId);
+        d->dcLocalRemovals.insert(u, roomId);
+    } else {
+        removals = remove_if(d->directChats,
+                            [&roomId](auto it) { return it.value() == roomId; });
+        d->directChatUsers.remove(roomId);
+        d->dcLocalRemovals += removals;
+    }
+    emit directChatsListChanged({}, removals);
 }
 
 void Connection::removeFromDirectChats(const QString& roomId, User* user)
@@ -1279,6 +1334,7 @@ void Connection::removeFromDirectChats(const QString& roomId, User* user)
     if (user != nullptr) {
         d->directChats.remove(user, roomId);
         d->directChatUsers.remove(roomId, user);
+        d->directChatMemberIds.remove(roomId, user->id());
         removals.insert(user, roomId);
         d->dcLocalRemovals.insert(user, roomId);
     } else {
@@ -1292,7 +1348,13 @@ void Connection::removeFromDirectChats(const QString& roomId, User* user)
 
 bool Connection::isDirectChat(const QString& roomId) const
 {
-    return d->directChatUsers.contains(roomId);
+    return d->directChatMemberIds.contains(roomId);
+}
+
+QList<QString> Connection::directChatMemberIds(const Room* room) const
+{
+    Q_ASSERT(room != nullptr);
+    return d->directChatMemberIds.values(room->id());
 }
 
 QList<User*> Connection::directChatUsers(const Room* room) const
@@ -1330,6 +1392,16 @@ void Connection::addToIgnoredUsers(const User* user)
     }
 }
 
+void Connection::addToIgnoredUsers(const QString& userId)
+{
+    auto ignoreList = ignoredUsers();
+    if (!ignoreList.contains(userId)) {
+        ignoreList.insert(userId);
+        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
+        emit ignoredUsersListChanged({ { userId } }, {});
+    }
+}
+
 void Connection::removeFromIgnoredUsers(const User* user)
 {
     Q_ASSERT(user != nullptr);
@@ -1338,6 +1410,15 @@ void Connection::removeFromIgnoredUsers(const User* user)
     if (ignoreList.remove(user->id()) != 0) {
         d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
         emit ignoredUsersListChanged({}, { { user->id() } });
+    }
+}
+
+void Connection::removeFromIgnoredUsers(const QString& userId)
+{
+    auto ignoreList = ignoredUsers();
+    if (ignoreList.remove(userId) != 0) {
+        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
+        emit ignoredUsersListChanged({}, { { userId } });
     }
 }
 
@@ -1729,10 +1810,22 @@ bool Connection::isQueryingKeys() const
            && d->encryptionData->currentQueryKeysJob != nullptr;
 }
 
+void Connection::encryptionUpdate(const Room* room, const QList<QString>& invitedIds)
+{
+    if (d->encryptionData) {
+        d->encryptionData->encryptionUpdate(room->joinedMemberIds() + invitedIds);
+    }
+}
+
 void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
 {
-    if (d->encryptionData)
-        d->encryptionData->encryptionUpdate(room->users() + invited);
+    if (d->encryptionData) {
+        QList<QString> invitedIds;
+        for (const auto& u : invited) {
+            invitedIds.append(u->id());
+        }
+        d->encryptionData->encryptionUpdate(room->joinedMemberIds() + invitedIds);
+    }
 }
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
@@ -1893,4 +1986,14 @@ Connection* Connection::makeMockConnection(const QString& mxId,
     c->enableEncryption(enableEncryption);
     c->d->completeSetup(mxId, true);
     return c;
+}
+
+QStringList Connection::accountDataEventTypes() const
+{
+    QStringList events;
+    events.reserve(d->accountData.size());
+    for (const auto& [key, value] : std::as_const(d->accountData)) {
+        events += key;
+    }
+    return events;
 }

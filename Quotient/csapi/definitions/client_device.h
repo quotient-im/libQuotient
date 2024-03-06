@@ -1,28 +1,26 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #pragma once
 
 #include <Quotient/converters.h>
 
 namespace Quotient {
-/// A client device
+//! A client device
 struct Device {
-    /// Identifier of this device.
+    //! Identifier of this device.
     QString deviceId;
 
-    /// Display name set by the user for this device. Absent if no name has been
-    /// set.
+    //! Display name set by the user for this device. Absent if no name has been
+    //! set.
     QString displayName{};
 
-    /// The IP address where this device was last seen. (May be a few minutes
-    /// out of date, for efficiency reasons).
+    //! The IP address where this device was last seen. (May be a few minutes out
+    //! of date, for efficiency reasons).
     QString lastSeenIp{};
 
-    /// The timestamp (in milliseconds since the unix epoch) when this devices
-    /// was last seen. (May be a few minutes out of date, for efficiency
-    /// reasons).
+    //! The timestamp (in milliseconds since the unix epoch) when this devices
+    //! was last seen. (May be a few minutes out of date, for efficiency
+    //! reasons).
     Omittable<qint64> lastSeenTs{};
 };
 
@@ -31,8 +29,7 @@ struct JsonObjectConverter<Device> {
     static void dumpTo(QJsonObject& jo, const Device& pod)
     {
         addParam<>(jo, QStringLiteral("device_id"), pod.deviceId);
-        addParam<IfNotEmpty>(jo, QStringLiteral("display_name"),
-                             pod.displayName);
+        addParam<IfNotEmpty>(jo, QStringLiteral("display_name"), pod.displayName);
         addParam<IfNotEmpty>(jo, QStringLiteral("last_seen_ip"), pod.lastSeenIp);
         addParam<IfNotEmpty>(jo, QStringLiteral("last_seen_ts"), pod.lastSeenTs);
     }

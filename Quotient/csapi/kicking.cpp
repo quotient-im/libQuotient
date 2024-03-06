@@ -1,13 +1,10 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "kicking.h"
 
 using namespace Quotient;
 
-KickJob::KickJob(const QString& roomId, const QString& userId,
-                 const QString& reason)
+KickJob::KickJob(const QString& roomId, const QString& userId, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("KickJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/kick"))
 {

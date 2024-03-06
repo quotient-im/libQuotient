@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #pragma once
 
@@ -10,19 +8,19 @@
 namespace Quotient {
 
 struct EmailValidationData : RequestEmailValidation {
-    /// The hostname of the identity server to communicate with. May optionally
-    /// include a port. This parameter is ignored when the homeserver handles
-    /// 3PID verification.
-    ///
-    /// This parameter is deprecated with a plan to be removed in a future
-    /// specification version for `/account/password` and `/register` requests.
+    //! The hostname of the identity server to communicate with. May optionally
+    //! include a port. This parameter is ignored when the homeserver handles
+    //! 3PID verification.
+    //!
+    //! This parameter is deprecated with a plan to be removed in a future specification
+    //! version for `/account/password` and `/register` requests.
     QString idServer{};
 
-    /// An access token previously registered with the identity server. Servers
-    /// can treat this as optional to distinguish between r0.5-compatible
-    /// clients and this specification version.
-    ///
-    /// Required if an `id_server` is supplied.
+    //! An access token previously registered with the identity server. Servers
+    //! can treat this as optional to distinguish between r0.5-compatible clients
+    //! and this specification version.
+    //!
+    //! Required if an `id_server` is supplied.
     QString idAccessToken{};
 };
 
@@ -32,8 +30,7 @@ struct JsonObjectConverter<EmailValidationData> {
     {
         fillJson<RequestEmailValidation>(jo, pod);
         addParam<IfNotEmpty>(jo, QStringLiteral("id_server"), pod.idServer);
-        addParam<IfNotEmpty>(jo, QStringLiteral("id_access_token"),
-                             pod.idAccessToken);
+        addParam<IfNotEmpty>(jo, QStringLiteral("id_access_token"), pod.idAccessToken);
     }
     static void fillFrom(const QJsonObject& jo, EmailValidationData& pod)
     {

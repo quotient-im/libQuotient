@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "device_management.h"
 
@@ -8,8 +6,7 @@ using namespace Quotient;
 
 QUrl GetDevicesJob::makeRequestUrl(QUrl baseUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/devices"));
+    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/devices"));
 }
 
 GetDevicesJob::GetDevicesJob()
@@ -20,8 +17,7 @@ GetDevicesJob::GetDevicesJob()
 QUrl GetDeviceJob::makeRequestUrl(QUrl baseUrl, const QString& deviceId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/devices/",
-                                            deviceId));
+                                   makePath("/_matrix/client/v3", "/devices/", deviceId));
 }
 
 GetDeviceJob::GetDeviceJob(const QString& deviceId)
@@ -29,8 +25,7 @@ GetDeviceJob::GetDeviceJob(const QString& deviceId)
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {}
 
-UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId,
-                                 const QString& displayName)
+UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId, const QString& displayName)
     : BaseJob(HttpVerb::Put, QStringLiteral("UpdateDeviceJob"),
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {
@@ -39,8 +34,7 @@ UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId,
     setRequestData({ _dataJson });
 }
 
-DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId,
-                                 const Omittable<AuthenticationData>& auth)
+DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId, const Omittable<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteDeviceJob"),
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {

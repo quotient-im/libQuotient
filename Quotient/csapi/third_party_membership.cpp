@@ -1,14 +1,12 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "third_party_membership.h"
 
 using namespace Quotient;
 
 InviteBy3PIDJob::InviteBy3PIDJob(const QString& roomId, const QString& idServer,
-                                 const QString& idAccessToken,
-                                 const QString& medium, const QString& address)
+                                 const QString& idAccessToken, const QString& medium,
+                                 const QString& address)
     : BaseJob(HttpVerb::Post, QStringLiteral("InviteBy3PIDJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/invite"))
 {

@@ -1,35 +1,33 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #pragma once
 
 #include <Quotient/converters.h>
 
 namespace Quotient {
-/// Device identity keys
+//! Device identity keys
 struct DeviceKeys {
-    /// The ID of the user the device belongs to. Must match the user ID used
-    /// when logging in.
+    //! The ID of the user the device belongs to. Must match the user ID used
+    //! when logging in.
     QString userId;
 
-    /// The ID of the device these keys belong to. Must match the device ID used
-    /// when logging in.
+    //! The ID of the device these keys belong to. Must match the device ID used
+    //! when logging in.
     QString deviceId;
 
-    /// The encryption algorithms supported by this device.
+    //! The encryption algorithms supported by this device.
     QStringList algorithms;
 
-    /// Public identity keys. The names of the properties should be in the
-    /// format `<algorithm>:<device_id>`. The keys themselves should be
-    /// encoded as specified by the key algorithm.
+    //! Public identity keys. The names of the properties should be in the
+    //! format `<algorithm>:<device_id>`. The keys themselves should be
+    //! encoded as specified by the key algorithm.
     QHash<QString, QString> keys;
 
-    /// Signatures for the device key object. A map from user ID, to a map from
-    /// `<algorithm>:<device_id>` to the signature.
-    ///
-    /// The signature is calculated using the process described at [Signing
-    /// JSON](/appendices/#signing-json).
+    //! Signatures for the device key object. A map from user ID, to a map from
+    //! `<algorithm>:<device_id>` to the signature.
+    //!
+    //! The signature is calculated using the process described at [Signing
+    //! JSON](/appendices/#signing-json).
     QHash<QString, QHash<QString, QString>> signatures;
 };
 

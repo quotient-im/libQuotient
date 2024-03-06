@@ -50,7 +50,7 @@ namespace _impl {
         void onSyncSuccess(SyncData &syncResponse);
         void loadOutdatedUserDevices();
         void consumeToDeviceEvents(Events&& toDeviceEvents);
-        void encryptionUpdate(const QList<User*>& forUsers);
+        void encryptionUpdate(const QList<QString>& forUsers);
 
         bool createOlmSession(const QString& targetUserId,
                               const QString& targetDeviceId,

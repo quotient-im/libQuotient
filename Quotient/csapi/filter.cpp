@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #include "filter.h"
 
@@ -14,16 +12,13 @@ DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
     addExpectedKey("filter_id");
 }
 
-QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
-                                  const QString& filterId)
+QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& filterId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/user/",
-                                            userId, "/filter/", filterId));
+    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/user/",
+                                                                userId, "/filter/", filterId));
 }
 
 GetFilterJob::GetFilterJob(const QString& userId, const QString& filterId)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetFilterJob"),
-              makePath("/_matrix/client/v3", "/user/", userId, "/filter/",
-                       filterId))
+              makePath("/_matrix/client/v3", "/user/", userId, "/filter/", filterId))
 {}

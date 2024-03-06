@@ -1,6 +1,4 @@
-/******************************************************************************
- * THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
- */
+// THIS FILE IS GENERATED - ANY EDITS WILL BE OVERWRITTEN
 
 #pragma once
 
@@ -9,9 +7,9 @@
 #include <Quotient/converters.h>
 
 namespace Quotient {
-/// The backed up keys for a room.
+//! The backed up keys for a room.
 struct RoomKeyBackup {
-    /// A map of session IDs to key data.
+    //! A map of session IDs to key data.
     QHash<QString, KeyBackupData> sessions;
 };
 
