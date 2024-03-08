@@ -408,7 +408,11 @@ public:
     QJsonObject decryptNotification(const QJsonObject &notification);
     QStringList devicesForUser(const QString& userId) const;
     Q_INVOKABLE bool isQueryingKeys() const;
+
+    void requestKeyFromDevices(
+        event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
 #endif // Quotient_E2EE_ENABLED
+
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE QString nextBatchToken() const;
     Q_INVOKABLE int millisToReconnect() const;

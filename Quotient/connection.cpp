@@ -1828,6 +1828,32 @@ void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
     }
 }
 
+void Connection::requestKeyFromDevices(event_type_t name,
+                                       const std::function<void(const QByteArray&)>& then)
+{
+    UsersToDevicesToContent content;
+    const auto& requestId = generateTxnId();
+    const QJsonObject eventContent{ { "action"_ls, "request"_ls },
+                                    { "name"_ls, name },
+                                    { "request_id"_ls, requestId },
+                                    { "requesting_device_id"_ls, deviceId() } };
+    for (const auto& deviceId : devicesForUser(userId())) {
+        content[userId()][deviceId] = eventContent;
+    }
+    sendToDevices("m.secret.request"_ls, content);
+    connectUntil(this, &Connection::secretReceived, this,
+                 [this, requestId, then, name](const QString& receivedRequestId,
+                                               const QString& secret) {
+                     if (requestId != receivedRequestId) {
+                         return false;
+                     }
+                     const auto& key = QByteArray::fromBase64(secret.toLatin1());
+                     database()->storeEncrypted(name, key);
+                     then(key);
+                     return true;
+                 });
+}
+
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
     if (auto r = room(notification[RoomIdKey].toString()))

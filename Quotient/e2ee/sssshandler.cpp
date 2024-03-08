@@ -12,37 +12,39 @@
 
 #include "../database.h"
 #include "../logging_categories_p.h"
-#include "../qt_connection_util.h"
 #include "../room.h"
 
 using namespace Quotient;
 
 DEFINE_SIMPLE_EVENT(SecretStorageDefaultKeyEvent, Event, "m.secret_storage.default_key", QString, key, "key");
-DEFINE_SIMPLE_EVENT(CrossSigningMasterKey, Event, "m.cross_signing.master", QJsonObject, encrypted, "encrypted")
-DEFINE_SIMPLE_EVENT(CrossSigningSelfSigningKey, Event, "m.cross_signing.self_signing", QJsonObject, encrypted, "encrypted")
-DEFINE_SIMPLE_EVENT(CrossSigningUserSigningKey, Event, "m.cross_signing.user_signing", QJsonObject, encrypted, "encrypted")
-DEFINE_SIMPLE_EVENT(MegolmBackupKey, Event, "m.megolm_backup.v1", QJsonObject, encrypted, "encrypted")
 
-template<EventClass EventType>
-QByteArray SSSSHandler::decryptKey(const QByteArray& decryptionKey)
+constexpr inline auto MegolmBackupKey = "m.megolm_backup.v1"_ls;
+constexpr inline auto CrossSigningMasterKey = "m.cross_signing.master"_ls;
+constexpr inline auto CrossSigningSelfSigningKey = "m.cross_signing.self_signing"_ls;
+constexpr inline auto CrossSigningUserSigningKey = "m.cross_signing.user_signing"_ls;
+
+QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QByteArray& decryptionKey)
 {
     Q_ASSERT(m_connection);
-    if (!m_connection->hasAccountData(SecretStorageDefaultKeyEvent::TypeId)) {
+    const auto defaultKeyEvent = m_connection->accountData<SecretStorageDefaultKeyEvent>();
+    if (!defaultKeyEvent) {
         qCWarning(E2EE) << "No default secret storage key";
         emit error(NoKeyError);
         return {};
     }
-    const auto defaultKey = m_connection->accountData<SecretStorageDefaultKeyEvent>()->key();
-    if (!m_connection->hasAccountData(EventType::TypeId)) {
-        qWarning() << "No account data for key" << EventType::TypeId;
+    const auto& encryptedKeyObject = m_connection->accountData<Event>(keyType);
+    if (!encryptedKeyObject) {
+        qWarning() << "No account data for key" << keyType;
         emit error(NoKeyError);
         return {};
     }
-    const auto& encrypted = m_connection->accountData<EventType>()->encrypted().value(defaultKey).toObject();
+    const auto& encrypted = encryptedKeyObject->contentPart<QJsonObject>("encrypted"_ls)
+                                .value(defaultKeyEvent->key())
+                                .toObject();
 
-    auto hkdfResult = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), EventType::TypeId.data());
+    auto hkdfResult = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), keyType.data());
     if (!hkdfResult.has_value()) {
-        qCWarning(E2EE) << "Failed to calculate HKDF for" << EventType::TypeId;
+        qCWarning(E2EE) << "Failed to calculate HKDF for" << keyType;
         emit error(DecryptionError);
     }
     const auto& keys = hkdfResult.value();
@@ -50,11 +52,11 @@ QByteArray SSSSHandler::decryptKey(const QByteArray& decryptionKey)
     auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
     auto result = hmacSha256(keys.mac(), rawCipher);
     if (!result.has_value()) {
-        qCWarning(E2EE) << "Failed to calculate HMAC for" << EventType::TypeId;
+        qCWarning(E2EE) << "Failed to calculate HMAC for" << keyType;
         emit error(DecryptionError);
     }
     if (QString::fromLatin1(result.value().toBase64()) != encrypted["mac"_ls].toString()) {
-        qCWarning(E2EE) << "MAC mismatch for" << EventType::TypeId;
+        qCWarning(E2EE) << "MAC mismatch for" << keyType;
         emit error(DecryptionError);
         return {};
     }
@@ -63,11 +65,11 @@ QByteArray SSSSHandler::decryptKey(const QByteArray& decryptionKey)
                          asCBytes<AesBlockSize>(QByteArray::fromBase64(
                              encrypted["iv"_ls].toString().toLatin1())));
     if (!decryptResult.has_value()) {
-        qCWarning(E2EE) << "Failed to decrypt for" << EventType::TypeId;
+        qCWarning(E2EE) << "Failed to decrypt for" << keyType;
         emit error(DecryptionError);
     }
     auto key = QByteArray::fromBase64(decryptResult.value());
-    m_connection->database()->storeEncrypted(EventType::TypeId, key);
+    m_connection->database()->storeEncrypted(keyType, key);
     return key;
 }
 
@@ -77,39 +79,14 @@ void SSSSHandler::unlockSSSSFromPassword(const QString& password)
     calculateDefaultKey(password.toLatin1(), true);
 }
 
-void SSSSHandler::requestKeyFromDevices(const QString& name, const std::function<void(const QByteArray&)>& then)
-{
-    Connection::UsersToDevicesToContent content;
-    const auto& requestId = m_connection->generateTxnId();
-    const QJsonObject eventContent{ { "action"_ls, "request"_ls },
-                                    { "name"_ls, name },
-                                    { "request_id"_ls, requestId },
-                                    { "requesting_device_id"_ls,
-                                      m_connection->deviceId() } };
-    for (const auto& deviceId : m_connection->devicesForUser(m_connection->userId())) {
-        content[m_connection->userId()][deviceId] = eventContent;
-    }
-    m_connection->sendToDevices("m.secret.request"_ls, content);
-    connectUntil(m_connection.data(), &Connection::secretReceived, this, [this, requestId, then, name](const QString& receivedRequestId, const QString& secret) {
-        if (requestId != receivedRequestId) {
-            return false;
-        }
-        const auto& key = QByteArray::fromBase64(secret.toLatin1());
-        m_connection->database()->storeEncrypted(name, key);
-        then(key);
-        return true;
-    });
-}
-
 void SSSSHandler::unlockSSSSFromCrossSigning()
 {
     Q_ASSERT(m_connection);
-    requestKeyFromDevices("m.megolm_backup.v1"_ls, [this](const QByteArray &key){
+    m_connection->requestKeyFromDevices(MegolmBackupKey, [this](const QByteArray &key){
         loadMegolmBackup(key);
     });
-    requestKeyFromDevices("m.cross_signing.user_signing"_ls, [](const QByteArray&){});
-    requestKeyFromDevices("m.cross_signing.self_signing"_ls, [](const QByteArray&){});
-    requestKeyFromDevices("m.cross_signing.master"_ls, [](const QByteArray&){});
+    for (auto k : {CrossSigningUserSigningKey, CrossSigningSelfSigningKey, CrossSigningMasterKey})
+        m_connection->requestKeyFromDevices(k);
 }
 
 Connection* SSSSHandler::connection() const
@@ -238,12 +215,12 @@ void SSSSHandler::calculateDefaultKey(const QByteArray& secret,
 
     emit keyBackupUnlocked();
 
-    auto megolmDecryptionKey = decryptKey<MegolmBackupKey>(key);
+    auto megolmDecryptionKey = decryptKey(MegolmBackupKey, key);
 
     // These keys are only decrypted since this will automatically store them locally
-    decryptKey<CrossSigningSelfSigningKey>(key);
-    decryptKey<CrossSigningUserSigningKey>(key);
-    decryptKey<CrossSigningMasterKey>(key);
+    decryptKey(CrossSigningSelfSigningKey, key);
+    decryptKey(CrossSigningUserSigningKey, key);
+    decryptKey(CrossSigningMasterKey, key);
     if (megolmDecryptionKey.isEmpty()) {
         qCWarning(E2EE) << "No megolm decryption key";
         emit error(NoKeyError);

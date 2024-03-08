@@ -7,8 +7,8 @@
 #include <QtCore/QPointer>
 
 #include "../connection.h"
-#include "../event.h"
 
+namespace Quotient {
 class QUOTIENT_API SSSSHandler : public QObject
 {
     Q_OBJECT
@@ -23,7 +23,7 @@ public:
         InvalidSignatureError,
         UnsupportedAlgorithmError,
     };
-    Q_ENUM(Error);
+    Q_ENUM(Error)
 
     using QObject::QObject;
 
@@ -36,8 +36,8 @@ public:
     //! \brief Unlock the secret backup from the given security key
     Q_INVOKABLE void unlockSSSSFromSecurityKey(const QString& key);
 
-    Quotient::Connection* connection() const;
-    void setConnection(Quotient::Connection* connection);
+    Connection* connection() const;
+    void setConnection(Connection* connection);
 
 Q_SIGNALS:
     void keyBackupUnlocked();
@@ -45,12 +45,12 @@ Q_SIGNALS:
     void connectionChanged();
 
 private:
-    QPointer<Quotient::Connection> m_connection;
+    QPointer<Connection> m_connection;
 
     //! \brief Decrypt the key with this name from the account data
-    template<Quotient::EventClass EventType> QByteArray decryptKey(const QByteArray& decryptionKey);
+    QByteArray decryptKey(event_type_t keyType, const QByteArray& decryptionKey);
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
     void calculateDefaultKey(const QByteArray& secret, bool requirePassphrase);
-    void requestKeyFromDevices(const QString& name, const std::function<void(const QByteArray&)>& then);
 };
+} // namespace Quotient
