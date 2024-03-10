@@ -278,6 +278,7 @@ public:
     QUrl avatarUrl() const;
     const Avatar& avatarObject() const;
     Q_INVOKABLE JoinState joinState() const;
+    [[deprecated("Use membersTyping() instead.")]]
     Q_INVOKABLE QList<Quotient::User*> usersTyping() const;
     QList<User*> membersLeft() const;
 
@@ -333,6 +334,9 @@ public:
 
     //! Get a list of all members known to the room.
     QList<RoomMember> members() const;
+
+    //! Get a list of room members who are currently sending a typing indicator.
+    Q_INVOKABLE QList<RoomMember> membersTyping() const;
 
     //! Get a list of room member Matrix IDs who have joined the room.
     QStringList joinedMemberIds() const;
