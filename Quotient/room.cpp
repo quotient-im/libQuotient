@@ -719,7 +719,7 @@ QList<RoomMember> Room::members() const {
     return members;
 }
 
-Q_INVOKABLE QList<RoomMember> Room::membersTyping() const
+QList<RoomMember> Room::membersTyping() const
 {
     QList<RoomMember> members;
     members.reserve(d->membersTyping.count());
