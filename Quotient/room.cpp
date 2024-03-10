@@ -128,7 +128,7 @@ public:
     QMultiHash<QString, QString> memberNameMap;
     QStringList membersInvited;
     QStringList membersLeft;
-    QStringList usersTyping;
+    QStringList membersTyping;
 
     QHash<QString, QSet<QString>> eventIdReadUsers;
     bool displayed = false;
@@ -715,6 +715,16 @@ QList<RoomMember> Room::members() const {
         if (const auto memberEvent = eventCast<const RoomMemberEvent>(event)) {
             members.append(RoomMember(this, memberEvent));
         }
+    }
+    return members;
+}
+
+QList<RoomMember> Room::membersTyping() const
+{
+    QList<RoomMember> members;
+    members.reserve(d->membersTyping.count());
+    for (const auto &memberId : d->membersTyping) {
+        members.append(member(memberId));
     }
     return members;
 }
@@ -1619,7 +1629,7 @@ QString Room::prettyPrint(const QString& plainText) const
     return Quotient::prettyPrint(plainText);
 }
 
-QList<User*> Room::usersTyping() const { return d->usersFromIdList(d->usersTyping); }
+QList<User*> Room::usersTyping() const { return d->usersFromIdList(d->membersTyping); }
 
 QList<User*> Room::membersLeft() const { return d->usersFromIdList(d->membersLeft); }
 
@@ -3398,13 +3408,13 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
     switchOnType(*event,
         [this, &et](const TypingEvent& evt) {
             const auto& users = evt.users();
-            d->usersTyping.clear();
-            d->usersTyping.reserve(users.size()); // Assume all are members
+            d->membersTyping.clear();
+            d->membersTyping.reserve(users.size()); // Assume all are members
             for (const auto& userId : users)
                 if (isMember(userId))
-                    d->usersTyping.append(userId);
+                    d->membersTyping.append(userId);
 
-            if (d->usersTyping.size() > 3
+            if (d->membersTyping.size() > 3
                 || et.nsecsElapsed() >= ProfilerMinNsecs)
                 qDebug(PROFILER)
                     << "Processing typing events from" << users.size()
