@@ -13,7 +13,7 @@
 #include <QtGui/QImageReader>
 
 #if QT_VERSION_MAJOR < 6
-#    include <QtMultimedia/QMediaResource>
+    #include <QtMultimedia/QMediaResource>
 #endif
 
 using namespace Quotient;

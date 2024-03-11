@@ -11,10 +11,10 @@
 #include <QtCore/QReadWriteLock>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include <Quotient/e2ee/e2ee_common.h>
+    #include "../e2ee/cryptoutils.h"
+    #include "../e2ee/e2ee_common.h"
 
-#    include <QtCore/QCryptographicHash>
-#    include "../e2ee/cryptoutils.h"
+    #include <QtCore/QCryptographicHash>
 #endif
 
 using namespace Quotient;

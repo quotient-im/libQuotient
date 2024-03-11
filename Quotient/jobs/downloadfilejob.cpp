@@ -10,9 +10,9 @@
 #include <QtNetwork/QNetworkReply>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include <Quotient/events/filesourceinfo.h>
+    #include <Quotient/events/filesourceinfo.h>
 
-#    include <QtCore/QCryptographicHash>
+    #include <QtCore/QCryptographicHash>
 #endif
 
 using namespace Quotient;

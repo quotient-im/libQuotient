@@ -35,16 +35,16 @@
 #include "jobs/syncjob.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "connectionencryptiondata_p.h"
-#    include "database.h"
+    #include "connectionencryptiondata_p.h"
+    #include "database.h"
 
-#    include "e2ee/qolminboundsession.h"
+    #include "e2ee/qolminboundsession.h"
 #endif // Quotient_E2EE_ENABLED
 
 #if QT_VERSION_MAJOR >= 6
-#    include <qt6keychain/keychain.h>
+    #include <qt6keychain/keychain.h>
 #else
-#    include <qt5keychain/keychain.h>
+    #include <qt5keychain/keychain.h>
 #endif
 
 #include <QtCore/QCoreApplication>
