@@ -12,7 +12,13 @@
 #  ifndef QUOTIENT_API
 #    ifdef BUILDING_SHARED_QUOTIENT
         /* We are building this library */
-#      define QUOTIENT_API Q_DECL_EXPORT
+#      ifdef Q_OS_WIN
+#        define QUOTIENT_API Q_DECL_EXPORT
+#      else
+         // On non-Windows, Q_DECL_EXPORT can apply protected visibility and the current code for
+         // event types is incompatible with it (see #692).
+#        define QUOTIENT_API __attribute__((visibility("default")))
+#      endif
 #    else
         /* We are using this library */
 #      define QUOTIENT_API Q_DECL_IMPORT
