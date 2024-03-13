@@ -48,9 +48,10 @@ private:
     QPointer<Connection> m_connection;
 
     //! \brief Decrypt the key with this name from the account data
-    QByteArray decryptKey(event_type_t keyType, const QByteArray& decryptionKey);
+    QByteArray decryptKey(event_type_t keyType, const QString& defaultKey,
+                          const QByteArray& decryptionKey);
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
-    void calculateDefaultKey(const QByteArray& secret, bool requirePassphrase);
+    void unlockAndLoad(QByteArray&& secret, bool requirePassphrase);
 };
 } // namespace Quotient
