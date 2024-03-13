@@ -70,7 +70,7 @@ QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultK
 void SSSSHandler::unlockSSSSFromPassword(const QString& password)
 {
     Q_ASSERT(m_connection);
-    unlockAndLoad(password.toLatin1(), true);
+    unlockAndLoad(password.toUtf8(), true);
 }
 
 void SSSSHandler::unlockSSSSFromCrossSigning()
