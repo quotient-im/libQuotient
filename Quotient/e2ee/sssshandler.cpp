@@ -279,5 +279,5 @@ void SSSSHandler::unlockSSSSFromSecurityKey(const QString& encodedKey)
         emit error(unlockData.error());
         return;
     }
-    unlockAndLoad(*unlockData, key_view_t(decoded.begin() + 2, decoded.end() - 1));
+    unlockAndLoad(*unlockData, byte_view_t<>(decoded).subspan<2, DefaultPbkdf2KeyLength>());
 }
