@@ -58,7 +58,7 @@ using SslExpected = Expected<T, SslErrorCode>;
 
 inline QByteArray zeroedByteArray(QByteArray::size_type n = 32) { return { n, '\0' }; }
 
-template <size_t N, typename T = uint8_t> consteval inline std::array<T, N> zeroes() { return {}; }
+template <size_t N, typename T = uint8_t> consteval std::array<T, N> zeroes() { return {}; }
 
 //! Generate a key out of the given passphrase
 QUOTIENT_API SslExpected<key_material_t> pbkdf2HmacSha512(const QByteArray& passphrase,

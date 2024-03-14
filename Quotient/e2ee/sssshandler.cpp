@@ -85,7 +85,7 @@ struct SSSSHandler::UnlockData {
             qCWarning(E2EE) << "SSSS: No default secret storage key";
             return NoKeyError;
         }
-        auto&& defaultKey = defaultKeyEvent->contentPart<QString>("key"_ls);
+        auto defaultKey = defaultKeyEvent->contentPart<QString>("key"_ls);
         const auto keyName = "m.secret_storage.key."_ls + defaultKey;
         auto* const keyDescription = c->accountData<AesHmacSha2KeyDescription>(keyName);
         if (!keyDescription) {
@@ -98,7 +98,7 @@ struct SSSSHandler::UnlockData {
                             << " - aborting.";
             return UnsupportedAlgorithmError;
         }
-        auto&& iv = QByteArray::fromBase64Encoding(keyDescription->iv().toLatin1());
+        auto iv = QByteArray::fromBase64Encoding(keyDescription->iv().toLatin1());
         if (!iv || iv.decoded.isEmpty() || iv.decoded.size() != AesBlockSize) {
             qCWarning(E2EE) << "SSSS: Malformed or empty IV";
             return DecryptionError;
