@@ -172,39 +172,48 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
     auto job = m_connection->callApi<GetRoomKeysVersionCurrentJob>();
     connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey] {
         m_connection->database()->storeEncrypted("etag"_ls, job->etag().toLatin1());
-        auto authData = job->jsonData()["auth_data"_ls].toObject();
-        for (const auto& key : authData["signatures"_ls].toObject()[m_connection->userId()].toObject().keys()) {
-            const auto& edKey = m_connection->database()->edKeyForKeyId(m_connection->userId(), key);
+        auto authData = job->authData();
+        const auto& userSignaturesObject =
+            authData["signatures"_ls].toObject().value(m_connection->userId()).toObject();
+        for (auto it = userSignaturesObject.constBegin(); it != userSignaturesObject.constEnd();
+             ++it) {
+            const auto& edKey =
+                m_connection->database()->edKeyForKeyId(m_connection->userId(), it.key());
             if (edKey.isEmpty()) {
                 continue;
             }
-            const auto& signature = authData["signatures"_ls].toObject()[m_connection->userId()].toObject()[key].toString();
+            const auto& signature = it.value().toString();
             if (!ed25519VerifySignature(edKey, authData, signature)) {
                 qCWarning(E2EE) << "Signature mismatch for" << edKey;
                 emit error(InvalidSignatureError);
                 return;
             }
         }
-        qCDebug(E2EE) << "Loading key backup" << job->jsonData()["version"_ls].toString();
-        auto keysJob = m_connection->callApi<GetRoomKeysJob>(job->jsonData()["version"_ls].toString());
+        qCDebug(E2EE) << "Loading key backup" << job->version();
+        auto keysJob = m_connection->callApi<GetRoomKeysJob>(job->version());
         connect(keysJob, &BaseJob::finished, this, [this, keysJob, megolmDecryptionKey](){
-            const auto &rooms = keysJob->jsonData()["rooms"_ls].toObject();
+            const auto &rooms = keysJob->rooms();
             qCDebug(E2EE) << rooms.size() << "rooms in the backup";
-            for (const auto& roomId : rooms.keys()) {
-                if (!m_connection->room(roomId)) {
+            for (const auto& [roomId, roomKeyBackup] : asKeyValueRange(rooms)) {
+                if (!m_connection->room(roomId))
                     continue;
-                }
-                const auto &sessions = rooms[roomId]["sessions"_ls].toObject();
-                for (const auto& sessionId : sessions.keys()) {
-                    const auto &session = sessions[sessionId].toObject();
-                    const auto &sessionData = session["session_data"_ls].toObject();
-                    auto result = curve25519AesSha2Decrypt(sessionData["ciphertext"_ls].toString().toLatin1(), megolmDecryptionKey, sessionData["ephemeral"_ls].toString().toLatin1(), sessionData["mac"_ls].toString().toLatin1());
+
+                for (const auto& [sessionId, backupData] : asKeyValueRange(roomKeyBackup.sessions)) {
+                    const auto& sessionData = backupData.sessionData;
+                    const auto result =
+                        curve25519AesSha2Decrypt(sessionData["ciphertext"_ls].toString().toLatin1(),
+                                                 megolmDecryptionKey,
+                                                 sessionData["ephemeral"_ls].toString().toLatin1(),
+                                                 sessionData["mac"_ls].toString().toLatin1());
                     if (!result.has_value()) {
                         qCWarning(E2EE) << "Failed to decrypt session" << sessionId;
                         emit error(DecryptionError);
+                        continue;
                     }
-                    auto data = QJsonDocument::fromJson(result.value()).object();
-                    m_connection->room(roomId)->addMegolmSessionFromBackup(sessionId.toLatin1(), data["session_key"_ls].toString().toLatin1(), session["first_message_index"_ls].toInt());
+                    const auto data = QJsonDocument::fromJson(result.value()).object();
+                    m_connection->room(roomId)->addMegolmSessionFromBackup(
+                        sessionId.toLatin1(), data["session_key"_ls].toString().toLatin1(),
+                        static_cast<uint32_t>(backupData.firstMessageIndex));
                 }
             }
         });
