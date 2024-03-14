@@ -40,6 +40,9 @@ struct QUOTIENT_API Curve25519Encrypted {
 // NOLINTNEXTLINE(google-runtime-int): the type is copied from OpenSSL
 using SslErrorCode = unsigned long; // decltype(ERR_get_error())
 
+using key_material_t = std::array<byte_t, DefaultPbkdf2KeyLength>;
+using key_view_t = byte_view_t<DefaultPbkdf2KeyLength>;
+
 enum SslErrorCodes : SslErrorCode {
     SslErrorUserOffset = 128, // ERR_LIB_USER; never use this bare
     WrongDerivedKeyLength = SslErrorUserOffset + 1,
@@ -50,22 +53,22 @@ enum SslErrorCodes : SslErrorCode {
 template <typename T>
 using SslExpected = Expected<T, SslErrorCode>;
 
-inline QByteArray zeroedByteArray(QByteArray::size_type n = 32)
-{
-    return { n, '\0' };
-}
+// TODO, 0.9: merge zeroedByteArray() into zeroes() and replace const QByteArray& with
+// QByteArrayView where OpenSSL/Olm expect an array of signed chars
 
-//! Generate a key out of the given password
-QUOTIENT_API SslExpected<QByteArray> pbkdf2HmacSha512(
-    const QByteArray& password, const QByteArray& salt, int iterations,
-    int keyLength = DefaultPbkdf2KeyLength);
+inline QByteArray zeroedByteArray(QByteArray::size_type n = 32) { return { n, '\0' }; }
+
+template <size_t N, typename T = uint8_t> consteval inline std::array<T, N> zeroes() { return {}; }
+
+//! Generate a key out of the given passphrase
+QUOTIENT_API SslExpected<key_material_t> pbkdf2HmacSha512(const QByteArray& passphrase,
+                                                          const QByteArray& salt, int iterations);
 
 //! \brief Derive a key from the input data using HKDF-SHA256
 //!
-//! All input parameters have a length of 32 bytes
-QUOTIENT_API SslExpected<HkdfKeys> hkdfSha256(const QByteArray& key,
-                                              const QByteArray& salt,
-                                              const QByteArray& info);
+//! The info parameter should be either 0 or 32 bytes long
+QUOTIENT_API SslExpected<HkdfKeys> hkdfSha256(key_view_t key, byte_view_t<32> salt,
+                                              byte_view_t<> info);
 
 //! Calculate a MAC from the given key and data
 QUOTIENT_API SslExpected<QByteArray> hmacSha256(
@@ -97,6 +100,6 @@ QUOTIENT_API SslExpected<QByteArray> aesCtr256Decrypt(
     const QByteArray& ciphertext, byte_view_t<Aes256KeySize> key,
     byte_view_t<AesBlockSize> iv);
 
-QUOTIENT_API QByteArray base58Decode(const QByteArray& encoded);
+QUOTIENT_API std::vector<byte_t> base58Decode(const QByteArray& encoded);
 
 } // namespace Quotient

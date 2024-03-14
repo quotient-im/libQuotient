@@ -114,6 +114,8 @@ private:
     QString accountId() const;
 };
 
+// TODO, 0.9: Move the two below to qolmutility.h
+
 QUOTIENT_API bool verifyIdentitySignature(const DeviceKeys& deviceKeys,
                                           const QString& deviceId,
                                           const QString& userId);

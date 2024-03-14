@@ -54,7 +54,7 @@ void TestCryptoUtils::encryptDecryptFile()
 
 void TestCryptoUtils::hkdfSha256ExpandKeys()
 {
-    auto result = hkdfSha256(zeroedByteArray(), zeroedByteArray(), zeroedByteArray());
+    auto result = hkdfSha256(zeroes<32>(), zeroes<32>(), zeroes<32>());
     QVERIFY(result.has_value());
     auto&& keys = result.value();
     QCOMPARE(viewAsByteArray(keys.aes()), QByteArray::fromBase64("WQvd7OvHEaSFkO5nPBLDHK9F0UW5r11S6MS83AjhHx8="));
@@ -65,7 +65,7 @@ void TestCryptoUtils::pbkdfGenerateKey()
 {
     auto key = pbkdf2HmacSha512(QByteArrayLiteral("PASSWORD"), zeroedByteArray(32), 50000);
     QVERIFY(key.has_value());
-    QCOMPARE(key.value(), QByteArray::fromBase64("ejq90XW/J2J+cgi1ASgBj94M/YrEtWRKAPnsG+rdG4w="));
+    QCOMPARE(viewAsByteArray(key.value()), QByteArray::fromBase64("ejq90XW/J2J+cgi1ASgBj94M/YrEtWRKAPnsG+rdG4w="));
 }
 
 void TestCryptoUtils::hmac()
@@ -95,7 +95,7 @@ void TestCryptoUtils::curve25519AesEncryptDecrypt()
 
 void TestCryptoUtils::decodeBase58()
 {
-    QCOMPARE(base58Decode(QByteArrayLiteral("ABCDEFabcdef")).toBase64(), QByteArrayLiteral("DG3GmkxFR1TQ"));
+    QCOMPARE(viewAsByteArray(base58Decode(QByteArrayLiteral("ABCDEFabcdef"))).toBase64(), QByteArrayLiteral("DG3GmkxFR1TQ"));
 }
 
 void TestCryptoUtils::testEncrypted()

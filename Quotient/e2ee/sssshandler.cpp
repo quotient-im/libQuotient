@@ -3,7 +3,6 @@
 
 #include "sssshandler.h"
 
-#include "cryptoutils.h"
 #include "qolmaccount.h"
 
 #include "../csapi/key_backup.h"
@@ -24,7 +23,7 @@ constexpr inline auto CrossSigningUserSigningKey = "m.cross_signing.user_signing
 }
 
 QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultKey,
-                                   const QByteArray& decryptionKey)
+                                   key_view_t decryptionKey)
 {
     Q_ASSERT(m_connection);
     const auto& encryptedKeyObject = m_connection->accountData(keyType);
@@ -36,7 +35,7 @@ QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultK
     const auto& encrypted =
         encryptedKeyObject->contentPart<QJsonObject>("encrypted"_ls).value(defaultKey).toObject();
 
-    auto hkdfResult = hkdfSha256(decryptionKey, QByteArray(32, u'\0'), keyType.data());
+    auto hkdfResult = hkdfSha256(decryptionKey, zeroes<32>(), asCBytes<32>(keyType));
     if (!hkdfResult.has_value()) {
         qCWarning(E2EE) << "Failed to calculate HKDF for" << keyType;
         emit error(DecryptionError);
@@ -67,10 +66,81 @@ QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultK
     return key;
 }
 
-void SSSSHandler::unlockSSSSFromPassword(const QString& password)
+class AesHmacSha2KeyDescription : public Event {
+public:
+    // No QUO_EVENT because the account data "type id" is variable
+    QUO_CONTENT_GETTER(QString, algorithm)
+    QUO_CONTENT_GETTER(QJsonObject, passphrase)
+    QUO_CONTENT_GETTER(QString, iv)
+    QUO_CONTENT_GETTER(QString, mac)
+};
+
+struct SSSSHandler::UnlockData {
+    static Expected<UnlockData, Error> prepare(const Connection* c)
+    {
+        Q_ASSERT(c);
+
+        const auto& defaultKeyEvent = c->accountData("m.secret_storage.default_key"_ls);
+        if (!defaultKeyEvent) {
+            qCWarning(E2EE) << "SSSS: No default secret storage key";
+            return NoKeyError;
+        }
+        auto&& defaultKey = defaultKeyEvent->contentPart<QString>("key"_ls);
+        const auto keyName = "m.secret_storage.key."_ls + defaultKey;
+        auto* const keyDescription = c->accountData<AesHmacSha2KeyDescription>(keyName);
+        if (!keyDescription) {
+            qCWarning(E2EE) << "SSSS: No account data for key" << keyName;
+            return NoKeyError;
+        }
+
+        if (keyDescription->algorithm() != "m.secret_storage.v1.aes-hmac-sha2"_ls) {
+            qCWarning(E2EE) << "Unsupported SSSS key algorithm" << keyDescription->algorithm()
+                            << " - aborting.";
+            return UnsupportedAlgorithmError;
+        }
+        auto&& iv = QByteArray::fromBase64Encoding(keyDescription->iv().toLatin1());
+        if (!iv || iv.decoded.isEmpty() || iv.decoded.size() != AesBlockSize) {
+            qCWarning(E2EE) << "SSSS: Malformed or empty IV";
+            return DecryptionError;
+        }
+        auto&& mac = QByteArray::fromBase64Encoding(keyDescription->mac().toLatin1());
+        if (!mac || mac.decoded.isEmpty()) {
+            qCWarning(E2EE) << "SSSS: Failed to decode expected MAC or it is empty";
+            return DecryptionError;
+        }
+        return UnlockData{ std::move(defaultKey), keyDescription->passphrase(), std::move(*iv),
+                           std::move(*mac) };
+    }
+
+    QString defaultKey;
+    QJsonObject passphraseInfo;
+    QByteArray decodedIV;
+    QByteArray decodedMac;
+};
+
+void SSSSHandler::unlockSSSSWithPassphrase(const QString& passphrase)
 {
-    Q_ASSERT(m_connection);
-    unlockAndLoad(password.toUtf8(), true);
+    const auto unlockData = UnlockData::prepare(m_connection);
+    if (!unlockData) {
+        emit error(unlockData.error());
+        return;
+    }
+    if (unlockData->passphraseInfo["algorithm"_ls].toString() != "m.pbkdf2"_ls) {
+        qCWarning(E2EE) << "Unsupported SSSS passphrase algorithm"
+                        << unlockData->passphraseInfo["algorithm"_ls].toString() << " - aborting.";
+        emit error(UnsupportedAlgorithmError);
+        return;
+    }
+    if (const auto& result =
+            pbkdf2HmacSha512(viewAsByteArray(passphrase.toUtf8()),
+                             unlockData->passphraseInfo["salt"_ls].toString().toLatin1(),
+                             unlockData->passphraseInfo["iterations"_ls].toInt())) {
+        unlockAndLoad(*unlockData, *result);
+        return;
+    }
+    qCWarning(E2EE) << "Failed to calculate PBKDF";
+    emit error(DecryptionError);
+    return;
 }
 
 void SSSSHandler::unlockSSSSFromCrossSigning()
@@ -141,113 +211,73 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
     });
 }
 
-void SSSSHandler::unlockAndLoad(QByteArray&& secret, bool requirePassphrase)
+void SSSSHandler::unlockAndLoad(const UnlockData& unlockData, key_view_t decryptingKey)
 {
-    const auto& defaultKeyEvent = m_connection->accountData("m.secret_storage.default_key"_ls);
-    if (!defaultKeyEvent) {
-        qCWarning(E2EE) << "No default secret storage key";
-        emit error(NoKeyError);
-        return;
-    }
-    const auto defaultKey = defaultKeyEvent->contentPart<QString>("key"_ls);
-    if (!m_connection->hasAccountData("m.secret_storage.key."_ls + defaultKey)) {
-        qCWarning(E2EE) << "No account data for key" << ("m.secret_storage.key."_ls + defaultKey);
-        emit error(NoKeyError);
-        return;
-    }
-    const auto &keyEvent = m_connection->accountData("m.secret_storage.key."_ls + defaultKey);
-    if (keyEvent->contentPart<QString>("algorithm"_ls) != "m.secret_storage.v1.aes-hmac-sha2"_ls) {
-        qCWarning(E2EE) << "Unsupported SSSS key algorithm" << keyEvent->contentPart<QString>("algorithm"_ls) << " - aborting.";
-        emit error(UnsupportedAlgorithmError);
-        return;
-    }
-
-    if (requirePassphrase) {
-        const auto &passphraseJson = keyEvent->contentPart<QJsonObject>("passphrase"_ls);
-        if (passphraseJson["algorithm"_ls].toString() != "m.pbkdf2"_ls) {
-            qCWarning(E2EE) << "Unsupported SSSS passphrase algorithm" << passphraseJson["algorithm"_ls].toString() << " - aborting.";
-            emit error(UnsupportedAlgorithmError);
-            return;
-        }
-
-        auto&& result = pbkdf2HmacSha512(secret, passphraseJson["salt"_ls].toString().toLatin1(), passphraseJson["iterations"_ls].toInt(), 32);
-        if (!result.has_value()) {
-            qCWarning(E2EE) << "Failed to calculate pbkdf";
-            emit error(DecryptionError);
-            return;
-        }
-        secret = std::move(result.value());
-    }
-
-    const auto& testKeys = hkdfSha256(secret, QByteArray(32, u'\0'), {});
+    const auto& testKeys = hkdfSha256(decryptingKey, zeroes<32>(), {});
     if (!testKeys.has_value()) {
-        qCWarning(E2EE) << "Failed to calculate hkdf";
+        qCWarning(E2EE) << "SSSS: Failed to calculate HKDF";
         emit error(DecryptionError);
         return;
     }
-    const auto& encrypted = aesCtr256Encrypt(
-        QByteArray(32, u'\0'), testKeys.value().aes(),
-        asCBytes<AesBlockSize>(QByteArray::fromBase64(
-            keyEvent->contentPart<QString>("iv"_ls).toLatin1())));
+    const auto& encrypted = aesCtr256Encrypt(zeroedByteArray(), testKeys.value().aes(),
+                                             asCBytes<AesBlockSize>(unlockData.decodedIV));
     if (!encrypted.has_value()) {
-        qCWarning(E2EE) << "Failed to encrypt test keys";
+        qCWarning(E2EE) << "SSSS: Failed to encrypt test keys";
         emit error(DecryptionError);
         return;
     }
     const auto &result = hmacSha256(testKeys.value().mac(), encrypted.value());
     if (!result.has_value()) {
-        qCWarning(E2EE) << "Failed to calculate hmac";
+        qCWarning(E2EE) << "SSSS: Failed to calculate HMAC";
         emit error(DecryptionError);
         return;
     }
-    if (result.value() != QByteArray::fromBase64(keyEvent->contentPart<QString>("mac"_ls).toLatin1())) {
-        qCWarning(E2EE) << "MAC mismatch for secret storage key";
+    if (result.value() != unlockData.decodedMac) {
+        qCWarning(E2EE) << "SSSS: MAC mismatch for secret storage test key";
         emit error(WrongKeyError);
         return;
     }
 
     emit keyBackupUnlocked();
 
-    auto megolmDecryptionKey = decryptKey(MegolmBackupKey, defaultKey, secret);
-
-    // These keys are only decrypted since this will automatically store them locally
-    decryptKey(CrossSigningSelfSigningKey, defaultKey, secret);
-    decryptKey(CrossSigningUserSigningKey, defaultKey, secret);
-    decryptKey(CrossSigningMasterKey, defaultKey, secret);
+    auto megolmDecryptionKey = decryptKey(MegolmBackupKey, unlockData.defaultKey, decryptingKey);
     if (megolmDecryptionKey.isEmpty()) {
-        qCWarning(E2EE) << "No megolm decryption key";
+        qCWarning(E2EE) << "SSSS: No megolm decryption key";
         emit error(NoKeyError);
         return;
     }
     loadMegolmBackup(megolmDecryptionKey);
+
+    // These keys are only decrypted since this will automatically store them locally
+    decryptKey(CrossSigningSelfSigningKey, unlockData.defaultKey, decryptingKey);
+    decryptKey(CrossSigningUserSigningKey, unlockData.defaultKey, decryptingKey);
+    decryptKey(CrossSigningMasterKey, unlockData.defaultKey, decryptingKey);
 }
 
-void SSSSHandler::unlockSSSSFromSecurityKey(const QString& key)
+void SSSSHandler::unlockSSSSFromSecurityKey(const QString& encodedKey)
 {
-    auto securityKey = key;
+    auto securityKey = encodedKey;
     securityKey.remove(u' ');
     auto&& decoded = base58Decode(securityKey.toLatin1());
-    unsigned char parity = 0;
-    for (const auto b : decoded) {
-        parity ^= b;
-    }
-    if (parity != 0) {
-        qCWarning(E2EE) << "Invalid parity byte";
+    if (decoded.size() != DefaultPbkdf2KeyLength + 3) {
+        qCWarning(E2EE) << "SSSS: Incorrect decryption key length";
         emit error(WrongKeyError);
         return;
     }
-    if (static_cast<uint8_t>(decoded[0]) != 0x8B || static_cast<uint8_t>(decoded[1]) != 0x01) {
-        qCWarning(E2EE) << "Invalid prefix";
+    if (decoded.front() != 0x8B || decoded[1] != 0x01) {
+        qCWarning(E2EE) << "SSSS: invalid prefix in the decryption key";
         emit error(WrongKeyError);
         return;
     }
-    if (decoded.size() != 32 + 3) {
-        qCWarning(E2EE) << "Incorrect length";
+    if (std::accumulate(decoded.cbegin(), decoded.cend(), uint8_t{ 0 }, std::bit_xor<>()) != 0) {
+        qCWarning(E2EE) << "SSSS: invalid parity byte in the decryption key";
         emit error(WrongKeyError);
         return;
     }
-    decoded = decoded.mid(2);
-    decoded.chop(1);
-
-    unlockAndLoad(std::move(decoded), false);
+    const auto unlockData = UnlockData::prepare(m_connection);
+    if (!unlockData) {
+        emit error(unlockData.error());
+        return;
+    }
+    unlockAndLoad(*unlockData, key_view_t(decoded.begin() + 2, decoded.end() - 1));
 }

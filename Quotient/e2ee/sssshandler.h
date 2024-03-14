@@ -3,10 +3,12 @@
 
 #pragma once
 
-#include <QtCore/QObject>
-#include <QtCore/QPointer>
+#include "cryptoutils.h"
 
 #include "../connection.h"
+
+#include <QtCore/QObject>
+#include <QtCore/QPointer>
 
 namespace Quotient {
 class QUOTIENT_API SSSSHandler : public QObject
@@ -27,14 +29,14 @@ public:
 
     using QObject::QObject;
 
-    //! \brief Unlock the secret backup from the given password
-    Q_INVOKABLE void unlockSSSSFromPassword(const QString& password);
+    //! \brief Unlock the secret backup from the given passprhase
+    Q_INVOKABLE void unlockSSSSWithPassphrase(const QString& passphrase);
 
-    //! \brief Unlock the secret backup by requesting the password from other devices
+    //! \brief Unlock the secret backup by requesting the decryption keys from other devices
     Q_INVOKABLE void unlockSSSSFromCrossSigning();
 
     //! \brief Unlock the secret backup from the given security key
-    Q_INVOKABLE void unlockSSSSFromSecurityKey(const QString& key);
+    Q_INVOKABLE void unlockSSSSFromSecurityKey(const QString& encodedKey);
 
     Connection* connection() const;
     void setConnection(Connection* connection);
@@ -48,10 +50,10 @@ private:
     QPointer<Connection> m_connection;
 
     //! \brief Decrypt the key with this name from the account data
-    QByteArray decryptKey(event_type_t keyType, const QString& defaultKey,
-                          const QByteArray& decryptionKey);
+    QByteArray decryptKey(event_type_t keyType, const QString& defaultKey, key_view_t decryptionKey);
 
     void loadMegolmBackup(const QByteArray& megolmDecryptionKey);
-    void unlockAndLoad(QByteArray&& secret, bool requirePassphrase);
+    struct UnlockData;
+    void unlockAndLoad(const UnlockData& unlockData, key_view_t decryptingKey);
 };
 } // namespace Quotient

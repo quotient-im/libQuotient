@@ -133,6 +133,12 @@ inline auto asCBytes(const QByteArray& bytes)
     return _impl::spanFromByteArray<byte_view_t<N>>(bytes);
 }
 
+template <size_t N = std::dynamic_extent>
+inline auto asCBytes(QLatin1String bytes)
+{ // TODO, 0.9: Replace this and QByteArray overload above with a single one for QByteArrayView
+    return _impl::spanFromByteArray<byte_view_t<N>>(bytes);
+}
+
 //! Obtain a std::span<byte_t, N> looking into the passed buffer
 template <size_t N = std::dynamic_extent>
 inline auto asWritableCBytes(QByteArray& bytes)

@@ -86,17 +86,15 @@ inline std::pair<int, bool> checkedSize(
 // End of macro
 // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
-SslExpected<QByteArray> Quotient::pbkdf2HmacSha512(const QByteArray& password,
-                                                   const QByteArray& salt,
-                                                   int iterations, int keyLength)
+SslExpected<key_material_t> Quotient::pbkdf2HmacSha512(const QByteArray& passphrase,
+                                                       const QByteArray& salt, int iterations)
 {
-    CLAMP_SIZE(passwordSize, password);
+    CLAMP_SIZE(passphraseSize, passphrase);
     CLAMP_SIZE(saltSize, salt);
-    auto output = zeroedByteArray(keyLength);
-    CALL_OPENSSL(PKCS5_PBKDF2_HMAC(password.data(), passwordSize,
-                                   asCBytes(salt).data(), saltSize, iterations,
-                                   EVP_sha512(), keyLength,
-                                   asWritableCBytes(output).data()));
+    key_material_t output;
+    CALL_OPENSSL(PKCS5_PBKDF2_HMAC(passphrase.data(), passphraseSize, asCBytes(salt).data(),
+                                   saltSize, iterations, EVP_sha512(), output.size(),
+                                   output.data()));
     return output;
 }
 
@@ -146,12 +144,9 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
     return encrypted;
 }
 
-SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
-                                           const QByteArray& salt,
-                                           const QByteArray& info)
+SslExpected<HkdfKeys> Quotient::hkdfSha256(byte_view_t<DefaultPbkdf2KeyLength> key,
+                                           byte_view_t<32> salt, byte_view_t<> info)
 {
-    CLAMP_SIZE(saltSize, salt);
-    CLAMP_SIZE(keySize, key);
     CLAMP_SIZE(infoSize, info);
 
     HkdfKeys result;
@@ -160,12 +155,9 @@ SslExpected<HkdfKeys> Quotient::hkdfSha256(const QByteArray& key,
 
     CALL_OPENSSL(EVP_PKEY_derive_init(context.get()));
     CALL_OPENSSL(EVP_PKEY_CTX_set_hkdf_md(context.get(), EVP_sha256()));
-    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_salt(context.get(),
-                                             asCBytes(salt).data(), saltSize));
-    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_key(context.get(), asCBytes(key).data(),
-                                            keySize));
-    CALL_OPENSSL(EVP_PKEY_CTX_add1_hkdf_info(context.get(),
-                                             asCBytes(info).data(), infoSize));
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_salt(context.get(), salt.data(), salt.size()));
+    CALL_OPENSSL(EVP_PKEY_CTX_set1_hkdf_key(context.get(), key.data(), key.size()));
+    CALL_OPENSSL(EVP_PKEY_CTX_add1_hkdf_info(context.get(), info.data(), infoSize));
     size_t outputLength = result.size();
     CALL_OPENSSL(EVP_PKEY_derive(context.get(), result.data(), &outputLength));
     if (outputLength != result.size()) {
@@ -289,37 +281,40 @@ QOlmExpected<Curve25519Encrypted> Quotient::curve25519AesSha2Encrypt(
     };
 }
 
-QByteArray Quotient::base58Decode(const QByteArray& encoded)
+std::vector<byte_t> Quotient::base58Decode(const QByteArray& encoded)
 {
     // See https://spec.matrix.org/latest/client-server-api/#recovery-key
-    constexpr auto reverse_alphabet = []() constexpr {
-        std::array<uint8_t, 256> init{ static_cast<uint8_t>(-1) };
-        constexpr uint8_t alphabet[59] =
-            "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    constexpr auto reverse_alphabet = []() consteval {
+        std::array<byte_t, 256> init; // NOLINT(cppcoreguidelines-pro-type-member-init)
+        init.fill(0xFF);
+        const std::array<byte_t, 59> alphabet{
+            "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+        };
+        // NOLINTNEXTLINE(bugprone-too-small-loop-variable)
         for (uint8_t i = 0; i < std::size(alphabet) - 1; ++i) {
             init[alphabet[i]] = i;
         }
         return init;
     }();
 
-    QByteArray result;
-    result.reserve(encoded.size() * 733 / 1000 + 1);
+    std::vector<byte_t> result;
+    result.reserve(unsignedSize(encoded) * 733 / 1000 + 1);
 
     for (const auto b : encoded) {
-        uint32_t carry = reverse_alphabet[static_cast<uint8_t>(b)];
-        for (auto &j : result) {
-            carry += static_cast<uint8_t>(j) * 58;
-            j = static_cast<char>(carry % 0x100);
+        uint32_t carry = reverse_alphabet[static_cast<byte_t>(b)];
+        for (auto& j : result) {
+            carry += j * 58;
+            j = carry & 0xFF;
             carry /= 0x100;
         }
         while (carry > 0) {
-            result.push_back(static_cast<char>(carry % 0x100));
+            result.push_back(carry & 0xFF);
             carry /= 0x100;
         }
     }
 
     for (auto i = 0; i < encoded.length() && encoded[i] == '1'; ++i) {
-        result.push_back(u'\0');
+        result.push_back(0x0);
     }
 
     std::reverse(result.begin(), result.end());
