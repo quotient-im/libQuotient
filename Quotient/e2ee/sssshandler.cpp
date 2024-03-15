@@ -35,7 +35,7 @@ QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultK
     const auto& encrypted =
         encryptedKeyObject->contentPart<QJsonObject>("encrypted"_ls).value(defaultKey).toObject();
 
-    auto hkdfResult = hkdfSha256(decryptionKey, zeroes<32>(), asCBytes<32>(keyType));
+    auto hkdfResult = hkdfSha256(decryptionKey, zeroes<32>(), asCBytes<>(keyType));
     if (!hkdfResult.has_value()) {
         qCWarning(E2EE) << "Failed to calculate HKDF for" << keyType;
         emit error(DecryptionError);
