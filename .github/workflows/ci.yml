@@ -19,15 +19,11 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ ubuntu-22.04, macos-11, windows-2019 ]
-        qt-version: [ '6.4', '5.15' ]
+        qt-version: [ '6.4' ]
         override-compiler: [ '', GCC ] # Defaults: MSVC on Windows, Clang elsewhere
         # Not using binary values here, to make the job captions more readable
         e2ee: [ e2ee, '' ]
         exclude: # Drop less important combinations to lower the jobs number
-        - qt-version: '5.15'
-          e2ee: ''
-        - qt-version: '5.15'
-          override-compiler: GCC
         - os: macos-11
           override-compiler: GCC
         - os: windows-2019
@@ -58,10 +54,7 @@ jobs:
         COMMON_PKGS="$COMMON_PKGS clang-15" # Workaround for https://github.com/actions/runner-images/issues/8659
         sudo apt-get -qq update
         sudo apt-get -qq install $COMMON_PKGS \
-            ${{ startsWith(matrix.qt-version, '5')
-                && 'qtmultimedia5-dev qttools5-dev qt5keychain-dev'
-                || 'qt6-base-dev libgl1-mesa-dev qt6-l10n-tools qt6-tools-dev qt6-tools-dev-tools qtkeychain-qt6-dev'
-            }}
+                qt6-base-dev libgl1-mesa-dev qt6-l10n-tools qt6-tools-dev qt6-tools-dev-tools qtkeychain-qt6-dev
         gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
 
     - name: Install dependencies (non-Linux)
