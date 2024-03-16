@@ -417,7 +417,7 @@ public:
             return {};
         }
         auto& senderSession = groupSessionIt->second;
-        if (senderSession.senderId() != senderId) {
+        if (senderSession.senderId() != "BACKUP"_ls && senderSession.senderId() != senderId) {
             qCWarning(E2EE) << "Sender from event does not match sender from session";
             return {};
         }
@@ -3728,3 +3728,27 @@ void Room::activateEncryption()
     }
     setState<EncryptionEvent>(EncryptionType::MegolmV1AesSha2);
 }
+
+#ifdef Quotient_E2EE_ENABLED
+void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteArray& sessionKey, uint32_t index)
+{
+    const auto sessionIt = d->groupSessions.find(sessionId);
+    if (sessionIt != d->groupSessions.end() && sessionIt->second.firstKnownIndex() <= index)
+        return;
+
+    auto&& importResult = QOlmInboundGroupSession::importSession(sessionKey);
+    if (!importResult)
+        return;
+    // NB: after the next line, sessionIt can be invalid.
+    auto& session = d->groupSessions
+                        .insert_or_assign(sessionIt, sessionId,
+                                          std::move(importResult.value()))
+                        ->second;
+    session.setOlmSessionId(d->connection->isVerifiedSession(sessionId)
+                                ? QByteArrayLiteral("BACKUP_VERIFIED")
+                                : QByteArrayLiteral("BACKUP"));
+    session.setSenderId("BACKUP"_ls);
+    d->connection->saveMegolmSession(this, session);
+}
+#endif
+

@@ -10,6 +10,7 @@
 #include "e2ee/qolminboundsession.h"
 #include "e2ee/qolmoutboundsession.h"
 #include "e2ee/qolmsession.h"
+#include "e2ee/cryptoutils.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
@@ -41,7 +42,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 1: migrateTo2(); [[fallthrough]];
     case 2: migrateTo3(); [[fallthrough]];
     case 3: migrateTo4(); [[fallthrough]];
-    case 4: migrateTo5();
+    case 4: migrateTo5(); [[fallthrough]];
+    case 5: migrateTo6();
     }
 }
 
@@ -160,6 +162,16 @@ void Database::migrateTo5()
     commit();
 }
 
+void Database::migrateTo6()
+{
+    qCDebug(DATABASE) << "Migrating database to version 6";
+    transaction();
+
+    execute(QStringLiteral("CREATE TABLE encrypted (name TEXT, cipher TEXT, iv TEXT);"));
+    execute(QStringLiteral("PRAGMA user_version = 6"));
+    commit();
+}
+
 void Database::storeOlmAccount(const QOlmAccount& olmAccount)
 {
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM accounts;"));
@@ -273,6 +285,9 @@ UnorderedMap<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSessions(
 void Database::saveMegolmSession(const QString& roomId,
                                  const QOlmInboundGroupSession& session)
 {
+    auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
+    deleteQuery.bindValue(":roomId"_ls, roomId);
+    deleteQuery.bindValue(":sessionId"_ls, session.sessionId());
     auto query = prepareQuery(
         QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId);"));
     query.bindValue(":roomId"_ls, roomId);
@@ -281,6 +296,7 @@ void Database::saveMegolmSession(const QString& roomId,
     query.bindValue(":senderId"_ls, session.senderId());
     query.bindValue(":olmSessionId"_ls, session.olmSessionId());
     transaction();
+    execute(deleteQuery);
     execute(query);
     commit();
 }
@@ -458,4 +474,58 @@ bool Database::isSessionVerified(const QString& edKey)
     query.bindValue(":edKey"_ls, edKey);
     execute(query);
     return query.next() && query.value("verified"_ls).toBool();
+}
+
+QString Database::edKeyForKeyId(const QString& userId, const QString& edKeyId)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT edKey FROM tracked_devices WHERE matrixId=:userId and edKeyId=:edKeyId;"));
+    query.bindValue(":matrixId"_ls, userId);
+    query.bindValue(":edKeyId"_ls, edKeyId);
+    execute(query);
+    if (!query.next()) {
+        return {};
+    }
+    return query.value("edKey"_ls).toString();
+}
+
+void Database::storeEncrypted(const QString& name, const QByteArray& key)
+{
+    auto iv = getRandom<AesBlockSize>();
+    auto result =
+        aesCtr256Encrypt(key, asCBytes(m_picklingKey).first<Aes256KeySize>(),
+                         iv);
+    if (!result.has_value())
+        return;
+
+    auto cipher = result.value().toBase64();
+    auto query = prepareQuery(QStringLiteral("INSERT INTO encrypted(name, cipher, iv) VALUES(:name, :cipher, :iv);"));
+    auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM encrypted WHERE name=:name;"));
+    deleteQuery.bindValue(":name"_ls, name);
+    query.bindValue(":name"_ls, name);
+    query.bindValue(":cipher"_ls, cipher);
+    query.bindValue(":iv"_ls, iv.toBase64());
+    transaction();
+    execute(deleteQuery);
+    execute(query);
+    commit();
+}
+
+QByteArray Database::loadEncrypted(const QString& name)
+{
+    auto query = prepareQuery("SELECT cipher, iv FROM encrypted WHERE name=:name;"_ls);
+    query.bindValue(":name"_ls, name);
+    execute(query);
+    if (!query.next()) {
+        return {};
+    }
+    auto cipher = QByteArray::fromBase64(query.value("cipher"_ls).toString().toLatin1());
+    auto iv = QByteArray::fromBase64(query.value("iv"_ls).toString().toLatin1());
+    if (iv.size() < AesBlockSize) {
+        qCWarning(E2EE) << "Corrupt iv at the database record for" << name;
+        return {};
+    }
+
+    return aesCtr256Decrypt(cipher, asCBytes(m_picklingKey).first<Aes256KeySize>(),
+                            asCBytes<AesBlockSize>(iv))
+        .move_value_or({});
 }

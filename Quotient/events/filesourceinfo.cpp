@@ -14,8 +14,7 @@
 #    include <Quotient/e2ee/e2ee_common.h>
 
 #    include <QtCore/QCryptographicHash>
-
-#    include <openssl/evp.h>
+#    include "../e2ee/cryptoutils.h"
 #endif
 
 using namespace Quotient;
@@ -29,63 +28,46 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
         qCWarning(E2EE) << "Hash verification failed for file";
         return {};
     }
+    const auto key = QByteArray::fromBase64(metadata.key.k.toLatin1(),
+                                            QByteArray::Base64UrlEncoding);
+    if (key.size() < Aes256KeySize) {
+        qCWarning(E2EE) << "Decoded key is too short for AES, need"
+                        << Aes256KeySize << "bytes, got" << key.size();
+        return {};
+    }
+    const auto iv = QByteArray::fromBase64(metadata.iv.toLatin1());
+    if (iv.size() < AesBlockSize) {
+        qCWarning(E2EE) << "Decoded iv is too short for AES, need"
+                        << AesBlockSize << "bytes, got" << iv.size();
+        return {};
+    }
 
-    auto _key = metadata.key.k;
-    const auto keyBytes = QByteArray::fromBase64(
-        _key.replace(u'_', u'/').replace(u'-', u'+').toLatin1());
-    int length = -1;
-    auto* ctx = EVP_CIPHER_CTX_new();
-    QByteArray plaintext(ciphertext.size() + EVP_MAX_BLOCK_LENGTH - 1, '\0');
-    EVP_DecryptInit_ex(
-        ctx, EVP_aes_256_ctr(), nullptr,
-        reinterpret_cast<const unsigned char*>(keyBytes.data()),
-        reinterpret_cast<const unsigned char*>(
-            QByteArray::fromBase64(metadata.iv.toLatin1()).data()));
-    EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(plaintext.data()),
-                      &length,
-                      reinterpret_cast<const unsigned char*>(ciphertext.data()),
-                      static_cast<int>(ciphertext.size()));
-    EVP_DecryptFinal_ex(ctx,
-                        reinterpret_cast<unsigned char*>(plaintext.data())
-                            + length,
-                        &length);
-    EVP_CIPHER_CTX_free(ctx);
-    return plaintext.left(ciphertext.size());
+    return aesCtr256Decrypt(ciphertext, asCBytes<32>(key), asCBytes<16>(iv))
+        .move_value_or({});
 }
 
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
-    auto k = getRandom<32>();
+    auto k = getRandom<Aes256KeySize>();
     auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
                               | QByteArray::OmitTrailingEquals);
-    auto iv = getRandom<16>();
+    auto iv = getRandom<AesBlockSize>();
     const JWK key = {
         "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
     };
+    auto result = aesCtr256Encrypt(plainText, k, iv);
+    if (!result.has_value())
+        return {};
 
-    int length = -1;
-    auto* ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), nullptr, k.data(), iv.data());
-    const auto blockSize = EVP_CIPHER_CTX_block_size(ctx);
-    QByteArray cipherText(plainText.size() + blockSize - 1, '\0');
-    EVP_EncryptUpdate(ctx, reinterpret_cast<unsigned char*>(cipherText.data()),
-                      &length,
-                      reinterpret_cast<const unsigned char*>(plainText.data()),
-                      static_cast<int>(plainText.size()));
-    EVP_EncryptFinal_ex(ctx,
-                        reinterpret_cast<unsigned char*>(cipherText.data())
-                            + length,
-                        &length);
-    EVP_CIPHER_CTX_free(ctx);
-
-    auto hash = QCryptographicHash::hash(cipherText, QCryptographicHash::Sha256)
+    auto hash = QCryptographicHash::hash(result.value(), QCryptographicHash::Sha256)
                     .toBase64(QByteArray::OmitTrailingEquals);
     auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
     const EncryptedFileMetadata efm = {
-        {}, key, QString::fromLatin1(ivBase64), { { QStringLiteral("sha256"), QString::fromLatin1(hash) } }, "v2"_ls
+        {}, key, QString::fromLatin1(ivBase64),
+        { { "sha256"_ls, QString::fromLatin1(hash) } }, "v2"_ls
     };
-    return { efm, cipherText };
+    return { efm, result.value() };
 }
 #endif
 

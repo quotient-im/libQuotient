@@ -4,6 +4,7 @@
 #pragma once
 
 #include <variant>
+#include "util.h"
 
 namespace Quotient {
 

@@ -191,7 +191,14 @@ public:
     template <EventClass EventT>
     const EventT* accountData() const
     {
+        // 0.9: use the default argument and fold into the next overload
         return eventCast<EventT>(accountData(EventT::TypeId));
+    }
+
+    template <EventClass EventT>
+    const EventT* accountData(const QString& keyName) const
+    {
+        return eventCast<EventT>(accountData(keyName));
     }
 
     //! \brief Get account data as a JSON object
@@ -401,7 +408,11 @@ public:
     QJsonObject decryptNotification(const QJsonObject &notification);
     QStringList devicesForUser(const QString& userId) const;
     Q_INVOKABLE bool isQueryingKeys() const;
+
+    void requestKeyFromDevices(
+        event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
 #endif // Quotient_E2EE_ENABLED
+
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE QString nextBatchToken() const;
     Q_INVOKABLE int millisToReconnect() const;
@@ -954,6 +965,7 @@ Q_SIGNALS:
         Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
     bool finishedQueryingKeys();
+    void secretReceived(const QString& requestId, const QString& secret);
 #endif
 
 protected:

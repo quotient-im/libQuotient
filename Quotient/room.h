@@ -830,6 +830,10 @@ public:
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
 
+#ifdef Quotient_E2EE_ENABLED
+    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index);
+#endif
+
 public Q_SLOTS:
     /** Check whether the room should be upgraded */
     void checkVersion();
