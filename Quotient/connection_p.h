@@ -15,7 +15,7 @@
 #include "csapi/wellknown.h"
 
 #ifdef Quotient_E2EE_ENABLED
-#    include "connectionencryptiondata_p.h"
+    #include "connectionencryptiondata_p.h"
 #endif
 
 #include "csapi/account-data.h"

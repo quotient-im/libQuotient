@@ -119,7 +119,5 @@ private:
     QStringList unresolvedRoomIds;
     QHash<QString, int> deviceOneTimeKeysCount_;
     DevicesList devicesList;
-
-    static QJsonObject loadJson(const QString& fileName);
 };
 } // namespace Quotient

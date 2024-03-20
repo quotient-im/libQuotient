@@ -128,15 +128,40 @@ void JsonObjectConverter<DevicesList>::fillFrom(const QJsonObject& jo,
     fromJson(jo["left"_ls], rs.left);
 }
 
+namespace {
+QJsonObject loadJson(const QString& fileName)
+{
+    QFile cacheFile { fileName };
+    if (!cacheFile.exists()) {
+        qCWarning(MAIN) << "No state cache file" << fileName;
+        return {};
+    }
+    if (!cacheFile.open(QIODevice::ReadOnly)) {
+        qCWarning(MAIN) << "Failed to open state cache file"
+                        << cacheFile.fileName();
+        return {};
+    }
+    auto data = cacheFile.readAll();
+
+    const auto json = data.startsWith('{')
+                          ? QJsonDocument::fromJson(data).object()
+                          : QCborValue::fromCbor(data).toJsonValue().toObject();
+    if (json.isEmpty()) {
+        qCWarning(MAIN) << "State cache in" << fileName
+                        << "is broken or empty, discarding";
+    }
+    return json;
+}
+}
+
 SyncData::SyncData(const QString& cacheFileName)
 {
-    QFileInfo cacheFileInfo { cacheFileName };
     auto json = loadJson(cacheFileName);
     auto requiredVersion = MajorCacheVersion;
     auto actualVersion =
         json.value("cache_version"_ls).toObject().value("major"_ls).toInt();
     if (actualVersion == requiredVersion)
-        parseJson(json, cacheFileInfo.absolutePath() + u'/');
+        parseJson(json, QFileInfo(cacheFileName).absolutePath() + u'/');
     else
         qCWarning(MAIN) << "Major version of the cache file is" << actualVersion
                         << "but" << requiredVersion
@@ -159,35 +184,12 @@ Events SyncData::takeToDeviceEvents() { return std::move(toDeviceEvents); }
 
 std::pair<int, int> SyncData::cacheVersion()
 {
-    return { MajorCacheVersion, 2 };
+    return { MajorCacheVersion, 3 };
 }
 
 DevicesList SyncData::takeDevicesList() { return std::move(devicesList); }
 
-QJsonObject SyncData::loadJson(const QString& fileName)
-{
-    QFile roomFile { fileName };
-    if (!roomFile.exists()) {
-        qCWarning(MAIN) << "No state cache file" << fileName;
-        return {};
-    }
-    if (!roomFile.open(QIODevice::ReadOnly)) {
-        qCWarning(MAIN) << "Failed to open state cache file"
-                        << roomFile.fileName();
-        return {};
-    }
-    auto data = roomFile.readAll();
-
-    const auto json = data.startsWith('{')
-                          ? QJsonDocument::fromJson(data).object()
-                          : QCborValue::fromCbor(data).toJsonValue().toObject();
-    if (json.isEmpty()) {
-        qCWarning(MAIN) << "State cache in" << fileName
-                        << "is broken or empty, discarding";
-    }
-    return json;
-}
-
+// FIXME, 0.9: baseDir -> cacheDir
 void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
 {
     QElapsedTimer et;
@@ -206,8 +208,8 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     }
 
     auto rooms = json.value("rooms"_ls).toObject();
-    auto totalRooms = 0;
-    auto totalEvents = 0;
+    qsizetype totalRooms = 0;
+    size_t totalEvents = 0;
     for (size_t i = 0; i < JoinStateStrings.size(); ++i) {
         // This assumes that MemberState values go over powers of 2: 1,2,4,...
         const auto joinState = JoinState(1U << i);
@@ -216,10 +218,15 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
         roomData.reserve(roomData.size() + static_cast<size_t>(rs.size()));
         for (auto roomIt = rs.begin(); roomIt != rs.end(); ++roomIt) {
             QJsonObject roomJson;
-            if (!baseDir.isEmpty()) {
-                // Loading data from the local cache, with room objects saved in
-                // individual files rather than inline
-                roomJson = loadJson(baseDir + fileNameForRoom(roomIt.key()));
+            // Normally (i.e. in a /sync response) the received JSON is
+            // self-contained; but the local cache stores state for each room in
+            // its own file, loaded below
+            if (Q_UNLIKELY(!baseDir.isEmpty())) {
+                roomJson = loadJson(
+                    baseDir
+                    + (roomIt->isUndefined() // lib pre-0.8.1.2 = cache pre-11.3
+                           ? fileNameForRoom(roomIt.key())
+                           : roomIt->toObject().value("$ref"_ls).toString()));
                 if (roomJson.isEmpty()) {
                     unresolvedRoomIds.push_back(roomIt.key());
                     continue;

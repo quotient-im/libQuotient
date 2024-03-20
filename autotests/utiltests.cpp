@@ -50,11 +50,10 @@ private:
     }
 };
 
-#ifndef Q_MOC_RUN // moc chokes on the code below, doesn't really need it
 void TestUtils::testLinkifyUrl()
 {
     // Pending rewrite once std::source_location() works everywhere
-#    define T(Original, Expected) testLinkified(Original, Expected, __LINE__)
+#define T(Original, Expected) testLinkified(Original, Expected, __LINE__)
 
     T("https://www.matrix.org"_ls,
       "<a href='https://www.matrix.org'>https://www.matrix.org</a>"_ls);
@@ -83,9 +82,8 @@ void TestUtils::testLinkifyUrl()
     T("#room_alias:example.org"_ls,
       "<a href='https://matrix.to/#/#room_alias:example.org'>#room_alias:example.org</a>"_ls);
 
-#    undef T
+#undef T
 }
-#endif
 
 QTEST_APPLESS_MAIN(TestUtils)
 #include "utiltests.moc"

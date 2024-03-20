@@ -109,7 +109,7 @@ IncludeIsMainRegex: '(_test)?$'
 #IndentCaseLabels: false
 #IndentCaseBlocks: false
 IndentGotoLabels: false
-IndentPPDirectives: AfterHash
+IndentPPDirectives: BeforeHash
 #IndentExternBlock: AfterExternBlock
 IndentRequires: true
 #IndentWidth: 4

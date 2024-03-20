@@ -16,28 +16,19 @@
 
 #ifndef Q_DISABLE_MOVE
 // Q_DISABLE_MOVE was introduced in Q_VERSION_CHECK(5,13,0)
-#    define Q_DISABLE_MOVE(_ClassName)             \
+    #define Q_DISABLE_MOVE(_ClassName)             \
         _ClassName(_ClassName&&) Q_DECL_EQ_DELETE; \
         _ClassName& operator=(_ClassName&&) Q_DECL_EQ_DELETE;
 #endif
 
 #ifndef Q_DISABLE_COPY_MOVE
-#define Q_DISABLE_COPY_MOVE(Class) \
-    Q_DISABLE_COPY(Class) \
-    Q_DISABLE_MOVE(Class)
+    #define Q_DISABLE_COPY_MOVE(Class) \
+        Q_DISABLE_COPY(Class)          \
+        Q_DISABLE_MOVE(Class)
 #endif
 
 #define DISABLE_MOVE(_ClassName) \
 static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all used versions of Qt");
-
-#ifndef QT_IGNORE_DEPRECATIONS
-// QT_IGNORE_DEPRECATIONS was introduced in Q_VERSION_CHECK(5,15,0)
-#    define QT_IGNORE_DEPRECATIONS(statement) \
-        QT_WARNING_PUSH                       \
-        QT_WARNING_DISABLE_DEPRECATED         \
-        statement                             \
-        QT_WARNING_POP
-#endif
 
 #if __cpp_conditional_explicit >= 201806L
 #define QUO_IMPLICIT explicit(false)

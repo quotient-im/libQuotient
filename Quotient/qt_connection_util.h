@@ -82,15 +82,15 @@ inline auto connectSingleShot(auto* sender, auto signal, ContextT* context,
     // object has to be pre-bound to the slot to make it self-contained
     if constexpr (_impl::PmfSlot<SlotT, ContextT>) {
         auto&& boundSlot =
-#    if __cpp_lib_bind_front // Needs Apple Clang 13 (other platforms are fine)
+    #if __cpp_lib_bind_front // Needs Apple Clang 13 (other platforms are fine)
             std::bind_front(slot, context);
-#    else
+    #else
             [context, slot](const auto&... args)
             requires requires { (context->*slot)(args...); }
             {
                 (context->*slot)(args...);
             };
-#    endif
+    #endif
         return _impl::connect<_impl::SingleShot>(
             sender, signal, context,
             std::forward<decltype(boundSlot)>(boundSlot), connType);

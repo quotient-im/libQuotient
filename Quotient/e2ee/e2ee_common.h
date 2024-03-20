@@ -13,11 +13,12 @@
 #include <array>
 
 #ifdef Quotient_E2EE_ENABLED
-#    include <Quotient/expected.h>
+    #include <Quotient/expected.h>
 
-#    include <olm/error.h>
-#    include <span>
-#    include <variant>
+    #include <olm/error.h>
+
+    #include <span>
+    #include <variant>
 #endif
 
 namespace Quotient {
