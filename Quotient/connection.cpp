@@ -1894,7 +1894,7 @@ bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
     if (!query.next()) {
         return false;
     }
-    auto olmSessionId = query.value("olmSessionId"_ls).toString();
+    const auto olmSessionId = query.value("olmSessionId"_ls).toString();
     if (olmSessionId == "BACKUP_VERIFIED"_ls) {
         return true;
     }
@@ -1907,7 +1907,7 @@ bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
     if (!query.next()) {
         return false;
     }
-    auto curveKey = query.value("senderKey"_ls).toString();
+    const auto curveKey = query.value("senderKey"_ls).toString();
 
     query.prepare("SELECT matrixId, selfVerified, verified FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
     query.bindValue(":curveKey"_ls, curveKey);
@@ -1915,7 +1915,7 @@ bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
     if (!query.next()) {
         return false;
     }
-    auto userId = query.value("matrixId"_ls).toString();
+    const auto userId = query.value("matrixId"_ls).toString();
     return query.value("verified"_ls).toBool() || (isUserVerified(userId) && query.value("selfVerified"_ls).toBool());
 }
 
