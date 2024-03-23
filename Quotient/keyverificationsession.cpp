@@ -55,6 +55,10 @@ KeyVerificationSession::KeyVerificationSession(
     , m_encrypted(encrypted)
     , m_remoteSupportedMethods(event.methods())
 {
+    if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+        qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        return;
+    }
     const auto& currentTime = QDateTime::currentDateTime();
     const auto timeoutTime =
         std::min(event.timestamp().addSecs(600), currentTime.addSecs(120));
@@ -73,6 +77,10 @@ KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
     , m_connection(connection)
     , m_encrypted(false)
 {
+    if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+        qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        return;
+    }
     setupTimeout(600s);
     QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
 }
@@ -406,12 +414,21 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
         return;
     }
 
+    auto masterKey = m_connection->masterKeyForUser(m_remoteUserId);
+    if (event.mac().contains("ed25519:"_ls % masterKey)) {
+        if (calculateMac(masterKey, true, "ed25519:"_ls % masterKey) != event.mac().value("ed25519:"_ls % masterKey)) {
+            cancelVerification(KEY_MISMATCH);
+            return;
+        }
+    }
+
     if (calculateMac(key, true) != event.keys()) {
         cancelVerification(KEY_MISMATCH);
         return;
     }
 
     m_pendingEdKeyId = edKeyId;
+    m_pendingMasterKey = masterKey;
 
     if (m_verified) {
         trustKeys();
@@ -421,6 +438,11 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
 void KeyVerificationSession::trustKeys()
 {
     m_connection->database()->setSessionVerified(m_pendingEdKeyId);
+    m_connection->database()->setMasterKeyVerified(m_pendingMasterKey);
+    if (m_remoteUserId == m_connection->userId()) {
+        m_connection->reloadDevices();
+    }
+    //TODO sign master key
     emit m_connection->sessionVerified(m_remoteUserId, m_remoteDeviceId);
     macReceived = true;
 

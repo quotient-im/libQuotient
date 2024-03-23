@@ -43,7 +43,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 2: migrateTo3(); [[fallthrough]];
     case 3: migrateTo4(); [[fallthrough]];
     case 4: migrateTo5(); [[fallthrough]];
-    case 5: migrateTo6();
+    case 5: migrateTo6(); [[fallthrough]];
+    case 6: migrateTo7();
     }
 }
 
@@ -169,6 +170,20 @@ void Database::migrateTo6()
 
     execute(QStringLiteral("CREATE TABLE encrypted (name TEXT, cipher TEXT, iv TEXT);"));
     execute(QStringLiteral("PRAGMA user_version = 6"));
+    commit();
+}
+
+void Database::migrateTo7()
+{
+    qCDebug(DATABASE) << "Migrating database to version 7";
+    transaction();
+    execute(QStringLiteral("CREATE TABLE master_keys (userId TEXT, key TEXT, verified INTEGER);"));
+    execute(QStringLiteral("CREATE TABLE self_signing_keys (userId TEXT, key TEXT);"));
+    execute(QStringLiteral("CREATE TABLE user_signing_keys (userId TEXT, key TEXT);"));
+    execute(QStringLiteral("INSERT INTO outdated_users SELECT * FROM tracked_users;"));
+    execute(QStringLiteral("ALTER TABLE tracked_devices ADD selfVerified INTEGER;"));
+    execute(QStringLiteral("PRAGMA user_version = 6;"));
+
     commit();
 }
 
@@ -528,4 +543,13 @@ QByteArray Database::loadEncrypted(const QString& name)
     return aesCtr256Decrypt(cipher, asCBytes(m_picklingKey).first<Aes256KeySize>(),
                             asCBytes<AesBlockSize>(iv))
         .move_value_or({});
+}
+
+void Database::setMasterKeyVerified(const QString& masterKey)
+{
+    auto query = prepareQuery(QStringLiteral("UPDATE master_keys SET verified=true WHERE key=:key;"));
+    query.bindValue(":key"_ls, masterKey);
+    transaction();
+    execute(query);
+    commit();
 }
