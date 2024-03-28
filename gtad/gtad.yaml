@@ -242,6 +242,20 @@ mustache:
       {{#description}}
       //! {{_}}{{/description}}
 
+    structDefinition: |-
+      {{>docCommentShort}}
+      struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
+      { {{#vars}}
+          {{>docCommentShort}}
+          {{>maybeOmittableType}} {{nameCamelCase}}{{>initializeField}};
+
+        {{/vars}}
+        {{#propertyMap}}
+          {{>docCommentShort}}
+          {{>maybeOmittableType}} {{nameCamelCase}}{};
+        {{/propertyMap}}
+      };
+
   templates:
     data:
       .h: "{{>data.h.mustache}}"

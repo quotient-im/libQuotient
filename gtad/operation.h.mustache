@@ -22,19 +22,7 @@ public:
     // Inner data structures
         {{#model}}
 
-    {{>docCommentShort}}
-    struct {{name}}{{#parents?}} :
-        {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
-    {
-            {{#vars}}
-        {{>docCommentShort}}
-        {{>maybeOmittableType}} {{nameCamelCase}}{{>initializeField}};
-            {{/vars}}
-            {{#propertyMap}}
-        {{>docCommentShort}}
-        {{>maybeOmittableType}} {{nameCamelCase}}{};
-            {{/propertyMap}}
-    };
+    {{>structDefinition}}
         {{/model}}
 
     // Construction/destruction

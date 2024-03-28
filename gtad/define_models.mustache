@@ -1,0 +1,33 @@
+{{#models}}
+    {{#model}}
+{{>structDefinition}}
+
+template <> struct JsonObjectConverter<{{name}}>
+{
+        {{#in?}}
+    static void dumpTo(QJsonObject& jo, const {{name}}& pod)
+    {       {{#propertyMap}}
+        fillJson(jo, pod.{{nameCamelCase}});
+            {{/propertyMap}}{{#parents}}
+        fillJson<{{name}}>(jo, pod);
+            {{/parents}}{{#vars}}
+        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo,
+                QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});
+            {{/vars}}
+        }
+        {{/in?}}
+        {{#out?}}
+    static void fillFrom({{>maybeCrefJsonObject}} jo, {{name}}& pod)
+    {       {{#parents}}
+        fillFromJson<{{qualifiedName}}>(jo, pod);
+            {{/parents}}{{#vars}}
+        fillFromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls), pod.{{nameCamelCase}});
+            {{/vars}}{{#propertyMap}}
+        fromJson(jo, pod.{{nameCamelCase}});
+            {{/propertyMap}}
+    }
+        {{/out?}}
+};
+
+    {{/model}}
+{{/models}}
