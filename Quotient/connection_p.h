@@ -66,9 +66,12 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     static inline bool encryptionDefault = false;
     bool useEncryption = encryptionDefault;
+    static inline bool directChatEncryptionDefault = false;
+    bool encryptDirectChats = directChatEncryptionDefault;
     std::unique_ptr<_impl::ConnectionEncryptionData> encryptionData;
 #else
     static constexpr bool useEncryption = false;
+    static constexpr bool encryptDirectChats = false;
 #endif
 
     QPointer<GetWellknownJob> resolverJob = nullptr;

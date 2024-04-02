@@ -131,6 +131,7 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
     Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
     Q_PROPERTY(bool encryptionEnabled READ encryptionEnabled WRITE enableEncryption NOTIFY encryptionChanged)
+    Q_PROPERTY(bool directChatEncryptionEnabled READ directChatEncryptionEnabled WRITE enableDirectChatEncryption NOTIFY directChatsEncryptionChanged)
     Q_PROPERTY(QStringList accountDataEventTypes READ accountDataEventTypes NOTIFY accountDataChanged)
 
 public:
@@ -478,6 +479,20 @@ public:
     //! \sa encryptionEnabled
     void enableEncryption(bool enable);
 
+    //! \brief Check whether encryption is enabled for new direct chats on this connection
+    //!
+    //! \note This has no effect if the library is compiled without E2EE support
+    //!
+    //! \sa enableDirectChatEncryption
+    bool directChatEncryptionEnabled() const;
+
+    //! \brief Enable or disable whether new direct chats are encrypted on this connection
+    //!
+    //! \note This has no effect if the library is compiled without E2EE support
+    //!
+    //! \sa directChatEncryptionEnabled
+    void enableDirectChatEncryption(bool enable);
+
     //! \brief Load room state from a previously saved file
     //!
     //! Call this before first sync.
@@ -591,6 +606,9 @@ public:
 #ifdef Quotient_E2EE_ENABLED
     //! Set the E2EE default state for any Connection created further
     static void setEncryptionDefault(bool useByDefault);
+
+    //! Set the direct chat E2EE default state for any Connection created further
+    static void setDirectChatEncryptionDefault(bool useByDefault);
 #endif
 
     //! Set a room factory function
@@ -959,6 +977,7 @@ Q_SIGNALS:
 
     //! Encryption has been enabled or disabled
     void encryptionChanged(bool enabled);
+    void directChatsEncryptionChanged(bool enabled);
 
 #ifdef Quotient_E2EE_ENABLED
     void newKeyVerificationSession(Quotient::KeyVerificationSession* session);
