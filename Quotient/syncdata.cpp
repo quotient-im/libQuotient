@@ -224,9 +224,9 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
             if (Q_UNLIKELY(!baseDir.isEmpty())) {
                 roomJson = loadJson(
                     baseDir
-                    + (roomIt->isUndefined() // lib pre-0.8.1.2 = cache pre-11.3
-                           ? fileNameForRoom(roomIt.key())
-                           : roomIt->toObject().value("$ref"_ls).toString()));
+                    + (roomIt->isObject() // lib 0.8.1.2 onwards = cache 11.3 onwards
+                           ? roomIt->toObject().value("$ref"_ls).toString()
+                           : fileNameForRoom(roomIt.key()))); // lib pre-0.8.1.2 = cache pre-11.3
                 if (roomJson.isEmpty()) {
                     unresolvedRoomIds.push_back(roomIt.key());
                     continue;
