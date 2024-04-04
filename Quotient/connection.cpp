@@ -343,7 +343,6 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
                 _impl::ConnectionEncryptionData::setup(q, mock)) {
             encryptionData = std::move(*maybeEncryptionData);
         } else {
-            Q_ASSERT(false);
             useEncryption = false;
             emit q->encryptionChanged(false);
         }
