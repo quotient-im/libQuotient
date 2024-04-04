@@ -930,11 +930,7 @@ CreateRoomJob* Connection::createDirectChat(const QString& userId,
 
     if (d->encryptDirectChats) {
         const auto encryptionContent = EncryptionEventContent(EncryptionType::MegolmV1AesSha2);
-        initialStateEvents.append(CreateRoomJob::StateEvent{
-            "m.room.encryption"_ls,
-            encryptionContent.toJson(),
-            {},
-        });
+        initialStateEvents.append({ EncryptionEvent::TypeId, encryptionContent.toJson() });
     }
 
     return createRoom(UnpublishRoom, {}, name, topic, { userId },
@@ -1808,7 +1804,7 @@ void Connection::enableDirectChatEncryption(bool enable)
 
 #ifdef Quotient_E2EE_ENABLED
     d->encryptDirectChats = enable;
-    emit encryptionChanged(enable);
+    emit directChatsEncryptionChanged(enable);
 #else
     Q_UNUSED(enable)
     qWarning(E2EE) << "The library is compiled without E2EE support, "
