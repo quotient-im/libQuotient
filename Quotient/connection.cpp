@@ -30,6 +30,7 @@
 #include "csapi/whoami.h"
 
 #include "events/directchatevent.h"
+#include "events/encryptionevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
@@ -925,8 +926,16 @@ CreateRoomJob* Connection::createDirectChat(const QString& userId,
                                             const QString& topic,
                                             const QString& name)
 {
+    QList<CreateRoomJob::StateEvent> initialStateEvents;
+
+    if (d->encryptDirectChats) {
+        const auto encryptionContent = EncryptionEventContent(EncryptionType::MegolmV1AesSha2);
+        initialStateEvents.append({ EncryptionEvent::TypeId, encryptionContent.toJson() });
+    }
+
     return createRoom(UnpublishRoom, {}, name, topic, { userId },
-                      QStringLiteral("trusted_private_chat"), {}, true);
+                      QStringLiteral("trusted_private_chat"), {}, true,
+                      initialStateEvents);
 }
 
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
@@ -1504,6 +1513,11 @@ void Connection::setEncryptionDefault(bool useByDefault)
 {
     Private::encryptionDefault = useByDefault;
 }
+
+void Connection::setDirectChatEncryptionDefault(bool useByDefault)
+{
+    Private::directChatEncryptionDefault = useByDefault;
+}
 #endif
 
 void Connection::setRoomFactory(room_factory_t f)
@@ -1774,6 +1788,27 @@ void Connection::enableEncryption(bool enable)
     Q_UNUSED(enable)
     qWarning(E2EE) << "The library is compiled without E2EE support, "
                       "enabling encryption has no effect";
+#endif
+}
+
+bool Connection::directChatEncryptionEnabled() const
+{
+    return d->encryptDirectChats;
+}
+
+void Connection::enableDirectChatEncryption(bool enable)
+{
+    if (enable == d->encryptDirectChats) {
+        return;
+    }
+
+#ifdef Quotient_E2EE_ENABLED
+    d->encryptDirectChats = enable;
+    emit directChatsEncryptionChanged(enable);
+#else
+    Q_UNUSED(enable)
+    qWarning(E2EE) << "The library is compiled without E2EE support, "
+                      "enabling encryption for direct chats has no effect";
 #endif
 }
 
