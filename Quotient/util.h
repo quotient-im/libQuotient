@@ -64,7 +64,7 @@ struct HashQ {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 2, 0)
         return qHash(s, uint(QHashSeed::globalSeed()));
 #else
-        return qHash(s, uint(qGlobalHashSeed());
+        return qHash(s, uint(qGlobalQHashSeed());
 #endif
     }
 };
