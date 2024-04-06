@@ -1783,7 +1783,7 @@ void Connection::enableEncryption(bool enable)
 
 #ifdef Quotient_E2EE_ENABLED
     d->useEncryption = enable;
-    emit directChatsEncryptionChanged(enable);
+    emit encryptionChanged(enable);
 #else
     Q_UNUSED(enable)
     qWarning(E2EE) << "The library is compiled without E2EE support, "
