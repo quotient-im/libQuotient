@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2017 Kitsune Ral <kitsune-ral@users.sf.net>
+// SPDX-FileCopyrightText: 2024 James Graham <james.h.graham@protonmail.com>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
 #pragma once
@@ -49,5 +50,16 @@ public:
         "m.room.aliases events are deprecated by the Matrix spec; use"
         " RoomCanonicalAliasEvent::altAliases() to get non-authoritative aliases")
     QStringList aliases() const { return content().value; }
+};
+
+class QUOTIENT_API RoomServerAclEvent : public StateEvent {
+public:
+    QUO_EVENT(RoomServerAclEvent, "m.room.server_acl")
+
+    using StateEvent::StateEvent;
+
+    QUO_CONTENT_GETTER(QStringList, allow)
+    QUO_CONTENT_GETTER(bool, allowIpLiterals)
+    QUO_CONTENT_GETTER(QStringList, deny)
 };
 } // namespace Quotient
