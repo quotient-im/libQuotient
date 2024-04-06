@@ -925,7 +925,7 @@ CreateRoomJob* Connection::createDirectChat(const QString& userId,
                                             const QString& topic,
                                             const QString& name)
 {
-    QList<CreateRoomJob::StateEvent> initialStateEvents;
+    QVector<CreateRoomJob::StateEvent> initialStateEvents;
 
     if (d->encryptDirectChats) {
         const auto encryptionContent = EncryptionEventContent(EncryptionType::MegolmV1AesSha2);

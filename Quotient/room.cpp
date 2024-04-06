@@ -2571,7 +2571,7 @@ void Room::Private::getPreviousContent(int limit, const QString& filter)
         if (!prevBatch)
             emit q->allHistoryLoadedChanged();
         changes |= updateStats(from, historyEdge());
-        if (changes != Change::None)
+        if (changes > 0)
             postprocessChanges(changes);
     });
     connect(eventsHistoryJob, &QObject::destroyed, q,
