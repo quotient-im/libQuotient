@@ -61,7 +61,11 @@ template <typename T>
 struct HashQ {
     size_t operator()(const T& s) const Q_DECL_NOEXCEPT
     {
-        return qHash(s, uint(qGlobalQHashSeed()));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 2, 0)
+        return qHash(s, uint(QHashSeed::globalSeed()));
+#else
+        return qHash(s, uint(qGlobalHashSeed());
+#endif
     }
 };
 /// A wrapper around std::unordered_map compatible with types that have qHash
