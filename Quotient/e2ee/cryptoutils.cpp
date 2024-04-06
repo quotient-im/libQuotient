@@ -322,3 +322,18 @@ std::vector<byte_t> Quotient::base58Decode(const QByteArray& encoded)
     std::reverse(result.begin(), result.end());
     return result;
 }
+
+QUOTIENT_API QByteArray Quotient::sign(const QByteArray& key, const QByteArray& data)
+{
+    auto context = makeCStruct(olm_pk_signing, olm_pk_signing_size, olm_clear_pk_signing);
+    Q_ASSERT(context);
+
+    const auto signatureLength = olm_pk_signature_length();
+    auto signatureBuffer = byteArrayForOlm(signatureLength);
+
+    if (olm_pk_sign(context.get(), (const uint8_t *) data.data(), unsignedSize(data), (uint8_t*) signatureBuffer.data(), signatureLength)
+        == olm_error())
+        QOLM_INTERNAL_ERROR_X("Failed to sign a message", olm_pk_signing_last_error(context.get()));
+
+    return signatureBuffer;
+}

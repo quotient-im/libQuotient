@@ -75,6 +75,8 @@ public:
     void storeEncrypted(const QString& name, const QByteArray& key);
     QByteArray loadEncrypted(const QString& name);
 
+    QString userSigningPublicKey();
+
 private:
     void migrateTo1();
     void migrateTo2();

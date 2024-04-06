@@ -182,7 +182,7 @@ void Database::migrateTo7()
     execute(QStringLiteral("CREATE TABLE user_signing_keys (userId TEXT, key TEXT);"));
     execute(QStringLiteral("INSERT INTO outdated_users SELECT * FROM tracked_users;"));
     execute(QStringLiteral("ALTER TABLE tracked_devices ADD selfVerified INTEGER;"));
-    execute(QStringLiteral("PRAGMA user_version = 6;"));
+    execute(QStringLiteral("PRAGMA user_version = 7;"));
 
     commit();
 }
@@ -552,4 +552,12 @@ void Database::setMasterKeyVerified(const QString& masterKey)
     transaction();
     execute(query);
     commit();
+}
+
+QString Database::userSigningPublicKey()
+{
+    auto query = prepareQuery(QStringLiteral("SELECT key FROM user_signing_keys WHERE userId=:userId;"));
+    query.bindValue(":userId"_ls, m_userId);
+    execute(query);
+    return query.next() ? query.value("key"_ls).toString() : QString();
 }

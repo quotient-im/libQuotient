@@ -16,6 +16,7 @@
 #include "converters.h"
 #include "database.h"
 #include "eventstats.h"
+#include "keyverificationsession.h"
 #include "qt_connection_util.h"
 #include "roommember.h"
 #include "roomstateview.h"
@@ -146,6 +147,8 @@ public:
     QPointer<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
     std::unordered_map<QString, QSet<QString>> undecryptedEvents;
+    //! Map from event id of the request event to the session object
+    QHash<QString, KeyVerificationSession *> keyVerificationSessions;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -2844,6 +2847,31 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         for (auto it = from; it != syncEdge(); ++it)
             if (const auto* evt = it->viewAs<CallEvent>())
                 emit q->callEvent(q, evt);
+
+    for (auto it = from; it != syncEdge(); ++it) {
+        //TODO is the order here reversed?
+        if (it->event()->senderId() == connection->userId()) {
+            continue;
+        }
+        if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
+            if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
+                auto session = new KeyVerificationSession(evt->senderId(), connection, q->usesEncryption(), {}, evt->contentPart<QStringList>("methods"_ls), evt->originTimestamp(), evt->contentPart<QString>("from_device"_ls), q, evt->id());
+                emit connection->newKeyVerificationSession(session);
+                //TODO connect delete from sessions when finished
+                keyVerificationSessions[evt->id()] = session;
+            }
+        }
+        if (it->event()->matrixType().startsWith("m.key.verification."_ls)) {
+            auto event = loadEvent<KeyVerificationEvent>(it->event()->fullJson());
+            const auto &baseEvent = event->contentJson()["m.relates_to"_ls]["event_id"_ls].toString();
+            if (event->matrixType() == "m.key.verification.done"_ls) {
+                continue;
+            }
+            if (keyVerificationSessions.contains(baseEvent)) {
+                keyVerificationSessions[baseEvent]->handleEvent(*event);
+            }
+        }
+    }
 
     if (totalInserted > 0) {
         addRelations(from, syncEdge());

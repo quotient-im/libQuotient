@@ -102,4 +102,6 @@ QUOTIENT_API SslExpected<QByteArray> aesCtr256Decrypt(
 
 QUOTIENT_API std::vector<byte_t> base58Decode(const QByteArray& encoded);
 
+QUOTIENT_API QByteArray sign(const QByteArray &key, const QByteArray &data);
+
 } // namespace Quotient
