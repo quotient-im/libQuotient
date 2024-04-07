@@ -167,7 +167,7 @@ class QUOTIENT_API Room : public QObject {
                    NOTIFY notificationCountChanged)
     Q_PROPERTY(EventStats partiallyReadStats READ partiallyReadStats NOTIFY partiallyReadStatsChanged)
     Q_PROPERTY(EventStats unreadStats READ unreadStats NOTIFY unreadStatsChanged)
-    Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY addedMessages
+    Q_PROPERTY(bool allHistoryLoaded READ allHistoryLoaded NOTIFY allHistoryLoadedChanged
                    STORED false)
     Q_PROPERTY(QStringList tagNames READ tagNames NOTIFY tagsChanged)
     Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged STORED false)
@@ -1049,6 +1049,7 @@ Q_SIGNALS:
     void unreadMessagesChanged(Quotient::Room* room);
     void partiallyReadStatsChanged();
     void unreadStatsChanged();
+    void allHistoryLoadedChanged();
 
     void accountDataAboutToChange(QString type);
     void accountDataChanged(QString type);

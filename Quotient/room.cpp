@@ -274,7 +274,7 @@ public:
     }
 
     Changes addNewMessageEvents(RoomEvents&& events);
-    void addHistoricalMessageEvents(RoomEvents&& events);
+    std::pair<Changes, rev_iter_t> addHistoricalMessageEvents(RoomEvents&& events);
 
     Changes updateStatsFromSyncData(const SyncRoomData &data, bool fromCache);
     void postprocessChanges(Changes changes, bool saveState = true);
@@ -2565,7 +2565,14 @@ void Room::Private::getPreviousContent(int limit, const QString& filter)
             prevBatch.reset();
         }
 
-        addHistoricalMessageEvents(eventsHistoryJob->chunk());
+        auto [changes, from] = addHistoricalMessageEvents(eventsHistoryJob->chunk());
+        // The following condition will only trigger once, next time getPreviousContent()
+        // will return without spawning GetRoomEventsJob
+        if (!prevBatch)
+            emit q->allHistoryLoadedChanged();
+        changes |= updateStats(from, historyEdge());
+        if (changes > 0)
+            postprocessChanges(changes);
     });
     connect(eventsHistoryJob, &QObject::destroyed, q,
             &Room::eventsHistoryJobChanged);
@@ -3147,14 +3154,14 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     return roomChanges;
 }
 
-void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
+std::pair<Room::Changes, Room::rev_iter_t> Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
 {
-    const auto timelineSize = timeline.size();
 
     dropExtraneousEvents(events);
     if (events.empty())
-        return;
+        return { Change::None, historyEdge() };
 
+    const auto timelineSize = timeline.size();
     decryptIncomingEvents(events);
 
     QElapsedTimer et;
@@ -3184,12 +3191,9 @@ void Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
     addRelations(from, historyEdge());
     Q_ASSERT(timeline.size() == timelineSize + insertedSize);
     if (insertedSize > 9 || et.nsecsElapsed() >= ProfilerMinNsecs)
-        qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to"
-                          << q->objectName() << "in" << et;
-
-    changes |= updateStats(from, historyEdge());
-    if (changes)
-        postprocessChanges(changes);
+        qCDebug(PROFILER) << "Added" << insertedSize << "historical event(s) to" << q->objectName()
+                          << "in" << et;
+    return { changes, from };
 }
 
 void Room::Private::preprocessStateEvent(const RoomEvent& newEvent,
