@@ -255,7 +255,7 @@ void TestManager::setupAndRun()
             }
             if (!running.empty()) {
                 clog << running.size() << " test(s) in the air:";
-                for (const auto& test: qAsConst(running))
+                for (const auto& test: std::as_const(running))
                     clog << " " << testName(test);
                 clog << endl;
             }
@@ -301,7 +301,7 @@ void TestManager::doTests()
                                   Q_ARG(QByteArray, testName));
     }
     clog << "Tests to do:";
-    for (const auto& test: qAsConst(running))
+    for (const auto& test: std::as_const(running))
         clog << " " << testName(test);
     clog << endl;
     connect(testSuite, &TestSuite::finishedItem, this,
@@ -913,14 +913,14 @@ void TestManager::conclude()
                          % "'>Testing complete</font></strong>, "_ls % succeededRec;
     if (!failed.empty()) {
         QByteArray failedList;
-        for (const auto& f : qAsConst(failed))
+        for (const auto& f : std::as_const(failed))
             failedList += ' ' + f;
         plainReport += "\nFAILED:"_ls + QString::fromUtf8(failedList);
         htmlReport += "<br><strong>Failed:</strong>"_ls + QString::fromUtf8(failedList);
     }
     if (!running.empty()) {
         QByteArray dnfList;
-        for (const auto& r : qAsConst(running))
+        for (const auto& r : std::as_const(running))
             dnfList += ' ' + r;
         plainReport += "\nDID NOT FINISH:"_ls + QString::fromUtf8(dnfList);
         htmlReport += "<br><strong>Did not finish:</strong>"_ls + QString::fromUtf8(dnfList);
