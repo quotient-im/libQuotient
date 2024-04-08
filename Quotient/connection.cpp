@@ -1840,6 +1840,12 @@ QString Connection::edKeyForUserDevice(const QString& userId,
         .keys["ed25519:"_ls + deviceId];
 }
 
+QString Connection::curveKeyForUserDevice(
+    const QString& userId, const QString& device) const
+{
+    return d->encryptionData->curveKeyForUserDevice(userId, device);
+}
+
 bool Connection::hasOlmSession(const QString& user,
                                const QString& deviceId) const
 {

@@ -561,3 +561,11 @@ QString Database::userSigningPublicKey()
     execute(query);
     return query.next() ? query.value("key"_ls).toString() : QString();
 }
+
+QString Database::selfSigningPublicKey()
+{
+    auto query = prepareQuery(QStringLiteral("SELECT key FROM self_signing_keys WHERE userId=:userId;"));
+    query.bindValue(":userId"_ls, m_userId);
+    execute(query);
+    return query.next() ? query.value("key"_ls).toString() : QString();
+}

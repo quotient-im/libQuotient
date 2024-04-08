@@ -494,10 +494,32 @@ void KeyVerificationSession::trustKeys()
     }
 
     if (m_pendingMasterKey.length() > 0) {
-        const auto userSigningKey = m_connection->database()->loadEncrypted("m.cross_signing.user_signing"_ls);
         if (m_remoteUserId == m_connection->userId()) {
-            if (!userSigningKey.isEmpty()) {
-                // TODO sign that device
+            const auto selfSigningKey = m_connection->database()->loadEncrypted("m.cross_signing.self_signing"_ls);
+            if (!selfSigningKey.isEmpty()) {
+                QHash<QString, QHash<QString, QJsonObject>> signatures;
+                auto json = QJsonObject {
+                    {"keys"_ls, QJsonObject {
+                        {"ed25519:"_ls + m_remoteDeviceId, m_connection->edKeyForUserDevice(m_remoteUserId, m_remoteDeviceId)},
+                        {"curve25519:"_ls + m_remoteDeviceId, m_connection->curveKeyForUserDevice(m_remoteUserId, m_remoteDeviceId)},
+                    }},
+                    {"algorithms"_ls, QJsonArray {"m.olm.v1.curve25519-aes-sha2"_ls, "m.megolm.v1.aes-sha2"_ls}},
+                    {"device_id"_ls, m_remoteDeviceId},
+                    {"user_id"_ls, m_remoteUserId},
+                };
+                auto signature = sign(selfSigningKey, QJsonDocument(json).toJson(QJsonDocument::Compact));
+                json["signatures"_ls] = QJsonObject {
+                    {m_connection->userId(), QJsonObject {
+                        {"ed25519:"_ls + m_connection->database()->selfSigningPublicKey(), QString::fromLatin1(signature)},
+                    }},
+                };
+                signatures[m_remoteUserId][m_remoteDeviceId] = json;
+                qWarning() << json;
+                auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
+                connect(uploadSignatureJob, &BaseJob::finished, m_connection /*FIXME*/, [=](){
+                    qWarning() << uploadSignatureJob->jsonData();
+                    //TODO error handling
+                });
             } else {
                 // Not parenting to this since the session is going to be destroyed soon
                 // TODO: Delete the handler once it's finished
@@ -505,28 +527,29 @@ void KeyVerificationSession::trustKeys()
                 handler->setConnection(m_connection);
                 handler->unlockSSSSFromCrossSigning();
             }
-        } else if (!userSigningKey.isEmpty()) {
-            QHash<QString, QHash<QString, QJsonObject>> signatures;
-            auto json = QJsonObject {
-                {"keys"_ls, QJsonObject {
-                    {"ed25519:"_ls + m_pendingMasterKey, m_pendingMasterKey},
-                }},
-                {"usage"_ls, QJsonArray {"master"_ls}},
-                {"user_id"_ls, m_remoteUserId},
-            };
-            auto signature = sign(userSigningKey, QJsonDocument(json).toJson(QJsonDocument::Compact));
-            json["signatures"_ls] = QJsonObject {
-                {m_connection->userId(), QJsonObject {
-                    {"ed25519:"_ls + m_connection->database()->userSigningPublicKey(), QString::fromLatin1(signature)},
-                }},
-            };
-            signatures[m_remoteUserId][m_pendingMasterKey] = json;
-            auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
-            connect(uploadSignatureJob, &BaseJob::finished, m_connection /*FIXME*/, [=](){
-                //TODO error handling
-            });
         } else {
-            // TODO store the master key to be signed when the user signing key is available (maybe?)
+            const auto userSigningKey = m_connection->database()->loadEncrypted("m.cross_signing.user_signing"_ls);
+            if (!userSigningKey.isEmpty()) {
+                QHash<QString, QHash<QString, QJsonObject>> signatures;
+                auto json = QJsonObject {
+                    {"keys"_ls, QJsonObject {
+                        {"ed25519:"_ls + m_pendingMasterKey, m_pendingMasterKey},
+                    }},
+                    {"usage"_ls, QJsonArray {"master"_ls}},
+                    {"user_id"_ls, m_remoteUserId},
+                };
+                auto signature = sign(userSigningKey, QJsonDocument(json).toJson(QJsonDocument::Compact));
+                json["signatures"_ls] = QJsonObject {
+                    {m_connection->userId(), QJsonObject {
+                        {"ed25519:"_ls + m_connection->database()->userSigningPublicKey(), QString::fromLatin1(signature)},
+                    }},
+                };
+                signatures[m_remoteUserId][m_pendingMasterKey] = json;
+                auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
+                connect(uploadSignatureJob, &BaseJob::finished, m_connection /*FIXME*/, [=](){
+                    //TODO error handling
+                });
+            }
         }
         emit m_connection->userVerified(m_remoteUserId);
     }

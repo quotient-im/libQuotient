@@ -362,6 +362,8 @@ public:
 
     QString edKeyForUserDevice(const QString& userId,
                                const QString& deviceId) const;
+    QString curveKeyForUserDevice(const QString& userId,
+                                const QString& device) const;
     bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
     // This assumes that an olm session already exists. If it doesn't, no message is sent.
