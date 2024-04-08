@@ -10,6 +10,7 @@
 #include "room.h"
 
 #include "e2ee/cryptoutils.h"
+#include "e2ee/sssshandler.h"
 #include "e2ee/qolmaccount.h"
 
 #include "events/event.h"
@@ -388,11 +389,13 @@ void KeyVerificationSession::sendStartSas()
     startSentByUs = true;
     KeyVerificationStartEvent event(m_transactionId, m_connection->deviceId());
     auto fixedJson = event.contentJson();
-    fixedJson.remove("transaction_id"_ls);
-    fixedJson["m.relates_to"_ls] = QJsonObject {
-        {"event_id"_ls, m_requestEventId},
-        {"rel_type"_ls, "m.reference"_ls},
-    };
+    if (m_room) {
+        fixedJson.remove("transaction_id"_ls);
+        fixedJson["m.relates_to"_ls] = QJsonObject {
+            {"event_id"_ls, m_requestEventId},
+            {"rel_type"_ls, "m.reference"_ls},
+        };
+    }
     m_startEvent = QString::fromUtf8(
         QJsonDocument(fixedJson).toJson(QJsonDocument::Compact));
     sendEvent(m_remoteUserId, m_remoteDeviceId, event,
@@ -496,7 +499,11 @@ void KeyVerificationSession::trustKeys()
             if (!userSigningKey.isEmpty()) {
                 // TODO sign that device
             } else {
-                //TODO open ssss, if the other device is CS verified
+                // Not parenting to this since the session is going to be destroyed soon
+                // TODO: Delete the handler once it's finished
+                auto handler = new SSSSHandler(m_connection);
+                handler->setConnection(m_connection);
+                handler->unlockSSSSFromCrossSigning();
             }
         } else if (!userSigningKey.isEmpty()) {
             QHash<QString, QHash<QString, QJsonObject>> signatures;
@@ -516,7 +523,7 @@ void KeyVerificationSession::trustKeys()
             signatures[m_remoteUserId][m_pendingMasterKey] = json;
             auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
             connect(uploadSignatureJob, &BaseJob::finished, m_connection /*FIXME*/, [=](){
-                //TODO fix signature
+                //TODO error handling
             });
         } else {
             // TODO store the master key to be signed when the user signing key is available (maybe?)
@@ -661,7 +668,7 @@ void KeyVerificationSession::sendEvent(const QString &userId, const QString &dev
             m_room->postJson(event.matrixType(), json);
         }
     } else {
-        sendEvent(userId, deviceId, event, encrypted);
+        m_connection->sendToDevice(userId, deviceId, event, encrypted);
     }
 }
 
