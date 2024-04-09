@@ -55,7 +55,8 @@ constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
     { "m.file"_ls, MsgType::File, make<FileContent> },
     { "m.location"_ls, MsgType::Location, make<LocationContent> },
     { "m.video"_ls, MsgType::Video, make<VideoContent> },
-    { "m.audio"_ls, MsgType::Audio, make<AudioContent> }
+    { "m.audio"_ls, MsgType::Audio, make<AudioContent> },
+    { "m.key.verification.request"_ls , MsgType::Text, make<TextContent> },
 });
 
 QString msgTypeToJson(MsgType enumType)

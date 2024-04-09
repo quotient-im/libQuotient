@@ -1995,3 +1995,29 @@ QStringList Connection::accountDataEventTypes() const
     }
     return events;
 }
+
+void Connection::startSelfVerification()
+{
+    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=1;"_ls);
+    query.bindValue(":matrixId"_ls, userId());
+    database()->execute(query);
+    QStringList devices;
+    while(query.next()) {
+        auto id = query.value("deviceId"_ls).toString();
+        if (id != deviceId()) {
+            devices += id;
+        }
+    }
+    for (const auto &device : devices) {
+        auto session = new KeyVerificationSession(userId(), device, this);
+        d->encryptionData->verificationSessions[session->transactionId()] = session;
+        connectUntil(this, &Connection::keyVerificationStateChanged, this, [session, this](const auto &changedSession, const auto state){
+            if (changedSession->transactionId() == session->transactionId() && state != KeyVerificationSession::CANCELED) {
+                emit newKeyVerificationSession(session);
+                return true;
+            }
+            return state == KeyVerificationSession::CANCELED;
+        });
+    }
+    //TODO cancel other sessions after one was accepted
+}

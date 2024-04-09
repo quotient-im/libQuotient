@@ -118,6 +118,22 @@ KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
     QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
 }
 
+KeyVerificationSession::KeyVerificationSession(Room *room)
+    : QObject(room->connection())
+    , m_remoteUserId(room->members()[0].isLocalMember() ? room->members()[1].id() : room->members()[0].id())
+    , m_remoteDeviceId(QString())
+    , m_connection(room->connection())
+    , m_encrypted(false)
+    , m_room(room)
+{
+    if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+        qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        return;
+    }
+    setupTimeout(600s);
+    QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
+}
+
 void KeyVerificationSession::setupTimeout(milliseconds timeout)
 {
     QTimer::singleShot(timeout, this, [this] { cancelVerification(TIMEOUT); });
@@ -409,6 +425,11 @@ void KeyVerificationSession::handleReady(const KeyVerificationReadyEvent& event)
     m_remoteSupportedMethods = event.methods();
     auto methods = commonSupportedMethods(m_remoteSupportedMethods);
 
+    // This happens for outgoing user verification
+    if (m_remoteDeviceId.isEmpty()) {
+        m_remoteDeviceId = event.fromDevice();
+    }
+
     if (methods.isEmpty())
         cancelVerification(UNKNOWN_METHOD);
     else if (methods.size() == 1)
@@ -514,10 +535,8 @@ void KeyVerificationSession::trustKeys()
                     }},
                 };
                 signatures[m_remoteUserId][m_remoteDeviceId] = json;
-                qWarning() << json;
                 auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
                 connect(uploadSignatureJob, &BaseJob::finished, m_connection /*FIXME*/, [=](){
-                    qWarning() << uploadSignatureJob->jsonData();
                     //TODO error handling
                 });
             } else {
@@ -682,6 +701,8 @@ void KeyVerificationSession::sendEvent(const QString &userId, const QString &dev
         json.remove("transaction_id"_ls);
         if (event.metaType().matrixId == KeyVerificationRequestEvent::TypeId) {
             json["msgtype"_ls] = event.matrixType();
+            json["body"_ls] = QStringLiteral("%1 sent a verification request").arg(m_connection->userId());
+            json["to"_ls] = m_remoteUserId;
             m_room->postJson("m.room.message"_ls, json);
         } else {
             json["m.relates_to"_ls] = QJsonObject {
@@ -698,4 +719,9 @@ void KeyVerificationSession::sendEvent(const QString &userId, const QString &dev
 bool KeyVerificationSession::userVerification() const
 {
     return m_room;
+}
+
+void KeyVerificationSession::setRequestEventId(const QString& eventId)
+{
+    m_requestEventId = eventId;
 }

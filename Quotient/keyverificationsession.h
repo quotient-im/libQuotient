@@ -100,6 +100,9 @@ public:
                            const QStringList& methods, const QDateTime& timestamp,
                            const QString& deviceId, Quotient::Room *room, const QString &requestEventId);
 
+    // Use this constructor for starting an in-room verification
+    explicit KeyVerificationSession(Room *room);
+
     void handleEvent(const KeyVerificationEvent& baseEvent);
 
     QVector<EmojiEntry> sasEmojis() const;
@@ -110,6 +113,8 @@ public:
     QString remoteDeviceId() const;
     QString transactionId() const;
     bool userVerification() const;
+
+    void setRequestEventId(const QString &eventId);
 
 public Q_SLOTS:
     void sendRequest();
@@ -129,7 +134,7 @@ Q_SIGNALS:
 
 private:
     const QString m_remoteUserId;
-    const QString m_remoteDeviceId;
+    QString m_remoteDeviceId;
     const QString m_transactionId;
     Connection* m_connection;
     bool m_encrypted;

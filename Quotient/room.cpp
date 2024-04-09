@@ -149,6 +149,7 @@ public:
     std::unordered_map<QString, QSet<QString>> undecryptedEvents;
     //! Map from event id of the request event to the session object
     QHash<QString, KeyVerificationSession *> keyVerificationSessions;
+    KeyVerificationSession *pendingKeyVerificationSession = nullptr;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -2851,7 +2852,16 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     for (auto it = from; it != syncEdge(); ++it) {
         //TODO is the order here reversed?
         if (it->event()->senderId() == connection->userId()) {
-            continue;
+            if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
+                if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
+                    keyVerificationSessions[evt->id()] = pendingKeyVerificationSession;
+                    pendingKeyVerificationSession->setRequestEventId(evt->id());
+                    pendingKeyVerificationSession = nullptr;
+                }
+                continue;
+            } else {
+                continue;
+            }
         }
         if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
             if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
@@ -2869,7 +2879,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
             if (keyVerificationSessions.contains(baseEvent)) {
                 keyVerificationSessions[baseEvent]->handleEvent(*event);
-            }
+            } else qWarning() << "unknown session";
         }
     }
 
@@ -3438,4 +3448,13 @@ void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteAr
                                 : QByteArrayLiteral("BACKUP"));
     session.setSenderId("BACKUP"_ls);
     d->connection->saveMegolmSession(this, session);
+}
+
+void Room::startVerification()
+{
+    if (joinedMembers().count() != 2) {
+        return;
+    }
+    d->pendingKeyVerificationSession = new KeyVerificationSession(this);
+    emit d->connection->newKeyVerificationSession(d->pendingKeyVerificationSession);
 }
