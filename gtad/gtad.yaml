@@ -95,62 +95,27 @@ analyzer:
   - +set: { avoidCopy: }
     +on:
     - object: &QJsonObject { type: QJsonObject }
-    - $ref:
-      - +set:
-          moveOnly:
-        +on:
-        - /state_event.yaml$/:
-            type: StateEventPtr
-            imports: '<Quotient/events/stateevent.h>'
-        - /(room|client)_event.yaml$/:
-            type: RoomEventPtr
-            imports: '<Quotient/events/roomevent.h>'
-        - /event(_without_room_id)?.yaml$/:
-            type: EventPtr
-            imports: '<Quotient/events/event.h>'
-      - +set:
-          # This renderer applies to everything actually $ref'ed
-          # (not substituted)
-          _importRenderer: '<Quotient/{{#segments}}{{_}}{{#_join}}/{{/_join}}{{/segments}}.h>'
-        +on:
-        - '/^(\./)?definitions/request_email_validation.yaml$/':
-            title: EmailValidationData
-        - '/^(\./)?definitions/request_msisdn_validation.yaml$/':
-            title: MsisdnValidationData
-        - /_filter.yaml$/: # Event/RoomEventFilters do NOT need Omittable<>
-
-          # Despite being used in two calls, it's more practical to have those
-          # fields available as getters right from the respective job classes
-        - /public_rooms_response.yaml$/: { _inline: true }
-
-          # list_public_rooms.yaml (via public_rooms_response.yaml) and
-          # space_hierarchy.yaml use public_rooms_chunk.yaml as a common base
-          # structure, adding (space_hiearchy) or overriding
-          # (public_rooms_response) fields for their purposes. The spec text
-          # confusingly ends up with having two different structures named
-          # "PublicRoomsChunk". To make sure the types are distinct in
-          # libQuotient, this common base is inlined into the actually used
-          # data structures (that have distinct names) defined
-          # in space_hierarchy.h and public_rooms_response.h, respectively
-        - /public_rooms_chunk.yaml$/: { _inline: true }
-        - //: *UseOmittable # Also apply "avoidCopy" to all other ref'ed types
     - schema:
+      - RequestEmailValidation:
+          title: EmailValidationData
+      - RequestMsisdnValidation:
+          title: MsisdnValidationData
       - getTurnServer<: *QJsonObject # It's used as an opaque JSON object
+      - StrippedChildStateEvent: void # only used in an array, see below
 #      - defineFilter>: &Filter # Force folding into a structure
 #          type: Filter
 #          imports: '"csapi/definitions/sync_filter.h"'
 #      - getFilter<: *Filter
-      - StrippedChildStateEvent: void # only used in an array, see below
-      - RoomFilter: # A structure inside Filter, same story as with *_filter.yaml
       - OneTimeKeys:
           type: OneTimeKeys
           imports: '<Quotient/e2ee/e2ee_common.h>'
+      - /(Room|Event|RoomEvent)Filter$/: # These do not need Omittable<>
       - //: *UseOmittable
     - array:
       - /^string(,null)?$/: QStringList
       - +set: { moveOnly: }
         +on:
-        - /^Notification|Result|ChildRoomsChunk$/: "std::vector<{{1}}>"
+        - /^Notification|Result|SpaceHierarchyRoomsChunk$/: "std::vector<{{1}}>"
         - /^StrippedChildStateEvent$|state_event.yaml$/:
             type: StateEvents
             imports: '<Quotient/events/stateevent.h>' # For StrippedChildStateEvent
@@ -167,6 +132,38 @@ analyzer:
       - /^string,null|null,string$/: *QString
       - //: QVariant
 
+  references:
+    # This renderer applies to everything actually imported (not substituted/inlined)
+    importRenderer: '<Quotient/{{#segments}}{{_}}{{#_join}}/{{/_join}}{{/segments}}.h>'
+    inline:
+    # Inline whatever is used from the identity spec
+    - /identity/definitions/
+    # Despite being used in two calls, it's more practical to have those
+    # fields available as getters right from the respective job classes
+    - /public_rooms_response.yaml$/
+    # public_rooms_response.yaml uses public_rooms_chunk.yaml as a base structure, overriding
+    # one field to update its description. Unfortunately, GTAD cannot handle overriding fields
+    # quite well on its own (you can have two fields with the same name in the base class
+    # and in the derived class but that's inefficient and very confusing). Since
+    # public_rooms_chunk.yaml is only used in one other place (space_hierarchy.yaml), it's
+    # not terribly bad to just inline it for now; and eventually, GTAD will have to learn
+    # how to automatically flatten and override structures like this.
+    - /public_rooms_chunk.yaml$/
+    - /relations.yaml#/components/schemas/response/
+
+    replace:
+    - +set: { moveOnly: }
+      +on:
+      - /state_event.yaml$/:
+          type: StateEventPtr
+          imports: '<Quotient/events/stateevent.h>'
+      - /(room|client)_event.yaml$/:
+          type: RoomEventPtr
+          imports: '<Quotient/events/roomevent.h>'
+      - /event(_without_room_id)?.yaml$/:
+          type: EventPtr
+          imports: '<Quotient/events/event.h>'
+
   #operations:
 
 mustache:
@@ -181,7 +178,7 @@ mustache:
     copyrightEmail: <kitsune-ral@users.sf.net>
 
   partials:
-    _typeRenderer: "{{#scope}}{{scopeCamelCase}}Job::{{/scope}}{{>name}}"
+    _typeRenderer: "{{#scope}}{{#_titleCase}}{{scope}}{{/_titleCase}}Job::{{/scope}}{{>name}}"
     omittedValue: '{}' # default value to initialize omitted parameters with
     initializer: '{{defaultValue}}'
     cjoin: '{{#hasMore}}, {{/hasMore}}'
@@ -222,10 +219,12 @@ mustache:
       {{^required?}} = {{>paramDefaultValue}}{{/required?}}{{>cjoin}}
     joinedParamDef: "{{>maybeCrefType}} {{paramName}}{{>cjoin}}"
 
+    titleCaseOperationId: '{{#_titleCase}}{{operationId}}{{/_titleCase}}'
+
     passPathAndMaybeQuery: >-
       makePath("{{basePathWithoutHost}}"{{#pathParts}},
       {{_}}{{/pathParts}}){{#queryParams?}},
-      queryTo{{camelCaseOperationId}}(
+      queryTo{{>titleCaseOperationId}}(
       {{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}){{/queryParams?}}
 
     nonInlineResponseSignature: |-

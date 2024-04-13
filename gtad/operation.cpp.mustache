@@ -8,7 +8,7 @@ using namespace Quotient;
 {{#operations}}{{#operation}}
     {{#queryParams?}}
 
-auto queryTo{{camelCaseOperationId}}(
+auto queryTo{{>titleCaseOperationId}}(
             {{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
 {
     QUrlQuery _q;{{#queryParams}}
@@ -19,16 +19,16 @@ auto queryTo{{camelCaseOperationId}}(
     {{/queryParams?}}
     {{^hasBody?}}
 
-QUrl {{camelCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}},
+QUrl {{>titleCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}},
         {{#allParams}}{{>joinedParamDef}}{{/allParams}}{{/allParams?}})
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl), {{>passPathAndMaybeQuery}});
 }   {{/hasBody?}}
 
-{{camelCaseOperationId}}Job::{{camelCaseOperationId}}Job(
+{{>titleCaseOperationId}}Job::{{>titleCaseOperationId}}Job(
         {{#allParams}}{{>joinedParamDef}}{{/allParams}})
-    : BaseJob(HttpVerb::{{#_cap}}{{#_tolower}}{{httpMethod}}{{/_tolower}}{{/_cap}},
-            {{!object name}}QStringLiteral("{{camelCaseOperationId}}Job"),
+    : BaseJob(HttpVerb::{{#_titleCase}}{{httpMethod}}{{/_titleCase}},
+            {{!object name}}QStringLiteral("{{>titleCaseOperationId}}Job"),
             {{>passPathAndMaybeQuery}}
         {{#skipAuth}}{{#queryParams?}}, {}{{/queryParams?}}, false{{/skipAuth}} )
 {   {{#headerParams}}
