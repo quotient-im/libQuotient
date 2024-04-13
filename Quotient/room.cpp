@@ -3689,11 +3689,7 @@ bool MemberSorter::operator()(const RoomMember& u1, QStringView u2name) const
     auto n1 = u1.displayName();
     if (n1.startsWith(u'@'))
         n1.remove(0, 1);
-    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)
-#if QT_VERSION_MAJOR < 6
-        .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
-#endif
-        ;
+    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0);
 
     return n1.localeAwareCompare(n2) < 0;
 }
