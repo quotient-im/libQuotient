@@ -53,9 +53,25 @@ public:
     //!   will be returned in chronological order starting at `from`. If it
     //!   is set to `b`, events will be returned in *reverse* chronological
     //!   order, again starting at `from`.
+    //!
+    //! \param recurse
+    //!   Whether to additionally include events which only relate indirectly to the
+    //!   given event, i.e. events related to the given event via two or more direct relationships.
+    //!
+    //!   If set to `false`, only events which have direct a relation with the given
+    //!   event will be included.
+    //!
+    //!   If set to `true`, all events which relate to the given event, or relate to
+    //!   events that relate to the given event, will be included.
+    //!
+    //!   It is recommended that homeservers traverse at least 3 levels of relationships.
+    //!   Implementations may perform more but should be careful to not infinitely recurse.
+    //!
+    //!   The default value is `false`.
     explicit GetRelatingEventsJob(const QString& roomId, const QString& eventId,
                                   const QString& from = {}, const QString& to = {},
-                                  Omittable<int> limit = none, const QString& dir = {});
+                                  Omittable<int> limit = none, const QString& dir = {},
+                                  Omittable<bool> recurse = none);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
@@ -63,12 +79,10 @@ public:
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
                                const QString& from = {}, const QString& to = {},
-                               Omittable<int> limit = none, const QString& dir = {});
+                               Omittable<int> limit = none, const QString& dir = {},
+                               Omittable<bool> recurse = none);
 
     // Result properties
-
-    //! The child events of the requested event, ordered topologically most-recent first.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means there are no more results to fetch and the client should stop paginating.
@@ -77,6 +91,17 @@ public:
     //! An opaque string representing a pagination token. The absence of this token
     //! means this is the start of the result set, i.e. this is the first batch/page.
     QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+
+    //! If the `recurse` parameter was supplied by the client, this response field is
+    //! mandatory and gives the actual depth to which the server recursed. If the client
+    //! did not specify the `recurse` parameter, this field must be absent.
+    Omittable<int> recursionDepth() const
+    {
+        return loadFromJson<Omittable<int>>("recursion_depth"_ls);
+    }
+
+    //! The child events of the requested event, ordered topologically most-recent first.
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 };
 
 //! \brief Get the child events for a given parent event, with a given `relType`.
@@ -129,10 +154,26 @@ public:
     //!   will be returned in chronological order starting at `from`. If it
     //!   is set to `b`, events will be returned in *reverse* chronological
     //!   order, again starting at `from`.
+    //!
+    //! \param recurse
+    //!   Whether to additionally include events which only relate indirectly to the
+    //!   given event, i.e. events related to the given event via two or more direct relationships.
+    //!
+    //!   If set to `false`, only events which have direct a relation with the given
+    //!   event will be included.
+    //!
+    //!   If set to `true`, all events which relate to the given event, or relate to
+    //!   events that relate to the given event, will be included.
+    //!
+    //!   It is recommended that homeservers traverse at least 3 levels of relationships.
+    //!   Implementations may perform more but should be careful to not infinitely recurse.
+    //!
+    //!   The default value is `false`.
     explicit GetRelatingEventsWithRelTypeJob(const QString& roomId, const QString& eventId,
                                              const QString& relType, const QString& from = {},
                                              const QString& to = {}, Omittable<int> limit = none,
-                                             const QString& dir = {});
+                                             const QString& dir = {},
+                                             Omittable<bool> recurse = none);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
@@ -141,14 +182,9 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
                                const QString& relType, const QString& from = {},
                                const QString& to = {}, Omittable<int> limit = none,
-                               const QString& dir = {});
+                               const QString& dir = {}, Omittable<bool> recurse = none);
 
     // Result properties
-
-    //! The child events of the requested event, ordered topologically
-    //! most-recent first. The events returned will match the `relType`
-    //! supplied in the URL.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means there are no more results to fetch and the client should stop paginating.
@@ -157,6 +193,19 @@ public:
     //! An opaque string representing a pagination token. The absence of this token
     //! means this is the start of the result set, i.e. this is the first batch/page.
     QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+
+    //! If the `recurse` parameter was supplied by the client, this response field is
+    //! mandatory and gives the actual depth to which the server recursed. If the client
+    //! did not specify the `recurse` parameter, this field must be absent.
+    Omittable<int> recursionDepth() const
+    {
+        return loadFromJson<Omittable<int>>("recursion_depth"_ls);
+    }
+
+    //! The child events of the requested event, ordered topologically
+    //! most-recent first. The events returned will match the `relType`
+    //! supplied in the URL.
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 };
 
 //! \brief Get the child events for a given parent event, with a given `relType` and `eventType`.
@@ -215,10 +264,25 @@ public:
     //!   will be returned in chronological order starting at `from`. If it
     //!   is set to `b`, events will be returned in *reverse* chronological
     //!   order, again starting at `from`.
+    //!
+    //! \param recurse
+    //!   Whether to additionally include events which only relate indirectly to the
+    //!   given event, i.e. events related to the given event via two or more direct relationships.
+    //!
+    //!   If set to `false`, only events which have direct a relation with the given
+    //!   event will be included.
+    //!
+    //!   If set to `true`, all events which relate to the given event, or relate to
+    //!   events that relate to the given event, will be included.
+    //!
+    //!   It is recommended that homeservers traverse at least 3 levels of relationships.
+    //!   Implementations may perform more but should be careful to not infinitely recurse.
+    //!
+    //!   The default value is `false`.
     explicit GetRelatingEventsWithRelTypeAndEventTypeJob(
         const QString& roomId, const QString& eventId, const QString& relType,
         const QString& eventType, const QString& from = {}, const QString& to = {},
-        Omittable<int> limit = none, const QString& dir = {});
+        Omittable<int> limit = none, const QString& dir = {}, Omittable<bool> recurse = none);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
@@ -227,14 +291,10 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
                                const QString& relType, const QString& eventType,
                                const QString& from = {}, const QString& to = {},
-                               Omittable<int> limit = none, const QString& dir = {});
+                               Omittable<int> limit = none, const QString& dir = {},
+                               Omittable<bool> recurse = none);
 
     // Result properties
-
-    //! The child events of the requested event, ordered topologically most-recent
-    //! first. The events returned will match the `relType` and `eventType` supplied
-    //! in the URL.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means there are no more results to fetch and the client should stop paginating.
@@ -243,6 +303,19 @@ public:
     //! An opaque string representing a pagination token. The absence of this token
     //! means this is the start of the result set, i.e. this is the first batch/page.
     QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+
+    //! If the `recurse` parameter was supplied by the client, this response field is
+    //! mandatory and gives the actual depth to which the server recursed. If the client
+    //! did not specify the `recurse` parameter, this field must be absent.
+    Omittable<int> recursionDepth() const
+    {
+        return loadFromJson<Omittable<int>>("recursion_depth"_ls);
+    }
+
+    //! The child events of the requested event, ordered topologically most-recent
+    //! first. The events returned will match the `relType` and `eventType` supplied
+    //! in the URL.
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
 };
 
 } // namespace Quotient

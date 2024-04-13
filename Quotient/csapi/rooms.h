@@ -138,6 +138,7 @@ public:
     struct RoomMember {
         //! The display name of the user this object is representing.
         QString displayName{};
+
         //! The avatar of the user this object is representing, as an [`mxc://`
         //! URI](/client-server-api/#matrix-content-mxc-uris).
         QUrl avatarUrl{};

@@ -74,13 +74,14 @@ RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
 }
 
 DeactivateAccountJob::DeactivateAccountJob(const Omittable<AuthenticationData>& auth,
-                                           const QString& idServer)
+                                           const QString& idServer, Omittable<bool> erase)
     : BaseJob(HttpVerb::Post, QStringLiteral("DeactivateAccountJob"),
               makePath("/_matrix/client/v3", "/account/deactivate"))
 {
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
     addParam<IfNotEmpty>(_dataJson, QStringLiteral("id_server"), idServer);
+    addParam<IfNotEmpty>(_dataJson, QStringLiteral("erase"), erase);
     setRequestData({ _dataJson });
     addExpectedKey("id_server_unbind_result");
 }

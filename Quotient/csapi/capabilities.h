@@ -24,6 +24,7 @@ public:
     struct RoomVersionsCapability {
         //! The default room version the server is using for new rooms.
         QString defaultVersion;
+
         //! A detailed description of the room versions the server supports.
         QHash<QString, QString> available;
     };
@@ -33,6 +34,7 @@ public:
     struct Capabilities {
         //! Capability to indicate if the user can change their password.
         Omittable<ChangePasswordCapability> changePassword{};
+
         //! The room versions the server supports.
         Omittable<RoomVersionsCapability> roomVersions{};
 

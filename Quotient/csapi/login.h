@@ -21,6 +21,7 @@ public:
         //! The login type. This is supplied as the `type` when
         //! logging in.
         QString type;
+
         //! If `type` is `m.login.token`, an optional field to indicate
         //! to the unauthenticated client that the homeserver supports
         //! the [`POST /login/get_token`](/client-server-api/#post_matrixclientv1loginget_token)

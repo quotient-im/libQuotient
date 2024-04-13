@@ -28,11 +28,14 @@ public:
     struct ThirdPartyIdentifier {
         //! The medium of the third-party identifier.
         QString medium;
+
         //! The third-party identifier address.
         QString address;
+
         //! The timestamp, in milliseconds, when the identifier was
         //! validated by the identity server.
         qint64 validatedAt;
+
         //! The timestamp, in milliseconds, when the homeserver associated the third-party
         //! identifier with the user.
         qint64 addedAt;
@@ -87,12 +90,15 @@ public:
     struct ThreePidCredentials {
         //! The client secret used in the session with the identity server.
         QString clientSecret;
+
         //! The identity server to use.
         QString idServer;
+
         //! An access token previously registered with the identity server. Servers
         //! can treat this as optional to distinguish between r0.5-compatible clients
         //! and this specification version.
         QString idAccessToken;
+
         //! The session identifier given by the identity server.
         QString sid;
     };
