@@ -37,7 +37,6 @@ jobs:
           qt-version: '6.4'
           override-compiler: GCC
           e2ee: e2ee
-          update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
         - os: ubuntu-22.04
           qt-version: '6.4'
