@@ -29,7 +29,7 @@ public:
 
     //! Decrypts a message using this session. Decoding is lossy, meaning if
     //! the decrypted plaintext contains invalid UTF-8 symbols, they will
-    //! be returned as `U+FFFD` (�).
+    //! be returned as `U+FFFD`.
     QOlmExpected<QByteArray> decrypt(const QOlmMessage &message) const;
 
     //! Get a base64-encoded identifier for this session.

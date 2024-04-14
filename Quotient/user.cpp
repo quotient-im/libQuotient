@@ -168,9 +168,9 @@ void User::removeAvatar()
 
 void User::requestDirectChat() { connection()->requestDirectChat(this); }
 
-void User::ignore() { connection()->addToIgnoredUsers(this); }
+void User::ignore() { connection()->addToIgnoredUsers(d->id); }
 
-void User::unmarkIgnore() { connection()->removeFromIgnoredUsers(this); }
+void User::unmarkIgnore() { connection()->removeFromIgnoredUsers(d->id); }
 
 bool User::isIgnored() const { return connection()->isIgnored(this); }
 
@@ -200,12 +200,12 @@ QImage User::avatar(int width, int height, const Room* room,
 
 QString User::avatarMediaId(const Room* room) const
 {
-    return avatarObject(room).mediaId();
+    QT_IGNORE_DEPRECATIONS(return avatarObject(room).mediaId();)
 }
 
 QUrl User::avatarUrl(const Room* room) const
 {
-    return avatarObject(room).url();
+    QT_IGNORE_DEPRECATIONS(return avatarObject(room).url();)
 }
 
 qreal User::hueF() const { return d->hueF; }

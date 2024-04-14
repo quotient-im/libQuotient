@@ -459,15 +459,26 @@ struct DownloadRunner {
 
     using result_type = QNetworkReply::NetworkError;
 
+    void runRequest(QScopedPointer<QNetworkReply, QScopedPointerDeleteLater>& r,
+                    QEventLoop& el) const
+    {
+        r.reset(NetworkAccessManager::instance()->get(QNetworkRequest(url)));
+        QObject::connect(
+            r.data(), &QNetworkReply::finished, &el,
+            [this, &r, &el] {
+                if (r->error() != QNetworkReply::NoError)
+                    runRequest(r, el);
+                else
+                    el.exit();
+            },
+            Qt::QueuedConnection);
+    }
+
     QNetworkReply::NetworkError operator()(int) const
     {
-        QEventLoop el;
-        QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply {
-            NetworkAccessManager::instance()->get(QNetworkRequest(url))
-        };
-        QObject::connect(
-            reply.data(), &QNetworkReply::finished, &el, [&el] { el.exit(); },
-            Qt::QueuedConnection);
+        thread_local QEventLoop el;
+        thread_local QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply{};
+        runRequest(reply, el);
         el.exec();
         return reply->error();
     }
@@ -929,19 +940,15 @@ void TestManager::conclude()
     auto txnId = room->postHtmlText(plainReport, htmlReport);
     // Now just wait until all the pending events reach the server
     connectUntil(room, &Room::messageSent, this,
-        [this, txnId, room, plainReport] (const QString& sentTxnId) {
-            if (sentTxnId != txnId)
-                return false;
+        [this, txnId, room, plainReport] {
             const auto& pendingEvents = room->pendingEvents();
-            if (auto c = std::count_if(pendingEvents.cbegin(),
-                                       pendingEvents.cend(),
-                                       [](const PendingEventItem& pe) {
-                                           return pe.deliveryStatus()
-                                                  < EventStatus::ReachedServer;
-                                       });
-                c > 0) {
-                clog << "Events to reach the server: " << c
-                     << ", not leaving yet" << endl;
+            if (auto stillFlyingCount = std::count_if(pendingEvents.cbegin(), pendingEvents.cend(),
+                                                      [](const PendingEventItem& pe) {
+                                                          return pe.deliveryStatus()
+                                                                 < EventStatus::ReachedServer;
+                                                      });
+                stillFlyingCount > 0) {
+                clog << "Events to reach the server: " << stillFlyingCount << ", not leaving yet\n";
                 return false;
             }
 
