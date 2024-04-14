@@ -63,12 +63,9 @@ set_directory_properties(PROPERTIES
     CXX_VISIBILITY_PRESET hidden
 )
 
-option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
-if (BUILD_WITH_QT6)
-    set(QUOTIENT_LIB_NAME ${PROJECT_NAME}Qt6)
-else()
-    set(QUOTIENT_LIB_NAME ${PROJECT_NAME})
-endif()
+set(QtMinVersion "6.0")
+string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
+set(QUOTIENT_LIB_NAME ${PROJECT_NAME}${Qt})
 
 if (WIN32)
     if (NOT CMAKE_INSTALL_LIBDIR)
@@ -97,14 +94,14 @@ set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(QtMinVersion "6.0")
-find_package(Qt6 ${QtMinVersion} REQUIRED Core Network Gui Test)
-get_filename_component(Qt_Prefix "${Qt6_DIR}/../../../.." ABSOLUTE)
 
-find_package(Qt6Keychain REQUIRED)
+find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test)
+get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
+
+find_package(${Qt}Keychain REQUIRED)
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
-    find_package(Qt6 ${QtMinVersion} REQUIRED Sql)
+    find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
     find_package(Olm 3.2.5 REQUIRED)
     set_package_properties(Olm PROPERTIES
         DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
@@ -315,13 +312,13 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC Qt6::Core Qt6::Network Qt6::Gui qt6keychain)
+target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${QUOTIENT_LIB_NAME}
         PUBLIC
             Olm::Olm
-            Qt6::Sql
+            ${Qt}::Sql
         PRIVATE
             OpenSSL::Crypto
     )

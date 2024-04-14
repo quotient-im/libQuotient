@@ -269,6 +269,20 @@ skipped by setting `Quotient_INSTALL_TESTS` to `OFF`.
   ```
   then you need to set the right `-DCMAKE_PREFIX_PATH` variable, see above.
 
+- If `cmake` fails with a message similar to:
+  ```
+  CMake Error at /usr/lib64/cmake/Qt6Core/Qt6CoreVersionlessTargets.cmake:37 (message):
+    Some (but not all) targets in this export set were already defined.
+
+    Targets Defined: Qt::Core
+
+    Targets not yet defined: Qt::CorePrivate
+  ```
+  then you likely have both Qt 5 and Qt 6 on your system, and your code uses
+  a different major version of Qt than Quotient. Make sure you configure the
+  build so that the same major Qt version is used both by libQuotient and
+  your code.
+
 #### Logging configuration
 
 libQuotient uses Qt's logging categories to make switching certain types of

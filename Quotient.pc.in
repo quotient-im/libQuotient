@@ -4,7 +4,7 @@ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
 libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
 
 Name: Quotient
-Description: A Qt6 library to write cross-platfrom clients for Matrix
+Description: A Qt library to write cross-platfrom clients for Matrix
 Version: @API_VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lQuotient
