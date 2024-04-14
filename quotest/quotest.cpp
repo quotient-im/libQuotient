@@ -459,15 +459,26 @@ struct DownloadRunner {
 
     using result_type = QNetworkReply::NetworkError;
 
+    void runRequest(QScopedPointer<QNetworkReply, QScopedPointerDeleteLater>& r,
+                    QEventLoop& el) const
+    {
+        r.reset(NetworkAccessManager::instance()->get(QNetworkRequest(url)));
+        QObject::connect(
+            r.data(), &QNetworkReply::finished, &el,
+            [this, &r, &el] {
+                if (r->error() != QNetworkReply::NoError)
+                    runRequest(r, el);
+                else
+                    el.exit();
+            },
+            Qt::QueuedConnection);
+    }
+
     QNetworkReply::NetworkError operator()(int) const
     {
-        QEventLoop el;
-        QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply {
-            NetworkAccessManager::instance()->get(QNetworkRequest(url))
-        };
-        QObject::connect(
-            reply.data(), &QNetworkReply::finished, &el, [&el] { el.exit(); },
-            Qt::QueuedConnection);
+        thread_local QEventLoop el;
+        thread_local QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply{};
+        runRequest(reply, el);
         el.exec();
         return reply->error();
     }
