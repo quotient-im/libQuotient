@@ -940,19 +940,15 @@ void TestManager::conclude()
     auto txnId = room->postHtmlText(plainReport, htmlReport);
     // Now just wait until all the pending events reach the server
     connectUntil(room, &Room::messageSent, this,
-        [this, txnId, room, plainReport] (const QString& sentTxnId) {
-            if (sentTxnId != txnId)
-                return false;
+        [this, txnId, room, plainReport] {
             const auto& pendingEvents = room->pendingEvents();
-            if (auto c = std::count_if(pendingEvents.cbegin(),
-                                       pendingEvents.cend(),
-                                       [](const PendingEventItem& pe) {
-                                           return pe.deliveryStatus()
-                                                  < EventStatus::ReachedServer;
-                                       });
-                c > 0) {
-                clog << "Events to reach the server: " << c
-                     << ", not leaving yet" << endl;
+            if (auto stillFlyingCount = std::count_if(pendingEvents.cbegin(), pendingEvents.cend(),
+                                                      [](const PendingEventItem& pe) {
+                                                          return pe.deliveryStatus()
+                                                                 < EventStatus::ReachedServer;
+                                                      });
+                stillFlyingCount > 0) {
+                clog << "Events to reach the server: " << stillFlyingCount << ", not leaving yet\n";
                 return false;
             }
 
