@@ -64,7 +64,7 @@ set_directory_properties(PROPERTIES
 )
 
 set(QtMinVersion "6.4")
-string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
+string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt<MajorVersionDigit>"
 set(QUOTIENT_LIB_NAME ${PROJECT_NAME}${Qt})
 
 if (WIN32)
