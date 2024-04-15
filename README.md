@@ -39,7 +39,7 @@ To use libQuotient (i.e. build or run applications with it), you'll need:
   and there's also limited positive experience with Android)
   - Recent enough Linux examples: Debian Bullseye; Fedora 35;
     openSUSE Leap 15.4; Ubuntu 22.04 LTS
-- Qt6 - either Open Source or Commercial
+- Qt 6.4 or newer - either Open Source or Commercial
 - QtKeychain (https://github.com/frankosterfeld/qtkeychain) - 0.12 or newer is
   recommended; the build configuration of both QtKeychain and libQuotient 
   must use the same Qt major version
