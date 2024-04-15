@@ -117,7 +117,7 @@ the top of the file. New files should begin with the following preamble:
 
 ## Code changes
 
-The code should strive to be DRY (don't repeat yourself), clear, and obviously
+The code should strive to be DRY (don't repeat yourself), clear, and syntactically
 correct (i.e. buildable). Some technical debt is inevitable but glaring
 inconsistencies, duplications etc. will most likely cause a request for changes
 at the pull request review. Refactoring is always welcome; if you do it within
@@ -137,7 +137,7 @@ feature set, we have to stick with a subset. Most notably:
   concepts are not available as of Apple Clang 12;
 - No `constexpr` containers except `std::array` (but you can, and should,
   use `QLatin1String` and `Quotient::operator""_ls` that creates it, for
-  constant Latin-1 strings).
+  constexpr Latin-1 strings).
 
 The [compiler support page](https://en.cppreference.com/w/cpp/compiler_support#cpp20),
 of cppreference.com, combined with the list of compiler versions above, can be
@@ -152,11 +152,10 @@ The code style is defined by `.clang-format`, and in general, all C++ files
 should follow it. Reasonable deviations from the defined style are allowed;
 use `// clang-format off` and `// clang-format on` to protect them.
 
-Notable things from `.clang-format`:
-* We (mostly) use Webkit style: 4-space indents, no tabs, no trailing spaces,
-  no last empty lines. If you spot the code abusing these, fix it on the spot,
-  thank you.
-* Prefer keeping lines within 80 characters. Slight overflows are ok if that 
+Most fundamental things from `.clang-format`:
+* We (mostly) use Webkit style: 4-space indents, no tabs, no trailing spaces, no last empty lines.
+  If you spot code that doesn't follow this, fix it on the spot, thank you.
+* Prefer keeping lines within 100 characters. Slight overflows are ok if that
   helps readability. Ideally, just use `clang-format` to format lines.
 
 ### API conventions
@@ -217,7 +216,7 @@ unfortunately this other algorithm is *also* called GitHub-flavoured markdown.
 In your markdown, please don't use tab characters and avoid "bare" URLs.
 In a hyperlink, the link text and URL should be on the same line.
 Both in C/C++ code comments and Markdown documents, try to keep your lines
-within the 80-character limit _except hyperlinks_ (wrapping breaks them). Some
+within the 100-character limit _except hyperlinks_ (wrapping breaks them). Some
 historical text may not follow that rule - feel free to reformat those parts
 when you edit them.
 
@@ -254,17 +253,14 @@ Further sections are for those who's going to actively hack on the library code.
     Classes without a default constructor are a problem too. Examples of that
     are `SyncRoomData` and `EventsArray<>`. Again, you can use STL containers 
     for structures having those but consider the implications.
-  * So, the implications. Because QML doesn't known most of STL containers and
-    cannot pull data out of them, you're only free to use STL containers in 
-    backend code (in the simplest case, within one .cpp file). However, the API 
-    exposing these containers can only be used from C++ code, with `std::vector`
-    being a notable exception that can be copied to the QML side (note that
-    you can't read `std::vector` where it resides though - meaning, you can't
-    get a vector of events to the QML side this way, as the previous bullet 
-    already said). In such case you have to provide another means to iterate
-    through the container and consume data from it, with exposing a Qt item
-    model being the most natural to Qt code. Without such other means, expect
-    questions at your pull request.
+  * So, the implications. Because QML doesn't know about most of STL containers and cannot pull data
+    out of them, you're only free to use STL containers in backend code (in the simplest case,
+    within one .cpp file). The API exposing these containers can only be used from C++ code, with
+    `std::vector` being a notable exception that QML knows about (but you still can't read
+    uncopyable vectors such as `EventsArray<>`, as the previous bullet already said). For these
+    cases you have to provide external means to iterate through the container and consume data
+    from it; exposing a Qt item model is most natural to Qt code. If you don't provide such other
+    means, expect questions at your pull request.
   * Notwithstanding the above (you're not going to use smart pointers with QML 
     anyway), prefer `std::unique_ptr<>` over `QScopedPointer<>` as it gives
     stronger guarantees; also, some features of `QScopedPointer` are deprecated
@@ -281,13 +277,12 @@ Further sections are for those who's going to actively hack on the library code.
   couple more years, as of this writing; in the meantime, the fix boils down
   to specifying the template parameter of `QVector` explicitly.)
 
-* When you write logs within the library always use logging categories defined
-  in `logging_categories_p.h` instead of plain `qDebug()`, to avoid a log line
-  being assigned the default category. `qCDebug(CATEGORY)` is the preferred 
-  form; `qDebug(CATEGORY)` (without `C`) is accepted as well. Do not add new 
-  logging categories without necessity; if you do, make sure to add the new
-  category to `logging_categories_p.h`, to make sure there's a central 
-  reference for all of them (mentioned in README.md, by the way).
+* When you write logs within the library always use logging categories defined in
+  `logging_categories_p.h` instead of plain `qDebug()`, to avoid a log line being assigned
+  the default category. `qCDebug(CATEGORY)` is the preferred form; `qDebug(CATEGORY)` (without `C`)
+  is accepted as well. Do not add new logging categories without necessity; if you do, make sure
+  to add the new category to `logging_categories_p.h`, so that there's a central reference for all
+  of them (mentioned in README.md, by the way).
 
 ### Comments
 
@@ -306,16 +301,15 @@ When commenting in-code:
 * Don't restate what's happening in the code unless it's not really obvious.
   We assume the readers to have some command of C++ and Qt. If your code is
   not obvious, consider making it clearer itself before commenting.
-* That said, both C++ and Qt have their arcane/novel features and dark corners,
-  and education of code readers is a great thing. Use your experience to figure
-  what might be less well-known to readers and comment such cases: leave
-  references to web pages, Quotient wiki etc. Do not comment `std::` calls
-  just because they are less known - readers are expected to know about 
-  cppreference.com and look it up. 
-* Make sure to document not so much "what" but more "why" certain code is done
-  the way it is. In the worst case, the logic of the code can be
-  reverse-engineered; but you can almost never reverse-engineer the line of
-  reasoning and the pitfalls avoided.
+* That said, both C++ and Qt have their arcane/novel features and dark corners, and education of
+  code readers is a great thing. Use your experience to figure what might be not that well-known,
+  and comment such cases: leave references to web pages, Quotient wiki etc. Do not comment `std::`
+  calls just because they are less known - readers are expected to know about cppreference.com and
+  look it up.
+* More important than everything above - make sure to document not so much "what" but more "why"
+  certain code is done the way it is. In the worst case, the logic of the code can be
+  reverse-engineered; but you can almost never reverse-engineer the line of reasoning and
+  the pitfalls avoided.
 
 ### Automated tests
 
@@ -330,13 +324,10 @@ called Quotest. Any significant addition to the library API should be
 accompanied by a respective test in `autotests/` and/or in Quotest.
 
 To add a test to autotests:
-- In a new `.cpp` file in `autotests/`, define a test class derived from
-  QObject and write tests as member functions in its `private slots:` section.
-  If you feel more comfortable using a header file to define the class, that's
-  fine but not necessary. If you're new to Qt Test framework, use existing
-  tests as a guidance.
-- Add a `quotient_add_test` macro call with your test to
-  `autotests/CMakeLists.txt`
+- In a new `.cpp` file in `autotests/` (you don't need a header file), define a test class derived
+  from `QObject` and write tests as member functions in its `private slots:` section. See other
+  autotests to get an idea of what it should look like.
+- Add a `quotient_add_test` macro call with your test to `autotests/CMakeLists.txt`
 
 To add a test to Quotest:
 - In `quotest.cpp`, add a new test to the `TestSuite` class. Similar to Qt Test,
@@ -363,15 +354,17 @@ from it).
 Pay attention to security, and work *with*, not against, the usual security
 hardening practices.
 
-`char *` and similar unchecked C-style read/write arrays are forbidden - use
-Qt containers (`QString`/`QLatin1String` for strings, in particular) or at the 
-very least `std::array<>` instead. When dealing with `QObject`s, organise them
-in parent-child trees and let Qt manage object lifecycles for you. If that
-doesn't work in a given situation (no obvious parent, lifecycles not nested
-etc.) or outside of `QObject` framework, use `std::unique_ptr<>` and move it
-where appropriate to make sure the object has clear ownership. Shared pointers
-are not popular throughout the library but are totally fine to use, too. 
-Avoid bare pointers and direct pointer arithmetic wherever possible.
+`char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers
+(`QString`/`QLatin1String` for strings, in particular) or `std::array<>`/`std::span<>` instead
+(E2EE-related code can also use handy `byte_view_t` and `byte_span_t` aliases). When dealing with
+`QObject`s, organise them in parent-child trees and let Qt manage object lifecycles for you instead
+explicit deletions. If that doesn't work in a given situation (no obvious parent, non-trivial
+lifecycle, the object doesn't derive from `QObject`, etc.), try to at least use `std::unique_ptr<>`
+and `std::move()` it when/where appropriate to make sure the object has clear ownership. Finally,
+shared pointers can be used when circular dependencies are not a concern. Avoid direct pointer
+arithmetic wherever possible and only use bare pointers within `QObject` parent-child trees and
+for non-owning/weak access to resources owned by `std::unique_ptr<>`. Consider using references
+instead of pointers, where applicable.
 
 Exercise the
 [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege)
@@ -385,7 +378,7 @@ and only display those in UI where really needed. Do not forget about the
 issue of local access (in particular, be very careful when storing something in 
 temporary files, let alone permanent configuration or state).
 
-Avoid mechanisms that could be used for tracking where possible (we do need 
+Where possible, avoid mechanisms that could be used for user tracking (we do need
 to verify people are logged in but that's pretty much it), and ensure that 
 third parties can't use interactions for tracking. Matrix protocols evolve 
 towards decoupling personal information from user activity entirely - follow
@@ -439,13 +432,12 @@ If you want the IDE to be _really_ picky about your code you can use
 the following line for the Clang analyzer code model to enable most compiler
 warnings while keeping the number of false positives at bay (that does not
 include `clang-tidy`/`clazy` warnings - see the next section on those):
-`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-string-conversion -Wno-return-std-move-in-c++11`.
+`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-c++20-compat -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-shadow-uncaptured-local -Wno-switch-enum -Wno-pragma-once-outside-header -Wno-range-loop-bind-reference -Wno-unsafe-buffer-usage`
 
 ### Static analysis tools
 
-Recent versions of Qt Creator and CLion can automatically run your code through
-clang-tidy. The source code contains `.clang-tidy` file with the recommended
-set of checks that doesn't give too many false positives.
+Many IDEs these days can automatically run your code through clang-tidy. The source code contains
+`.clang-tidy` file with the recommended set of checks that doesn't give too many false positives.
 
 Qt Creator in addition knows about clazy, a Qt-aware static analysis tool that
 hunts for Qt-specific issues that are easy to overlook otherwise, such as
@@ -483,37 +475,37 @@ When writing git commit messages, try to follow the guidelines in
 
 ## Reuse (libraries, frameworks, etc.)
 
-SDK/package management is unfortunately messy in C++, and we try to keep
-building the library as easy as possible. Because of that we are very
-conservative about adding dependencies to libQuotient. That mainly relates
-to libraries external to Qt; you can use most of non-visual (see below)
-Qt components as needed. Fortunately, even the Qt components now in use
-(Qt Core and Qt Network) are very feature-rich and provide plenty of ready-made
-stuff.
+SDK/package management is unfortunately messy in C++, and we try to keep building the library
+as easy as possible. Besides, every additional dependency means additional attack surface and
+more effort to stay on most recent versions of all deps - not just upstream but within each
+ecosystem (Linux distros, Homebrew, etc.). Because of these considerations we are very conservative
+about adding dependencies to libQuotient. That mainly relates to libraries external to Qt; you can
+use most of non-visual Qt components as needed (with minor caveats mentioned below). Fortunately,
+even the Qt components now in use (Qt Core and Qt Network) are very feature-rich and provide plenty
+of ready-made stuff.
 
 Some cases need additional explanation:
-* Don't reinvent the wheel - look through documentation on Qt and C++ standard
-  library and use existing facilities as much as possible.
-* libQuotient is a library to build Qt applications; for that reason,
-  components from KDE Frameworks should be really lightweight and useful
-  to be accepted as a dependency. If the intention is to better integrate
-  libQuotient into KDE environment there's nothing wrong in building another
-  library on top of libQuotient. Consider people who run LXDE or even GNOME
-  (as the author of these lines does) and normally don't have KDE frameworks
-  installed (some even oppose installing those) - libQuotient caters to them too.
+* Don't reinvent the wheel - look through documentation on Qt and C++ standard library and use
+  existing facilities as much as possible. C++ standard in particular has grown considerably in
+  recent years, providing many useful algorithms and primitives out of the box.
+* libQuotient is a library to build Qt applications; for that reason, components from KDE Frameworks
+  should be really lightweight and useful to be accepted as a dependency. If the intention is
+  to better integrate libQuotient into KDE environment there's nothing wrong in building another
+  library on top of libQuotient. Consider people who run LXDE or even GNOME and normally don't have
+  KDE frameworks installed (some actively avoid installing those) - libQuotient caters to them too.
 * Never forget that libQuotient is an offscreen library; it only depends on
   QtGui to handle `QImage` objects (entirely offscreen still). While there's
   a bunch of visual code (in C++ and QML) shared between Quotient-enabled
   _applications_, this is likely to end up in a separate (Quotient-backed)
   library, rather than in libQuotient itself.
-* Also be mindful that libQuotient strives to be cross-platform inasmuch as Qt
-  is. If the introduced dependency (even from inside Qt - e.g. DBus on Linux)
-  is unavailable on one of the platforms already supported, it can only be added
-  to enable a platform-specific feature and should not break or disable
+* Also be mindful that libQuotient strives to be cross-platform: at least across the three most
+  popular platforms (Linux, macOS, Windows) are supported officially, but we also try to stay
+  friendly to other platforms, such as Android, BSD, or Haiku. If the introduced dependency (even
+  from inside Qt - e.g. DBus on Linux) is unavailable on one of the platforms already supported,
+  it can only be added to enable a platform-specific feature and should not break or disable
   functionality on other platforms.
 
 ## Attribution
 
-This text is based on CONTRIBUTING.md from CII Best Practices Badge project,
-which is a collective work of its contributors (many thanks!). The text itself
-is licensed under CC-BY-4.0.
+This text was originally based on CONTRIBUTING.md from CII Best Practices Badge project,
+which is a collective work of its contributors (many thanks!). The text is licensed under CC-BY-4.0.

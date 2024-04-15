@@ -7,7 +7,6 @@
 | dev     | :white_check_mark: (unstable) |
 | 0.8.x   | :white_check_mark:            |
 | 0.7.x   | :white_check_mark:            |
-| 0.6.x   | :white_check_mark:            |
 | older   | :x:                           |
 
 ## Reporting a Vulnerability
