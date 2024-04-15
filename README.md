@@ -149,13 +149,13 @@ e.g.) breaking the compatibility. Once we reach 1.0, this rule will apply
 to the major version, aligning with [semantic versioning](https://semver.org/)
 rules. `_p.h` files are not covered by these guarantees and some of them might
 not even be shipped by Linux distributions; client code should not directly
-include these files and use symbols defined there.
+include these files, nor use symbols defined there.
 
 
 ## Building the library
-On platforms other than Linux you will have to build libQuotient yourself
-before usage - nobody packaged it so far (contributions welcome!). You may also
-want to build the library on Linux if you need an unreleased snapshot.
+On platforms other than Linux you will have to build libQuotient yourself before usage - nobody
+packaged it so far (contributions welcome!). You may also want to build the library on Linux if you
+need a newer version or snapshot than that coming in your distro.
 
 [The source code is at GitHub](https://github.com/quotient-im/libQuotient).
 Checking out a certain commit or tag (rather than downloading the archive)
@@ -203,33 +203,15 @@ the standard variables coming with CMake. On top of them, Quotient understands:
   Matrix operations, such as sending messages and small files, redaction,
   setting room tags etc. This is useful to check the sanity of your library
   installation.
-- `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default for back-compatibility only
-  (it is strongly recommended to switch it `ON`, see below) - enable building
-  the E2EE code in the library. As of version 0.8, this code is beta-quality;
-  it is already good for trying out but still doesn't provide complete E2EE
-  functionality (e.g. loading encrypted history and backup/restore of the keys
-  from the homeserver - aka SSSS - are not implemented yet).
-
-  Switching this on will define `Quotient_E2EE_ENABLED` macro (note
-  the difference from the CMake switch) for compiler invocations on all
-  Quotient and Quotient-dependent (if it uses `find_package(Quotient)`)
-  code; `#ifdef Quotient_E2EE_ENABLED` will guard the code that depends on parts
-  of Quotient that only get built for E2EE. Be mindful that since 0.8.0 you
-  should also set E2EE at _runtime_, as described below.
-
-  The compile-time switch caused confusion in the community, with some
-  distributions leaving it off while others turning it on. To resolve this,
-  a new mechanism to switch E2EE on/off at runtime has been introduced in
-  version 0.8.0: you can either call `Connection::setEncryptionDefault(true);`
-  once, before creating any `Connection` objects in your code, or call
-  `Connection::enableEncryption()` on each `Connection` object where you want
-  to enable E2EE.
-
-  With this runtime mechanism in place, the compile-time switch will be dropped
-  in version 0.9, with `Quotient_E2EE_ENABLED` macro being always defined so
-  that the code that used the `#ifdef` mentioned above continues working.
-  In the meantime, it is strongly recommended to pass `Quotient_ENABLE_E2EE=ON`
-  to CMake to make sure your code is ready for the transition.
+- `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default for back-compatibility only. It was introduced
+  in version 0.7 to guard against usage of immature E2EE code but confused the community, with some
+  distributions leaving it off while others turned it on. Since version 0.8.0 you should always
+  set this to `ON` and use the API to enable E2EE, by either calling
+  `Connection::setEncryptionDefault(true);` once, before creating any `Connection` objects in your
+  code, or by calling `Connection::enableEncryption()` on each `Connection` object where you want
+  to enable E2EE. In version 0.9, the compile-time switch will be entirely dropped. If you used
+  `Quotient_E2EE_ENABLED` macro in your code, this will always be set so your ifdef's will still
+  work; however, it is recommended to drop usage of these, so that the macro could be phased out.
 - `MATRIX_SPEC_PATH` and `GTAD_PATH` - these two variables are used to point
   CMake to the directory with the matrix-doc repository containing API files
   and to a GTAD binary. These two are used to generate C++ files from Matrix
