@@ -15,4 +15,5 @@ GetTokenOwnerJob::GetTokenOwnerJob()
               makePath("/_matrix/client/v3", "/account/whoami"))
 {
     addExpectedKey("user_id");
+    setMaxRetries(std::numeric_limits<int>::max());
 }

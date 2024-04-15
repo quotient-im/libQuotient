@@ -848,12 +848,12 @@ Q_SIGNALS:
     void stateChanged();
     void loginError(QString message, QString details);
 
-    //! \brief A network request (job) started by callApi() has failed
+    //! \brief A network request (job) started by run() (including callApi()) has failed
     //! \param request the pointer to the failed job
     //! \sa callApi
     void requestFailed(Quotient::BaseJob* request);
 
-    //! \brief A network request (job) failed due to network problems
+    //! \brief A network request (job) started by run() (including callAPI()) failed due to network problems
     //!
     //! This is _only_ emitted when the job will retry on its own;
     //! once it gives up, requestFailed() will be emitted.

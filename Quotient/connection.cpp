@@ -211,10 +211,7 @@ void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
             d->completeSetup(job->userId());
         });
         connect(job, &BaseJob::failure, this, [this, job] {
-            if (job->error() == BaseJob::StatusCode::NetworkError)
-                emit networkError(job->errorString(), job->rawDataSample(),
-                                  job->maxRetries(), -1);
-            else
+            if (job->error() != BaseJob::StatusCode::NetworkError)
                 emit loginError(job->errorString(), job->rawDataSample());
         });
     });
@@ -447,11 +444,6 @@ void Connection::sync(int timeout)
         d->syncJob = nullptr;
         emit syncDone();
     });
-    connect(job, &SyncJob::retryScheduled, this,
-            [this, job](int retriesTaken, int nextInMilliseconds) {
-                emit networkError(job->errorString(), job->rawDataSample(),
-                                  retriesTaken, nextInMilliseconds);
-            });
     connect(job, &SyncJob::failure, this, [this, job] {
         // SyncJob persists with retries on transient errors; if it fails,
         // there's likely something serious enough to stop the loop.
@@ -1719,6 +1711,11 @@ BaseJob* Connection::run(BaseJob* job, RunningPolicy runningPolicy)
     // Reparent to protect from #397, #398 and to prevent BaseJob* from being
     // garbage-collected if made by or returned to QML/JavaScript.
     job->setParent(this);
+    connect(job, &BaseJob::retryScheduled, this,
+            [this, job](int retriesTaken, int nextInMilliseconds) {
+                emit networkError(job->errorString(), job->rawDataSample(),
+                                  retriesTaken, nextInMilliseconds);
+            });
     connect(job, &BaseJob::failure, this, &Connection::requestFailed);
     job->initiate(d->data.get(), runningPolicy & BackgroundRequest);
     return job;
