@@ -63,7 +63,7 @@ set_directory_properties(PROPERTIES
     CXX_VISIBILITY_PRESET hidden
 )
 
-set(QtMinVersion "6.4")
+set(QtMinVersion "6.0")
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt<MajorVersionDigit>"
 set(QUOTIENT_LIB_NAME ${PROJECT_NAME}${Qt})
 
