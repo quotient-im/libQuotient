@@ -8,11 +8,7 @@
 
 #include <QtCore/QAbstractListModel>
 
-#if QT_VERSION_MAJOR >= 6
-    #include <qt6keychain/keychain.h>
-#else
-    #include <qt5keychain/keychain.h>
-#endif
+#include <qt6keychain/keychain.h>
 
 namespace Quotient {
 class Connection;

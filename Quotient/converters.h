@@ -389,11 +389,6 @@ struct JsonConverter<std::array<T, N>> {
     }
 };
 
-#if QT_VERSION_MAJOR < 6 // QVector is an alias of QList in Qt6 but not in Qt 5
-template <typename T>
-struct JsonConverter<QVector<T>> : public JsonArrayConverter<QVector<T>> {};
-#endif
-
 template <typename T>
 struct JsonConverter<QList<T>> : public JsonArrayConverter<QList<T>> {};
 

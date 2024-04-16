@@ -73,32 +73,9 @@ inline auto connectSingleShot(auto* sender, auto signal, ContextT* context,
                               SlotT slot,
                               Qt::ConnectionType connType = Qt::AutoConnection)
 {
-#if QT_VERSION_MAJOR >= 6
     return QObject::connect(sender, signal, context, slot,
                             Qt::ConnectionType(connType
                                                | Qt::SingleShotConnection));
-#else
-    // In case of classic Qt pointer-to-member-function slots the receiver
-    // object has to be pre-bound to the slot to make it self-contained
-    if constexpr (_impl::PmfSlot<SlotT, ContextT>) {
-        auto&& boundSlot =
-    #if __cpp_lib_bind_front // Needs Apple Clang 13 (other platforms are fine)
-            std::bind_front(slot, context);
-    #else
-            [context, slot](const auto&... args)
-            requires requires { (context->*slot)(args...); }
-            {
-                (context->*slot)(args...);
-            };
-    #endif
-        return _impl::connect<_impl::SingleShot>(
-            sender, signal, context,
-            std::forward<decltype(boundSlot)>(boundSlot), connType);
-    } else {
-        return _impl::connect<_impl::SingleShot>(sender, signal, context, slot,
-                                                 connType);
-    }
-#endif
 }
 
 /*! \brief A guard pointer that disconnects an interested object upon destruction

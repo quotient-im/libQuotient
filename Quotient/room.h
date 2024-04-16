@@ -847,11 +847,7 @@ public Q_SLOTS:
     QString postReaction(const QString& eventId, const QString& key);
 
     QString postFile(const QString& plainText, EventContent::TypedBase* content);
-#if QT_VERSION_MAJOR < 6
-    Q_DECL_DEPRECATED_X("Use postFile(QString, MessageEventType, EventContent)") //
-    QString postFile(const QString& plainText, const QUrl& localPath,
-                     bool asGenericFile = false);
-#endif
+
     /** Post a pre-created room message event
      *
      * Takes ownership of the event, deleting it once the matching one

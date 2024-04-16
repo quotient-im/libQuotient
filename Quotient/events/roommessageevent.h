@@ -39,12 +39,7 @@ public:
     explicit RoomMessageEvent(const QString& plainBody,
                               MsgType msgType = MsgType::Text,
                               EventContent::TypedBase* content = nullptr);
-#if QT_VERSION_MAJOR < 6
-    [[deprecated("Create an EventContent object on the client side"
-                 " and pass it to other constructors")]] //
-    explicit RoomMessageEvent(const QString& plainBody, const QFileInfo& file,
-                              bool asGenericFile = false);
-#endif
+
     explicit RoomMessageEvent(const QJsonObject& obj);
 
     MsgType msgtype() const;

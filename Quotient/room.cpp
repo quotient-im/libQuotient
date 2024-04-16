@@ -2409,18 +2409,6 @@ QString Room::postFile(const QString& plainText,
         fileInfo->url());
 }
 
-#if QT_VERSION_MAJOR < 6
-QString Room::postFile(const QString& plainText, const QUrl& localPath,
-                       bool asGenericFile)
-{
-    QFileInfo localFile { localPath.toLocalFile() };
-    Q_ASSERT(localFile.isFile());
-    return d->doPostFile(makeEvent<RoomMessageEvent>(plainText, localFile,
-                                                     asGenericFile),
-                         localPath);
-}
-#endif
-
 QString Room::postEvent(RoomEvent* event)
 {
     return d->sendEvent(RoomEventPtr(event));
@@ -3701,11 +3689,7 @@ bool MemberSorter::operator()(const RoomMember& u1, QStringView u2name) const
     auto n1 = u1.displayName();
     if (n1.startsWith(u'@'))
         n1.remove(0, 1);
-    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)
-#if QT_VERSION_MAJOR < 6
-        .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
-#endif
-        ;
+    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0);
 
     return n1.localeAwareCompare(n2) < 0;
 }
@@ -3715,11 +3699,7 @@ bool MemberSorter::operator()(User* u1, QStringView u2name) const
     QT_IGNORE_DEPRECATIONS(auto n1 = room->disambiguatedMemberName(u1->id());)
     if (n1.startsWith(u'@'))
         n1.remove(0, 1);
-    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0)
-#if QT_VERSION_MAJOR < 6
-        .toString() // Qt 5 doesn't have QStringView::localeAwareCompare
-#endif
-        ;
+    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0);
 
     return n1.localeAwareCompare(n2) < 0;
 }

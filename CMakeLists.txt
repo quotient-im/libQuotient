@@ -63,12 +63,9 @@ set_directory_properties(PROPERTIES
     CXX_VISIBILITY_PRESET hidden
 )
 
-option(BUILD_WITH_QT6 "Build Quotient with Qt 6 (EXPERIMENTAL)" OFF)
-if (BUILD_WITH_QT6)
-    set(QUOTIENT_LIB_NAME ${PROJECT_NAME}Qt6)
-else()
-    set(QUOTIENT_LIB_NAME ${PROJECT_NAME})
-endif()
+set(QtMinVersion "6.0")
+string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt<MajorVersionDigit>"
+set(QUOTIENT_LIB_NAME ${PROJECT_NAME}${Qt})
 
 if (WIN32)
     if (NOT CMAKE_INSTALL_LIBDIR)
@@ -97,14 +94,8 @@ set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-if (BUILD_WITH_QT6)
-    set(QtMinVersion "6.0")
-else()
-    set(QtMinVersion "5.15")
-    set(QtExtraModules "Multimedia") # See #483
-endif()
-string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt5" or "Qt6"
-find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test ${QtExtraModules})
+
+find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
 find_package(${Qt}Keychain REQUIRED)
@@ -322,9 +313,6 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
 )
 
 target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
-if (Qt STREQUAL Qt5) # See #483
-    target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE ${Qt}::Multimedia)
-endif()
 
 if (${PROJECT_NAME}_ENABLE_E2EE)
     target_link_libraries(${QUOTIENT_LIB_NAME}

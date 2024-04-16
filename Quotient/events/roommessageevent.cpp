@@ -12,10 +12,6 @@
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QImageReader>
 
-#if QT_VERSION_MAJOR < 6
-    #include <QtMultimedia/QMediaResource>
-#endif
-
 using namespace Quotient;
 using namespace EventContent;
 
@@ -138,42 +134,6 @@ RoomMessageEvent::RoomMessageEvent(const QString& plainBody, MsgType msgType,
                                    TypedBase* content)
     : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
 {}
-
-#if QT_VERSION_MAJOR < 6
-TypedBase* contentFromFile(const QFileInfo& file, bool asGenericFile)
-{
-    auto filePath = file.absoluteFilePath();
-    auto localUrl = QUrl::fromLocalFile(filePath);
-    auto mimeType = QMimeDatabase().mimeTypeForFile(file);
-    if (!asGenericFile) {
-        auto mimeTypeName = mimeType.name();
-        if (mimeTypeName.startsWith("image/"_ls))
-            return new ImageContent(localUrl, file.size(), mimeType,
-                                    QImageReader(filePath).size(),
-                                    file.fileName());
-
-        // duration can only be obtained asynchronously and can only be reliably
-        // done by starting to play the file. Left for a future implementation.
-        if (mimeTypeName.startsWith("video/"_ls))
-            return new VideoContent(localUrl, file.size(), mimeType,
-                                    QMediaResource(localUrl).resolution(),
-                                    file.fileName());
-
-        if (mimeTypeName.startsWith("audio/"_ls))
-            return new AudioContent(localUrl, file.size(), mimeType,
-                                    file.fileName());
-    }
-    return new FileContent(localUrl, file.size(), mimeType, file.fileName());
-}
-
-RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
-                                   const QFileInfo& file, bool asGenericFile)
-    : RoomMessageEvent(plainBody,
-                       asGenericFile ? QStringLiteral("m.file")
-                                     : rawMsgTypeForFile(file),
-                       contentFromFile(file, asGenericFile))
-{}
-#endif
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     : RoomEvent(obj), _content(nullptr)
