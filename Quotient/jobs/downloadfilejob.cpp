@@ -5,15 +5,13 @@
 
 #include "../logging_categories_p.h"
 
+#include <QtCore/QCryptographicHash>
 #include <QtCore/QFile>
 #include <QtCore/QTemporaryFile>
 #include <QtNetwork/QNetworkReply>
 
-#ifdef Quotient_E2EE_ENABLED
-    #include <Quotient/events/filesourceinfo.h>
+#include <Quotient/events/filesourceinfo.h>
 
-    #include <QtCore/QCryptographicHash>
-#endif
 
 using namespace Quotient;
 class Q_DECL_HIDDEN DownloadFileJob::Private {
@@ -28,9 +26,7 @@ public:
     QScopedPointer<QFile> targetFile;
     QScopedPointer<QFile> tempFile;
 
-#ifdef Quotient_E2EE_ENABLED
     Omittable<EncryptedFileMetadata> encryptedFileMetadata;
-#endif
 };
 
 QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
@@ -49,7 +45,6 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
     setObjectName(QStringLiteral("DownloadFileJob"));
 }
 
-#ifdef Quotient_E2EE_ENABLED
 DownloadFileJob::DownloadFileJob(const QString& serverName,
                                  const QString& mediaId,
                                  const EncryptedFileMetadata& file,
@@ -61,7 +56,6 @@ DownloadFileJob::DownloadFileJob(const QString& serverName,
     setObjectName(QStringLiteral("DownloadFileJob"));
     d->encryptedFileMetadata = file;
 }
-#endif
 
 QString DownloadFileJob::targetFileName() const
 {
@@ -122,7 +116,6 @@ void DownloadFileJob::beforeAbandon()
     d->tempFile->remove();
 }
 
-#ifdef Quotient_E2EE_ENABLED
 void decryptFile(QFile& sourceFile, const EncryptedFileMetadata& metadata,
                  QFile& targetFile)
 {
@@ -131,17 +124,14 @@ void decryptFile(QFile& sourceFile, const EncryptedFileMetadata& metadata,
     const auto decrypted = decryptFile(encrypted, metadata);
     targetFile.write(decrypted);
 }
-#endif
 
 BaseJob::Status DownloadFileJob::prepareResult()
 {
     if (d->targetFile) {
-#ifdef Quotient_E2EE_ENABLED
         if (d->encryptedFileMetadata.has_value()) {
             decryptFile(*d->tempFile, *d->encryptedFileMetadata, *d->targetFile);
             d->tempFile->remove();
         } else {
-#endif
             d->targetFile->close();
             if (!d->targetFile->remove()) {
                 qWarning(JOBS) << "Failed to remove the target file placeholder";
@@ -152,11 +142,8 @@ BaseJob::Status DownloadFileJob::prepareResult()
                                 << "to" << d->targetFile->fileName();
                 return { FileError, "Couldn't finalise the download"_ls };
             }
-#ifdef Quotient_E2EE_ENABLED
         }
-#endif
     } else {
-#ifdef Quotient_E2EE_ENABLED
         if (d->encryptedFileMetadata.has_value()) {
             QTemporaryFile tempTempFile; // Assuming it to be next to tempFile
             decryptFile(*d->tempFile, *d->encryptedFileMetadata, tempTempFile);
@@ -172,11 +159,8 @@ BaseJob::Status DownloadFileJob::prepareResult()
                 return { FileError, "Couldn't finalise the download"_ls };
             }
         } else {
-#endif
             d->tempFile->close();
-#ifdef Quotient_E2EE_ENABLED
         }
-#endif
     }
     qDebug(JOBS) << "Saved a file as" << targetFileName();
     return Success;

@@ -51,11 +51,9 @@ public:
     //! callback for that in RoomEvent.
     void addId(const QString& newId);
 
-#ifdef Quotient_E2EE_ENABLED
     void setOriginalEvent(event_ptr_tt<EncryptedEvent>&& originalEvent);
     const EncryptedEvent* originalEvent() const { return _originalEvent.get(); }
     const QJsonObject encryptedJson() const;
-#endif
 
 protected:
     explicit RoomEvent(const QJsonObject& json);
@@ -66,9 +64,7 @@ private:
     // constructors using it and also destructors (with 'using', in particular).
     event_ptr_tt<RedactionEvent> _redactedBecause;
 
-#ifdef Quotient_E2EE_ENABLED
     event_ptr_tt<EncryptedEvent> _originalEvent;
-#endif
 };
 using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;

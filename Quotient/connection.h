@@ -5,12 +5,15 @@
 
 #pragma once
 
+#include "keyverificationsession.h"
 #include "quotient_common.h"
 #include "ssosession.h"
 #include "util.h"
 
 #include "csapi/create_room.h"
 #include "csapi/login.h"
+
+#include "e2ee/qolmoutboundsession.h"
 
 #include "events/accountdataevents.h"
 
@@ -20,13 +23,6 @@
 #include <QtCore/QUrl>
 
 #include <functional>
-
-#ifdef Quotient_E2EE_ENABLED
-#include "e2ee/e2ee_common.h"
-#include "e2ee/qolmoutboundsession.h"
-#include "keyverificationsession.h"
-#include "events/keyverificationevent.h"
-#endif
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
@@ -368,7 +364,6 @@ public:
     QString deviceId() const;
     QByteArray accessToken() const;
     bool isLoggedIn() const;
-#ifdef Quotient_E2EE_ENABLED
     QOlmAccount* olmAccount() const;
     Database* database() const;
 
@@ -414,7 +409,6 @@ public:
 
     void requestKeyFromDevices(
         event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
-#endif // Quotient_E2EE_ENABLED
 
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE QString nextBatchToken() const;
@@ -460,15 +454,6 @@ public:
     bool canChangePassword() const;
 
     //! \brief Check whether encryption is enabled on this connection
-    //!
-    //! There are two conditions for encryption to be enabled:
-    //! 1) the library must be compiled with Quotient_E2EE_ENABLED;
-    //! 2) encryption should be switched on explicitly with enableEncryption()
-    //!
-    //! The reason for the latter is E2EE still being in beta state as of 0.8,
-    //! so clients are strongly advised to keep E2EE off by default and warn
-    //! users opting in that their E2EE things may fall apart, leak etc.
-    //!
     //! \sa enableEncryption
     bool encryptionEnabled() const;
 
@@ -603,13 +588,11 @@ public:
     Q_INVOKABLE bool roomSucceeds(const QString& maybePredecessorId,
                                   const QString& maybeSuccessorId) const;
 
-#ifdef Quotient_E2EE_ENABLED
     //! Set the E2EE default state for any Connection created further
     static void setEncryptionDefault(bool useByDefault);
 
     //! Set the direct chat E2EE default state for any Connection created further
     static void setDirectChatEncryptionDefault(bool useByDefault);
-#endif
 
     //! Set a room factory function
     static void setRoomFactory(room_factory_t f);
@@ -726,11 +709,9 @@ public Q_SLOTS:
     DownloadFileJob* downloadFile(const QUrl& url,
                                   const QString& localFilename = {});
 
-#ifdef Quotient_E2EE_ENABLED
     DownloadFileJob* downloadFile(const QUrl& url,
                                   const EncryptedFileMetadata& fileMetadata,
                                   const QString& localFilename = {});
-#endif
 
     //! \brief Create a room (generic method)
     //!
@@ -814,16 +795,14 @@ public Q_SLOTS:
     //! \deprecated Do not use this directly, use Room::leaveRoom() instead
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
-#ifdef Quotient_E2EE_ENABLED
     KeyVerificationSession* startKeyVerificationSession(const QString& userId,
                                                         const QString& deviceId);
 
     void encryptionUpdate(const Room* room, const QList<QString>& invitedIds);
     void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
-#endif
 
     static Connection* makeMockConnection(const QString& mxId,
-                                          bool enableEncryption = E2EE_Enabled);
+                                          bool enableEncryption = true);
 
 Q_SIGNALS:
     //! \brief Initial server resolution has failed
@@ -979,7 +958,6 @@ Q_SIGNALS:
     void encryptionChanged(bool enabled);
     void directChatsEncryptionChanged(bool enabled);
 
-#ifdef Quotient_E2EE_ENABLED
     void newKeyVerificationSession(Quotient::KeyVerificationSession* session);
     void keyVerificationStateChanged(
         const Quotient::KeyVerificationSession* session,
@@ -987,7 +965,6 @@ Q_SIGNALS:
     void sessionVerified(const QString& userId, const QString& deviceId);
     bool finishedQueryingKeys();
     void secretReceived(const QString& requestId, const QString& secret);
-#endif
 
 protected:
     //! Access the underlying ConnectionData class

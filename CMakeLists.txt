@@ -12,11 +12,6 @@ message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION} ==>")
 include(FeatureSummary)
 include(CTest)
 
-# https://github.com/quotient-im/libQuotient/issues/369
-option(${PROJECT_NAME}_ENABLE_E2EE "end-to-end encryption (E2EE) support" OFF)
-add_feature_info(EnableE2EE ${PROJECT_NAME}_ENABLE_E2EE
-                 "end-to-end encryption (WORK IN PROGRESS)")
-
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'Debug' as none was specified")
@@ -95,27 +90,24 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 
-find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test)
+find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
 find_package(${Qt}Keychain REQUIRED)
 
-if (${PROJECT_NAME}_ENABLE_E2EE)
-    find_package(${Qt} ${QtMinVersion} REQUIRED Sql)
-    find_package(Olm 3.2.5 REQUIRED)
-    set_package_properties(Olm PROPERTIES
-        DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
-        URL "https://gitlab.matrix.org/matrix-org/olm"
-        TYPE REQUIRED
-    )
+find_package(Olm 3.2.5 REQUIRED)
+set_package_properties(Olm PROPERTIES
+    DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
+    URL "https://gitlab.matrix.org/matrix-org/olm"
+    TYPE REQUIRED
+)
 
-    find_package(OpenSSL 1.1.0 REQUIRED)
-    set_package_properties(OpenSSL PROPERTIES
-        DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
-        URL "https://www.openssl.org/"
-        TYPE REQUIRED
-    )
-endif()
+find_package(OpenSSL 1.1.0 REQUIRED)
+set_package_properties(OpenSSL PROPERTIES
+    DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
+    URL "https://www.openssl.org/"
+    TYPE REQUIRED
+)
 
 # Set up source files
 list(APPEND lib_SRCS
@@ -146,7 +138,6 @@ list(APPEND lib_SRCS
     Quotient/eventitem.h Quotient/eventitem.cpp
     Quotient/accountregistry.h Quotient/accountregistry.cpp
     Quotient/mxcreply.h Quotient/mxcreply.cpp
-    Quotient/e2ee/e2ee_common.h # because it's used by generated API
     Quotient/events/event.h Quotient/events/event.cpp
     Quotient/events/eventloader.h
     Quotient/events/roomevent.h Quotient/events/roomevent.cpp
@@ -178,26 +169,22 @@ list(APPEND lib_SRCS
     Quotient/jobs/syncjob.h Quotient/jobs/syncjob.cpp
     Quotient/jobs/mediathumbnailjob.h Quotient/jobs/mediathumbnailjob.cpp
     Quotient/jobs/downloadfilejob.h Quotient/jobs/downloadfilejob.cpp
+    Quotient/database.h Quotient/database.cpp
+    Quotient/connectionencryptiondata_p.h Quotient/connectionencryptiondata_p.cpp
+    Quotient/keyverificationsession.h Quotient/keyverificationsession.cpp
+    Quotient/e2ee/e2ee_common.h Quotient/e2ee/e2ee_common.cpp
+    Quotient/e2ee/qolmaccount.h Quotient/e2ee/qolmaccount.cpp
+    Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
+    Quotient/e2ee/qolminboundsession.h Quotient/e2ee/qolminboundsession.cpp
+    Quotient/e2ee/qolmoutboundsession.h Quotient/e2ee/qolmoutboundsession.cpp
+    Quotient/e2ee/qolmutility.h Quotient/e2ee/qolmutility.cpp
+    Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
+    Quotient/e2ee/qolmmessage.h Quotient/e2ee/qolmmessage.cpp
+    Quotient/e2ee/cryptoutils.h Quotient/e2ee/cryptoutils.cpp
+    Quotient/e2ee/sssshandler.h Quotient/e2ee/sssshandler.cpp
+    Quotient/events/keyverificationevent.h
     libquotientemojis.qrc
-)
-if (${PROJECT_NAME}_ENABLE_E2EE)
-    list(APPEND lib_SRCS
-        Quotient/database.h Quotient/database.cpp
-        Quotient/connectionencryptiondata_p.h Quotient/connectionencryptiondata_p.cpp
-        Quotient/keyverificationsession.h Quotient/keyverificationsession.cpp
-        Quotient/e2ee/e2ee_common.cpp # .h is in the common sources list
-        Quotient/e2ee/qolmaccount.h Quotient/e2ee/qolmaccount.cpp
-        Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
-        Quotient/e2ee/qolminboundsession.h Quotient/e2ee/qolminboundsession.cpp
-        Quotient/e2ee/qolmoutboundsession.h Quotient/e2ee/qolmoutboundsession.cpp
-        Quotient/e2ee/qolmutility.h Quotient/e2ee/qolmutility.cpp
-        Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
-        Quotient/e2ee/qolmmessage.h Quotient/e2ee/qolmmessage.cpp
-        Quotient/e2ee/cryptoutils.h Quotient/e2ee/cryptoutils.cpp
-        Quotient/e2ee/sssshandler.h Quotient/e2ee/sssshandler.cpp
-        Quotient/events/keyverificationevent.h
     )
-endif()
 
 # Configure API files generation
 
@@ -286,10 +273,7 @@ target_compile_definitions(${QUOTIENT_LIB_NAME} PUBLIC
     $<$<STREQUAL:$<TARGET_PROPERTY:${QUOTIENT_LIB_NAME},TYPE>,STATIC_LIBRARY>:QUOTIENT_STATIC>)
 target_compile_definitions(${QUOTIENT_LIB_NAME} PUBLIC ${PROJECT_NAME}_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
     ${PROJECT_NAME}_VERSION_MINOR=${PROJECT_VERSION_MINOR} ${PROJECT_NAME}_VERSION_PATCH=${PROJECT_VERSION_PATCH}
-    ${PROJECT_NAME}_VERSION_STRING=\"${PROJECT_VERSION}\")
-if (${PROJECT_NAME}_ENABLE_E2EE)
-    target_compile_definitions(${QUOTIENT_LIB_NAME} PUBLIC ${PROJECT_NAME}_E2EE_ENABLED)
-endif()
+    ${PROJECT_NAME}_VERSION_STRING=\"${PROJECT_VERSION}\" ${PROJECT_NAME}_E2EE_ENABLED)
 set_target_properties(${QUOTIENT_LIB_NAME} PROPERTIES
     VERSION "${PROJECT_VERSION}"
     SOVERSION ${API_VERSION}
@@ -314,17 +298,7 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
     $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain)
-
-if (${PROJECT_NAME}_ENABLE_E2EE)
-    target_link_libraries(${QUOTIENT_LIB_NAME}
-        PUBLIC
-            Olm::Olm
-            ${Qt}::Sql
-        PRIVATE
-            OpenSSL::Crypto
-    )
-endif()
+target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain Olm::Olm ${Qt}::Sql PRIVATE OpenSSL::Crypto)
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
@@ -396,10 +370,8 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "  Header files install prefix: ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}")
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 message(STATUS "Using QtKeychain ${${Qt}Keychain_VERSION} at ${${Qt}Keychain_DIR}")
-if (${PROJECT_NAME}_ENABLE_E2EE)
-    message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
-    message(STATUS "Using OpenSSL libcrypto ${OPENSSL_VERSION} at ${OPENSSL_CRYPTO_LIBRARY}")
-endif()
+message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
+message(STATUS "Using OpenSSL libcrypto ${OPENSSL_VERSION} at ${OPENSSL_CRYPTO_LIBRARY}")
 message(STATUS)
 feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES
                 FATAL_ON_MISSING_REQUIRED_PACKAGES)

@@ -6,9 +6,7 @@
 #include "../logging_categories_p.h"
 #include "redactionevent.h"
 
-#ifdef Quotient_E2EE_ENABLED
 #include "encryptedevent.h"
-#endif
 
 using namespace Quotient;
 
@@ -86,7 +84,6 @@ void RoomEvent::dumpTo(QDebug dbg) const
     dbg << " (made at " << originTimestamp().toString(Qt::ISODate) << ')';
 }
 
-#ifdef Quotient_E2EE_ENABLED
 void RoomEvent::setOriginalEvent(event_ptr_tt<EncryptedEvent>&& originalEvent)
 {
     _originalEvent = std::move(originalEvent);
@@ -99,4 +96,3 @@ const QJsonObject RoomEvent::encryptedJson() const
     }
     return _originalEvent->fullJson();
 }
-#endif
