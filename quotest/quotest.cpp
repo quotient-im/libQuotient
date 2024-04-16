@@ -26,7 +26,6 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QtNetwork/QNetworkReply>
 
-#include <functional>
 #include <iostream>
 
 using namespace Quotient;
@@ -186,29 +185,30 @@ TestManager::TestManager(int& argc, char** argv)
     : QCoreApplication(argc, argv), c(new Connection(this))
 {
     Q_ASSERT(argc >= 5);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     clog << "Connecting to Matrix as " << argv[1] << endl;
-    c->loginWithPassword(QString::fromUtf8(argv[1]), QString::fromUtf8(argv[2]), QString::fromUtf8(argv[3]));
+    c->loginWithPassword(QString::fromUtf8(argv[1]), QString::fromUtf8(argv[2]),
+                         QString::fromUtf8(argv[3]));
     targetRoomName = QString::fromUtf8(argv[4]);
-    clog << "Test room name: " << argv[4] << endl;
+    clog << "Test room name: " << argv[4] << '\n';
     if (argc > 5) {
         origin = QString::fromUtf8(argv[5]);
-        clog << "Origin for the test message: " << origin.toStdString() << endl;
+        clog << "Origin for the test message: " << origin.toStdString() << '\n';
     }
+    clog.flush();
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     connect(c, &Connection::connected, this, &TestManager::setupAndRun);
     connect(c, &Connection::resolveError, this,
         [](const QString& error) {
-            clog << "Failed to resolve the server: " << error.toStdString()
-                 << endl;
+            clog << "Failed to resolve the server: " << error.toStdString() << endl;
             QCoreApplication::exit(-2);
         },
         Qt::QueuedConnection);
     connect(c, &Connection::loginError, this,
         [this](const QString& message, const QString& details) {
-            clog << "Failed to login to "
-                 << c->homeserver().toDisplayString().toStdString() << ": "
-                 << message.toStdString() << endl
-                 << "Details:" << endl
+            clog << "Failed to login to " << c->homeserver().toDisplayString().toStdString() << ": "
+                 << message.toStdString() << "\nDetails:\n"
                  << details.toStdString() << endl;
             QCoreApplication::exit(-2);
         },
@@ -229,9 +229,8 @@ void TestManager::setupAndRun()
 {
     Q_ASSERT(!c->homeserver().isEmpty() && c->homeserver().isValid());
     Q_ASSERT(c->domain() == c->userId().section(u':', 1));
-    clog << "Connected, server: "
-         << c->homeserver().toDisplayString().toStdString() << endl;
-    clog << "Access token: " << c->accessToken().toStdString() << endl;
+    clog << "Connected, server: " << c->homeserver().toDisplayString().toStdString() << '\n'
+         << "Access token: " << c->accessToken().toStdString() << endl;
 
     c->setLazyLoading(true);
 
@@ -274,13 +273,10 @@ void TestManager::setupAndRun()
 
 void TestManager::onNewRoom(Room* r)
 {
-    clog << "New room: " << r->id().toStdString() << endl
-         << "  Name: " << r->name().toStdString() << endl
-         << "  Canonical alias: " << r->canonicalAlias().toStdString() << endl
-         << endl;
+    clog << "New room: " << r->id().toStdString() << "\n  Name: " << r->name().toStdString()
+         << "\n  Canonical alias: " << r->canonicalAlias().toStdString() << endl;
     connect(r, &Room::aboutToAddNewMessages, r, [r](RoomEventsRange timeline) {
-        clog << timeline.size() << " new event(s) in room "
-             << r->objectName().toStdString() << endl;
+        clog << timeline.size() << " new event(s) in room " << r->objectName().toStdString() << endl;
     });
 }
 
@@ -414,7 +410,7 @@ TEST_IMPL(sendFile)
     }
     tf->write("Test");
     tf->close();
-    QFileInfo tfi { *tf };
+    const QFileInfo tfi { *tf };
     // QFileInfo::fileName brings only the file name; QFile::fileName brings
     // the full path
     const auto tfName = tfi.fileName();
@@ -452,48 +448,32 @@ TEST_IMPL(sendFile)
     return false;
 }
 
-// Can be replaced with a lambda once QtConcurrent is able to resolve return
-// types from lambda invocations (Qt 6 can, not sure about earlier)
-struct DownloadRunner {
-    QUrl url;
-
-    using result_type = QNetworkReply::NetworkError;
-
-    void runRequest(QScopedPointer<QNetworkReply, QScopedPointerDeleteLater>& r,
-                    QEventLoop& el) const
-    {
-        r.reset(NetworkAccessManager::instance()->get(QNetworkRequest(url)));
-        QObject::connect(
-            r.data(), &QNetworkReply::finished, &el,
-            [this, &r, &el] {
-                if (r->error() != QNetworkReply::NoError)
-                    runRequest(r, el);
-                else
-                    el.exit();
-            },
-            Qt::QueuedConnection);
-    }
-
-    QNetworkReply::NetworkError operator()(int) const
-    {
-        thread_local QEventLoop el;
-        thread_local QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply{};
-        runRequest(reply, el);
-        el.exec();
-        return reply->error();
-    }
-};
+void getResource(const QUrl& url, QScopedPointer<QNetworkReply, QScopedPointerDeleteLater>& r,
+                 QEventLoop& el)
+{
+    r.reset(NetworkAccessManager::instance()->get(QNetworkRequest(url)));
+    QObject::connect(
+        r.data(), &QNetworkReply::finished, &el,
+        [url, &r, &el] {
+            if (r->error() != QNetworkReply::NoError)
+                getResource(url, r, el);
+            else
+                el.exit();
+        },
+        Qt::QueuedConnection);
+}
 
 bool testDownload(const QUrl& url)
 {
-    // Move out actual test from the multithreaded code
-    // to help debugging
-    auto results = QtConcurrent::blockingMapped(QVector<int> { 1, 2, 3 },
-                                                DownloadRunner { url });
-    return std::all_of(results.cbegin(), results.cend(),
-                        [](QNetworkReply::NetworkError ne) {
-                            return ne == QNetworkReply::NoError;
-                        });
+    // The actual test is separate from the download invocation to help debugging
+    const auto results = QtConcurrent::blockingMapped(QVector<int>{ 1, 2, 3 }, [url](int) {
+        thread_local QEventLoop el;
+        thread_local QScopedPointer<QNetworkReply, QScopedPointerDeleteLater> reply{};
+        getResource(url, reply, el);
+        el.exec();
+        return reply->error();
+    });
+    return results == QVector<QNetworkReply::NetworkError>(3, QNetworkReply::NoError);
 }
 
 bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
@@ -571,8 +551,7 @@ TEST_IMPL(sendCustomEvent)
 
 TEST_IMPL(setTopic)
 {
-    const auto newTopic = connection()->generateTxnId(); // Just a way to make
-                                                         // a unique id
+    const auto newTopic = connection()->generateTxnId(); // Just a way to make a unique id
     targetRoom->setTopic(newTopic);
     connectUntil(targetRoom, &Room::topicChanged, this,
         [this, thisTest, newTopic] {
@@ -633,7 +612,7 @@ TEST_IMPL(changeName)
         localUser->rename(newName, targetRoom);
         connectUntil(
             targetRoom, &Room::aboutToAddNewMessages, this,
-            [this, thisTest, localUser, newName](const RoomEventsRange& evts) {
+            [this, thisTest, localUser, newName](RoomEventsRange evts) {
                 for (const auto& e : evts) {
                     if (const auto* rme = eventCast<const RoomMemberEvent>(e)) {
                         if (rme->stateKey() != localUser->id()
@@ -686,7 +665,7 @@ TEST_IMPL(addAndRemoveTag)
     // that the signal is emitted, not only that tags have changed; but there's
     // (currently) no way to check that the server has been correctly notified
     // of the tag change.
-    QSignalSpy spy(targetRoom, &Room::tagsChanged);
+    const QSignalSpy spy(targetRoom, &Room::tagsChanged);
     targetRoom->addTag(TestTag);
     if (spy.count() != 1 || !targetRoom->tags().contains(TestTag)) {
         clog << "Tag adding failed" << endl;
@@ -708,12 +687,12 @@ TEST_IMPL(markDirectChat)
         connection()->removeFromDirectChats(targetRoom->id(),
                                             connection()->user());
 
-    int id = qRegisterMetaType<DirectChatsMap>(); // For QSignalSpy
+    const auto id = qRegisterMetaType<DirectChatsMap>(); // For QSignalSpy
     Q_ASSERT(id != -1);
 
     // Same as with tags (and unusual for the rest of Quotient), direct chat
     // operations are synchronous.
-    QSignalSpy spy(connection(), &Connection::directChatsListChanged);
+    const QSignalSpy spy(connection(), &Connection::directChatsListChanged);
     clog << "Marking the room as a direct chat" << endl;
     connection()->addToDirectChats(targetRoom, connection()->user());
     if (spy.count() != 1 || !checkDirectChat())
@@ -749,14 +728,13 @@ TEST_IMPL(visitResources)
     static UriDispatcher ud;
 
     // This lambda returns true in case of error, false if it's fine so far
-    auto testResourceResolver = [this, thisTest](const QStringList& uris,
-                                                 auto signal, auto* target,
-                                                 QVariantList otherArgs = {}) {
-        int r = qRegisterMetaType<decltype(target)>();
+    const auto testResourceResolver = [this, thisTest](const QStringList& uris, auto signal,
+                                                       auto* target, QVariantList otherArgs = {}) {
+        const auto r = qRegisterMetaType<decltype(target)>();
         Q_ASSERT(r != 0);
         QSignalSpy spy(&ud, signal);
         for (const auto& uriString: uris) {
-            Uri uri { uriString };
+            const Uri uri { uriString };
             clog << "Checking " << uriString.toStdString()
                  << " -> " << uri.toDisplayString().toStdString() << endl;
             if (auto matrixToUrl = uri.toUrl(Uri::MatrixToUri).toDisplayString();
@@ -913,12 +891,11 @@ void TestManager::conclude()
     room->setTopic({});
     c->user()->rename({});
 
-    QString succeededRec { QString::number(succeeded.size()) % " of "_ls
-                           % QString::number(succeeded.size() + failed.size()
-                                             + running.size())
-                           % " tests succeeded"_ls };
+    const QString succeededRec{ QString::number(succeeded.size()) % " of "_ls
+                                % QString::number(succeeded.size() + failed.size() + running.size())
+                                % " tests succeeded"_ls };
     QString plainReport = origin % ": Testing complete, "_ls % succeededRec;
-    QString color = failed.empty() && running.empty() ? "00AA00"_ls : "AA0000"_ls;
+    const QString color = failed.empty() && running.empty() ? "00AA00"_ls : "AA0000"_ls;
     QString htmlReport = origin % ": <strong><font data-mx-color='#"_ls % color
                          % "' color='#"_ls % color
                          % "'>Testing complete</font></strong>, "_ls % succeededRec;
@@ -984,7 +961,7 @@ void TestManager::finalize()
                                    : succeeded.empty() && failed.empty()
                                            && running.empty()
                                        ? -4
-                                       : failed.size() + running.size());
+                                       : static_cast<int>(failed.size() + running.size()));
         },
         Qt::QueuedConnection);
 }
