@@ -25,8 +25,10 @@ public:
     struct User {
         //! The user's matrix user ID.
         QString userId;
+
         //! The display name of the user, if one exists.
         QString displayName{};
+
         //! The avatar url, as an [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris), if
         //! one exists.
         QUrl avatarUrl{};

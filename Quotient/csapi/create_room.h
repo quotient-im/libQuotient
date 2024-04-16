@@ -58,13 +58,16 @@ public:
         //! The hostname+port of the identity server which should be used for third-party identifier
         //! lookups.
         QString idServer;
+
         //! An access token previously registered with the identity server. Servers
         //! can treat this as optional to distinguish between r0.5-compatible clients
         //! and this specification version.
         QString idAccessToken;
+
         //! The kind of address being passed in the address field, for example `email`
         //! (see [the list of recognised values](/appendices/#3pid-types)).
         QString medium;
+
         //! The invitee's third-party identifier.
         QString address;
     };
@@ -72,8 +75,10 @@ public:
     struct StateEvent {
         //! The type of event to send.
         QString type;
+
         //! The content of the event.
         QJsonObject content;
+
         //! The state_key of the state event. Defaults to an empty string.
         QString stateKey{};
     };

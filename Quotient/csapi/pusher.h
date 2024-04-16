@@ -19,6 +19,7 @@ public:
         //! Required if `kind` is `http`. The URL to use to send
         //! notifications to.
         QUrl url{};
+
         //! The format to use when sending notifications to the Push
         //! Gateway.
         QString format{};
@@ -29,24 +30,31 @@ public:
         //! more detail.
         //! Max length, 512 bytes.
         QString pushkey;
+
         //! The kind of pusher. `"http"` is a pusher that
         //! sends HTTP pokes.
         QString kind;
+
         //! This is a reverse-DNS style identifier for the application.
         //! Max length, 64 chars.
         QString appId;
+
         //! A string that will allow the user to identify what application
         //! owns this pusher.
         QString appDisplayName;
+
         //! A string that will allow the user to identify what device owns
         //! this pusher.
         QString deviceDisplayName;
+
         //! The preferred language for receiving notifications (e.g. 'en'
         //! or 'en-US')
         QString lang;
+
         //! A dictionary of information for the pusher implementation
         //! itself.
         PusherData data;
+
         //! This string determines which set of device specific rules this
         //! pusher executes.
         QString profileTag{};
@@ -115,6 +123,7 @@ public:
         //! notifications to. MUST be an HTTPS URL with a path of
         //! `/_matrix/push/v1/notify`.
         QUrl url{};
+
         //! The format to send notifications in to Push Gateways if the
         //! `kind` is `http`. The details about what fields the
         //! homeserver should send to the push gateway are defined in the

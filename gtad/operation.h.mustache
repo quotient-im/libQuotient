@@ -11,30 +11,20 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include <QtNetwork/QNetworkReply>{{/operations.producesNonJson?}}
 
 namespace Quotient {
+{{>define_models}}
+
 {{#operations.operation}}
 
 //! \brief {{summary}}{{#description?}}
 //!{{#description}}
 //! {{_}}{{/description}}{{/description?}}
-class QUOTIENT_API {{camelCaseOperationId}}Job : public BaseJob {
+class QUOTIENT_API {{>titleCaseOperationId}}Job : public BaseJob {
 public:
     {{#models}}{{#model?}}
     // Inner data structures
         {{#model}}
 
-    {{>docCommentShort}}
-    struct {{name}}{{#parents?}} :
-        {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
-    {
-            {{#vars}}
-        {{>docCommentShort}}
-        {{>maybeOmittableType}} {{nameCamelCase}}{{>initializeField}};
-            {{/vars}}
-            {{#propertyMap}}
-        {{>docCommentShort}}
-        {{>maybeOmittableType}} {{nameCamelCase}}{};
-            {{/propertyMap}}
-    };
+    {{>structDefinition}}
         {{/model}}
 
     // Construction/destruction
@@ -44,12 +34,12 @@ public:
     //! \param {{nameCamelCase}} {{#description}}
     //!   {{_}}{{/description}}{{/description?}}{{#_join}}
     //!{{/_join}}{{/allParams}}
-    explicit {{camelCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});
+    explicit {{>titleCaseOperationId}}Job({{#allParams}}{{>joinedParamDecl}}{{/allParams}});
     {{^hasBody?}}
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
-    //! This function can be used when a URL for {{camelCaseOperationId}}Job
+    //! This function can be used when a URL for {{>titleCaseOperationId}}Job
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl{{#allParams?}},
                     {{#allParams}}{{>joinedParamDecl}}{{/allParams}}{{/allParams?}});

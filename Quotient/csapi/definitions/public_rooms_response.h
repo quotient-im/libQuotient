@@ -33,14 +33,14 @@ struct PublicRoomsChunk {
     //! The URL for the room's avatar, if one is set.
     QUrl avatarUrl{};
 
-    //! The `type` of room (from [`m.room.create`](/client-server-api/#mroomcreate)), if any.
-    QString roomType{};
-
     //! The room's join rule. When not present, the room is assumed to
     //! be `public`. Note that rooms with `invite` join rules are not
     //! expected here, but rooms with `knock` rules are given their
     //! near-public nature.
     QString joinRule{};
+
+    //! The `type` of room (from [`m.room.create`](/client-server-api/#mroomcreate)), if any.
+    QString roomType{};
 };
 
 template <>
@@ -55,8 +55,8 @@ struct JsonObjectConverter<PublicRoomsChunk> {
         addParam<IfNotEmpty>(jo, QStringLiteral("name"), pod.name);
         addParam<IfNotEmpty>(jo, QStringLiteral("topic"), pod.topic);
         addParam<IfNotEmpty>(jo, QStringLiteral("avatar_url"), pod.avatarUrl);
-        addParam<IfNotEmpty>(jo, QStringLiteral("room_type"), pod.roomType);
         addParam<IfNotEmpty>(jo, QStringLiteral("join_rule"), pod.joinRule);
+        addParam<IfNotEmpty>(jo, QStringLiteral("room_type"), pod.roomType);
     }
     static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod)
     {
@@ -68,8 +68,8 @@ struct JsonObjectConverter<PublicRoomsChunk> {
         fillFromJson(jo.value("name"_ls), pod.name);
         fillFromJson(jo.value("topic"_ls), pod.topic);
         fillFromJson(jo.value("avatar_url"_ls), pod.avatarUrl);
-        fillFromJson(jo.value("room_type"_ls), pod.roomType);
         fillFromJson(jo.value("join_rule"_ls), pod.joinRule);
+        fillFromJson(jo.value("room_type"_ls), pod.roomType);
     }
 };
 

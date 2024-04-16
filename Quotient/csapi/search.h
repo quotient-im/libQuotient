@@ -23,9 +23,11 @@ public:
         //! How many events before the result are
         //! returned. By default, this is `5`.
         Omittable<int> beforeLimit{};
+
         //! How many events after the result are
         //! returned. By default, this is `5`.
         Omittable<int> afterLimit{};
+
         //! Requests that the server returns the
         //! historic profile information for the users
         //! that sent the events that were returned.
@@ -50,19 +52,25 @@ public:
     struct RoomEventsCriteria {
         //! The string to search events for
         QString searchTerm;
+
         //! The keys to search. Defaults to all.
         QStringList keys{};
+
         //! This takes a [filter](/client-server-api/#filtering).
         RoomEventFilter filter{};
+
         //! The order in which to search for results.
         //! By default, this is `"rank"`.
         QString orderBy{};
+
         //! Configures whether any context for the events
         //! returned are included in the response.
         Omittable<IncludeEventContext> eventContext{};
+
         //! Requests the server return the current state for
         //! each room returned.
         Omittable<bool> includeState{};
+
         //! Requests that the server partitions the result set
         //! based on the provided list of keys.
         Omittable<Groupings> groupings{};
@@ -84,16 +92,20 @@ public:
     struct EventContext {
         //! Pagination token for the start of the chunk
         QString begin{};
+
         //! Pagination token for the end of the chunk
         QString end{};
+
         //! The historic profile information of the
         //! users that sent the events returned.
         //!
         //! The `string` key is the user ID for which
         //! the profile belongs to.
         QHash<QString, UserProfile> profileInfo{};
+
         //! Events just before the result.
         RoomEvents eventsBefore{};
+
         //! Events just after the result.
         RoomEvents eventsAfter{};
     };
@@ -102,8 +114,10 @@ public:
     struct Result {
         //! A number that describes how closely this result matches the search. Higher is closer.
         Omittable<double> rank{};
+
         //! The event that matched.
         RoomEventPtr result{};
+
         //! Context for result, if requested.
         Omittable<EventContext> context{};
     };
@@ -116,9 +130,11 @@ public:
         //! this field is absent, there are no more
         //! results in this group.
         QString nextBatch{};
+
         //! Key that can be used to order different
         //! groups.
         Omittable<int> order{};
+
         //! Which results are in this group.
         QStringList results{};
     };
@@ -127,11 +143,14 @@ public:
     struct ResultRoomEvents {
         //! An approximate count of the total number of results found.
         Omittable<int> count{};
+
         //! List of words which should be highlighted, useful for stemming which may change the
         //! query terms.
         QStringList highlights{};
+
         //! List of results in the requested order.
         std::vector<Result> results{};
+
         //! The current state for every room in the results.
         //! This is included if the request had the
         //! `include_state` key set with a value of `true`.
@@ -139,12 +158,14 @@ public:
         //! The `string` key is the room ID for which the `State
         //! Event` array belongs to.
         UnorderedMap<QString, StateEvents> state{};
+
         //! Any groups that were requested.
         //!
         //! The outer `string` key is the group key requested (eg: `room_id`
         //! or `sender`). The inner `string` key is the grouped value (eg:
         //! a room's ID or a user's ID).
         QHash<QString, QHash<QString, GroupValue>> groups{};
+
         //! Token that can be used to get the next batch of
         //! results, by passing as the `next_batch` parameter to
         //! the next call. If this field is absent, there are no

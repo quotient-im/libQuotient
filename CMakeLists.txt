@@ -257,6 +257,8 @@ if (API_GENERATION_ENABLED)
                 gtad/data.h.mustache
                 gtad/operation.h.mustache
                 gtad/operation.cpp.mustache
+                gtad/preamble.mustache
+                gtad/define_models.mustache
                 ${API_DEFS}
         VERBATIM
     )

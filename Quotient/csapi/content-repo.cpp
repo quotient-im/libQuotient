@@ -73,7 +73,7 @@ GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId, 
                              qint64 timeoutMs, bool allowRedirect)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetContentJob"),
               makePath("/_matrix", "/media/v3/download/", serverName, "/", mediaId),
-              queryToGetContent(allowRemote, timeoutMs, allowRedirect), {}, false)
+              queryToGetContent(allowRemote, timeoutMs, allowRedirect))
 {
     setExpectedContentTypes({ "application/octet-stream" });
 }
@@ -104,7 +104,7 @@ GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName,
                                                      qint64 timeoutMs, bool allowRedirect)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetContentOverrideNameJob"),
               makePath("/_matrix", "/media/v3/download/", serverName, "/", mediaId, "/", fileName),
-              queryToGetContentOverrideName(allowRemote, timeoutMs, allowRedirect), {}, false)
+              queryToGetContentOverrideName(allowRemote, timeoutMs, allowRedirect))
 {
     setExpectedContentTypes({ "application/octet-stream" });
 }
@@ -139,8 +139,7 @@ GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const 
     : BaseJob(HttpVerb::Get, QStringLiteral("GetContentThumbnailJob"),
               makePath("/_matrix", "/media/v3/thumbnail/", serverName, "/", mediaId),
               queryToGetContentThumbnail(width, height, method, allowRemote, timeoutMs,
-                                         allowRedirect),
-              {}, false)
+                                         allowRedirect))
 {
     setExpectedContentTypes({ "image/jpeg", "image/png" });
 }

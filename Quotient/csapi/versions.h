@@ -22,10 +22,14 @@ namespace Quotient {
 //! which has not yet landed in the spec. For example, a feature currently
 //! undergoing the proposal process may appear here and eventually be taken
 //! off this list once the feature lands in the spec and the server deems it
-//! reasonable to do so. Servers may wish to keep advertising features here
-//! after they've been released into the spec to give clients a chance to
-//! upgrade appropriately. Additionally, clients should avoid using unstable
-//! features in their stable releases.
+//! reasonable to do so. Servers can choose to enable some features only for
+//! some users, so clients should include authentication in the request to
+//! get all the features available for the logged-in user. If no
+//! authentication is provided, the server should only return the features
+//! available to all users. Servers may wish to keep advertising features
+//! here after they've been released into the spec to give clients a chance
+//! to upgrade appropriately. Additionally, clients should avoid using
+//! unstable features in their stable releases.
 class QUOTIENT_API GetVersionsJob : public BaseJob {
 public:
     explicit GetVersionsJob();

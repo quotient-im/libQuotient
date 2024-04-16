@@ -20,33 +20,43 @@ class QUOTIENT_API GetSpaceHierarchyJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct ChildRoomsChunk {
+    struct SpaceHierarchyRoomsChunk {
         //! The number of members joined to the room.
         int numJoinedMembers;
+
         //! The ID of the room.
         QString roomId;
+
         //! Whether the room may be viewed by guest users without joining.
         bool worldReadable;
+
         //! Whether guest users may join the room and participate in it.
         //! If they can, they will be subject to ordinary power level
         //! rules like any other user.
         bool guestCanJoin;
+
         //! The [`m.space.child`](#mspacechild) events of the space-room, represented
         //! as [Stripped State Events](#stripped-state) with an added `origin_server_ts` key.
         //!
         //! If the room is not a space-room, this should be empty.
         StateEvents childrenState;
+
         //! The canonical alias of the room, if any.
         QString canonicalAlias{};
+
         //! The name of the room, if any.
         QString name{};
+
         //! The topic of the room, if any.
         QString topic{};
+
         //! The URL for the room's avatar, if one is set.
         QUrl avatarUrl{};
+
         //! The room's join rule. When not present, the room is assumed to
         //! be `public`.
         QString joinRule{};
+
         //! The `type` of room (from [`m.room.create`](/client-server-api/#mroomcreate)), if any.
         QString roomType{};
     };
@@ -94,9 +104,9 @@ public:
     // Result properties
 
     //! The rooms for the current page, with the current filters.
-    std::vector<ChildRoomsChunk> rooms()
+    std::vector<SpaceHierarchyRoomsChunk> rooms()
     {
-        return takeFromJson<std::vector<ChildRoomsChunk>>("rooms"_ls);
+        return takeFromJson<std::vector<SpaceHierarchyRoomsChunk>>("rooms"_ls);
     }
 
     //! A token to supply to `from` to keep paginating the responses. Not present when there are
@@ -105,8 +115,9 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetSpaceHierarchyJob::ChildRoomsChunk> {
-    static void fillFrom(const QJsonObject& jo, GetSpaceHierarchyJob::ChildRoomsChunk& result)
+struct JsonObjectConverter<GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk> {
+    static void fillFrom(const QJsonObject& jo,
+                         GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk& result)
     {
         fillFromJson(jo.value("num_joined_members"_ls), result.numJoinedMembers);
         fillFromJson(jo.value("room_id"_ls), result.roomId);

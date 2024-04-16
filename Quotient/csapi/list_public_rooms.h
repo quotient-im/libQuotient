@@ -119,6 +119,7 @@ public:
         //! An optional string to search for in the room metadata, e.g. name,
         //! topic, canonical alias, etc.
         QString genericSearchTerm{};
+
         //! An optional list of [room types](/client-server-api/#types) to search
         //! for. To include rooms without a room type, specify `null` within this
         //! list. When not specified, all applicable rooms (regardless of type)
