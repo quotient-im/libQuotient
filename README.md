@@ -104,11 +104,10 @@ NOT to add the path for Qt (or any other library) to `PATH` explicitly; use
 Qt Creator, you shouldn't need to deal with Qt paths at all, just pick the right
 kit and go straight to building.
 
-Unless you switch E2EE at compile-time, you will also need libolm. You'll have
-to build it yourself - there's no binary for Windows that you can download from
-vcpkg or elsewhere, as of this writing. The source code is available at
-https://gitlab.matrix.org/matrix-org/olm; you can use the same toolchain
-(CMake+MSVC, e.g.) as for the rest of Quotient.
+You will also need libolm. You'll have to build it yourself - there's no binary
+for Windows that you can download from vcpkg or elsewhere, as of this writing.
+The source code is available at https://gitlab.matrix.org/matrix-org/olm;
+you can use the same toolchain (CMake+MSVC, e.g.) as for the rest of Quotient.
 
 
 ## Using the library
@@ -201,33 +200,6 @@ the standard variables coming with CMake. On top of them, Quotient understands:
   Matrix operations, such as sending messages and small files, redaction,
   setting room tags etc. This is useful to check the sanity of your library
   installation.
-- `Quotient_ENABLE_E2EE=<ON/OFF>`, `OFF` by default for back-compatibility only
-  (it is strongly recommended to switch it `ON`, see below) - enable building
-  the E2EE code in the library. As of version 0.8, this code is beta-quality;
-  it is already good for trying out but still doesn't provide complete E2EE
-  functionality (e.g. loading encrypted history and backup/restore of the keys
-  from the homeserver - aka SSSS - are not implemented yet).
-
-  Switching this on will define `Quotient_E2EE_ENABLED` macro (note
-  the difference from the CMake switch) for compiler invocations on all
-  Quotient and Quotient-dependent (if it uses `find_package(Quotient)`)
-  code; `#ifdef Quotient_E2EE_ENABLED` will guard the code that depends on parts
-  of Quotient that only get built for E2EE. Be mindful that since 0.8.0 you
-  should also set E2EE at _runtime_, as described below.
-
-  The compile-time switch caused confusion in the community, with some
-  distributions leaving it off while others turning it on. To resolve this,
-  a new mechanism to switch E2EE on/off at runtime has been introduced in
-  version 0.8.0: you can either call `Connection::setEncryptionDefault(true);`
-  once, before creating any `Connection` objects in your code, or call
-  `Connection::enableEncryption()` on each `Connection` object where you want
-  to enable E2EE.
-
-  With this runtime mechanism in place, the compile-time switch will be dropped
-  in version 0.9, with `Quotient_E2EE_ENABLED` macro being always defined so
-  that the code that used the `#ifdef` mentioned above continues working.
-  In the meantime, it is strongly recommended to pass `Quotient_ENABLE_E2EE=ON`
-  to CMake to make sure your code is ready for the transition.
 - `MATRIX_SPEC_PATH` and `GTAD_PATH` - these two variables are used to point
   CMake to the directory with the matrix-doc repository containing API files
   and to a GTAD binary. These two are used to generate C++ files from Matrix

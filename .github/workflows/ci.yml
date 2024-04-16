@@ -22,7 +22,6 @@ jobs:
         qt-version: [ '6.4' ]
         override-compiler: [ '', GCC ] # Defaults: MSVC on Windows, Clang elsewhere
         # Not using binary values here, to make the job captions more readable
-        e2ee: [ e2ee, '' ]
         exclude: # Drop less important combinations to lower the jobs number
         - os: macos-11
           override-compiler: GCC
@@ -32,13 +31,11 @@ jobs:
         - os: ubuntu-22.04
           qt-version: '6.4'
           override-compiler: GCC
-          e2ee: e2ee
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
         - os: ubuntu-22.04
           qt-version: '6.4'
           override-compiler: ''
-          e2ee: e2ee
           static-analysis: codeql
 
     steps:
@@ -97,13 +94,11 @@ jobs:
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
                     -DBUILD_WITH_QT6=${{ startsWith(matrix.qt-version, '6') }}"
 
-        if [ -n '${{ matrix.e2ee }}' ]; then
-            QUOTEST_ORIGIN="$QUOTEST_ORIGIN/E2EE"
-            CMAKE_ARGS="$CMAKE_ARGS \
-                ${{ runner.os == 'macOS' && '-DOPENSSL_ROOT_DIR=`brew --prefix openssl`' ||
-                    runner.os == 'Windows' && '-DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSLv3/Win_x64/' || '' }} \
-                "
-        fi
+        QUOTEST_ORIGIN="$QUOTEST_ORIGIN/E2EE"
+        CMAKE_ARGS="$CMAKE_ARGS \
+            ${{ runner.os == 'macOS' && '-DOPENSSL_ROOT_DIR=`brew --prefix openssl`' ||
+                runner.os == 'Windows' && '-DOPENSSL_ROOT_DIR=$IQTA_TOOLS/OpenSSLv3/Win_x64/' || '' }} \
+            "
 
         if [ '${{ matrix.static-analysis }}' == 'sonar' ]; then
             mkdir -p $HOME/.sonar
@@ -142,7 +137,6 @@ jobs:
         cmake --build qtkeychain/build --target install
 
     - name: Build and install Olm
-      if: matrix.e2ee
       run: |
         cd ..
         git clone https://gitlab.matrix.org/matrix-org/olm.git
@@ -174,7 +168,7 @@ jobs:
     - name: Configure libQuotient
       run: |
         cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS \
-              -DQuotient_ENABLE_E2EE=${{ matrix.e2ee }} -DQuotient_INSTALL_TESTS=ON
+              -DQuotient_INSTALL_TESTS=ON
 
     - name: Regenerate API code
       if: matrix.update-api
@@ -198,7 +192,7 @@ jobs:
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
         CTEST_ARGS="--test-dir $BUILD_PATH --output-on-failure"
-        if [[ -z '${{ matrix.e2ee }}' || '${{ runner.os }}' != 'Linux' ]]; then
+        if [[ '${{ runner.os }}' != 'Linux' ]]; then
             CTEST_ARGS="$CTEST_ARGS -E testolmaccount"
         else
             . autotests/setup-tests.sh

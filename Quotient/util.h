@@ -296,16 +296,6 @@ QUOTIENT_API int majorVersion();
 QUOTIENT_API int minorVersion();
 QUOTIENT_API int patchVersion();
 
-//! Compile-time constant to determine whether the library is compiled with E2EE
-constexpr auto E2EE_Enabled =
-#ifdef Quotient_E2EE_ENABLED
-    true;
-#else
-    false;
-#endif
-
-QUOTIENT_API bool encryptionSupported();
-
 // QDebug manipulators
 
 //! \brief QDebug manipulator to setup the stream for JSON output

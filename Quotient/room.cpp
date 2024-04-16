@@ -14,6 +14,7 @@
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
+#include "database.h"
 #include "eventstats.h"
 #include "qt_connection_util.h"
 #include "roommember.h"
@@ -37,6 +38,10 @@
 #include "csapi/room_upgrades.h"
 #include "csapi/rooms.h"
 #include "csapi/tags.h"
+
+#include "e2ee/e2ee_common.h"
+#include "e2ee/qolmaccount.h"
+#include "e2ee/qolminboundsession.h"
 
 #include "events/callevents.h"
 #include "events/encryptionevent.h"
@@ -67,14 +72,6 @@
 #include <cmath>
 #include <functional>
 #include <qhash.h>
-
-#ifdef Quotient_E2EE_ENABLED
-#include "e2ee/e2ee_common.h"
-#include "e2ee/qolmaccount.h"
-#include "e2ee/qolminboundsession.h"
-#include "database.h"
-#endif // Quotient_E2EE_ENABLED
-
 
 using namespace Quotient;
 using namespace std::placeholders;
@@ -374,7 +371,6 @@ public:
         return users;
     }
 
-#ifdef Quotient_E2EE_ENABLED
     UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
     Omittable<QOlmOutboundGroupSession> currentOutboundMegolmSession = none;
 
@@ -487,7 +483,6 @@ public:
         return connection->database()->devicesWithoutKey(
             id, devices, currentOutboundMegolmSession->sessionId());
     }
-#endif // Quotient_E2EE_ENABLED
 
 private:
     using users_shortlist_t = std::array<QString, 3>;
@@ -504,7 +499,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     // https://marcmutz.wordpress.com/translated-articles/pimp-my-pimpl-%E2%80%94-reloaded/
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
-#ifdef Quotient_E2EE_ENABLED
     if (connection->encryptionEnabled()) {
         connectSingleShot(this, &Room::encryption, this, [this, connection] {
             connection->encryptionUpdate(this);
@@ -533,7 +527,6 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             connection->database()->clearRoomData(id);
         });
     }
-#endif
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
 
@@ -1682,11 +1675,6 @@ RoomStateView Room::currentState() const
 
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 {
-#ifndef Quotient_E2EE_ENABLED
-    Q_UNUSED(encryptedEvent)
-    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-    return {};
-#else // Quotient_E2EE_ENABLED
     if (const auto algorithm = encryptedEvent.algorithm();
         !isSupportedAlgorithm(algorithm)) //
     {
@@ -1709,19 +1697,12 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     qWarning(E2EE) << "Decrypted event" << encryptedEvent.id()
                    << "not for this room; discarding";
     return {};
-#endif // Quotient_E2EE_ENABLED
 }
 
 void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                               const QString& senderId,
                               const QByteArray& olmSessionId)
 {
-#ifndef Quotient_E2EE_ENABLED
-    Q_UNUSED(roomKeyEvent)
-    Q_UNUSED(senderId)
-    Q_UNUSED(olmSessionId)
-    qCWarning(E2EE) << "End-to-end encryption (E2EE) support is turned off.";
-#else // Quotient_E2EE_ENABLED
     if (roomKeyEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
                         << roomKeyEvent.algorithm() << "in m.room_key event";
@@ -1749,7 +1730,6 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
             }
         }
     }
-#endif // Quotient_E2EE_ENABLED
 }
 
 int Room::joinedCount() const
@@ -2171,7 +2151,6 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             onEventSendingFailure(txnId);
             return txnId;
         }
-#ifdef Quotient_E2EE_ENABLED
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
         }
@@ -2199,7 +2178,6 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         // We show the unencrypted event locally while pending. The echo
         // check will throw the encrypted version out
         _event = encryptedEvent.get();
-#endif
     }
 
     if (auto call =
@@ -2604,7 +2582,6 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
     // This is required because toLocalFile doesn't work on android and toString doesn't work on the desktop
     auto fileName = localFilename.isLocalFile() ? localFilename.toLocalFile() : localFilename.toString();
     FileSourceInfo fileMetadata;
-#ifdef Quotient_E2EE_ENABLED
     QTemporaryFile tempFile;
     if (usesEncryption()) {
         tempFile.open();
@@ -2616,7 +2593,6 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
         tempFile.close();
         fileName = QFileInfo(tempFile).absoluteFilePath();
     }
-#endif
     auto job = connection()->uploadFile(fileName, overrideContentType);
     if (isJobPending(job)) {
         d->fileTransfers[id] = { job, fileName, true };
@@ -2677,16 +2653,12 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         qDebug(MAIN) << "File path:" << filePath;
     }
     DownloadFileJob *job = nullptr;
-#ifdef Quotient_E2EE_ENABLED
     if (auto* fileMetadata =
             std::get_if<EncryptedFileMetadata>(&fileInfo->source)) {
         job = connection()->downloadFile(fileUrl, *fileMetadata, filePath);
     } else {
-#endif
-    job = connection()->downloadFile(fileUrl, filePath);
-#ifdef Quotient_E2EE_ENABLED
+        job = connection()->downloadFile(fileUrl, filePath);
     }
-#endif
     if (isJobPending(job)) {
         // If there was a previous transfer (completed or failed), overwrite it.
         d->fileTransfers[eventId] = { job, job->targetFileName() };
@@ -2752,7 +2724,6 @@ void Room::Private::dropExtraneousEvents(RoomEvents& events) const
 
 void Room::Private::decryptIncomingEvents(RoomEvents& events)
 {
-#ifdef Quotient_E2EE_ENABLED
     if (!connection->encryptionEnabled())
         return;
     if (!q->usesEncryption())
@@ -2777,7 +2748,6 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
     if (totalDecrypted > 5 || et.nsecsElapsed() >= ProfilerMinNsecs)
         qDebug(PROFILER)
             << "Decrypted" << totalDecrypted << "events in" << et;
-#endif
 }
 
 //! \brief Make a redacted event
@@ -3713,7 +3683,6 @@ void Room::activateEncryption()
     setState<EncryptionEvent>(EncryptionType::MegolmV1AesSha2);
 }
 
-#ifdef Quotient_E2EE_ENABLED
 void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteArray& sessionKey, uint32_t index)
 {
     const auto sessionIt = d->groupSessions.find(sessionId);
@@ -3734,5 +3703,3 @@ void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteAr
     session.setSenderId("BACKUP"_ls);
     d->connection->saveMegolmSession(this, session);
 }
-#endif
-

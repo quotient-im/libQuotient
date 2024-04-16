@@ -10,6 +10,8 @@
 
 #include "connection_p.h"
 #include "connectiondata.h"
+#include "connectionencryptiondata_p.h"
+#include "database.h"
 #include "qt_connection_util.h"
 #include "room.h"
 #include "settings.h"
@@ -29,18 +31,13 @@
 #include "csapi/wellknown.h"
 #include "csapi/whoami.h"
 
+#include "e2ee/qolminboundsession.h"
+
 #include "events/directchatevent.h"
 #include "events/encryptionevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
-
-#ifdef Quotient_E2EE_ENABLED
-    #include "connectionencryptiondata_p.h"
-    #include "database.h"
-
-    #include "e2ee/qolminboundsession.h"
-#endif // Quotient_E2EE_ENABLED
 
 #include <qt6keychain/keychain.h>
 
@@ -75,9 +72,7 @@ Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent)
     , d(makeImpl<Private>(std::make_unique<ConnectionData>(server)))
 {
-#ifdef Quotient_E2EE_ENABLED
     //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
-#endif
     d->q = this; // All d initialization should occur before this line
     setObjectName(server.toString());
 }
@@ -307,10 +302,8 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         data->setDeviceId(loginJob->deviceId());
         completeSetup(loginJob->userId());
         saveAccessTokenToKeychain();
-#ifdef Quotient_E2EE_ENABLED
         if (encryptionData)
             encryptionData->database.clear();
-#endif
     });
     connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
         emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
@@ -328,12 +321,6 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
                   << "from device" << data->deviceId();
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
 
-    static auto callOnce [[maybe_unused]] = //
-        (qInfo(MAIN) << "The library is built"
-                     << (E2EE_Enabled ? "with" : "without")
-                     << "end-to-end encryption (E2EE)",
-         0);
-#ifdef Quotient_E2EE_ENABLED
     if (useEncryption) {
         if (auto&& maybeEncryptionData =
                 _impl::ConnectionEncryptionData::setup(q, mock)) {
@@ -345,7 +332,6 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
     } else
         qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for"
                      << q->objectName();
-#endif
 
     emit q->stateChanged();
     emit q->connected();
@@ -503,22 +489,18 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
-#ifdef Quotient_E2EE_ENABLED
     if (d->encryptionData) {
         d->encryptionData->onSyncSuccess(data);
     }
-#endif
     d->consumeToDeviceEvents(data.takeToDeviceEvents());
     d->data->setLastEvent(data.nextBatch());
     d->consumeRoomData(data.takeRoomData(), fromCache);
     d->consumeAccountData(data.takeAccountData());
     d->consumePresenceData(data.takePresenceData());
-#ifdef Quotient_E2EE_ENABLED
     if(d->encryptionData && d->encryptionData->encryptionUpdateRequired) {
         d->encryptionData->loadOutdatedUserDevices();
         d->encryptionData->encryptionUpdateRequired = false;
     }
-#endif
     Q_UNUSED(std::move(data)) // Tell static analysers `data` is consumed now
 }
 
@@ -648,10 +630,8 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
-#ifdef Quotient_E2EE_ENABLED
     if (encryptionData)
         encryptionData->consumeToDeviceEvents(std::move(toDeviceEvents));
-#endif
 }
 
 void Connection::stopSync()
@@ -790,7 +770,6 @@ DownloadFileJob* Connection::downloadFile(const QUrl& url,
     return job;
 }
 
-#ifdef Quotient_E2EE_ENABLED
 DownloadFileJob* Connection::downloadFile(
     const QUrl& url, const EncryptedFileMetadata& fileMetadata,
     const QString& localFilename)
@@ -800,7 +779,6 @@ DownloadFileJob* Connection::downloadFile(
     return callApi<DownloadFileJob>(idParts.front(), idParts.back(),
                                     fileMetadata, localFilename);
 }
-#endif
 
 CreateRoomJob*
 Connection::createRoom(RoomVisibility visibility, const QString& alias,
@@ -1153,12 +1131,10 @@ QByteArray Connection::accessToken() const
 
 bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 
-#ifdef Quotient_E2EE_ENABLED
 QOlmAccount* Connection::olmAccount() const
 {
     return d->encryptionData ? &d->encryptionData->olmAccount : nullptr;
 }
-#endif // Quotient_E2EE_ENABLED
 
 SyncJob* Connection::syncJob() const { return d->syncJob; }
 
@@ -1503,7 +1479,6 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
     return room;
 }
 
-#ifdef Quotient_E2EE_ENABLED
 void Connection::setEncryptionDefault(bool useByDefault)
 {
     Private::encryptionDefault = useByDefault;
@@ -1513,7 +1488,6 @@ void Connection::setDirectChatEncryptionDefault(bool useByDefault)
 {
     Private::directChatEncryptionDefault = useByDefault;
 }
-#endif
 
 void Connection::setRoomFactory(room_factory_t f)
 {
@@ -1639,12 +1613,10 @@ void Connection::saveState() const
                            { QStringLiteral("events"), accountDataEvents } });
     }
 
-#ifdef Quotient_E2EE_ENABLED
     if (d->encryptionData) {
         QJsonObject keysJson = toJson(d->encryptionData->oneTimeKeysCount);
         rootObj.insert(QStringLiteral("device_one_time_keys_count"), keysJson);
     }
-#endif
 
     const auto data =
         d->cacheToBinary ? QCborValue::fromJsonValue(rootObj).toCbor()
@@ -1776,14 +1748,8 @@ void Connection::enableEncryption(bool enable)
         return;
     }
 
-#ifdef Quotient_E2EE_ENABLED
     d->useEncryption = enable;
     emit encryptionChanged(enable);
-#else
-    Q_UNUSED(enable)
-    qWarning(E2EE) << "The library is compiled without E2EE support, "
-                      "enabling encryption has no effect";
-#endif
 }
 
 bool Connection::directChatEncryptionEnabled() const
@@ -1797,14 +1763,8 @@ void Connection::enableDirectChatEncryption(bool enable)
         return;
     }
 
-#ifdef Quotient_E2EE_ENABLED
     d->encryptDirectChats = enable;
     emit directChatsEncryptionChanged(enable);
-#else
-    Q_UNUSED(enable)
-    qWarning(E2EE) << "The library is compiled without E2EE support, "
-                      "enabling encryption for direct chats has no effect";
-#endif
 }
 
 inline bool roomVersionLess(const Connection::SupportedRoomVersion& v1,
@@ -1835,7 +1795,6 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
     return result;
 }
 
-#ifdef Quotient_E2EE_ENABLED
 bool Connection::isQueryingKeys() const
 {
     return d->encryptionData
@@ -2034,8 +1993,6 @@ bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& 
     database()->execute(query);
     return query.next();
 }
-
-#endif
 
 Connection* Connection::makeMockConnection(const QString& mxId,
                                            bool enableEncryption)

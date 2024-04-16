@@ -5,9 +5,7 @@
 
 #include <QtCore/QBuffer>
 
-#ifdef Quotient_E2EE_ENABLED
 #include "events/filesourceinfo.h"
-#endif
 
 using namespace Quotient;
 
@@ -26,14 +24,12 @@ MxcReply::MxcReply(QNetworkReply* reply,
     connect(d->m_reply, &QNetworkReply::finished, this, [this, fileMetadata] {
         setError(d->m_reply->error(), d->m_reply->errorString());
 
-#ifdef Quotient_E2EE_ENABLED
         if (fileMetadata.isValid()) {
             auto buffer = new QBuffer(this);
             buffer->setData(decryptFile(d->m_reply->readAll(), fileMetadata));
             buffer->open(ReadOnly);
             d->m_device = buffer;
         }
-#endif
         setOpenMode(ReadOnly);
         emit finished();
     });

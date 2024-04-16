@@ -50,12 +50,10 @@ public:
     bool isValid() const { return url.isValid(); }
 };
 
-#ifdef Quotient_E2EE_ENABLED
 QUOTIENT_API std::pair<EncryptedFileMetadata, QByteArray> encryptFile(
     const QByteArray& plainText);
 QUOTIENT_API QByteArray decryptFile(const QByteArray& ciphertext,
                                     const EncryptedFileMetadata& metadata);
-#endif
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<EncryptedFileMetadata> {

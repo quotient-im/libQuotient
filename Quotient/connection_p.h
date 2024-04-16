@@ -7,16 +7,13 @@
 #include "avatar.h"
 #include "connection.h"
 #include "connectiondata.h"
+#include "connectionencryptiondata_p.h"
 #include "settings.h"
 #include "syncdata.h"
 
 #include "csapi/capabilities.h"
 #include "csapi/logout.h"
 #include "csapi/wellknown.h"
-
-#ifdef Quotient_E2EE_ENABLED
-    #include "connectionencryptiondata_p.h"
-#endif
 
 #include "csapi/account-data.h"
 
@@ -63,16 +60,11 @@ public:
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
-#ifdef Quotient_E2EE_ENABLED
     static inline bool encryptionDefault = false;
     bool useEncryption = encryptionDefault;
     static inline bool directChatEncryptionDefault = false;
     bool encryptDirectChats = directChatEncryptionDefault;
     std::unique_ptr<_impl::ConnectionEncryptionData> encryptionData;
-#else
-    static constexpr bool useEncryption = false;
-    static constexpr bool encryptDirectChats = false;
-#endif
 
     QPointer<GetWellknownJob> resolverJob = nullptr;
     QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;

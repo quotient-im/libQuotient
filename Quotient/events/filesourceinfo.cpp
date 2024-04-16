@@ -4,22 +4,18 @@
 
 #include "filesourceinfo.h"
 
+#include "../e2ee/cryptoutils.h"
+#include "../e2ee/e2ee_common.h"
 #include "../logging_categories_p.h"
-
 #include "../util.h"
 
 #include <QtCore/QReadWriteLock>
+#include <QtCore/QCryptographicHash>
 
-#ifdef Quotient_E2EE_ENABLED
-    #include "../e2ee/cryptoutils.h"
-    #include "../e2ee/e2ee_common.h"
 
-    #include <QtCore/QCryptographicHash>
-#endif
 
 using namespace Quotient;
 
-#ifdef Quotient_E2EE_ENABLED
 QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
                                  const EncryptedFileMetadata& metadata)
 {
@@ -69,7 +65,6 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     };
     return { efm, result.value() };
 }
-#endif
 
 void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(
     QJsonObject& jo, const EncryptedFileMetadata& pod)

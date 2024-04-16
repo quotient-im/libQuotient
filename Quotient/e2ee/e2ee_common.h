@@ -6,20 +6,16 @@
 #pragma once
 
 #include <Quotient/converters.h>
+#include <Quotient/expected.h>
 
 #include <QtCore/QMetaType>
 #include <QtCore/QStringBuilder>
 
 #include <array>
+#include <span>
+#include <variant>
 
-#ifdef Quotient_E2EE_ENABLED
-    #include <Quotient/expected.h>
-
-    #include <olm/error.h>
-
-    #include <span>
-    #include <variant>
-#endif
+#include <olm/error.h>
 
 namespace Quotient {
 
@@ -47,8 +43,6 @@ inline bool isSupportedAlgorithm(const QString& algorithm)
                      algorithm)
            != SupportedAlgorithms.cend();
 }
-
-#ifdef Quotient_E2EE_ENABLED
 
 #define QOLM_INTERNAL_ERROR_X(Message_, LastError_) \
     qFatal("%s, internal error: %s", Message_, LastError_)
@@ -321,8 +315,6 @@ public:
     }
     static PicklingKey mock() { return PicklingKey(Uninitialized); }
 };
-
-#endif // Quotient_E2EE_ENABLED
 
 struct IdentityKeys
 {
