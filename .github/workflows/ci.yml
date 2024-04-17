@@ -18,18 +18,12 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-22.04, macos-11, windows-2019 ]
+        os: [ ubuntu-22.04 ]
         qt-version: [ '6.4' ]
         override-compiler: [ '', GCC ] # Defaults: MSVC on Windows, Clang elsewhere
-        # Not using binary values here, to make the job captions more readable
-        exclude: # Drop less important combinations to lower the jobs number
-        - os: macos-11
-          override-compiler: GCC
-        - os: windows-2019
-          override-compiler: GCC
-        include: # Attach API updating and static analysis to a couple of jobs
+        include: # Attach API updating and static analysis to specific jobs
         - os: ubuntu-22.04
-          qt-version: '6.4'
+          qt-version: '6.4' # That's what is in Ubuntu 22.04
           override-compiler: GCC
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
@@ -37,9 +31,13 @@ jobs:
           qt-version: '6.4'
           override-compiler: ''
           static-analysis: codeql
+        - os: macos-14
+          qt-version: '6.4'
+        - os: windows-latest
+          qt-version: '6.4'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -48,20 +46,21 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         COMMON_PKGS="libolm-dev ninja-build gnome-keyring"
-        COMMON_PKGS="$COMMON_PKGS clang-15" # Workaround for https://github.com/actions/runner-images/issues/8659
+        COMMON_PKGS="$COMMON_PKGS g++-13 clang-15" # See https://github.com/actions/runner-images/issues/9679
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         sudo apt-get -qq update
         sudo apt-get -qq install $COMMON_PKGS \
-                qt6-base-dev libgl1-mesa-dev qt6-l10n-tools qt6-tools-dev qt6-tools-dev-tools qtkeychain-qt6-dev
+                # qt6-base-dev libgl1-mesa-dev qt6-l10n-tools qt6-tools-dev qt6-tools-dev-tools qtkeychain-qt6-dev
         gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
 
     - name: Install dependencies (non-Linux)
-      if: "!startsWith(matrix.os, 'ubuntu')"
       uses: jurplel/install-qt-action@v3.0.0
       with:
         version: '${{ matrix.qt-version }}.*'
         cache: true
         cache-key-prefix: Qt
-        tools: "tools_ninja${{ startsWith(matrix.os, 'windows') && ' tools_opensslv3_x64' || '' }}"
+        tools: "${{ !startsWith(matrix.os, 'ubuntu') && 'tools_ninja ' || '' }} \
+                ${{ startsWith(matrix.os, 'windows') && ' tools_opensslv3_x64' || '' }}"
 
     - name: Setup build environment
       run: |
@@ -92,7 +91,7 @@ jobs:
                     -DCMAKE_INSTALL_PREFIX=~/.local \
                     -DCMAKE_PREFIX_PATH=~/.local \
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
-                    -DBUILD_WITH_QT6=${{ startsWith(matrix.qt-version, '6') }}"
+                    "
 
         QUOTEST_ORIGIN="$QUOTEST_ORIGIN/E2EE"
         CMAKE_ARGS="$CMAKE_ARGS \
@@ -133,7 +132,7 @@ jobs:
       run: |
         cd ..
         git clone -b v0.13.2 https://github.com/frankosterfeld/qtkeychain.git
-        cmake -S qtkeychain -B qtkeychain/build $CMAKE_ARGS
+        cmake -S qtkeychain -B qtkeychain/build -DBUILD_WITH_QT6=ON $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
 
     - name: Build and install Olm
@@ -167,8 +166,7 @@ jobs:
 
     - name: Configure libQuotient
       run: |
-        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS \
-              -DQuotient_INSTALL_TESTS=ON
+        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS -DQuotient_INSTALL_TESTS=ON
 
     - name: Regenerate API code
       if: matrix.update-api
