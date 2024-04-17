@@ -1154,7 +1154,7 @@ QVector<Room*> Connection::allRooms() const
 QVector<Room*> Connection::rooms(JoinStates joinStates) const
 {
     QVector<Room*> result;
-    for (auto* r: qAsConst(d->roomMap))
+    for (auto* r: std::as_const(d->roomMap))
         if (joinStates.testFlag(r->joinState()))
             result.push_back(r);
     return result;
@@ -1201,7 +1201,7 @@ void Connection::setAccountData(const QString& type, const QJsonObject& content)
 QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
 {
     QHash<QString, QVector<Room*>> result;
-    for (auto* r : qAsConst(d->roomMap)) {
+    for (auto* r : std::as_const(d->roomMap)) {
         const auto& tagNames = r->tagNames();
         for (const auto& tagName : tagNames)
             result[tagName].push_back(r);
@@ -1216,7 +1216,7 @@ QHash<QString, QVector<Room*>> Connection::tagsToRooms() const
 QStringList Connection::tagNames() const
 {
     QStringList tags({ FavouriteTag });
-    for (auto* r : qAsConst(d->roomMap)) {
+    for (auto* r : std::as_const(d->roomMap)) {
         const auto& tagNames = r->tagNames();
         for (const auto& tag : tagNames)
             if (tag != LowPriorityTag && !tags.contains(tag))

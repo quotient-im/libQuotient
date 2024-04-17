@@ -470,7 +470,7 @@ public:
 
         addInboundGroupSession(currentOutboundMegolmSession->sessionId(),
                                currentOutboundMegolmSession->sessionKey(),
-                               q->localUser()->id(), QByteArrayLiteral("SELF"));
+                               q->localMember().id(), QByteArrayLiteral("SELF"));
     }
 
     QMultiHash<QString, QString> getDevicesWithoutKey() const
@@ -1019,7 +1019,7 @@ void Room::setReadReceipt(const QString& atEventId)
                                               QString::fromUtf8(QUrl::toPercentEncoding(atEventId)));
         d->postprocessChanges(changes);
     } else
-        qCDebug(EPHEMERAL) << "The new read receipt for" << localUser()->id()
+        qCDebug(EPHEMERAL) << "The new read receipt for" << localMember().id()
                            << "in" << objectName()
                            << "is at or behind the old one, skipping";
 }
@@ -1063,7 +1063,7 @@ bool Room::canSwitchVersions() const
 
     if (const auto* plEvt = currentState().get<RoomPowerLevelsEvent>()) {
         const auto currentUserLevel =
-            plEvt->powerLevelForUser(localUser()->id());
+            plEvt->powerLevelForUser(localMember().id());
         const auto tombstonePowerLevel =
             plEvt->powerLevelForState("m.room.tombstone"_ls);
         return currentUserLevel >= tombstonePowerLevel;
@@ -1080,7 +1080,7 @@ bool Room::isEventNotable(const TimelineItem &ti) const
                || is<RoomAvatarEvent>(evt) || is<RoomTombstoneEvent>(evt)
                || (rme && rme->msgtype() != MessageEventType::Notice
                    && rme->replacedEvent().isEmpty()))
-           && evt.senderId() != localUser()->id();
+           && evt.senderId() != localMember().id();
 }
 
 Notification Room::notificationFor(const TimelineItem &ti) const
@@ -1290,7 +1290,7 @@ ReadReceipt Room::lastReadReceipt(const QString& userId) const
 
 ReadReceipt Room::lastLocalReadReceipt() const
 {
-    return d->lastReadReceipts.value(localUser()->id());
+    return d->lastReadReceipts.value(localMember().id());
 }
 
 Room::rev_iter_t Room::localReadReceiptMarker() const
@@ -1396,7 +1396,7 @@ void Room::addTag(const QString& name, const TagRecord& record)
     emit tagsAboutToChange();
     d->tags.insert(checkRes.second, record);
     emit tagsChanged();
-    connection()->callApi<SetRoomTagJob>(localUser()->id(), id(),
+    connection()->callApi<SetRoomTagJob>(localMember().id(), id(),
                                          checkRes.second, record.order);
 }
 
@@ -1411,7 +1411,7 @@ void Room::removeTag(const QString& name)
         emit tagsAboutToChange();
         d->tags.remove(name);
         emit tagsChanged();
-        connection()->callApi<DeleteRoomTagJob>(localUser()->id(), id(), name);
+        connection()->callApi<DeleteRoomTagJob>(localMember().id(), id(), name);
     } else if (!name.startsWith("u."_ls))
         removeTag("u."_ls + name);
     else
@@ -1433,7 +1433,7 @@ void Room::setTags(TagsMap newTags, ActionScope applyOn)
 
     d->setTags(std::move(newTags));
     connection()->callApi<SetAccountDataPerRoomJob>(
-        localUser()->id(), id(), TagEvent::TypeId,
+        localMember().id(), id(), TagEvent::TypeId,
         Quotient::toJson(TagEvent::content_type { d->tags }));
 
     if (propagate) {

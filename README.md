@@ -146,13 +146,13 @@ e.g.) breaking the compatibility. Once we reach 1.0, this rule will apply
 to the major version, aligning with [semantic versioning](https://semver.org/)
 rules. `_p.h` files are not covered by these guarantees and some of them might
 not even be shipped by Linux distributions; client code should not directly
-include these files and use symbols defined there.
+include these files, nor use symbols defined there.
 
 
 ## Building the library
-On platforms other than Linux you will have to build libQuotient yourself
-before usage - nobody packaged it so far (contributions welcome!). You may also
-want to build the library on Linux if you need an unreleased snapshot.
+On platforms other than Linux you will have to build libQuotient yourself before usage - nobody
+packaged it so far (contributions welcome!). You may also want to build the library on Linux if you
+need a newer version or snapshot than that coming in your distro.
 
 [The source code is at GitHub](https://github.com/quotient-im/libQuotient).
 Checking out a certain commit or tag (rather than downloading the archive)
