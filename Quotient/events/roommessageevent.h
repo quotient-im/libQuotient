@@ -47,12 +47,10 @@ public:
     QString rawMsgtype() const;
     QString plainBody() const;
     const EventContent::TypedBase* content() const { return _content.data(); }
-    template <typename VisitorT>
-    void editContent(VisitorT&& visitor)
+    void editContent(auto visitor)
     {
         visitor(*_content);
-        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(),
-                                                      _content.data());
+        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), _content.data());
     }
     QMimeType mimeType() const;
     //! \brief Determine whether the message has text content

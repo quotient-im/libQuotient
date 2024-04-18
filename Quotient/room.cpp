@@ -627,10 +627,10 @@ QImage Room::avatar(int width, int height)
                              [this] { emit avatarChanged(); });
 
     // Use the first (excluding self) user's avatar for direct chats
-    const auto dcMembers = directChatMembers();
-    for (const auto &m : dcMembers)
+    for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
         if (m != localMember())
-            return memberAvatar(m.id()).get(connection(), width, height, [this] { emit avatarChanged(); });
+            return memberAvatar(m.id()).get(connection(), width, height,
+                                            [this] { emit avatarChanged(); });
 
     return {};
 }
