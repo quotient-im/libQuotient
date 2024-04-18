@@ -911,7 +911,7 @@ void TestManager::conclude()
     // Clean up the room (best effort)
     auto* room = testSuite->room();
     room->setTopic({});
-    room->connection()->user()->rename({});
+    c->user()->rename({});
 
     QString succeededRec { QString::number(succeeded.size()) % " of "_ls
                            % QString::number(succeeded.size() + failed.size()
