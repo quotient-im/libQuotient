@@ -330,13 +330,13 @@ TEST_IMPL(loadMembers)
     // It's not exactly correct because an arbitrary server might not support
     // lazy loading; but in the absence of capabilities framework we assume
     // it does.
-    if (targetRoom->users().size() >= targetRoom->joinedCount()) {
+    if (targetRoom->joinedMembers().size() >= targetRoom->joinedCount()) {
         clog << "Lazy loading doesn't seem to be enabled" << endl;
         FAIL_TEST();
     }
     targetRoom->setDisplayed();
     connect(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
-        FINISH_TEST(targetRoom->users().size() >= targetRoom->joinedCount());
+        FINISH_TEST(targetRoom->joinedMembers().size() >= targetRoom->joinedCount());
     });
     return false;
 }
@@ -656,7 +656,7 @@ TEST_IMPL(changeName)
                         localUser->rename(newN);
                         connectUntil(localUser, &User::defaultNameChanged, this,
                                      [this, thisTest, localUser, newN] {
-                                         targetRoom->localUser()->rename({});
+                                         localUser->rename({});
                                          FINISH_TEST(localUser->name() == newN);
                                      });
                         return true;
@@ -699,7 +699,7 @@ TEST_IMPL(addAndRemoveTag)
 
 bool TestSuite::checkDirectChat() const
 {
-    return targetRoom->directChatUsers().contains(connection()->user());
+    return targetRoom->directChatMembers().contains(targetRoom->member(connection()->user()->id()));
 }
 
 TEST_IMPL(markDirectChat)
@@ -911,7 +911,7 @@ void TestManager::conclude()
     // Clean up the room (best effort)
     auto* room = testSuite->room();
     room->setTopic({});
-    room->localUser()->rename({});
+    c->user()->rename({});
 
     QString succeededRec { QString::number(succeeded.size()) % " of "_ls
                            % QString::number(succeeded.size() + failed.size()

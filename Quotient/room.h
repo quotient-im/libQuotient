@@ -117,7 +117,6 @@ private:
 class QUOTIENT_API Room : public QObject {
     Q_OBJECT
     Q_PROPERTY(Connection* connection READ connection CONSTANT)
-    Q_PROPERTY(User* localUser READ localUser CONSTANT)
     Q_PROPERTY(RoomMember localMember READ localMember CONSTANT)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(QString version READ version NOTIFY baseStateLoaded)
@@ -139,7 +138,6 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(bool usesEncryption READ usesEncryption NOTIFY encryption)
 
     Q_PROPERTY(int timelineSize READ timelineSize NOTIFY addedMessages)
-    Q_PROPERTY(QStringList memberNames READ safeMemberNames NOTIFY memberListChanged)
     Q_PROPERTY(int joinedCount READ joinedCount NOTIFY memberListChanged)
     Q_PROPERTY(int invitedCount READ invitedCount NOTIFY memberListChanged)
     Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
@@ -241,8 +239,6 @@ public:
 
     //! Get a RoomMember object for the local user.
     RoomMember localMember() const;
-    [[deprecated("Use localMember() instead.")]]
-    User* localUser() const;
     const QString& id() const;
     QString version() const;
     bool isUnstable() const;
@@ -278,18 +274,7 @@ public:
     QUrl avatarUrl() const;
     const Avatar& avatarObject() const;
     Q_INVOKABLE JoinState joinState() const;
-    [[deprecated("Use membersTyping() instead.")]]
-    Q_INVOKABLE QList<Quotient::User*> usersTyping() const;
-    QList<User*> membersLeft() const;
 
-    [[deprecated("Use joinedMembers() instead.")]]
-    Q_INVOKABLE QList<Quotient::User*> users() const;
-    Q_DECL_DEPRECATED_X("Use safeMemberNames() or htmlSafeMemberNames() instead") //
-    QStringList memberNames() const;
-    [[deprecated("Use members() instead and extract the names from the RoomMember objects.")]]
-    QStringList safeMemberNames() const;
-    [[deprecated("Use members() instead and extract the names from the RoomMember objects.")]]
-    QStringList htmlSafeMemberNames() const;
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
@@ -317,9 +302,6 @@ public:
      */
     Q_INVOKABLE QImage avatar(int width, int height);
 
-    [[deprecated("Use member() instead.")]]
-    Q_INVOKABLE Quotient::User* user(const QString& userId) const;
-
     //! \brief Get a RoomMember object for the given user Matrix ID
     //!
     //! Will return a nullptr if there is no m.room.member event for the user in
@@ -335,6 +317,9 @@ public:
     //! Get a list of all members known to the room.
     QList<RoomMember> members() const;
 
+    //! Get a list of all members known to have left the room.
+    QList<RoomMember> membersLeft() const;
+
     //! Get a list of room members who are currently sending a typing indicator.
     Q_INVOKABLE QList<RoomMember> membersTyping() const;
 
@@ -347,17 +332,6 @@ public:
     //! Whether the name for the given member should be disambiguated
     bool needsDisambiguation(const QString& userId) const;
 
-    /**
-     * \brief Check the join state of a given user in this room
-     *
-     * \note Banned and invited users are not tracked separately for now (Leave
-     *       will be returned for them).
-     *
-     * \return Join if the user is a room member; Leave otherwise
-     */
-    Q_DECL_DEPRECATED_X("Use isMember() instead")
-    Q_INVOKABLE Quotient::JoinState memberJoinState(Quotient::User* user) const;
-
     //! \brief Check the join state of a given user in this room
     //!
     //! \return the given user's state with respect to the room
@@ -365,28 +339,6 @@ public:
 
     //! Check whether a user with the given id is a member of the room
     Q_INVOKABLE bool isMember(const QString& userId) const;
-
-    [[deprecated("Use member(mxId).name() instead.")]]
-    Q_INVOKABLE QString memberName(const QString& mxId) const;
-
-    //! \brief Get a disambiguated name for the given user in the room context
-    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
-    Q_INVOKABLE QString roomMembername(const Quotient::User* u) const;
-    //! \brief Get a disambiguated name for a user with this id in the room
-    Q_DECL_DEPRECATED_X("Use safeMemberName() instead")
-    Q_INVOKABLE QString roomMembername(const QString& userId) const;
-
-    [[deprecated("Use member(mxId).disambiguatedName() instead.")]]
-    Q_INVOKABLE QString disambiguatedMemberName(const QString& mxId) const;
-
-    [[deprecated("Use member(mxId).disambiguatedName() instead.")]]
-    Q_INVOKABLE QString safeMemberName(const QString& userId) const;
-
-    [[deprecated("Use member(mxId).htmlSafeDisambiguatedName() instead.")]]
-    Q_INVOKABLE QString htmlSafeMemberName(const QString& userId) const;
-
-    [[deprecated("Use member(mxId).avatarUrl() instead.")]]
-    QUrl memberAvatarUrl(const QString& mxId) const;
 
     const Avatar& memberAvatar(const QString& memberId) const;
 
@@ -446,21 +398,6 @@ public:
     void setLastDisplayedEventId(const QString& eventId);
     void setLastDisplayedEvent(TimelineItem::index_t index);
 
-    //! \brief Obtain a read receipt of any user
-    //! \deprecated Use lastReadReceipt or fullyReadMarker instead.
-    //!
-    //! Historically, readMarker was returning a "converged" read marker
-    //! representing both the read receipt and the fully read marker, as
-    //! Quotient managed them together. Since 0.6.8, a single-argument call of
-    //! readMarker returns the last read receipt position (for any room member)
-    //! and a call without arguments returns the last _fully read_ position,
-    //! to provide access to both positions separately while maintaining API
-    //! stability guarantees. 0.7 has separate methods to return read receipts
-    //! and the fully read marker - use them instead.
-    //! \sa lastReadReceipt
-    [[deprecated("Use lastReadReceipt() to get m.read receipt or"
-                 " fullyReadMarker() to get m.fully_read marker")]] //
-    rev_iter_t readMarker(const User* user) const;
     //! \brief Obtain the local user's fully-read marker
     //! \deprecated Use fullyReadMarker instead
     //!
@@ -533,9 +470,6 @@ public:
     QSet<QString> userIdsAtEvent(const QString& eventId) const;
 
     QSet<QString> userIdsAtEvent(const QString& eventId); // See #706
-
-    [[deprecated("Use userIdsAtEvent instead")]]
-    QSet<User*> usersAtEventId(const QString& eventId);
 
     //! \brief Mark the event with uptoEventId as fully read
     //!
@@ -731,9 +665,6 @@ public:
 
     /// Get the list of members this room is a direct chat with
     QList<RoomMember> directChatMembers() const;
-
-    /// Get the list of users this room is a direct chat with
-    QList<User*> directChatUsers() const;
 
     Q_INVOKABLE QUrl makeMediaUrl(const QString& eventId,
                                   const QUrl &mxcUrl) const;
@@ -996,16 +927,6 @@ Q_SIGNALS:
     //! A known joined member has updated their avatar
     void memberAvatarUpdated(RoomMember member);
 
-    [[deprecated("Use memberJoined() instead.")]]
-    void userAdded(Quotient::User* user);
-    [[deprecated("Use memberLeft() instead.")]]
-    void userRemoved(Quotient::User* user);
-    [[deprecated("Use memberNameAboutToUpdate() instead.")]]
-    void memberAboutToRename(Quotient::User* user, QString newName);
-    [[deprecated("Use memberNameUpdated() instead.")]]
-    void memberRenamed(Quotient::User* user);
-    [[deprecated("Use memberAvatarUpdated() instead.")]]
-    void memberAvatarChanged(Quotient::User* user);
     /// The list of members has changed
     /** Emitted no more than once per sync, this is a good signal to
      * for cases when some action should be done upon any change in
@@ -1035,9 +956,6 @@ Q_SIGNALS:
     void fullyReadMarkerMoved(QString fromEventId, QString toEventId);
     [[deprecated("Since 0.7, use fullyReadMarkerMoved")]]
     void readMarkerMoved(QString fromEventId, QString toEventId);
-    [[deprecated("Since 0.7, use lastReadEventChanged")]]
-    void readMarkerForUserMoved(Quotient::User* user, QString fromEventId,
-                                QString toEventId);
     [[deprecated("Since 0.7, use either partiallyReadStatsChanged "
                  "or unreadStatsChanged")]]
     void unreadMessagesChanged(Quotient::Room* room);
@@ -1105,9 +1023,7 @@ public:
     explicit MemberSorter(const Room* r) : room(r) {}
 
     bool operator()(const RoomMember& u1, const RoomMember& u2) const;
-    bool operator()(User* u1, User* u2) const;
     bool operator()(const RoomMember& u1, QStringView u2name) const;
-    bool operator()(User* u1, QStringView u2name) const;
 
     template <typename ContT, typename ValT>
     typename ContT::size_type lowerBoundIndex(const ContT& c, const ValT& v) const

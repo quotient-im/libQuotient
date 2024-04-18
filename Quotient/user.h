@@ -26,8 +26,6 @@ class QUOTIENT_API User : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(bool isGuest READ isGuest CONSTANT)
-    Q_PROPERTY(int hue READ hue CONSTANT)
-    Q_PROPERTY(qreal hueF READ hueF CONSTANT)
     Q_PROPERTY(QString name READ name NOTIFY defaultNameChanged)
     Q_PROPERTY(QString displayName READ displayname NOTIFY defaultNameChanged STORED false)
     Q_PROPERTY(QString fullName READ fullName NOTIFY defaultNameChanged STORED false)
@@ -52,7 +50,7 @@ public:
     //!       having a unique name in that room.
     //!
     //! \sa Quotient::RoomMember::name()
-    QString name(const Room* room = nullptr) const;
+    QString name() const;
 
     //! \brief Get the name to show on the user's profile
     //!
@@ -65,7 +63,7 @@ public:
     //!       having a unique name in that room.
     //!
     //! \sa Quotient::RoomMember::displayname()
-    QString displayname(const Room* room = nullptr) const;
+    QString displayname() const;
 
     //! \brief Get user's profilename and id in one string
     //!
@@ -78,7 +76,7 @@ public:
     //!       having a unique name in that room.
     //!
     //! \sa Quotient::RoomMember::fullName()
-    QString fullName(const Room* room = nullptr) const;
+    QString fullName() const;
 
     //! \brief Whether the user is a guest
     //!
@@ -86,23 +84,6 @@ public:
     //! that guests and only guests have all-numeric IDs. This may or
     //! may not work with non-Synapse servers.
     bool isGuest() const;
-
-    [[deprecated("Quotient::RoomMember::hue() should be used instead.")]]
-    int hue() const;
-    [[deprecated("Quotient::RoomMember::hueF() should be used instead.")]]
-    qreal hueF() const;
-
-    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
-    const Avatar& avatarObject(const Room* room = nullptr) const;
-    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
-    Q_INVOKABLE QImage avatar(int dimension,
-                              const Quotient::Room* room = nullptr) const;
-    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
-    Q_INVOKABLE QImage avatar(int requestedWidth, int requestedHeight,
-                              const Quotient::Room* room = nullptr) const;
-    [[deprecated("For visualising in a room context Quotient::Room::memberAvatar() should be used instead, otherwise use Quotient::Connection::userAvatar().")]]
-    QImage avatar(int width, int height, const Room* room,
-                  const Avatar::get_callback_t& callback) const;
 
     //! \brief The default mxc URL as a string for the user avatar
     //!
@@ -112,7 +93,7 @@ public:
     //!       Quotient::RoomMember::avatarMediaId() instead.
     //!
     //! \sa RoomMember
-    QString avatarMediaId(const Room* room = nullptr) const;
+    QString avatarMediaId() const;
 
     //! \brief The default mxc URL for the user avatar
     //!
@@ -122,7 +103,7 @@ public:
     //!       Quotient::RoomMember::avatarUrl() instead.
     //!
     //! \sa RoomMember
-    QUrl avatarUrl(const Room* room = nullptr) const;
+    QUrl avatarUrl() const;
 
 public Q_SLOTS:
     //! Set a new name in the global user profile
@@ -138,7 +119,7 @@ public Q_SLOTS:
     bool setAvatar(QIODevice* source);
 
     //! Removes the avatar from the profile
-    void removeAvatar();
+    void removeAvatar() const;
 
     //! \brief Create or find a direct chat with this user
     //!
@@ -147,10 +128,10 @@ public Q_SLOTS:
     void requestDirectChat();
 
     //! Add the user to the ignore list
-    void ignore();
+    void ignore() const;
 
     //! Remove the user from the ignore list
-    void unmarkIgnore();
+    void unmarkIgnore() const;
 
     //! Check whether the user is in ignore list
     bool isIgnored() const;

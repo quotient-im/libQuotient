@@ -28,10 +28,9 @@ using namespace Quotient;
 
 class Q_DECL_HIDDEN User::Private {
 public:
-    Private(QString userId) : id(std::move(userId)), hueF(stringToHueF(id)) { }
+    explicit Private(QString userId) : id(std::move(userId)) { }
 
     QString id;
-    qreal hueF;
 
     QString defaultName;
     QUrl defaultAvatarUrl;
@@ -63,21 +62,16 @@ void User::load()
 
 QString User::id() const { return d->id; }
 
-QString User::name(const Room* room) const
+QString User::name() const { return d->defaultName; }
+
+QString User::displayname() const
 {
-    return room ? room->member(id()).name() : d->defaultName;
+    return d->defaultName.isEmpty() ? d->id : d->defaultName;
 }
 
-QString User::displayname(const Room* room) const
+QString User::fullName() const
 {
-    return room ? room->member(id()).disambiguatedName()
-                : d->defaultName.isEmpty() ? d->id : d->defaultName;
-}
-
-QString User::fullName(const Room* room) const
-{
-    const auto displayName = name(room);
-    return displayName.isEmpty() ? id() : (displayName % " ("_ls % id() % u')');
+    return displayname().isEmpty() ? id() : (displayname() % " ("_ls % id() % u')');
 }
 
 bool User::isGuest() const
@@ -88,8 +82,6 @@ bool User::isGuest() const
     Q_ASSERT(it != d->id.cend());
     return *it == u':';
 }
-
-int User::hue() const { return int(hueF() * 359); }
 
 void User::rename(const QString& newName)
 {
@@ -161,51 +153,25 @@ bool User::setAvatar(QIODevice* source)
     return doSetAvatar(source);
 }
 
-void User::removeAvatar()
+void User::removeAvatar() const
 {
     connection()->callApi<SetAvatarUrlJob>(id(), QUrl());
 }
 
 void User::requestDirectChat() { connection()->requestDirectChat(this); }
 
-void User::ignore() { connection()->addToIgnoredUsers(d->id); }
+void User::ignore() const { connection()->addToIgnoredUsers(d->id); }
 
-void User::unmarkIgnore() { connection()->removeFromIgnoredUsers(d->id); }
+void User::unmarkIgnore() const { connection()->removeFromIgnoredUsers(d->id); }
 
 bool User::isIgnored() const { return connection()->isIgnored(this); }
 
-const Avatar& User::avatarObject(const Room* room) const
+QString User::avatarMediaId() const
 {
-    if (!room)
-        return connection()->userAvatar(d->defaultAvatarUrl);
-
-    return connection()->userAvatar(room->memberAvatarUrl(id()));
+    return d->defaultAvatarUrl.authority() + d->defaultAvatarUrl.path();
 }
 
-QImage User::avatar(int dimension, const Room* room) const
+QUrl User::avatarUrl() const
 {
-    return avatar(dimension, dimension, room);
+    return d->defaultAvatarUrl;
 }
-
-QImage User::avatar(int width, int height, const Room* room) const
-{
-    return avatar(width, height, room, [] {});
-}
-
-QImage User::avatar(int width, int height, const Room* room,
-                    const Avatar::get_callback_t& callback) const
-{
-    return avatarObject(room).get(connection(), width, height, callback);
-}
-
-QString User::avatarMediaId(const Room* room) const
-{
-    return avatarObject(room).mediaId();
-}
-
-QUrl User::avatarUrl(const Room* room) const
-{
-    return avatarObject(room).url();
-}
-
-qreal User::hueF() const { return d->hueF; }
