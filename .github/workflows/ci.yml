@@ -59,8 +59,8 @@ jobs:
         version: '${{ matrix.qt-version }}.*'
         cache: true
         cache-key-prefix: Qt
-        tools: "${{ !startsWith(matrix.os, 'ubuntu') && 'tools_ninja ' || '' }} \
-                ${{ startsWith(matrix.os, 'windows') && ' tools_opensslv3_x64' || '' }}"
+        tools: "${{ !startsWith(matrix.os, 'ubuntu') && 'tools_ninja ' || '' }}\
+                ${{ startsWith(matrix.os, 'windows') && 'tools_opensslv3_x64' || '' }}"
 
     - name: Setup build environment
       run: |

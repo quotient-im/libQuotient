@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.26)
 if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
@@ -60,7 +60,7 @@ set_directory_properties(PROPERTIES
     CXX_VISIBILITY_PRESET hidden
 )
 
-set(QtMinVersion "6.0")
+set(QtMinVersion "6.4")
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt<MajorVersionDigit>"
 set(QUOTIENT_LIB_NAME ${PROJECT_NAME}${Qt})
 
