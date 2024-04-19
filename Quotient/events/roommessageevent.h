@@ -86,6 +86,8 @@ public:
 
     QString replacedBy() const;
 
+    QString fileNameToDownload() const;
+
     static QString rawMsgTypeForUrl(const QUrl& url);
     static QString rawMsgTypeForFile(const QFileInfo& fi);
 

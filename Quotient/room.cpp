@@ -193,8 +193,6 @@ public:
     QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
     const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
-    // FIXME: move to RoomMessageEvent in 0.9
-    QString fileNameToDownload(const RoomMessageEvent* event) const;
 
     Changes setSummary(RoomSummary&& newSummary);
 
@@ -1417,12 +1415,6 @@ QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
     return url;
 }
 
-QString safeFileName(QString rawName)
-{
-    static auto safeFileNameRegex = QRegularExpression(R"([/\<>|"*?:])"_ls);
-    return rawName.replace(safeFileNameRegex, "_"_ls);
-}
-
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
@@ -1434,35 +1426,6 @@ Room::Private::getEventWithFile(const QString& eventId) const
     }
     qCWarning(MAIN) << "No files to download in event" << eventId;
     return nullptr;
-}
-
-QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
-{
-    Q_ASSERT(event && event->hasFileContent());
-    const auto* fileInfo = event->content()->fileInfo();
-    QString fileName;
-    if (!fileInfo->originalName.isEmpty())
-        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
-    else if (QUrl u { event->plainBody() }; u.isValid()) {
-        qDebug(MAIN) << event->id()
-                     << "has no file name supplied but the event body "
-                        "looks like a URL - using the file name from it";
-        fileName = u.fileName();
-    }
-    if (fileName.isEmpty())
-        return safeFileName(fileInfo->mediaId()).replace(u'.', u'-') % u'.'
-               % fileInfo->mimeType.preferredSuffix();
-
-    if (QSysInfo::productType() == "windows"_ls) {
-        if (const auto& suffixes = fileInfo->mimeType.suffixes();
-            !suffixes.isEmpty()
-            && std::none_of(suffixes.begin(), suffixes.end(),
-                            [&fileName](const QString& s) {
-                                return fileName.endsWith(s);
-                            }))
-            return fileName % u'.' % fileInfo->mimeType.preferredSuffix();
-    }
-    return fileName;
 }
 
 QUrl Room::urlToThumbnail(const QString& eventId) const
@@ -1491,7 +1454,7 @@ QUrl Room::urlToDownload(const QString& eventId) const
 QString Room::fileNameToDownload(const QString& eventId) const
 {
     if (auto* event = d->getEventWithFile(eventId))
-        return d->fileNameToDownload(event);
+        return event->fileNameToDownload();
     return {};
 }
 
@@ -2441,8 +2404,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     const auto fileUrl = fileInfo->url();
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
-        filePath =
-            fileInfo->url().path().mid(1) % u'_' % d->fileNameToDownload(event);
+        filePath = fileInfo->url().path().mid(1) % u'_' % event->fileNameToDownload();
 
         if (filePath.size() > 200) // If too long, elide in the middle
             filePath.replace(128, filePath.size() - 192, "---"_ls);
