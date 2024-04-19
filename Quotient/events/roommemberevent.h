@@ -11,9 +11,6 @@
 namespace Quotient {
 class QUOTIENT_API MemberEventContent {
 public:
-    using MembershipType
-        [[deprecated("Use Quotient::Membership instead")]] = Membership;
-
     // NOLINTNEXTLINE(google-explicit-constructor)
     QUO_IMPLICIT MemberEventContent(Membership ms) : membership(ms) {}
     explicit MemberEventContent(const QJsonObject& json);
@@ -27,16 +24,16 @@ public:
     QString reason;
 };
 
-using MembershipType [[deprecated("Use Membership instead")]] = Membership;
-
 class QUOTIENT_API RoomMemberEvent
     : public KeyedStateEventBase<RoomMemberEvent, MemberEventContent> {
     Q_GADGET
 public:
     QUO_EVENT(RoomMemberEvent, "m.room.member")
 
-    using MembershipType
-        [[deprecated("Use Quotient::Membership instead")]] = Membership;
+    static bool isValid(const QJsonObject& fullJson)
+    {
+        return !fullJson[StateKeyKey].toString().isEmpty();
+    }
 
     using KeyedStateEventBase::KeyedStateEventBase;
 
@@ -45,14 +42,6 @@ public:
     bool isDirect() const { return content().isDirect; }
     Omittable<QString> newDisplayName() const { return content().displayName; }
     Omittable<QUrl> newAvatarUrl() const { return content().avatarUrl; }
-    [[deprecated("Use newDisplayName() instead")]] QString displayName() const
-    {
-        return newDisplayName().value_or(QString());
-    }
-    [[deprecated("Use newAvatarUrl() instead")]] QUrl avatarUrl() const
-    {
-        return newAvatarUrl().value_or(QUrl());
-    }
     QString reason() const { return content().reason; }
     bool changesMembership() const;
     bool isBan() const;

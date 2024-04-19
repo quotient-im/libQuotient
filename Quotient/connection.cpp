@@ -182,12 +182,6 @@ void Connection::loginWithToken(const QString& loginToken,
                      loginToken, deviceId, initialDeviceName);
 }
 
-void Connection::assumeIdentity(const QString& mxId, const QString& accessToken,
-                                [[maybe_unused]] const QString& deviceId)
-{
-    assumeIdentity(mxId, accessToken);
-}
-
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
 {
     d->checkAndConnect(mxId, [this, mxId, accessToken] {
@@ -1466,8 +1460,7 @@ Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
         else if (*joinState == JoinState::Leave)
             emit leftRoom(room, prevInvite);
         if (prevInvite) {
-            const auto dcMembers = prevInvite->directChatMembers();
-            for (const auto &m : dcMembers)
+            for (const auto dcMembers = prevInvite->directChatMembers(); const auto& m : dcMembers)
                 addToDirectChats(room, m.id());
             qCDebug(MAIN) << "Deleting Invite state for room"
                           << prevInvite->id();

@@ -193,7 +193,6 @@ public:
     QHash<QString, FileTransferPrivateInfo> fileTransfers;
 
     const RoomMessageEvent* getEventWithFile(const QString& eventId) const;
-    QString fileNameToDownload(const RoomMessageEvent* event) const;
 
     Changes setSummary(RoomSummary&& newSummary);
 
@@ -217,28 +216,6 @@ public:
     Timeline::const_iterator syncEdge() const { return timeline.cend(); }
 
     void getPreviousContent(int limit = 10, const QString &filter = {});
-
-    const StateEvent* getCurrentState(const StateEventKey& evtKey) const
-    {
-        const auto* evt = currentState.value(evtKey, nullptr);
-        if (!evt) {
-            if (stubbedState.find(evtKey) == stubbedState.end()) {
-                // In the absence of a real event, make a stub as-if an event
-                // with empty content has been received. Event classes should be
-                // prepared for empty/invalid/malicious content anyway.
-                stubbedState.emplace(
-                    evtKey, loadEvent<StateEvent>(evtKey.first, evtKey.second));
-                qCDebug(STATE) << "A new stub event created for key {"
-                               << evtKey.first << evtKey.second << "}";
-                qCDebug(STATE) << "Stubbed state size:" << stubbedState.size();
-            }
-            evt = stubbedState[evtKey].get();
-            Q_ASSERT(evt);
-        }
-        Q_ASSERT(evt->matrixType() == evtKey.first
-                 && evt->stateKey() == evtKey.second);
-        return evt;
-    }
 
     Changes updateStateFrom(StateEvents&& events)
     {
@@ -650,10 +627,10 @@ QImage Room::avatar(int width, int height)
                              [this] { emit avatarChanged(); });
 
     // Use the first (excluding self) user's avatar for direct chats
-    const auto dcMembers = directChatMembers();
-    for (const auto &m : dcMembers)
+    for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
         if (m != localMember())
-            return memberAvatar(m.id()).get(connection(), width, height, [this] { emit avatarChanged(); });
+            return memberAvatar(m.id()).get(connection(), width, height,
+                                            [this] { emit avatarChanged(); });
 
     return {};
 }
@@ -879,6 +856,9 @@ Room::Changes Room::Private::updateStats(const rev_iter_t& from,
         return Change::None; // What's arrived is already fully read
 
     // If there's no read marker in the whole room, initialise it
+    // REMOVEME: it's not the library's business; the room might be offscreen,
+    // or the creation event not shown, whatever. Let the clients tackle that
+    // properly.
     if (fullyReadMarker == historyEdge() && q->allHistoryLoaded())
         return setFullyReadMarker(timeline.front()->id());
 
@@ -963,7 +943,7 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
     qCDebug(MESSAGES) << "Fully read marker in" << q->objectName() //
                       << "set to" << fullyReadUntilEventId;
 
-    QT_IGNORE_DEPRECATIONS(Changes changes = Change::ReadMarker|Change::Other;)
+    Changes changes = Change::Other;
     if (const auto rm = q->fullyReadMarker(); rm != historyEdge()) {
         // Pull read receipt if it's behind, and update statistics
         changes |= setLocalLastReadReceipt(rm);
@@ -977,9 +957,6 @@ Room::Changes Room::Private::setFullyReadMarker(const QString& eventId)
         Q_ASSERT(partiallyReadStats.isValidFor(q, rm)); // post-check
     }
     emit q->fullyReadMarkerMoved(prevFullyReadId, fullyReadUntilEventId);
-    // TODO: Remove in 0.8
-    QT_IGNORE_DEPRECATIONS(
-        emit q->readMarkerMoved(prevFullyReadId, fullyReadUntilEventId);)
     return changes;
 }
 
@@ -1066,14 +1043,10 @@ Notification Room::checkForNotifications(const TimelineItem &ti)
     return { Notification::None };
 }
 
-bool Room::hasUnreadMessages() const { return !d->partiallyReadStats.empty(); }
-
 int countFromStats(const EventStats& s)
 {
     return s.empty() ? -1 : int(s.notableCount);
 }
-
-int Room::unreadCount() const { return countFromStats(partiallyReadStats()); }
 
 EventStats Room::partiallyReadStats() const { return d->partiallyReadStats; }
 
@@ -1246,10 +1219,6 @@ void Room::setLastDisplayedEvent(TimelineItem::index_t index)
     setLastDisplayedEventId(findInTimeline(index)->event()->id());
 }
 
-Room::rev_iter_t Room::readMarker() const { return fullyReadMarker(); }
-
-QString Room::readMarkerEventId() const { return lastFullyReadEventId(); }
-
 ReadReceipt Room::lastReadReceipt(const QString& userId) const
 {
     return d->lastReadReceipts.value(userId);
@@ -1273,11 +1242,6 @@ Room::rev_iter_t Room::fullyReadMarker() const
 }
 
 QSet<QString> Room::userIdsAtEvent(const QString& eventId) const
-{
-    return d->eventIdReadUsers.value(eventId);
-}
-
-QSet<QString> Room::userIdsAtEvent(const QString& eventId)
 {
     return d->eventIdReadUsers.value(eventId);
 }
@@ -1451,12 +1415,6 @@ QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
     return url;
 }
 
-QString safeFileName(QString rawName)
-{
-    static auto safeFileNameRegex = QRegularExpression(R"([/\<>|"*?:])"_ls);
-    return rawName.replace(safeFileNameRegex, "_"_ls);
-}
-
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
@@ -1468,35 +1426,6 @@ Room::Private::getEventWithFile(const QString& eventId) const
     }
     qCWarning(MAIN) << "No files to download in event" << eventId;
     return nullptr;
-}
-
-QString Room::Private::fileNameToDownload(const RoomMessageEvent* event) const
-{
-    Q_ASSERT(event && event->hasFileContent());
-    const auto* fileInfo = event->content()->fileInfo();
-    QString fileName;
-    if (!fileInfo->originalName.isEmpty())
-        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
-    else if (QUrl u { event->plainBody() }; u.isValid()) {
-        qDebug(MAIN) << event->id()
-                     << "has no file name supplied but the event body "
-                        "looks like a URL - using the file name from it";
-        fileName = u.fileName();
-    }
-    if (fileName.isEmpty())
-        return safeFileName(fileInfo->mediaId()).replace(u'.', u'-') % u'.'
-               % fileInfo->mimeType.preferredSuffix();
-
-    if (QSysInfo::productType() == "windows"_ls) {
-        if (const auto& suffixes = fileInfo->mimeType.suffixes();
-            !suffixes.isEmpty()
-            && std::none_of(suffixes.begin(), suffixes.end(),
-                            [&fileName](const QString& s) {
-                                return fileName.endsWith(s);
-                            }))
-            return fileName % u'.' % fileInfo->mimeType.preferredSuffix();
-    }
-    return fileName;
 }
 
 QUrl Room::urlToThumbnail(const QString& eventId) const
@@ -1525,7 +1454,7 @@ QUrl Room::urlToDownload(const QString& eventId) const
 QString Room::fileNameToDownload(const QString& eventId) const
 {
     if (auto* event = d->getEventWithFile(eventId))
-        return d->fileNameToDownload(event);
+        return event->fileNameToDownload();
     return {};
 }
 
@@ -1590,12 +1519,6 @@ bool Room::usesEncryption() const
     return !currentState()
                 .queryOr(&EncryptionEvent::algorithm, QString())
                 .isEmpty();
-}
-
-const StateEvent* Room::getCurrentState(const QString& evtType,
-                                        const QString& stateKey) const
-{
-    return d->getCurrentState({ evtType, stateKey });
 }
 
 RoomStateView Room::currentState() const
@@ -1940,11 +1863,8 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
     if ((changes & (Change::RoomNames | Change::Members | Change::Summary)) > 0)
         updateDisplayname();
 
-    if ((changes & Change::PartiallyReadStats) > 0) {
-        QT_IGNORE_DEPRECATIONS(
-            emit q->unreadMessagesChanged(q);) // TODO: remove in 0.8
+    if ((changes & Change::PartiallyReadStats) > 0)
         emit q->partiallyReadStatsChanged();
-    }
 
     if ((changes & Change::UnreadStats) > 0)
         emit q->unreadStatsChanged();
@@ -2336,14 +2256,6 @@ void Room::sendCallCandidates(const QString& callId,
     d->sendEvent<CallCandidatesEvent>(callId, candidates);
 }
 
-void Room::answerCall(const QString& callId, [[maybe_unused]] int lifetime,
-                      const QString& sdp)
-{
-    qCWarning(MAIN) << "To client developer: drop lifetime parameter from "
-                       "Room::answerCall(), it is no more accepted";
-    answerCall(callId, sdp);
-}
-
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
@@ -2458,7 +2370,7 @@ void Room::uploadFile(const QString& id, const QUrl& localFilename,
                     emit fileTransferCompleted(id, localFilename, fileMetadata);
                 });
         connect(job, &BaseJob::failure, this,
-                std::bind(&Private::failedTransfer, d, id, job->errorString()));
+                [this, id, job] { d->failedTransfer(id, job->errorString()); });
         emit newFileTransfer(id, localFilename);
     } else
         d->failedTransfer(id);
@@ -2492,8 +2404,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
     const auto fileUrl = fileInfo->url();
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
-        filePath =
-            fileInfo->url().path().mid(1) % u'_' % d->fileNameToDownload(event);
+        filePath = fileInfo->url().path().mid(1) % u'_' % event->fileNameToDownload();
 
         if (filePath.size() > 200) // If too long, elide in the middle
             filePath.replace(128, filePath.size() - 192, "---"_ls);
@@ -3281,10 +3192,7 @@ Room::Changes Room::processAccountDataEvent(EventPtr&& event)
         qCDebug(STATE) << "Updated account data of type"
                        << currentData->matrixType();
         emit accountDataChanged(currentData->matrixType());
-        // TODO: Drop AccountDataChange in 0.8
-        // NB: GCC (at least 10) only accepts QT_IGNORE_DEPRECATIONS around
-        // a statement, not within a statement
-        QT_IGNORE_DEPRECATIONS(changes |= Change::AccountData | Change::Other;)
+        changes |= Change::Other;
     }
     return changes;
 }

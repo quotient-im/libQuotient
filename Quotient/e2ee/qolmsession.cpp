@@ -8,8 +8,6 @@
 
 #include <olm/olm.h>
 
-#include <cstring>
-
 using namespace Quotient;
 
 OlmErrorCode QOlmSession::lastErrorCode() const {

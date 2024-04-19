@@ -32,8 +32,8 @@ void TestGroupSession::groupSessionPicklingValid()
 
     auto igsPickled = igs->pickle(PicklingKey::mock());
     igs = QOlmInboundGroupSession::unpickle(std::move(igsPickled),
-                                            PicklingKey::mock())
-              .value();
+                                            PicklingKey::mock()).value();
+    QVERIFY(igs.has_value());
     QCOMPARE(igsId, igs->sessionId());
 }
 

@@ -94,18 +94,16 @@ template <size_t N = std::dynamic_extent>
 using byte_span_t = std::span<byte_t, N>;
 
 namespace _impl {
-    QUOTIENT_API void checkForSpanShortfall(QByteArray::size_type inputSize,
-                                            size_t neededSize);
+    QUOTIENT_API void checkForSpanShortfall(QByteArray::size_type inputSize, int neededSize);
 
     template <typename SpanT>
     inline auto spanFromByteArray(auto& byteArray)
     {
         // OpenSSL only handles int sizes; Release builds will cut the tail off
-        Q_ASSERT_X(byteArray.size() <= std::numeric_limits<int>::max(),
-                   __func__, "Too long array for OpenSSL");
+        Q_ASSERT_X(std::in_range<int>(byteArray.size()), __func__, "Too long array for OpenSSL");
         if constexpr (SpanT::extent != std::dynamic_extent) {
-            static_assert(SpanT::extent <= std::numeric_limits<int>::max());
-            checkForSpanShortfall(byteArray.size(), SpanT::extent);
+            static_assert(std::in_range<int>(SpanT::extent));
+            checkForSpanShortfall(byteArray.size(), static_cast<int>(SpanT::extent));
         }
         return SpanT(reinterpret_cast<typename SpanT::pointer>(byteArray.data()),
                      std::min(SpanT::extent, unsignedSize(byteArray)));
@@ -189,10 +187,9 @@ public:
     //! \sa copyToByteArray
     QByteArray viewAsByteArray() const
     {
-        // Ensure static_cast<int> is safe
-        static_assert(TotalSecureHeapSize < std::numeric_limits<int>::max());
+        static_assert(std::in_range<QByteArray::size_type>(TotalSecureHeapSize));
         return QByteArray::fromRawData(reinterpret_cast<const char*>(data_),
-                                       static_cast<int>(size_));
+                                       static_cast<QByteArray::size_type>(size_));
     }
 
     //! \brief Copy the contents of the buffer to a QByteArray
@@ -334,16 +331,18 @@ struct UnsignedOneTimeKeys
     QHash<QString, QString> curve25519() const { return keys[Curve25519Key]; }
 };
 
-class SignedOneTimeKey {
+class QUOTIENT_API SignedOneTimeKey {
 public:
     explicit SignedOneTimeKey(const QString& unsignedKey, const QString& userId,
                               const QString& deviceId,
                               const QByteArray& signature)
-        : payload { { "key"_ls, unsignedKey },
-                    { "signatures"_ls,
-                      QJsonObject {
-                          { userId, QJsonObject { { "ed25519:"_ls % deviceId,
-                                                    QString::fromUtf8(signature) } } } } } }
+        : payload{
+            { "key"_ls, unsignedKey },
+            { "signatures"_ls,
+              QJsonObject{
+                  { userId, QJsonObject{ { "ed25519:"_ls % deviceId,
+                                           QString::fromUtf8(signature) } } } } }
+        }
     {}
     explicit SignedOneTimeKey(const QJsonObject& jo = {})
         : payload(jo)

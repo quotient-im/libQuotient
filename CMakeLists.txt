@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.26)
 if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
@@ -60,7 +60,7 @@ set_directory_properties(PROPERTIES
     CXX_VISIBILITY_PRESET hidden
 )
 
-set(QtMinVersion "6.0")
+set(QtMinVersion "6.4")
 string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt<MajorVersionDigit>"
 set(QUOTIENT_LIB_NAME ${PROJECT_NAME}${Qt})
 
@@ -141,7 +141,6 @@ list(APPEND lib_SRCS
     Quotient/accountregistry.h Quotient/accountregistry.cpp
     Quotient/mxcreply.h Quotient/mxcreply.cpp
     Quotient/events/event.h Quotient/events/event.cpp
-    Quotient/events/eventloader.h
     Quotient/events/roomevent.h Quotient/events/roomevent.cpp
     Quotient/events/stateevent.h Quotient/events/stateevent.cpp
     Quotient/events/single_key_value.h

@@ -101,8 +101,8 @@ public:
     //!         in other words, if the current Omittable has changed;
     //!         false otherwise
     template <typename T1>
-    auto merge(const std::optional<T1>& other)
-        -> std::enable_if_t<std::is_convertible_v<T1, T>, bool>
+        requires std::is_convertible_v<T1, T>
+    bool merge(const std::optional<T1>& other)
     {
         if (!other || (this->has_value() && **this == *other))
             return false;
@@ -182,8 +182,8 @@ Omittable(T&&) -> Omittable<T>;
 //!         in other words, if \p lhs has changed;
 //!         false otherwise
 template <typename T1, typename T2>
-inline auto merge(T1& lhs, const std::optional<T2>& rhs)
-    -> std::enable_if_t<std::is_assignable_v<T1&, const T2&>, bool>
+    requires std::is_assignable_v<T1&, const T2&>
+inline bool merge(T1& lhs, const std::optional<T2>& rhs)
 {
     if (!rhs || lhs == *rhs)
         return false;

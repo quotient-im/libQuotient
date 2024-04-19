@@ -51,7 +51,7 @@ inline std::pair<int, bool> checkedSize(
 // ^ NB: usage of type_identity_t disables type deduction
 {
     Q_ASSERT(uncheckedSize >= 0 && maxSize >= 0);
-    if (uncheckedSize <= maxSize)
+    if (uncheckedSize <= maxSize) [[likely]]
         return { static_cast<int>(uncheckedSize), false };
 
     qCCritical(E2EE) << "Cryptoutils:" << uncheckedSize

@@ -12,7 +12,8 @@
 class QFileInfo;
 
 namespace Quotient {
-namespace MessageEventContent = EventContent; // Back-compatibility
+//! \deprecated Use namespace EventContent instead
+namespace MessageEventContent = EventContent; // REMOVE after 0.9
 
 /**
  * The event class corresponding to m.room.message events
@@ -46,12 +47,10 @@ public:
     QString rawMsgtype() const;
     QString plainBody() const;
     const EventContent::TypedBase* content() const { return _content.data(); }
-    template <typename VisitorT>
-    void editContent(VisitorT&& visitor)
+    void editContent(auto visitor)
     {
         visitor(*_content);
-        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(),
-                                                      _content.data());
+        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), _content.data());
     }
     QMimeType mimeType() const;
     //! \brief Determine whether the message has text content
@@ -85,6 +84,8 @@ public:
 
     QString replacedBy() const;
 
+    QString fileNameToDownload() const;
+
     static QString rawMsgTypeForUrl(const QUrl& url);
     static QString rawMsgTypeForFile(const QFileInfo& fi);
 
@@ -102,22 +103,6 @@ private:
 using MessageEventType = RoomMessageEvent::MsgType;
 
 namespace EventContent {
-
-    struct [[deprecated("Use Quotient::EventRelation instead")]] RelatesTo
-        : EventRelation {
-        static constexpr auto ReplyTypeId() { return ReplyType; }
-        static constexpr auto ReplacementTypeId() { return ReplacementType; }
-    };
-    [[deprecated("Use EventRelation::replyTo() instead")]]
-    inline auto replyTo(QString eventId)
-    {
-        return EventRelation::replyTo(std::move(eventId));
-    }
-    [[deprecated("Use EventRelation::replace() instead")]]
-    inline auto replacementOf(QString eventId)
-    {
-        return EventRelation::replace(std::move(eventId));
-    }
 
     // Additional event content types
 

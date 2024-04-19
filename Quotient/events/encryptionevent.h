@@ -10,10 +10,6 @@
 namespace Quotient {
 class QUOTIENT_API EncryptionEventContent {
 public:
-    using EncryptionType
-        [[deprecated("Use Quotient::EncryptionType instead")]] =
-            Quotient::EncryptionType;
-
     // NOLINTNEXTLINE(google-explicit-constructor)
     QUO_IMPLICIT EncryptionEventContent(Quotient::EncryptionType et);
     explicit EncryptionEventContent(const QJsonObject& json);
@@ -30,10 +26,6 @@ class QUOTIENT_API EncryptionEvent
     : public KeylessStateEventBase<EncryptionEvent, EncryptionEventContent> {
 public:
     QUO_EVENT(EncryptionEvent, "m.room.encryption")
-
-    using EncryptionType
-        [[deprecated("Use Quotient::EncryptionType instead")]] =
-            Quotient::EncryptionType;
 
     using KeylessStateEventBase::KeylessStateEventBase;
 

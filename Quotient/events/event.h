@@ -13,21 +13,15 @@ namespace Quotient {
 template <typename EventT>
 using event_ptr_tt = std::unique_ptr<EventT>;
 
-template <typename EventT>
-[[deprecated("Use std::to_address() instead")]]
-inline EventT* rawPtr(const event_ptr_tt<EventT>& ptr)
-{
-    return ptr.get();
-}
-
 /// Unwrap a plain pointer and downcast it to the specified type
 template <typename TargetEventT, typename EventT>
+[[deprecated("Use eventCast() instead")]] // Remove after 0.9
 inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
 {
     return static_cast<TargetEventT*>(std::to_address(ptr));
 }
 
-// === Standard Matrix key names and basicEventJson() ===
+// === Standard Matrix key names ===
 
 constexpr inline auto TypeKey = "type"_ls;
 constexpr inline auto BodyKey = "body"_ls;
@@ -39,34 +33,13 @@ constexpr inline auto UnsignedKey = "unsigned"_ls;
 constexpr inline auto RedactedCauseKey = "redacted_because"_ls;
 constexpr inline auto PrevContentKey = "prev_content"_ls;
 constexpr inline auto StateKeyKey = "state_key"_ls;
-[[deprecated("use TypeKey")]] constexpr inline auto TypeKeyL = TypeKey;
-[[deprecated("use BodyKey")]] constexpr inline auto BodyKeyL = BodyKey;
-[[deprecated("use ContentKey")]] constexpr inline auto ContentKeyL = ContentKey;
-[[deprecated("use EventIdKey")]] constexpr inline auto EventIdKeyL = EventIdKey;
-[[deprecated("use SenderKey")]] constexpr inline auto SenderKeyL = SenderKey;
-[[deprecated("use RoomIdKey")]] constexpr inline auto RoomIdKeyL = RoomIdKey;
-[[deprecated("use UnsignedKey")]] constexpr inline auto UnsignedKeyL = UnsignedKey;
-[[deprecated("use RedactedCauseKey")]] constexpr inline auto RedactedCauseKeyL = RedactedCauseKey;
-[[deprecated("use PrevContentKey")]] constexpr inline auto PrevContentKeyL = PrevContentKey;
-[[deprecated("use StateKeyKey")]] constexpr inline auto StateKeyKeyL = StateKeyKey;
 
 using event_type_t = QLatin1String;
-
-// TODO: Remove in 0.8
-struct QUOTIENT_API EventTypeRegistry {
-    [[deprecated("event_type_t is a string since libQuotient 0.7, use it directly instead")]]
-    static QString getMatrixType(event_type_t typeId);
-
-    EventTypeRegistry() = delete;
-    ~EventTypeRegistry() = default;
-    Q_DISABLE_COPY_MOVE(EventTypeRegistry)
-};
 
 // === EventMetaType ===
 
 class Event;
 
-// TODO: move over to std::derived_from<Event> once it's available everywhere
 template <typename EventT, typename BaseEventT = Event>
 concept EventClass = std::is_base_of_v<BaseEventT, EventT>;
 
@@ -285,18 +258,6 @@ public:
         return { { TypeKey, matrixType }, { ContentKey, content } };
     }
 
-    //! \brief Event Matrix type, as identified by its metatype object
-    //!
-    //! For event types that have defined C++ classes this will return the same
-    //! string as type(); for generic/unknown events it will contain
-    //! a descriptive/generic string defined by the respective base event type
-    //! (that can be empty).
-    //! \sa matrixType
-    [[deprecated("Use matrixType() to get type id stored in event JSON, "
-                 "or metaType().matrixId if you (unlikely) need type id as "
-                 "per the metatype system")]]
-    auto type() const { return metaType().matrixId; }
-
     //! \brief Exact Matrix type stored in JSON
     QString matrixType() const;
 
@@ -337,13 +298,7 @@ public:
     template <typename... VisitorTs>
     auto switchOnType(VisitorTs&&... visitors) const;
 
-    [[deprecated("Use fullJson() and stringify it with QJsonDocument::toJson() "
-                 "or by other means")]]
-    QByteArray originalJson() const;
-    [[deprecated("Use fullJson() instead")]] //
-    QJsonObject originalJsonObject() const { return fullJson(); }
-
-    const QJsonObject& fullJson() const { return _json; }
+        const QJsonObject& fullJson() const { return _json; }
 
     // According to the CS API spec, every event also has
     // a "content" object; but since its structure is different for
@@ -365,13 +320,6 @@ public:
         return fromJson<T>(contentJson()[std::forward<KeyT>(key)]);
     }
 
-    template <typename T>
-    [[deprecated("Use contentPart() to get a part of the event content")]] //
-    T content(const QString& key) const
-    {
-        return contentPart<T>(key);
-    }
-
     const QJsonObject unsignedJson() const;
 
     //! \brief Get a part of the unsigned object, assuming a given type
@@ -387,7 +335,7 @@ public:
 
     friend QUOTIENT_API QDebug operator<<(QDebug dbg, const Event& e)
     {
-        QDebugStateSaver _dss { dbg };
+        const QDebugStateSaver _dss { dbg };
         dbg.noquote().nospace()
             << e.matrixType() << '(' << e.metaType().className << "): ";
         e.dumpTo(dbg);
@@ -398,7 +346,6 @@ public:
     // as an exception. For other base events, Event::is<>() and
     // Quotient::is<>() should be used; don't add is* methods here
     bool isStateEvent() const;
-    [[deprecated("Use is<CallEvent>() instead")]] bool isCallEvent() const;
 
 protected:
     friend class EventMetaType<Event>; // To access the below constructor
@@ -509,14 +456,7 @@ public:
     {                                                                    \
         return MetaType;                                                 \
     }                                                                    \
-    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]         \
-    static constexpr auto matrixTypeId() { return MatrixType_; }         \
-    [[deprecated("Use " #CppType_ "::TypeId directly instead")]]         \
-    static auto typeId() { return TypeId; }                              \
     // End of macro
-
-//! \deprecated This is the old name for what is now known as QUO_EVENT
-#define DEFINE_EVENT_TYPEID(Id_, Type_) QUO_EVENT(Type_, Id_)
 
 #define QUO_CONTENT_GETTER_X(PartType_, PartName_, JsonKey_) \
     PartType_ PartName_() const                              \
@@ -535,10 +475,6 @@ public:
 //! \endcode
 #define QUO_CONTENT_GETTER(PartType_, PartName_) \
     QUO_CONTENT_GETTER_X(PartType_, PartName_, toSnakeCase(#PartName_##_ls))
-
-//! \deprecated This macro was used after an event class definition
-//! to enable its dynamic loading; it is completely superseded by QUO_EVENT
-#define REGISTER_EVENT_TYPE(Type_)
 
 /// \brief Define a new event class with a single key-value pair in the content
 ///
@@ -655,13 +591,6 @@ inline auto switchOnType(const EventClass auto& event, FnT1&& fn1, FnTs&&... fns
     return switchOnType(event, std::forward<FnTs>(fns)...);
 }
 
-template <EventClass BaseT, typename... FnTs>
-[[deprecated("The new name for visit() is switchOnType()")]] //
-inline auto visit(const BaseT& event, FnTs&&... fns)
-{
-    return switchOnType(event, std::forward<FnTs>(fns)...);
-}
-
 template <typename... VisitorTs>
 inline auto Event::switchOnType(VisitorTs&&... visitors) const
 {
@@ -671,8 +600,9 @@ inline auto Event::switchOnType(VisitorTs&&... visitors) const
 
 // A facility overload that calls void-returning switchOnType() on each event
 // over a range of event pointers
-// TODO: replace with ranges::for_each once all standard libraries have it
+// TODO: remove after 0.9
 template <typename RangeT, typename... FnTs>
+[[deprecated("Make a range-for and call switchOnType() from it directly")]]
 inline auto visitEach(RangeT&& events, FnTs&&... fns)
     requires std::is_void_v<
         decltype(switchOnType(**begin(events), std::forward<FnTs>(fns)...))>
@@ -680,6 +610,7 @@ inline auto visitEach(RangeT&& events, FnTs&&... fns)
     for (auto&& evtPtr: events)
         switchOnType(*evtPtr, std::forward<FnTs>(fns)...);
 }
+
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::Event*)
 Q_DECLARE_METATYPE(const Quotient::Event*)

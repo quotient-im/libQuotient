@@ -44,18 +44,8 @@ protected:
     explicit StateEvent(const QJsonObject& json);
     void dumpTo(QDebug dbg) const override;
 };
-using StateEventBase
-    [[deprecated("StateEventBase is StateEvent now")]] = StateEvent;
 using StateEventPtr = event_ptr_tt<StateEvent>;
 using StateEvents = EventsArray<StateEvent>;
-
-[[deprecated("Use StateEvent::basicJson() instead")]]
-inline QJsonObject basicStateEventJson(const QString& matrixTypeId,
-                                       const QJsonObject& content,
-                                       const QString& stateKey = {})
-{
-    return StateEvent::basicJson(matrixTypeId, stateKey, content);
-}
 
 /**
  * A combination of event type and state key uniquely identifies a piece

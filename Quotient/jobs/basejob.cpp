@@ -433,12 +433,12 @@ void BaseJob::gotReply()
         setStatus(statusSoFar);
         if (!status().good()) // Bad JSON in a "good" reply: bail out
             return;
+        // If the endpoint expects anything else than just (API-related) JSON
+        // reply()->readAll() is not performed and the whole reply processing
+        // is left to derived job classes: they may read it piecemeal or customise
+        // per content type in prepareResult(), or even have read it already
+        // (see, e.g., DownloadFileJob).
     }
-    // If the endpoint expects anything else than just (API-related) JSON
-    // reply()->readAll() is not performed and the whole reply processing
-    // is left to derived job classes: they may read it piecemeal or customise
-    // per content type in prepareResult(), or even have read it already
-    // (see, e.g., DownloadFileJob).
     if (statusSoFar.good()) {
         setStatus(prepareResult());
         return;

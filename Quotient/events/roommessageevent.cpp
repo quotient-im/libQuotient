@@ -11,6 +11,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QImageReader>
+#include <QtCore/QStringBuilder>
 
 using namespace Quotient;
 using namespace EventContent;
@@ -221,6 +222,41 @@ QString RoomMessageEvent::replacedBy() const
             .value("m.replace"_ls).toObject()
             .value(EventIdKey).toString();
     // clang-format on
+}
+
+namespace {
+QString safeFileName(QString rawName)
+{
+    static auto safeFileNameRegex = QRegularExpression(R"([/\<>|"*?:])"_ls);
+    return rawName.replace(safeFileNameRegex, "_"_ls);
+}
+}
+
+QString RoomMessageEvent::fileNameToDownload() const
+{
+    Q_ASSERT(hasFileContent());
+    const auto* fileInfo = content()->fileInfo();
+    QString fileName;
+    if (!fileInfo->originalName.isEmpty())
+        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
+    else if (QUrl u { plainBody() }; u.isValid()) {
+        qDebug(MAIN) << id()
+                     << "has no file name supplied but the event body "
+                        "looks like a URL - using the file name from it";
+        fileName = u.fileName();
+    }
+    if (fileName.isEmpty())
+        return safeFileName(fileInfo->mediaId()).replace(u'.', u'-') % u'.'
+               % fileInfo->mimeType.preferredSuffix();
+
+    if (QSysInfo::productType() == "windows"_ls) {
+        if (const auto& suffixes = fileInfo->mimeType.suffixes();
+            !suffixes.isEmpty() && std::ranges::none_of(suffixes, [&fileName](const QString& s) {
+                return fileName.endsWith(s);
+            }))
+            return fileName % u'.' % fileInfo->mimeType.preferredSuffix();
+    }
+    return fileName;
 }
 
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
