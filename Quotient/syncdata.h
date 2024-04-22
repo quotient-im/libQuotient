@@ -28,7 +28,7 @@ struct QUOTIENT_API RoomSummary {
 
     bool isEmpty() const;
 };
-QDebug operator<<(QDebug dbg, const RoomSummary& rs);
+QUOTIENT_API QDebug operator<<(QDebug dbg, const RoomSummary& rs);
 
 template <>
 struct JsonObjectConverter<RoomSummary> {
