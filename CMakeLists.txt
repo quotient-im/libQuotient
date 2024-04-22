@@ -54,7 +54,7 @@ add_compile_definitions(
     QT_NO_NARROWING_CONVERSIONS_IN_CONNECT QT_NO_FOREACH)
 
 set_directory_properties(PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_EXTENSIONS OFF
     VISIBILITY_INLINES_HIDDEN ON
     CXX_VISIBILITY_PRESET hidden
@@ -342,7 +342,7 @@ set_target_properties(${QUOTIENT_LIB_NAME} PROPERTIES
 set_property(TARGET ${QUOTIENT_LIB_NAME} APPEND PROPERTY
              COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION)
 
-target_compile_features(${QUOTIENT_LIB_NAME} PUBLIC cxx_std_20)
+target_compile_features(${QUOTIENT_LIB_NAME} PUBLIC cxx_std_23)
 if (MSVC)
     target_compile_options(${QUOTIENT_LIB_NAME} PUBLIC /Zc:preprocessor)
 endif()
