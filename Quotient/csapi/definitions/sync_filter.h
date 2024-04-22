@@ -24,7 +24,7 @@ struct RoomFilter {
     RoomEventFilter ephemeral{};
 
     //! Include rooms that the user has left in the sync, default false
-    Omittable<bool> includeLeave{};
+    std::optional<bool> includeLeave{};
 
     //! The state events to include for rooms.
     RoomEventFilter state{};

@@ -4,8 +4,8 @@
 
 using namespace Quotient;
 
-auto queryToGetRelatingEvents(const QString& from, const QString& to, Omittable<int> limit,
-                              const QString& dir, Omittable<bool> recurse)
+auto queryToGetRelatingEvents(const QString& from, const QString& to, std::optional<int> limit,
+                              const QString& dir, std::optional<bool> recurse)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -18,8 +18,8 @@ auto queryToGetRelatingEvents(const QString& from, const QString& to, Omittable<
 
 QUrl GetRelatingEventsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                           const QString& eventId, const QString& from,
-                                          const QString& to, Omittable<int> limit,
-                                          const QString& dir, Omittable<bool> recurse)
+                                          const QString& to, std::optional<int> limit,
+                                          const QString& dir, std::optional<bool> recurse)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/",
@@ -29,8 +29,8 @@ QUrl GetRelatingEventsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
 
 GetRelatingEventsJob::GetRelatingEventsJob(const QString& roomId, const QString& eventId,
                                            const QString& from, const QString& to,
-                                           Omittable<int> limit, const QString& dir,
-                                           Omittable<bool> recurse)
+                                           std::optional<int> limit, const QString& dir,
+                                           std::optional<bool> recurse)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetRelatingEventsJob"),
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/", eventId),
               queryToGetRelatingEvents(from, to, limit, dir, recurse))
@@ -39,8 +39,8 @@ GetRelatingEventsJob::GetRelatingEventsJob(const QString& roomId, const QString&
 }
 
 auto queryToGetRelatingEventsWithRelType(const QString& from, const QString& to,
-                                         Omittable<int> limit, const QString& dir,
-                                         Omittable<bool> recurse)
+                                         std::optional<int> limit, const QString& dir,
+                                         std::optional<bool> recurse)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -54,8 +54,8 @@ auto queryToGetRelatingEventsWithRelType(const QString& from, const QString& to,
 QUrl GetRelatingEventsWithRelTypeJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
                                                      const QString& eventId, const QString& relType,
                                                      const QString& from, const QString& to,
-                                                     Omittable<int> limit, const QString& dir,
-                                                     Omittable<bool> recurse)
+                                                     std::optional<int> limit, const QString& dir,
+                                                     std::optional<bool> recurse)
 {
     return BaseJob::makeRequestUrl(
         std::move(baseUrl),
@@ -65,7 +65,7 @@ QUrl GetRelatingEventsWithRelTypeJob::makeRequestUrl(QUrl baseUrl, const QString
 
 GetRelatingEventsWithRelTypeJob::GetRelatingEventsWithRelTypeJob(
     const QString& roomId, const QString& eventId, const QString& relType, const QString& from,
-    const QString& to, Omittable<int> limit, const QString& dir, Omittable<bool> recurse)
+    const QString& to, std::optional<int> limit, const QString& dir, std::optional<bool> recurse)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetRelatingEventsWithRelTypeJob"),
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/", eventId, "/",
                        relType),
@@ -75,8 +75,8 @@ GetRelatingEventsWithRelTypeJob::GetRelatingEventsWithRelTypeJob(
 }
 
 auto queryToGetRelatingEventsWithRelTypeAndEventType(const QString& from, const QString& to,
-                                                     Omittable<int> limit, const QString& dir,
-                                                     Omittable<bool> recurse)
+                                                     std::optional<int> limit, const QString& dir,
+                                                     std::optional<bool> recurse)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -89,8 +89,8 @@ auto queryToGetRelatingEventsWithRelTypeAndEventType(const QString& from, const 
 
 QUrl GetRelatingEventsWithRelTypeAndEventTypeJob::makeRequestUrl(
     QUrl baseUrl, const QString& roomId, const QString& eventId, const QString& relType,
-    const QString& eventType, const QString& from, const QString& to, Omittable<int> limit,
-    const QString& dir, Omittable<bool> recurse)
+    const QString& eventType, const QString& from, const QString& to, std::optional<int> limit,
+    const QString& dir, std::optional<bool> recurse)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/",
@@ -101,8 +101,8 @@ QUrl GetRelatingEventsWithRelTypeAndEventTypeJob::makeRequestUrl(
 
 GetRelatingEventsWithRelTypeAndEventTypeJob::GetRelatingEventsWithRelTypeAndEventTypeJob(
     const QString& roomId, const QString& eventId, const QString& relType, const QString& eventType,
-    const QString& from, const QString& to, Omittable<int> limit, const QString& dir,
-    Omittable<bool> recurse)
+    const QString& from, const QString& to, std::optional<int> limit, const QString& dir,
+    std::optional<bool> recurse)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetRelatingEventsWithRelTypeAndEventTypeJob"),
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/", eventId, "/",
                        relType, "/", eventType),

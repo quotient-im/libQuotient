@@ -32,7 +32,7 @@ public:
     //! \param reason
     //!   The reason the content is being reported. May be blank.
     explicit ReportContentJob(const QString& roomId, const QString& eventId,
-                              Omittable<int> score = none, const QString& reason = {});
+                              std::optional<int> score = std::nullopt, const QString& reason = {});
 };
 
 } // namespace Quotient

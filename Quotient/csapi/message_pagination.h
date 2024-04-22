@@ -49,7 +49,7 @@ public:
     //! \param filter
     //!   A JSON RoomEventFilter to filter returned events with.
     explicit GetRoomEventsJob(const QString& roomId, const QString& dir, const QString& from = {},
-                              const QString& to = {}, Omittable<int> limit = none,
+                              const QString& to = {}, std::optional<int> limit = std::nullopt,
                               const QString& filter = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
@@ -58,7 +58,7 @@ public:
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& dir,
                                const QString& from = {}, const QString& to = {},
-                               Omittable<int> limit = none, const QString& filter = {});
+                               std::optional<int> limit = std::nullopt, const QString& filter = {});
 
     // Result properties
 

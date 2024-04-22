@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys,
+UploadKeysJob::UploadKeysJob(const std::optional<DeviceKeys>& deviceKeys,
                              const OneTimeKeys& oneTimeKeys, const OneTimeKeys& fallbackKeys)
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadKeysJob"),
               makePath("/_matrix/client/v3", "/keys/upload"))
@@ -17,7 +17,7 @@ UploadKeysJob::UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys,
     addExpectedKey("one_time_key_counts");
 }
 
-QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, Omittable<int> timeout)
+QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, std::optional<int> timeout)
     : BaseJob(HttpVerb::Post, QStringLiteral("QueryKeysJob"),
               makePath("/_matrix/client/v3", "/keys/query"))
 {
@@ -28,7 +28,7 @@ QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, Omitta
 }
 
 ClaimKeysJob::ClaimKeysJob(const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
-                           Omittable<int> timeout)
+                           std::optional<int> timeout)
     : BaseJob(HttpVerb::Post, QStringLiteral("ClaimKeysJob"),
               makePath("/_matrix/client/v3", "/keys/claim"))
 {

@@ -13,7 +13,7 @@ namespace Quotient {
 struct DiscoveryInformation {
     HomeserverInformation homeserver;
 
-    Omittable<IdentityServerInformation> identityServer{};
+    std::optional<IdentityServerInformation> identityServer{};
 
     //! Application-dependent keys using Java package naming convention.
     QHash<QString, QJsonObject> additionalProperties{};

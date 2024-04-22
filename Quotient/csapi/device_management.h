@@ -78,7 +78,7 @@ public:
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
     explicit DeleteDeviceJob(const QString& deviceId,
-                             const Omittable<AuthenticationData>& auth = none);
+                             const std::optional<AuthenticationData>& auth = std::nullopt);
 };
 
 //! \brief Bulk deletion of devices
@@ -96,7 +96,7 @@ public:
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
     explicit DeleteDevicesJob(const QStringList& devices,
-                              const Omittable<AuthenticationData>& auth = none);
+                              const std::optional<AuthenticationData>& auth = std::nullopt);
 };
 
 } // namespace Quotient

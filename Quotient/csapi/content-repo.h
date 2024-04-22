@@ -96,9 +96,9 @@ public:
 
     //! The timestamp (in milliseconds since the unix epoch) when the
     //! generated media id will expire, if media is not uploaded.
-    Omittable<qint64> unusedExpiresAt() const
+    std::optional<qint64> unusedExpiresAt() const
     {
-        return loadFromJson<Omittable<qint64>>("unused_expires_at"_ls);
+        return loadFromJson<std::optional<qint64>>("unused_expires_at"_ls);
     }
 };
 
@@ -298,20 +298,21 @@ public:
     //!   The preferred point in time to return a preview for. The server may
     //!   return a newer version if it does not have the requested version
     //!   available.
-    explicit GetUrlPreviewJob(const QUrl& url, Omittable<qint64> ts = none);
+    explicit GetUrlPreviewJob(const QUrl& url, std::optional<qint64> ts = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetUrlPreviewJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& url, Omittable<qint64> ts = none);
+    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& url,
+                               std::optional<qint64> ts = std::nullopt);
 
     // Result properties
 
     //! The byte-size of the image. Omitted if there is no image attached.
-    Omittable<qint64> matrixImageSize() const
+    std::optional<qint64> matrixImageSize() const
     {
-        return loadFromJson<Omittable<qint64>>("matrix:image:size"_ls);
+        return loadFromJson<std::optional<qint64>>("matrix:image:size"_ls);
     }
 
     //! An [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) to the image. Omitted if
@@ -346,9 +347,9 @@ public:
     //! The maximum size an upload can be in bytes.
     //! Clients SHOULD use this as a guide when uploading content.
     //! If not listed or null, the size limit should be treated as unknown.
-    Omittable<qint64> uploadSize() const
+    std::optional<qint64> uploadSize() const
     {
-        return loadFromJson<Omittable<qint64>>("m.upload.size"_ls);
+        return loadFromJson<std::optional<qint64>>("m.upload.size"_ls);
     }
 };
 

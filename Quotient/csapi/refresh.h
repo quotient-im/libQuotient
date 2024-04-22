@@ -44,7 +44,10 @@ public:
     //! The lifetime of the access token, in milliseconds. If not
     //! given, the client can assume that the access token will not
     //! expire.
-    Omittable<int> expiresInMs() const { return loadFromJson<Omittable<int>>("expires_in_ms"_ls); }
+    std::optional<int> expiresInMs() const
+    {
+        return loadFromJson<std::optional<int>>("expires_in_ms"_ls);
+    }
 };
 
 } // namespace Quotient

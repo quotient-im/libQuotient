@@ -25,7 +25,7 @@ Post3PIDsJob::Post3PIDsJob(const ThreePidCredentials& threePidCreds)
 }
 
 Add3PIDJob::Add3PIDJob(const QString& clientSecret, const QString& sid,
-                       const Omittable<AuthenticationData>& auth)
+                       const std::optional<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, QStringLiteral("Add3PIDJob"),
               makePath("/_matrix/client/v3", "/account/3pid/add"))
 {

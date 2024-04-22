@@ -35,7 +35,7 @@ public:
     //!   Optional reason to be included as the `reason` on the subsequent
     //!   membership event.
     explicit JoinRoomByIdJob(const QString& roomId,
-                             const Omittable<ThirdPartySigned>& thirdPartySigned = none,
+                             const std::optional<ThirdPartySigned>& thirdPartySigned = std::nullopt,
                              const QString& reason = {});
 
     // Result properties
@@ -74,7 +74,7 @@ public:
     //!   Optional reason to be included as the `reason` on the subsequent
     //!   membership event.
     explicit JoinRoomJob(const QString& roomIdOrAlias, const QStringList& serverName = {},
-                         const Omittable<ThirdPartySigned>& thirdPartySigned = none,
+                         const std::optional<ThirdPartySigned>& thirdPartySigned = std::nullopt,
                          const QString& reason = {});
 
     // Result properties

@@ -40,7 +40,7 @@ public:
     //! When `true`, the user is a [Guest User](#guest-access). When
     //! not present or `false`, the user is presumed to be a non-guest
     //! user.
-    Omittable<bool> isGuest() const { return loadFromJson<Omittable<bool>>("is_guest"_ls); }
+    std::optional<bool> isGuest() const { return loadFromJson<std::optional<bool>>("is_guest"_ls); }
 };
 
 } // namespace Quotient

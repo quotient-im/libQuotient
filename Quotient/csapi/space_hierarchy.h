@@ -89,8 +89,10 @@ public:
     //! \param from
     //!   A pagination token from a previous result. If specified, `max_depth` and `suggested_only`
     //!   cannot be changed from the first request.
-    explicit GetSpaceHierarchyJob(const QString& roomId, Omittable<bool> suggestedOnly = none,
-                                  Omittable<int> limit = none, Omittable<int> maxDepth = none,
+    explicit GetSpaceHierarchyJob(const QString& roomId,
+                                  std::optional<bool> suggestedOnly = std::nullopt,
+                                  std::optional<int> limit = std::nullopt,
+                                  std::optional<int> maxDepth = std::nullopt,
                                   const QString& from = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
@@ -98,8 +100,9 @@ public:
     //! This function can be used when a URL for GetSpaceHierarchyJob
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
-                               Omittable<bool> suggestedOnly = none, Omittable<int> limit = none,
-                               Omittable<int> maxDepth = none, const QString& from = {});
+                               std::optional<bool> suggestedOnly = std::nullopt,
+                               std::optional<int> limit = std::nullopt,
+                               std::optional<int> maxDepth = std::nullopt, const QString& from = {});
 
     // Result properties
 

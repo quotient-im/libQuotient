@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-GenerateLoginTokenJob::GenerateLoginTokenJob(const Omittable<AuthenticationData>& auth)
+GenerateLoginTokenJob::GenerateLoginTokenJob(const std::optional<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, QStringLiteral("GenerateLoginTokenJob"),
               makePath("/_matrix/client/v1", "/login/get_token"))
 {

@@ -30,7 +30,7 @@ public:
     //!
     //! \param roomId
     //!   The room ID for which events should be returned.
-    explicit PeekEventsJob(const QString& from = {}, Omittable<int> timeout = none,
+    explicit PeekEventsJob(const QString& from = {}, std::optional<int> timeout = std::nullopt,
                            const QString& roomId = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
@@ -38,7 +38,8 @@ public:
     //! This function can be used when a URL for PeekEventsJob
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {},
-                               Omittable<int> timeout = none, const QString& roomId = {});
+                               std::optional<int> timeout = std::nullopt,
+                               const QString& roomId = {});
 
     // Result properties
 

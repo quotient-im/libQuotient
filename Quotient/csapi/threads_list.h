@@ -37,14 +37,14 @@ public:
     //!   from the most recent event visible to the user (as per history visibility rules;
     //!   topologically).
     explicit GetThreadRootsJob(const QString& roomId, const QString& include = {},
-                               Omittable<int> limit = none, const QString& from = {});
+                               std::optional<int> limit = std::nullopt, const QString& from = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetThreadRootsJob
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& include = {},
-                               Omittable<int> limit = none, const QString& from = {});
+                               std::optional<int> limit = std::nullopt, const QString& from = {});
 
     // Result properties
 

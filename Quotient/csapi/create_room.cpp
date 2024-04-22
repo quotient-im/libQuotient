@@ -9,7 +9,8 @@ CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAlias
                              const QVector<Invite3pid>& invite3pid, const QString& roomVersion,
                              const QJsonObject& creationContent,
                              const QVector<StateEvent>& initialState, const QString& preset,
-                             Omittable<bool> isDirect, const QJsonObject& powerLevelContentOverride)
+                             std::optional<bool> isDirect,
+                             const QJsonObject& powerLevelContentOverride)
     : BaseJob(HttpVerb::Post, QStringLiteral("CreateRoomJob"),
               makePath("/_matrix/client/v3", "/createRoom"))
 {

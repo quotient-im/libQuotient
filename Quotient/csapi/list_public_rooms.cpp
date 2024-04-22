@@ -25,7 +25,7 @@ SetRoomVisibilityOnDirectoryJob::SetRoomVisibilityOnDirectoryJob(const QString& 
     setRequestData({ _dataJson });
 }
 
-auto queryToGetPublicRooms(Omittable<int> limit, const QString& since, const QString& server)
+auto queryToGetPublicRooms(std::optional<int> limit, const QString& since, const QString& server)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
@@ -34,7 +34,7 @@ auto queryToGetPublicRooms(Omittable<int> limit, const QString& since, const QSt
     return _q;
 }
 
-QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, Omittable<int> limit, const QString& since,
+QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, std::optional<int> limit, const QString& since,
                                        const QString& server)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
@@ -42,7 +42,7 @@ QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, Omittable<int> limit, const
                                    queryToGetPublicRooms(limit, since, server));
 }
 
-GetPublicRoomsJob::GetPublicRoomsJob(Omittable<int> limit, const QString& since,
+GetPublicRoomsJob::GetPublicRoomsJob(std::optional<int> limit, const QString& since,
                                      const QString& server)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetPublicRoomsJob"),
               makePath("/_matrix/client/v3", "/publicRooms"),
@@ -58,9 +58,9 @@ auto queryToQueryPublicRooms(const QString& server)
     return _q;
 }
 
-QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, Omittable<int> limit,
-                                         const QString& since, const Omittable<Filter>& filter,
-                                         Omittable<bool> includeAllNetworks,
+QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, std::optional<int> limit,
+                                         const QString& since, const std::optional<Filter>& filter,
+                                         std::optional<bool> includeAllNetworks,
                                          const QString& thirdPartyInstanceId)
     : BaseJob(HttpVerb::Post, QStringLiteral("QueryPublicRoomsJob"),
               makePath("/_matrix/client/v3", "/publicRooms"), queryToQueryPublicRooms(server))

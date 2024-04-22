@@ -16,7 +16,7 @@ GetRoomTagsJob::GetRoomTagsJob(const QString& userId, const QString& roomId)
 {}
 
 SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag,
-                             Omittable<float> order, const QVariantHash& additionalProperties)
+                             std::optional<float> order, const QVariantHash& additionalProperties)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomTagJob"),
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/", roomId, "/tags/", tag))
 {

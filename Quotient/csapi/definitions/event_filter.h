@@ -11,7 +11,7 @@ struct EventFilter {
     //!
     //! Servers should apply a default value, and impose a maximum value to avoid
     //! resource exhaustion.
-    Omittable<int> limit{};
+    std::optional<int> limit{};
 
     //! A list of sender IDs to exclude. If this list is absent then no senders are excluded. A
     //! matching sender will be excluded even if it is listed in the `'senders'` filter.

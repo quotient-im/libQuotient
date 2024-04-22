@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-auto queryToGetNotifications(const QString& from, Omittable<int> limit, const QString& only)
+auto queryToGetNotifications(const QString& from, std::optional<int> limit, const QString& only)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -13,15 +13,15 @@ auto queryToGetNotifications(const QString& from, Omittable<int> limit, const QS
     return _q;
 }
 
-QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from, Omittable<int> limit,
-                                         const QString& only)
+QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
+                                         std::optional<int> limit, const QString& only)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    makePath("/_matrix/client/v3", "/notifications"),
                                    queryToGetNotifications(from, limit, only));
 }
 
-GetNotificationsJob::GetNotificationsJob(const QString& from, Omittable<int> limit,
+GetNotificationsJob::GetNotificationsJob(const QString& from, std::optional<int> limit,
                                          const QString& only)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetNotificationsJob"),
               makePath("/_matrix/client/v3", "/notifications"),

@@ -11,10 +11,10 @@ auto queryToRegister(const QString& kind)
     return _q;
 }
 
-RegisterJob::RegisterJob(const QString& kind, const Omittable<AuthenticationData>& auth,
+RegisterJob::RegisterJob(const QString& kind, const std::optional<AuthenticationData>& auth,
                          const QString& username, const QString& password, const QString& deviceId,
-                         const QString& initialDeviceDisplayName, Omittable<bool> inhibitLogin,
-                         Omittable<bool> refreshToken)
+                         const QString& initialDeviceDisplayName, std::optional<bool> inhibitLogin,
+                         std::optional<bool> refreshToken)
     : BaseJob(HttpVerb::Post, QStringLiteral("RegisterJob"),
               makePath("/_matrix/client/v3", "/register"), queryToRegister(kind), {}, false)
 {
@@ -46,7 +46,7 @@ RequestTokenToRegisterMSISDNJob::RequestTokenToRegisterMSISDNJob(const MsisdnVal
 }
 
 ChangePasswordJob::ChangePasswordJob(const QString& newPassword, bool logoutDevices,
-                                     const Omittable<AuthenticationData>& auth)
+                                     const std::optional<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, QStringLiteral("ChangePasswordJob"),
               makePath("/_matrix/client/v3", "/account/password"))
 {
@@ -73,8 +73,8 @@ RequestTokenToResetPasswordMSISDNJob::RequestTokenToResetPasswordMSISDNJob(
     setRequestData({ toJson(data) });
 }
 
-DeactivateAccountJob::DeactivateAccountJob(const Omittable<AuthenticationData>& auth,
-                                           const QString& idServer, Omittable<bool> erase)
+DeactivateAccountJob::DeactivateAccountJob(const std::optional<AuthenticationData>& auth,
+                                           const QString& idServer, std::optional<bool> erase)
     : BaseJob(HttpVerb::Post, QStringLiteral("DeactivateAccountJob"),
               makePath("/_matrix/client/v3", "/account/deactivate"))
 {

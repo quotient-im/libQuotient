@@ -5,7 +5,7 @@
 using namespace Quotient;
 
 ReportContentJob::ReportContentJob(const QString& roomId, const QString& eventId,
-                                   Omittable<int> score, const QString& reason)
+                                   std::optional<int> score, const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("ReportContentJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/report/", eventId))
 {

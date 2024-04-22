@@ -5,8 +5,10 @@
 using namespace Quotient;
 
 UploadCrossSigningKeysJob::UploadCrossSigningKeysJob(
-    const Omittable<CrossSigningKey>& masterKey, const Omittable<CrossSigningKey>& selfSigningKey,
-    const Omittable<CrossSigningKey>& userSigningKey, const Omittable<AuthenticationData>& auth)
+    const std::optional<CrossSigningKey>& masterKey,
+    const std::optional<CrossSigningKey>& selfSigningKey,
+    const std::optional<CrossSigningKey>& userSigningKey,
+    const std::optional<AuthenticationData>& auth)
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadCrossSigningKeysJob"),
               makePath("/_matrix/client/v3", "/keys/device_signing/upload"))
 {

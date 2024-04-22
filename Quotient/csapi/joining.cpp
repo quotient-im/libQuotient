@@ -5,7 +5,7 @@
 using namespace Quotient;
 
 JoinRoomByIdJob::JoinRoomByIdJob(const QString& roomId,
-                                 const Omittable<ThirdPartySigned>& thirdPartySigned,
+                                 const std::optional<ThirdPartySigned>& thirdPartySigned,
                                  const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("JoinRoomByIdJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/join"))
@@ -25,7 +25,8 @@ auto queryToJoinRoom(const QStringList& serverName)
 }
 
 JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const QStringList& serverName,
-                         const Omittable<ThirdPartySigned>& thirdPartySigned, const QString& reason)
+                         const std::optional<ThirdPartySigned>& thirdPartySigned,
+                         const QString& reason)
     : BaseJob(HttpVerb::Post, QStringLiteral("JoinRoomJob"),
               makePath("/_matrix/client/v3", "/join/", roomIdOrAlias), queryToJoinRoom(serverName))
 {

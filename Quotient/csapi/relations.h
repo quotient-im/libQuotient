@@ -70,8 +70,8 @@ public:
     //!   The default value is `false`.
     explicit GetRelatingEventsJob(const QString& roomId, const QString& eventId,
                                   const QString& from = {}, const QString& to = {},
-                                  Omittable<int> limit = none, const QString& dir = {},
-                                  Omittable<bool> recurse = none);
+                                  std::optional<int> limit = std::nullopt, const QString& dir = {},
+                                  std::optional<bool> recurse = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
@@ -79,8 +79,8 @@ public:
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
                                const QString& from = {}, const QString& to = {},
-                               Omittable<int> limit = none, const QString& dir = {},
-                               Omittable<bool> recurse = none);
+                               std::optional<int> limit = std::nullopt, const QString& dir = {},
+                               std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 
@@ -95,9 +95,9 @@ public:
     //! If the `recurse` parameter was supplied by the client, this response field is
     //! mandatory and gives the actual depth to which the server recursed. If the client
     //! did not specify the `recurse` parameter, this field must be absent.
-    Omittable<int> recursionDepth() const
+    std::optional<int> recursionDepth() const
     {
-        return loadFromJson<Omittable<int>>("recursion_depth"_ls);
+        return loadFromJson<std::optional<int>>("recursion_depth"_ls);
     }
 
     //! The child events of the requested event, ordered topologically most-recent first.
@@ -171,9 +171,10 @@ public:
     //!   The default value is `false`.
     explicit GetRelatingEventsWithRelTypeJob(const QString& roomId, const QString& eventId,
                                              const QString& relType, const QString& from = {},
-                                             const QString& to = {}, Omittable<int> limit = none,
+                                             const QString& to = {},
+                                             std::optional<int> limit = std::nullopt,
                                              const QString& dir = {},
-                                             Omittable<bool> recurse = none);
+                                             std::optional<bool> recurse = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
@@ -181,8 +182,8 @@ public:
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
                                const QString& relType, const QString& from = {},
-                               const QString& to = {}, Omittable<int> limit = none,
-                               const QString& dir = {}, Omittable<bool> recurse = none);
+                               const QString& to = {}, std::optional<int> limit = std::nullopt,
+                               const QString& dir = {}, std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 
@@ -197,9 +198,9 @@ public:
     //! If the `recurse` parameter was supplied by the client, this response field is
     //! mandatory and gives the actual depth to which the server recursed. If the client
     //! did not specify the `recurse` parameter, this field must be absent.
-    Omittable<int> recursionDepth() const
+    std::optional<int> recursionDepth() const
     {
-        return loadFromJson<Omittable<int>>("recursion_depth"_ls);
+        return loadFromJson<std::optional<int>>("recursion_depth"_ls);
     }
 
     //! The child events of the requested event, ordered topologically
@@ -282,7 +283,8 @@ public:
     explicit GetRelatingEventsWithRelTypeAndEventTypeJob(
         const QString& roomId, const QString& eventId, const QString& relType,
         const QString& eventType, const QString& from = {}, const QString& to = {},
-        Omittable<int> limit = none, const QString& dir = {}, Omittable<bool> recurse = none);
+        std::optional<int> limit = std::nullopt, const QString& dir = {},
+        std::optional<bool> recurse = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
@@ -291,8 +293,8 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
                                const QString& relType, const QString& eventType,
                                const QString& from = {}, const QString& to = {},
-                               Omittable<int> limit = none, const QString& dir = {},
-                               Omittable<bool> recurse = none);
+                               std::optional<int> limit = std::nullopt, const QString& dir = {},
+                               std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 
@@ -307,9 +309,9 @@ public:
     //! If the `recurse` parameter was supplied by the client, this response field is
     //! mandatory and gives the actual depth to which the server recursed. If the client
     //! did not specify the `recurse` parameter, this field must be absent.
-    Omittable<int> recursionDepth() const
+    std::optional<int> recursionDepth() const
     {
-        return loadFromJson<Omittable<int>>("recursion_depth"_ls);
+        return loadFromJson<std::optional<int>>("recursion_depth"_ls);
     }
 
     //! The child events of the requested event, ordered topologically most-recent

@@ -35,10 +35,11 @@ public:
     //! \param auth
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
-    explicit UploadCrossSigningKeysJob(const Omittable<CrossSigningKey>& masterKey = none,
-                                       const Omittable<CrossSigningKey>& selfSigningKey = none,
-                                       const Omittable<CrossSigningKey>& userSigningKey = none,
-                                       const Omittable<AuthenticationData>& auth = none);
+    explicit UploadCrossSigningKeysJob(
+        const std::optional<CrossSigningKey>& masterKey = std::nullopt,
+        const std::optional<CrossSigningKey>& selfSigningKey = std::nullopt,
+        const std::optional<CrossSigningKey>& userSigningKey = std::nullopt,
+        const std::optional<AuthenticationData>& auth = std::nullopt);
 };
 
 //! \brief Upload cross-signing signatures.
