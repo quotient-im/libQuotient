@@ -2021,3 +2021,11 @@ void Connection::startSelfVerification()
     }
     //TODO cancel other sessions after one was accepted
 }
+
+bool Connection::allSessionsSelfVerified(const QString& userId) const
+{
+    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=0;"_ls);
+    query.bindValue(":matrixId"_ls, userId);
+    database()->execute(query);
+    return !query.next();
+}

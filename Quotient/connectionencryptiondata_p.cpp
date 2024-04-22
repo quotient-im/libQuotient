@@ -143,6 +143,9 @@ void ConnectionEncryptionData::saveDevicesList()
         "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey, verified, selfVerified) "
         "VALUES (:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey, :verified, :selfVerified);"));
     for (const auto& [user, devices] : deviceKeys.asKeyValueRange()) {
+        auto deleteQuery = database.prepareQuery(QStringLiteral("DELETE FROM tracked_devices WHERE matrixId=:matrixId;"));
+        deleteQuery.bindValue(":matrixId"_ls, user);
+        database.execute(deleteQuery);
         for (const auto& device : devices) {
             auto keys = device.keys.keys();
             auto deleteQuery = database.prepareQuery("DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_ls);

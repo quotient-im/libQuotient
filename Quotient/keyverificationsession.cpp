@@ -267,6 +267,8 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
                                QString::fromLatin1(key.data()), m_remoteUserId, m_remoteDeviceId,
                                event.key(), m_room ? m_requestEventId : m_transactionId)
                           .toLatin1();
+
+    qWarning() << info;
     olm_sas_generate_bytes(olmData, info.data(), unsignedSize(info),
                            output.data(), output.size());
 
@@ -396,7 +398,7 @@ void KeyVerificationSession::sendReady()
     setState(READY);
 
     if (methods.size() == 1) {
-        sendStartSas();
+        //sendStartSas();
     }
 }
 

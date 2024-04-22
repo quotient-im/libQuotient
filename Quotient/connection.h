@@ -395,7 +395,8 @@ public:
         event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
 
     QString masterKeyForUser(const QString& userId) const;
-    bool isUserVerified(const QString& userId) const;
+    Q_INVOKABLE bool isUserVerified(const QString& userId) const;
+    Q_INVOKABLE bool allSessionsSelfVerified(const QString& userId) const;
     bool hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId);
 
     void reloadDevices();
