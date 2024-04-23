@@ -101,9 +101,12 @@ template <typename KeyT, typename ValT>
 using UnorderedMap
     [[deprecated("Use std::unordered_map directly")]] = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
 
-constexpr auto operator"" _ls(const char* s, std::size_t size)
+inline namespace Literals { using namespace Qt::Literals; }
+
+// [[deprecated("Use operators from Qt::Literals (aka Quotient::Literals) instead")]]
+constexpr auto operator""_ls(const char* s, std::size_t size)
 {
-    return QLatin1String(s, int(size));
+    return operator""_L1(s, size);
 }
 
 template <typename ArrayT>
