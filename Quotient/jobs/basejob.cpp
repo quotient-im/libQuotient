@@ -567,12 +567,13 @@ BaseJob::Status BaseJob::prepareError(Status currentStatus)
     return currentStatus; // The error payload is not recognised
 }
 
-QJsonValue BaseJob::takeValueFromJson(const QString& key)
+QJsonValue BaseJob::takeValueFromJson(QAnyStringView key)
 {
     if (!d->jsonResponse.isObject())
         return QJsonValue::Undefined;
     auto o = d->jsonResponse.object();
-    auto v = o.take(key);
+    auto v = key.visit(Overloads{ [&o](QUtf8StringView k) { return o.take(k.utf8()); },
+                                  [&o](auto k) { return o.take(k); } });
     d->jsonResponse.setObject(o);
     return v;
 }
