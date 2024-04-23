@@ -542,9 +542,6 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                             usersToDCs.contains(it.key()->id(), it.value())
                             || dcLocalAdditions.contains(it.key(), it.value()));
                     });
-                remove_if(directChatUsers, [&remoteRemovals](auto it) {
-                    return remoteRemovals.contains(it.value(), it.key());
-                });
                 remove_if(directChatMemberIds, [&remoteRemovals, this](auto it) {
                     return remoteRemovals.contains(q->user(it.value()), it.key());
                 });
@@ -565,10 +562,9 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
                     if (auto* u = q->user(it.key())) {
                         if (!directChats.contains(u, it.value())
                             && !dcLocalRemovals.contains(u, it.value())) {
-                            Q_ASSERT(!directChatUsers.contains(it.value(), u));
+                            Q_ASSERT(!directChatMemberIds.contains(it.value(), it.key()));
                             remoteAdditions.insert(u, it.value());
                             directChats.insert(u, it.value());
-                            directChatUsers.insert(it.value(), u);
                             directChatMemberIds.insert(it.value(), it.key());
                             qCDebug(MAIN) << "Marked room" << it.value()
                                           << "as a direct chat with" << u->id();
@@ -798,7 +794,7 @@ Connection::createRoom(RoomVisibility visibility, const QString& alias,
         emit createdRoom(room);
         if (isDirect)
             for (const auto& i : invites)
-                addToDirectChats(room, user(i));
+                addToDirectChats(room, i);
     });
     return job;
 }
@@ -808,62 +804,49 @@ void Connection::requestDirectChat(const QString& userId)
     doInDirectChat(userId, [this](Room* r) { emit directChatAvailable(r); });
 }
 
-void Connection::requestDirectChat(User* u)
-{
-    doInDirectChat(u, [this](Room* r) { emit directChatAvailable(r); });
-}
-
 void Connection::doInDirectChat(const QString& userId,
                                 const std::function<void(Room*)>& operation)
 {
-    if (auto* u = user(userId))
-        doInDirectChat(u, operation);
-    else
-        qCCritical(MAIN)
-            << "Connection::doInDirectChat: Couldn't get a user object for"
-            << userId;
-}
+    auto* u = user(userId);
+    if (u == nullptr) {
+        return;
+    }
 
-void Connection::doInDirectChat(User* u,
-                                const std::function<void(Room*)>& operation)
-{
-    Q_ASSERT(u);
-    const auto& otherUserId = u->id();
     // There can be more than one DC; find the first valid (existing and
     // not left), and delete inexistent (forgotten?) ones along the way.
     DirectChatsMap removals;
     for (auto it = d->directChats.constFind(u);
          it != d->directChats.cend() && it.key() == u; ++it) {
         const auto& roomId = *it;
-        if (auto r = room(roomId, JoinState::Join)) {
-            Q_ASSERT(r->id() == roomId);
-            // A direct chat with yourself should only involve yourself :)
-            if (otherUserId == userId() && r->totalMemberCount() > 1)
-                continue;
-            qCDebug(MAIN) << "Requested direct chat with" << otherUserId
-                          << "is already available as" << r->id();
-            operation(r);
-            return;
-        }
-        if (auto ir = invitation(roomId)) {
-            Q_ASSERT(ir->id() == roomId);
-            auto j = joinRoom(ir->id());
-            connect(j, &BaseJob::success, this,
-                    [this, roomId, otherUserId, operation] {
-                        qCDebug(MAIN)
-                            << "Joined the already invited direct chat with"
-                            << otherUserId << "as" << roomId;
-                        operation(room(roomId, JoinState::Join));
-                    });
-            return;
-        }
-        // Avoid reusing previously left chats but don't remove them
-        // from direct chat maps, either.
-        if (room(roomId, JoinState::Leave))
+    if (auto r = room(roomId, JoinState::Join)) {
+        Q_ASSERT(r->id() == roomId);
+        // A direct chat with yourself should only involve yourself :)
+        if (userId == this->userId() && r->totalMemberCount() > 1)
             continue;
+        qCDebug(MAIN) << "Requested direct chat with" << userId
+        << "is already available as" << r->id();
+        operation(r);
+        return;
+    }
+    if (auto ir = invitation(roomId)) {
+        Q_ASSERT(ir->id() == roomId);
+        auto j = joinRoom(ir->id());
+        connect(j, &BaseJob::success, this,
+                [this, roomId, userId, operation] {
+                    qCDebug(MAIN)
+                    << "Joined the already invited direct chat with"
+                    << userId << "as" << roomId;
+                    operation(room(roomId, JoinState::Join));
+                });
+        return;
+    }
+    // Avoid reusing previously left chats but don't remove them
+    // from direct chat maps, either.
+    if (room(roomId, JoinState::Leave))
+        continue;
 
-        qCWarning(MAIN) << "Direct chat with" << otherUserId << "known as room"
-                        << roomId << "is not valid and will be discarded";
+        qCWarning(MAIN) << "Direct chat with" << userId << "known as room"
+        << roomId << "is not valid and will be discarded";
         // Postpone actual deletion until we finish iterating d->directChats.
         removals.insert(it.key(), it.value());
         // Add to the list of updates to send to the server upon the next sync.
@@ -872,17 +855,15 @@ void Connection::doInDirectChat(User* u,
     if (!removals.isEmpty()) {
         for (auto it = removals.cbegin(); it != removals.cend(); ++it) {
             d->directChats.remove(it.key(), it.value());
-            d->directChatUsers.remove(it.value(),
-                                      const_cast<User*>(it.key())); // FIXME
             d->directChatMemberIds.remove(it.value(), it.key()->id());
         }
         emit directChatsListChanged({}, removals);
     }
 
-    auto j = createDirectChat(otherUserId);
-    connect(j, &BaseJob::success, this, [this, j, otherUserId, operation] {
-        qCDebug(MAIN) << "Direct chat with" << otherUserId << "has been created as"
-                      << j->roomId();
+    auto j = createDirectChat(userId);
+    connect(j, &BaseJob::success, this, [this, j, userId, operation] {
+        qCDebug(MAIN) << "Direct chat with" << userId << "has been created as"
+        << j->roomId();
         operation(room(j->roomId(), JoinState::Join));
     });
 }
@@ -1250,25 +1231,11 @@ void Connection::addToDirectChats(const Room* room, const QString& userId)
     const auto u = user(userId);
     if (d->directChats.contains(u, room->id()))
         return;
-    Q_ASSERT(!d->directChatUsers.contains(room->id(), u));
+    Q_ASSERT(!d->directChatMemberIds.contains(room->id(), userId));
     d->directChats.insert(u, room->id());
     d->directChatMemberIds.insert(room->id(), userId);
-    d->directChatUsers.insert(room->id(), u);
     d->dcLocalAdditions.insert(u, room->id());
     emit directChatsListChanged({ { u, room->id() } }, {});
-}
-
-void Connection::addToDirectChats(const Room* room, User* user)
-{
-    Q_ASSERT(room != nullptr && user != nullptr);
-    if (d->directChats.contains(user, room->id()))
-        return;
-    Q_ASSERT(!d->directChatUsers.contains(room->id(), user));
-    d->directChats.insert(user, room->id());
-    d->directChatMemberIds.insert(room->id(), user->id());
-    d->directChatUsers.insert(room->id(), user);
-    d->dcLocalAdditions.insert(user, room->id());
-    emit directChatsListChanged({ { user, room->id() } }, {});
 }
 
 void Connection::removeFromDirectChats(const QString& roomId, const QString& userId)
@@ -1282,37 +1249,12 @@ void Connection::removeFromDirectChats(const QString& roomId, const QString& use
     DirectChatsMap removals;
     if (u != nullptr) {
         d->directChats.remove(u, roomId);
-        d->directChatUsers.remove(roomId, u);
         d->directChatMemberIds.remove(roomId, u->id());
         removals.insert(u, roomId);
         d->dcLocalRemovals.insert(u, roomId);
     } else {
         removals = remove_if(d->directChats,
                             [&roomId](auto it) { return it.value() == roomId; });
-        d->directChatUsers.remove(roomId);
-        d->dcLocalRemovals += removals;
-    }
-    emit directChatsListChanged({}, removals);
-}
-
-void Connection::removeFromDirectChats(const QString& roomId, User* user)
-{
-    Q_ASSERT(!roomId.isEmpty());
-    if ((user != nullptr && !d->directChats.contains(user, roomId))
-        || d->directChats.key(roomId) == nullptr)
-        return;
-
-    DirectChatsMap removals;
-    if (user != nullptr) {
-        d->directChats.remove(user, roomId);
-        d->directChatUsers.remove(roomId, user);
-        d->directChatMemberIds.remove(roomId, user->id());
-        removals.insert(user, roomId);
-        d->dcLocalRemovals.insert(user, roomId);
-    } else {
-        removals = remove_if(d->directChats,
-                            [&roomId](auto it) { return it.value() == roomId; });
-        d->directChatUsers.remove(roomId);
         d->dcLocalRemovals += removals;
     }
     emit directChatsListChanged({}, removals);
@@ -1327,12 +1269,6 @@ QList<QString> Connection::directChatMemberIds(const Room* room) const
 {
     Q_ASSERT(room != nullptr);
     return d->directChatMemberIds.values(room->id());
-}
-
-QList<User*> Connection::directChatUsers(const Room* room) const
-{
-    Q_ASSERT(room != nullptr);
-    return d->directChatUsers.values(room->id());
 }
 
 bool Connection::isIgnored(const QString& userId) const
@@ -1370,8 +1306,6 @@ void Connection::removeFromIgnoredUsers(const QString& userId)
         emit ignoredUsersListChanged({}, { { userId } });
     }
 }
-
-QMap<QString, User*> Connection::users() const { return d->userMap; }
 
 const ConnectionData* Connection::connectionData() const
 {

@@ -44,7 +44,6 @@ public:
     std::unordered_map<QString, Avatar> userAvatarMap;
     DirectChatsMap directChats;
     QMultiHash<QString, QString> directChatMemberIds;
-    DirectChatUsersMap directChatUsers;
     // The below two variables track local changes between sync completions.
     // See https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
     DirectChatsMap dcLocalAdditions;
