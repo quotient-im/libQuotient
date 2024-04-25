@@ -15,7 +15,7 @@ using namespace Quotient;
 RoomMember::RoomMember(const Room* room, const RoomMemberEvent* member)
     : _room(room)
     , _member(member)
-    , _hueF(_member == nullptr ? 0.0 : stringToHueF(member->userId()))
+    , _hueF(member == nullptr ? 0.0 : stringToHueF(member->userId()))
 {
 }
 

@@ -28,6 +28,7 @@ class RoomMemberEvent;
 //! \sa Quotient::User
 class QUOTIENT_API RoomMember {
     Q_GADGET
+    Q_PROPERTY(bool isEmpty READ isEmpty CONSTANT)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(Uri uri READ uri CONSTANT)
     Q_PROPERTY(bool isLocalMember READ isLocalMember CONSTANT)
@@ -46,6 +47,8 @@ public:
     RoomMember() = default;
 
     explicit RoomMember(const Room* room, const RoomMemberEvent* member);
+
+    bool isEmpty() const { return _member == nullptr; }
 
     bool operator==(const RoomMember& other) const;
 
@@ -187,9 +190,9 @@ public:
     QUrl avatarUrl() const;
 
 private:
-    const Room* _room;
-    const RoomMemberEvent* _member;
+    const Room* _room = nullptr;
+    const RoomMemberEvent* _member = nullptr;
 
-    qreal _hueF;
+    qreal _hueF = 0;
 };
 } // namespace Quotient
