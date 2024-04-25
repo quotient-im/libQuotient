@@ -64,12 +64,8 @@ int Database::version()
 
 QSqlQuery Database::execute(const QString& queryString)
 {
-    auto query = database().exec(queryString);
-    if (query.lastError().type() != QSqlError::NoError) {
-        qCritical(DATABASE) << "Failed to execute query";
-        qCritical(DATABASE) << query.lastQuery();
-        qCritical(DATABASE) << query.lastError();
-    }
+    QSqlQuery query(queryString, database());
+    execute(query);
     return query;
 }
 
