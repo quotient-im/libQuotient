@@ -157,6 +157,12 @@ public:
     //! \sa disambiguatedName(), htmlSafeFullName(), htmlSafeDisplayName()
     QString htmlSafeDisambiguatedName() const;
 
+    //! \brief Check whether the name or id of the member contains a substring
+    //!
+    //! This is useful for a predicate to filter room members.
+    //! \sa MemberMatcher
+    Q_INVOKABLE bool matches(QStringView substr, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
+
     //! \brief Hue color component of this user based on the user's Matrix ID
     //!
     //! The implementation is based on XEP-0392:
@@ -195,6 +201,18 @@ private:
 
     qreal _hueF = 0;
 };
+
+//! \brief A factory to get a functional object matching room members against a substring
+//!
+//! This is a convenience wrapper to use RoomMember::matches() in standard algorithms.
+inline auto memberMatcher(auto substr, Qt::CaseSensitivity cs = Qt::CaseSensitive)
+{
+#ifdef __cpp_lib_bind_back
+    return std::bind_back(&RoomMember::matches, substr, cs);
+#else
+    return [substr, cs](const RoomMember& m) { return m.matches(substr, cs); };
+#endif
+}
 
 struct QUOTIENT_API MemberSorter {
     bool operator()(const RoomMember& u1, const RoomMember& u2) const

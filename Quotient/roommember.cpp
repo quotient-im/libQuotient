@@ -77,6 +77,11 @@ QString RoomMember::disambiguatedName() const { return _room->needsDisambiguatio
 
 QString RoomMember::htmlSafeDisambiguatedName() const { return disambiguatedName().toHtmlEscaped(); }
 
+bool RoomMember::matches(QStringView substr, Qt::CaseSensitivity cs) const
+{
+    return name().contains(substr, cs) || id().contains(substr, cs);
+}
+
 int RoomMember::hue() const { return static_cast<int>(hueF() * 359); }
 
 qreal RoomMember::hueF() const { return _hueF; }
