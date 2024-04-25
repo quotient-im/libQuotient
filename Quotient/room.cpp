@@ -141,6 +141,7 @@ public:
     //! that the server previously reported that all events have been loaded and there's no point in
     //! requesting further historical batches.
     std::optional<QString> prevBatch = QString();
+    int lastRequestedHistorySize = 0;
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
@@ -546,6 +547,11 @@ const Room::Timeline& Room::messageEvents() const { return d->timeline; }
 const Room::PendingEvents& Room::pendingEvents() const
 {
     return d->unsyncedEvents;
+}
+
+int Room::requestedHistorySize() const
+{
+    return eventsHistoryJob() != nullptr ? d->lastRequestedHistorySize : 0;
 }
 
 bool Room::allHistoryLoaded() const
@@ -2273,8 +2279,9 @@ void Room::Private::getPreviousContent(int limit, const QString& filter)
     if (!prevBatch || isJobPending(eventsHistoryJob))
         return;
 
-    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b"_ls, *prevBatch,
-                                                             QString(), limit, filter);
+    lastRequestedHistorySize = limit;
+    eventsHistoryJob =
+        connection->callApi<GetRoomEventsJob>(id, "b"_ls, *prevBatch, QString(), limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         if (const auto newPrevBatch = eventsHistoryJob->end();

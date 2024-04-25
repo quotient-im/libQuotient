@@ -161,8 +161,8 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged STORED false)
     Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged STORED false)
 
-    Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY
-                   eventsHistoryJobChanged)
+    Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY eventsHistoryJobChanged)
+    Q_PROPERTY(int requestedHistorySize READ requestedHistorySize NOTIFY eventsHistoryJobChanged)
 
     Q_PROPERTY(QStringList accountDataEventTypes READ accountDataEventTypes NOTIFY accountDataChanged)
 
@@ -330,12 +330,13 @@ public:
     const Timeline& messageEvents() const;
     const PendingEvents& pendingEvents() const;
 
-    /// Check whether all historical messages are already loaded
-    /**
-     * \return true if the "oldest" event in the timeline is
-     *         a room creation event and there's no further history
-     *         to load; false otherwise
-     */
+    //! \brief Get the number of requested historical events
+    //! \return The number of requested events if there's a pending request; 0 otherwise
+    int requestedHistorySize() const;
+
+    //! Check whether all historical messages are already loaded
+    //! \return true if the "oldest" event in the timeline is a room creation event and there's
+    //!         no further history to load; false otherwise
     bool allHistoryLoaded() const;
 
     //! \brief Get a reverse iterator at the position before the "oldest" event
