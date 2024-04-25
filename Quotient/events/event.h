@@ -41,7 +41,7 @@ using event_type_t = QLatin1String;
 class Event;
 
 template <typename EventT, typename BaseEventT = Event>
-concept EventClass = std::is_base_of_v<BaseEventT, EventT>;
+concept EventClass = std::derived_from<EventT, BaseEventT>;
 
 template <EventClass EventT>
 bool is(const Event& e);
