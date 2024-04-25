@@ -450,8 +450,8 @@ namespace _impl {
         o.insert(k, toJson(std::forward<ValT>(v)));
     }
 
-    template <typename ValT>
-    inline void addTo(QUrlQuery& q, const QString& k, ValT&& v)
+    inline void addTo(QUrlQuery& q, const QString& k, auto v)
+        requires requires { QStringLiteral("%1").arg(v); }
     {
         q.addQueryItem(k, QStringLiteral("%1").arg(v));
     }
@@ -483,7 +483,7 @@ namespace _impl {
 
     // This one is for types that don't have isEmpty() and for all types
     // when Force is true
-    template <typename ValT, bool Force = true, typename = bool>
+    template <typename ValT, bool Force = true>
     struct AddNode {
         template <typename ForwardedT>
         static void impl(auto& container, const QString& key, ForwardedT&& value)
@@ -494,10 +494,10 @@ namespace _impl {
 
     // This one is for types that have isEmpty() when Force is false
     template <typename ValT>
-    struct AddNode<ValT, IfNotEmpty, decltype(std::declval<ValT>().isEmpty())> {
-        template <typename ContT, typename ForwardedT>
-        static void impl(ContT& container, const QString& key,
-                         ForwardedT&& value)
+        requires requires(ValT v) { v.isEmpty(); }
+    struct AddNode<ValT, IfNotEmpty> {
+        template <typename ForwardedT>
+        static void impl(auto& container, const QString& key, ForwardedT&& value)
         {
             if (!value.isEmpty())
                 addTo(container, key, std::forward<ForwardedT>(value));
