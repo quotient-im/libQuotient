@@ -195,4 +195,29 @@ private:
 
     qreal _hueF = 0;
 };
+
+struct QUOTIENT_API MemberSorter {
+    bool operator()(const RoomMember& u1, const RoomMember& u2) const
+    {
+        return operator()(u1.displayName(), u2.displayName());
+    }
+    bool operator()(const RoomMember& u1, QStringView u2name) const
+    {
+        return operator()(u1.displayName(), u2name);
+    }
+    bool operator()(QStringView u1name, const RoomMember& u2) const
+    {
+        return operator()(u1name, u2.displayName());
+    }
+    bool operator()(QStringView u1name, QStringView u2name) const;
+
+    template <template <class> class ContT>
+    [[deprecated("Use Quotient::lowerBoundIndex() or std::ranges::lower_bound() instead")]] //
+    typename ContT<RoomMember>::size_type
+    lowerBoundIndex(const ContT<RoomMember>& c, const auto& v) const
+    {
+        return std::ranges::lower_bound(c, v, *this) - c.begin();
+    }
+};
+
 } // namespace Quotient

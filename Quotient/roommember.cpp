@@ -127,3 +127,12 @@ QUrl RoomMember::avatarUrl() const {
     }
     return {};
 }
+
+namespace {
+inline QStringView removeLeadingAt(QStringView sv) { return sv.mid(sv.startsWith(u'@') ? 1 : 0); }
+}
+
+bool MemberSorter::operator()(QStringView u1name, QStringView u2name) const
+{
+    return removeLeadingAt(u1name).localeAwareCompare(removeLeadingAt(u2name)) < 0;
+}
