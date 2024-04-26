@@ -9,17 +9,17 @@ using namespace Quotient;
 using std::optional, std::pair;
 
 template <typename T>
-consteval auto testMerge(T lhs, auto rhs)
+consteval auto testMerge(T lhs, auto rhs, bool expectedResult,
+                         const std::type_identity_t<T>& expectedLhs)
 {
-    T a = lhs;
-    auto result = merge(a, rhs);
-    return pair{ result, a };
+    auto result = merge(lhs, rhs);
+    return result == expectedResult && lhs == expectedLhs;
 }
-static_assert(testMerge(1, optional{ 2 }) == pair{ true, 2 });
-static_assert(testMerge(1, optional<int>{}) == pair{ false, 1 });
-static_assert(testMerge(optional{ 1 }, optional{ 2 }) == pair{ true, optional{ 2 } });
-static_assert(testMerge(optional{ 1 }, optional<int>{}) == pair{ false, optional{ 1 } });
-static_assert(testMerge(optional<int>{}, optional{ 1 }) == pair{ true, optional{ 1 } });
+static_assert(testMerge(1, optional{ 2 }, true, 2));
+static_assert(testMerge(1, optional<int>{}, false, 1));
+static_assert(testMerge(optional{ 1 }, optional{ 2 }, true, { 2 }));
+static_assert(testMerge(optional{ 1 }, optional<int>{}, false, { 1 }));
+static_assert(testMerge(optional<int>{}, optional{ 1 }, true, { 1 }));
 
 class TestUtils : public QObject {
     Q_OBJECT
