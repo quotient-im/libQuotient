@@ -19,8 +19,8 @@ public:
     Membership membership;
     /// (Only for invites) Whether the invite is to a direct chat
     bool isDirect = false;
-    Omittable<QString> displayName;
-    Omittable<QUrl> avatarUrl;
+    std::optional<QString> displayName;
+    std::optional<QUrl> avatarUrl;
     QString reason;
 };
 
@@ -40,8 +40,8 @@ public:
     Membership membership() const { return content().membership; }
     QString userId() const { return stateKey(); }
     bool isDirect() const { return content().isDirect; }
-    Omittable<QString> newDisplayName() const { return content().displayName; }
-    Omittable<QUrl> newAvatarUrl() const { return content().avatarUrl; }
+    std::optional<QString> newDisplayName() const { return content().displayName; }
+    std::optional<QUrl> newAvatarUrl() const { return content().avatarUrl; }
     QString reason() const { return content().reason; }
     bool changesMembership() const;
     bool isBan() const;

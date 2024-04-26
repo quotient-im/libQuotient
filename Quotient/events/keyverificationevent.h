@@ -104,7 +104,7 @@ public:
     QUO_CONTENT_GETTER(QString, method)
 
     /// Optional method to use to verify the other user's key with.
-    QUO_CONTENT_GETTER(Omittable<QString>, nextMethod)
+    QUO_CONTENT_GETTER(std::optional<QString>, nextMethod)
 
     // SAS.V1 methods
 

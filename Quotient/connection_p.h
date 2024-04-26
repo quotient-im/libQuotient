@@ -89,14 +89,12 @@ public:
      *
      * \param userId    fully-qualified MXID to resolve HS from
      * \param connectFn a function to execute once the HS URL is good
-     * \param flow      optionally, a login flow that should be supported for
-     *                  connectFn to work; `none`, if there's no login flow
-     *                  requirements
+     * \param flow      optionally, a login flow that should be supported for connectFn to work;
+     *                  `std::nullopt`, if there are no login flow requirements
      * \sa resolveServer, resolveError
      */
-    void checkAndConnect(const QString &userId,
-                         const std::function<void ()> &connectFn,
-                         const std::optional<LoginFlow> &flow = none);
+    void checkAndConnect(const QString& userId, const std::function<void()>& connectFn,
+                         const std::optional<LoginFlow>& flow = {});
     template <typename... LoginArgTs>
     void loginToServer(LoginArgTs&&... loginArgs);
     void completeSetup(const QString &mxId, bool mock = false);

@@ -65,12 +65,11 @@ public:
         explicit Prev() = default;
         explicit Prev(const QJsonObject& unsignedJson)
             : senderId(fromJson<QString>(unsignedJson["prev_sender"_ls]))
-            , content(
-                  fromJson<Omittable<ContentT>>(unsignedJson[PrevContentKey]))
+            , content(fromJson<std::optional<ContentT>>(unsignedJson[PrevContentKey]))
         {}
 
         QString senderId;
-        Omittable<ContentT> content;
+        std::optional<ContentT> content;
     };
 
     explicit EventTemplate(const QJsonObject& fullJson)
@@ -95,7 +94,7 @@ public:
         visitor(_content);
         editJson()[ContentKey] = toJson(_content);
     }
-    const Omittable<ContentT>& prevContent() const { return _prev.content; }
+    const std::optional<ContentT>& prevContent() const { return _prev.content; }
     QString prevSenderId() const { return _prev.senderId; }
 
 private:

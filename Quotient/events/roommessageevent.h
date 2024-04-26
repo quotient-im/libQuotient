@@ -115,14 +115,14 @@ namespace EventContent {
     class QUOTIENT_API TextContent : public TypedBase {
     public:
         TextContent(QString text, const QString& contentType,
-                    Omittable<EventRelation> relatesTo = none);
+                    std::optional<EventRelation> relatesTo = {});
         explicit TextContent(const QJsonObject& json);
 
         QMimeType type() const override { return mimeType; }
 
         QMimeType mimeType;
         QString body;
-        Omittable<EventRelation> relatesTo;
+        std::optional<EventRelation> relatesTo;
 
     protected:
         void fillJson(QJsonObject& json) const override;

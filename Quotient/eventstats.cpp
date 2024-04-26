@@ -40,8 +40,8 @@ EventStats EventStats::fromMarker(const Room* room,
     return s;
 }
 
-EventStats EventStats::fromCachedCounters(Omittable<int> notableCount,
-                                          Omittable<int> highlightCount)
+EventStats EventStats::fromCachedCounters(std::optional<int> notableCount,
+                                          std::optional<int> highlightCount)
 {
     const auto hCount = std::max(0, highlightCount.value_or(0));
     if (!notableCount.has_value())

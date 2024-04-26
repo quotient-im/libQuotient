@@ -177,9 +177,8 @@ void Connection::loginWithToken(const QString& loginToken,
                                 const QString& deviceId)
 {
     Q_ASSERT(d->data->baseUrl().isValid() && d->loginFlows.contains(LoginFlows::Token));
-    d->loginToServer(LoginFlows::Token.type,
-                     none /*user is encoded in loginToken*/, QString() /*password*/,
-                     loginToken, deviceId, initialDeviceName);
+    d->loginToServer(LoginFlows::Token.type, std::nullopt /*user is encoded in loginToken*/,
+                     QString() /*password*/, loginToken, deviceId, initialDeviceName);
 }
 
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
@@ -1403,7 +1402,7 @@ const ConnectionData* Connection::connectionData() const
     return d->data.get();
 }
 
-Room* Connection::provideRoom(const QString& id, Omittable<JoinState> joinState)
+Room* Connection::provideRoom(const QString& id, std::optional<JoinState> joinState)
 {
     // TODO: This whole function is a strong case for a RoomManager class.
     Q_ASSERT_X(!id.isEmpty(), __FUNCTION__, "Empty room id");
@@ -1891,14 +1890,14 @@ void Connection::sendSessionKeyToDevices(
     d->encryptionData->sendSessionKeyToDevices(roomId, outboundSession, devices);
 }
 
-Omittable<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(
+std::optional<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(
     const QString& roomId) const
 {
     const auto& db = database();
     Q_ASSERT_X(
         db, __FUNCTION__,
         "Check encryptionData() or database() before calling this method");
-    return db ? db->loadCurrentOutboundMegolmSession(roomId) : none;
+    return db ? db->loadCurrentOutboundMegolmSession(roomId) : std::nullopt;
 }
 
 void Connection::saveCurrentOutboundMegolmSession(

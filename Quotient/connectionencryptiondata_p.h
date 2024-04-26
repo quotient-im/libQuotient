@@ -16,8 +16,8 @@ class EncryptedEvent;
 namespace _impl {
     class ConnectionEncryptionData {
     public:
-        static Omittable<std::unique_ptr<ConnectionEncryptionData>> setup(
-            Connection* connection, bool mock = false);
+        static std::optional<std::unique_ptr<ConnectionEncryptionData>> setup(Connection* connection,
+                                                                              bool mock = false);
 
         Connection* q;
         QOlmAccount olmAccount;

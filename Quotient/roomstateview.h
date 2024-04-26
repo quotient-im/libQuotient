@@ -94,7 +94,7 @@ public:
                  typename EvT::content_type defaultValue = {}) const
     {
         // EventBase<>::content is special in that it returns a const-ref,
-        // and lift() inside queryOr() can't wrap that in a temporary Omittable.
+        // and lift() inside queryOr() can't wrap that in a temporary optional.
         if (const auto evt = get<EvT>(stateKey))
             return evt->content();
         return std::move(defaultValue);
@@ -127,8 +127,8 @@ public:
     //!
     //! Use this overload when there's no predefined event type or the event
     //! type is unknown at compile time.
-    //! \return an Omittable with either the result of the function call, or
-    //!         with `none` if the event is not found or the function fails
+    //! \return an optional with the result of the function call, or std::nullopt if the event
+    //!         is not found or \p fn fails
     template <typename FnT>
     auto query(const QString& evtType, const QString& stateKey, FnT&& fn) const
     {
@@ -139,8 +139,8 @@ public:
     //!
     //! This is an overload for keyed state events (those that have
     //! `needsStateKey == true`) with type defined at compile time.
-    //! \return an Omittable with either the result of the function call, or
-    //!         with `none` if the event is not found or the function fails
+    //! \return an optional with the result of the function call, or std::nullopt if the event
+    //!         is not found or \p fn fails
     template <Keyed_State_Fn FnT>
     auto query(const QString& stateKey, FnT&& fn) const
     {
@@ -152,8 +152,8 @@ public:
     //!
     //! This is an overload for keyless state events (those having
     //! `needsStateKey == false`) with type defined at compile time.
-    //! \return an Omittable with either the result of the function call, or
-    //!         with `none` if the event is not found or the function fails
+    //! \return an optional with the result of the function call, or std::nullopt if the event
+    //!         is not found or \p fn fails
     template <Keyless_State_Fn FnT>
     auto query(FnT&& fn) const
     {

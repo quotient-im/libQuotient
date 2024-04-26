@@ -144,7 +144,7 @@ QUOTIENT_API QJsonObject toInfoJson(const ImageInfo& info);
 struct QUOTIENT_API Thumbnail : public ImageInfo {
     using ImageInfo::ImageInfo;
     explicit Thumbnail(const QJsonObject& infoJson,
-                       const Omittable<EncryptedFileMetadata>& efm = none);
+                       const std::optional<EncryptedFileMetadata>& efm = {});
 
     //! \brief Add thumbnail information to the passed `info` JSON object
     void dumpTo(QJsonObject& infoJson) const;
