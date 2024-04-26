@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <optional>
 
 #define DISABLE_MOVE(_ClassName) \
 static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all used versions of Qt");
