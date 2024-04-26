@@ -28,9 +28,6 @@ struct QUOTIENT_API RoomSummary {
     Omittable<QStringList> heroes; //!< mxids used to form the room name
 
     bool isEmpty() const;
-    /// Merge the contents of another RoomSummary object into this one
-    /// \return true, if the current object has changed; false otherwise
-    bool merge(const RoomSummary& other);
 };
 QDebug operator<<(QDebug dbg, const RoomSummary& rs);
 

@@ -319,15 +319,15 @@ struct JsonConverter<std::variant<QString, T>> {
 };
 
 template <typename T>
-struct JsonConverter<Omittable<T>> {
-    static QJsonValue dump(const Omittable<T>& from)
+struct JsonConverter<std::optional<T>> {
+    static QJsonValue dump(const std::optional<T>& from)
     {
         return from.has_value() ? toJson(*from) : QJsonValue();
     }
-    static Omittable<T> load(const QJsonValue& jv)
+    static std::optional<T> load(const QJsonValue& jv)
     {
         if (jv.isUndefined() || jv.isNull())
-            return none;
+            return std::nullopt;
         return fromJson<T>(jv);
     }
 };
@@ -513,15 +513,13 @@ namespace _impl {
         }
     };
 
-    // This one unfolds Omittable<> (also only when IfNotEmpty is requested)
+    // This one unfolds optionals (also only when IfNotEmpty is requested)
     template <typename ValT>
-    struct AddNode<Omittable<ValT>, IfNotEmpty> {
-        template <typename ContT, typename OmittableT>
-        static void impl(ContT& container, const QString& key,
-                         const OmittableT& value)
+    struct AddNode<std::optional<ValT>, IfNotEmpty> {
+        static void impl(auto& container, const QString& key, const auto& optValue)
         {
-            if (value)
-                addTo(container, key, *value);
+            if (optValue)
+                addTo(container, key, *optValue);
         }
     };
 } // namespace _impl
@@ -533,7 +531,7 @@ namespace _impl {
  * template parameter) taking into account the value "emptiness".
  * With IfNotEmpty, \p value is NOT added to the container if and only if:
  * - it has a method `isEmpty()` and `value.isEmpty() == true`, or
- * - it's an `Omittable<>` and `value.omitted() == true`.
+ * - it's an optional that has no value (`nullopt`).
  *
  * If \p container is a QUrlQuery, an attempt to fit \p value into it is
  * made as follows:

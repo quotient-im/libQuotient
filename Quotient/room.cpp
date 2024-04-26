@@ -1603,7 +1603,8 @@ GetRoomEventsJob* Room::eventsHistoryJob() const { return d->eventsHistoryJob; }
 
 Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 {
-    if (!summary.merge(newSummary))
+    if (mergeStruct(summary, newSummary, &RoomSummary::joinedMemberCount,
+                    &RoomSummary::invitedMemberCount, &RoomSummary::heroes) == 0)
         return Change::None;
     qCDebug(STATE).nospace().noquote()
         << "Updated room summary for " << q->objectName() << ": " << summary;

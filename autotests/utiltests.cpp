@@ -1,40 +1,25 @@
 // SPDX-FileCopyrightText: 2021 Kitsune Ral <kitsune-ral@users.sf.net>
 // SPDX-License-Identifier: LGPL-2.1-or-later
 
-#include <Quotient/omittable.h>
 #include <Quotient/util.h>
 
 #include <QtTest/QtTest>
 
-// compile-time Omittable<> tests
 using namespace Quotient;
+using std::optional, std::pair;
 
-Omittable<int> testFn(bool) { return 0; }
-bool testFn2(int) { return false; }
-static_assert(
-    std::is_same_v<decltype(std::declval<Omittable<bool>>().then(testFn)),
-                   Omittable<int>>);
-static_assert(
-    std::is_same_v<
-        decltype(std::declval<Omittable<bool>>().then_or(testFn, 0)), int>);
-static_assert(
-    std::is_same_v<decltype(std::declval<Omittable<bool>>().then(testFn)),
-                   Omittable<int>>);
-static_assert(std::is_same_v<decltype(std::declval<Omittable<int>>()
-                                          .then(testFn2)
-                                          .then(testFn)),
-                             Omittable<int>>);
-static_assert(std::is_same_v<decltype(std::declval<Omittable<bool>>()
-                                          .then(testFn)
-                                          .then_or(testFn2, false)),
-                             bool>);
-
-constexpr auto visitTestFn(int, bool) { return false; }
-static_assert(
-    std::is_same_v<Omittable<bool>, decltype(lift(testFn2, Omittable<int>()))>);
-static_assert(std::is_same_v<Omittable<bool>,
-                             decltype(lift(visitTestFn, Omittable<int>(),
-                                           Omittable<bool>()))>);
+template <typename T>
+consteval auto testMerge(T lhs, auto rhs)
+{
+    T a = lhs;
+    auto result = merge(a, rhs);
+    return pair{ result, a };
+}
+static_assert(testMerge(1, optional{ 2 }) == pair{ true, 2 });
+static_assert(testMerge(1, optional<int>{}) == pair{ false, 1 });
+static_assert(testMerge(optional{ 1 }, optional{ 2 }) == pair{ true, optional{ 2 } });
+static_assert(testMerge(optional{ 1 }, optional<int>{}) == pair{ false, optional{ 1 } });
+static_assert(testMerge(optional<int>{}, optional{ 1 }) == pair{ true, optional{ 1 } });
 
 class TestUtils : public QObject {
     Q_OBJECT
