@@ -27,7 +27,7 @@ if (MSVC)
     add_compile_options(/EHsc /W4
         /wd4100 /wd4127 /wd4242 /wd4244 /wd4245 /wd4267 /wd4365 /wd4456 /wd4459
         /wd4464 /wd4505 /wd4514 /wd4571 /wd4619 /wd4623 /wd4625 /wd4626 /wd4706
-        /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027)
+        /wd4710 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027 /wd4702)
 else()
     foreach (FLAG all pedantic extra error=return-type) # Switch these on
         CHECK_CXX_COMPILER_FLAG("-W${FLAG}" W${FLAG}_SUPPORTED)
