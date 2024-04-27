@@ -14,9 +14,9 @@ GetLoginFlowsJob::GetLoginFlowsJob()
               makePath("/_matrix/client/v3", "/login"), false)
 {}
 
-LoginJob::LoginJob(const QString& type, const Omittable<UserIdentifier>& identifier,
+LoginJob::LoginJob(const QString& type, const std::optional<UserIdentifier>& identifier,
                    const QString& password, const QString& token, const QString& deviceId,
-                   const QString& initialDeviceDisplayName, Omittable<bool> refreshToken)
+                   const QString& initialDeviceDisplayName, std::optional<bool> refreshToken)
     : BaseJob(HttpVerb::Post, QStringLiteral("LoginJob"), makePath("/_matrix/client/v3", "/login"),
               false)
 {

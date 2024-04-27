@@ -91,10 +91,11 @@ public:
     //! \param refreshToken
     //!   If true, the client supports refresh tokens.
     explicit RegisterJob(const QString& kind = QStringLiteral("user"),
-                         const Omittable<AuthenticationData>& auth = none,
+                         const std::optional<AuthenticationData>& auth = std::nullopt,
                          const QString& username = {}, const QString& password = {},
                          const QString& deviceId = {}, const QString& initialDeviceDisplayName = {},
-                         Omittable<bool> inhibitLogin = none, Omittable<bool> refreshToken = none);
+                         std::optional<bool> inhibitLogin = std::nullopt,
+                         std::optional<bool> refreshToken = std::nullopt);
 
     // Result properties
 
@@ -124,7 +125,10 @@ public:
     //! assume that the access token will not expire.
     //!
     //! Omitted if the `inhibit_login` option is true.
-    Omittable<int> expiresInMs() const { return loadFromJson<Omittable<int>>("expires_in_ms"_ls); }
+    std::optional<int> expiresInMs() const
+    {
+        return loadFromJson<std::optional<int>>("expires_in_ms"_ls);
+    }
 
     //! ID of the registered device. Will be the same as the
     //! corresponding parameter in the request, if one was specified.
@@ -199,7 +203,7 @@ public:
     //! \param auth
     //!   Additional authentication information for the user-interactive authentication API.
     explicit ChangePasswordJob(const QString& newPassword, bool logoutDevices = true,
-                               const Omittable<AuthenticationData>& auth = none);
+                               const std::optional<AuthenticationData>& auth = std::nullopt);
 };
 
 //! \brief Requests a validation token be sent to the given email address for the purpose of
@@ -306,8 +310,9 @@ public:
     //!   3PIDs](/client-server-api/#adding-account-administrative-contact-information).
     //!
     //!   Defaults to `false` if not present.
-    explicit DeactivateAccountJob(const Omittable<AuthenticationData>& auth = none,
-                                  const QString& idServer = {}, Omittable<bool> erase = none);
+    explicit DeactivateAccountJob(const std::optional<AuthenticationData>& auth = std::nullopt,
+                                  const QString& idServer = {},
+                                  std::optional<bool> erase = std::nullopt);
 
     // Result properties
 
@@ -355,7 +360,10 @@ public:
 
     //! A flag to indicate that the username is available. This should always
     //! be `true` when the server replies with 200 OK.
-    Omittable<bool> available() const { return loadFromJson<Omittable<bool>>("available"_ls); }
+    std::optional<bool> available() const
+    {
+        return loadFromJson<std::optional<bool>>("available"_ls);
+    }
 };
 
 } // namespace Quotient

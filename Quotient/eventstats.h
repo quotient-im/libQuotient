@@ -79,8 +79,8 @@ public:
     //!
     //! Sets isEstimate to `true` unless both notableCount and highlightCount
     //! are equal to -1.
-    static EventStats fromCachedCounters(Omittable<int> notableCount,
-                                         Omittable<int> highlightCount = none);
+    static EventStats fromCachedCounters(std::optional<int> notableCount,
+                                         std::optional<int> highlightCount = {});
 
     //! \brief Update statistics when a read marker moves down the timeline
     //!

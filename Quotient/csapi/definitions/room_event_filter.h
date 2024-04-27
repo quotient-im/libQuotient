@@ -11,19 +11,19 @@ namespace Quotient {
 struct RoomEventFilter : EventFilter {
     //! If `true`, enables per-[thread](/client-server-api/#threading) notification
     //! counts. Only applies to the `/sync` endpoint. Defaults to `false`.
-    Omittable<bool> unreadThreadNotifications{};
+    std::optional<bool> unreadThreadNotifications{};
 
     //! If `true`, enables lazy-loading of membership events. See
     //! [Lazy-loading room members](/client-server-api/#lazy-loading-room-members)
     //! for more information. Defaults to `false`.
-    Omittable<bool> lazyLoadMembers{};
+    std::optional<bool> lazyLoadMembers{};
 
     //! If `true`, sends all membership events for all events, even if they have already
     //! been sent to the client. Does not
     //! apply unless `lazy_load_members` is `true`. See
     //! [Lazy-loading room members](/client-server-api/#lazy-loading-room-members)
     //! for more information. Defaults to `false`.
-    Omittable<bool> includeRedundantMembers{};
+    std::optional<bool> includeRedundantMembers{};
 
     //! A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching
     //! room will be excluded even if it is listed in the `'rooms'` filter.
@@ -34,7 +34,7 @@ struct RoomEventFilter : EventFilter {
 
     //! If `true`, includes only events with a `url` key in their content. If `false`, excludes
     //! those events. If omitted, `url` key is not considered for filtering.
-    Omittable<bool> containsUrl{};
+    std::optional<bool> containsUrl{};
 };
 
 template <>

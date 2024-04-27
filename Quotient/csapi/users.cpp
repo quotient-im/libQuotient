@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm, Omittable<int> limit)
+SearchUserDirectoryJob::SearchUserDirectoryJob(const QString& searchTerm, std::optional<int> limit)
     : BaseJob(HttpVerb::Post, QStringLiteral("SearchUserDirectoryJob"),
               makePath("/_matrix/client/v3", "/user_directory/search"))
 {

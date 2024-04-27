@@ -69,7 +69,7 @@ public:
     {{!there's nothing in #properties if the response is inline}}
     {{>nonInlineResponseSignature}}
     {
-        return {{>takeOrLoad}}FromJson<{{>maybeOmittableType}}>("{{baseName}}"_ls);
+        return {{>takeOrLoad}}FromJson<{{>maybeOptionalType}}>("{{baseName}}"_ls);
     }
         {{/properties}}
     {{/allProperties?}}{{/normalResponse?}}{{/responses}}

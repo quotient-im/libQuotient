@@ -100,10 +100,9 @@ It uses the following type attributes aside from pretty obvious `imports:`:
 * `moveOnly` - some types are not copyable at all and must be moved instead
   (an obvious example is any structure that uses, directly or indirectly,
   `std::unique_ptr<>`).
-* `useOmittable` - wrap types that have no value with "null" semantics
-  (i.e. number types and custom-defined data structures) into a special
-  `Omittable<>` - a drop-in upgrade over `std::optional`.
-* `omittedValue` - an alternative for `useOmittable`, just provide a value used
+* `useOptional` - wrap types that have no value with "null" semantics (i.e. number types and
+  custom-defined data structures) into `std::optional`.
+* `omittedValue` - an alternative for `useOptional`, just provide a value used
   for an omitted parameter. This is used for bool parameters which normally are
   considered false if omitted (or they have an explicit default value, passed
   in the "official" GTAD's `defaultValue` variable).

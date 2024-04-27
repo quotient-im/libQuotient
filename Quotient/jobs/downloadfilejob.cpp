@@ -26,7 +26,7 @@ public:
     QScopedPointer<QFile> targetFile;
     QScopedPointer<QFile> tempFile;
 
-    Omittable<EncryptedFileMetadata> encryptedFileMetadata;
+    std::optional<EncryptedFileMetadata> encryptedFileMetadata;
 };
 
 QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)

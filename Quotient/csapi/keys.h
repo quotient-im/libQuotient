@@ -42,7 +42,7 @@ public:
     //!   be included to denote that the key is a fallback key.
     //!
     //!   May be absent if a new fallback key is not required.
-    explicit UploadKeysJob(const Omittable<DeviceKeys>& deviceKeys = none,
+    explicit UploadKeysJob(const std::optional<DeviceKeys>& deviceKeys = std::nullopt,
                            const OneTimeKeys& oneTimeKeys = {},
                            const OneTimeKeys& fallbackKeys = {});
 
@@ -77,7 +77,7 @@ public:
         //! Additional data added to the device key information
         //! by intermediate servers, and not covered by the
         //! signatures.
-        Omittable<UnsignedDeviceInfo> unsignedData{};
+        std::optional<UnsignedDeviceInfo> unsignedData{};
     };
 
     // Construction/destruction
@@ -91,7 +91,7 @@ public:
     //!   The time (in milliseconds) to wait when downloading keys from
     //!   remote servers. 10 seconds is the recommended default.
     explicit QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
-                          Omittable<int> timeout = none);
+                          std::optional<int> timeout = std::nullopt);
 
     // Result properties
 
@@ -178,7 +178,7 @@ public:
     //!   The time (in milliseconds) to wait when downloading keys from
     //!   remote servers. 10 seconds is the recommended default.
     explicit ClaimKeysJob(const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
-                          Omittable<int> timeout = none);
+                          std::optional<int> timeout = std::nullopt);
 
     // Result properties
 

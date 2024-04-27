@@ -59,9 +59,9 @@ analyzer:
   # swaggerType can be +set/+on pair; attributes from the map under +set
   # are added to each type from the sequence under +on.
   types:
-  - +set: &UseOmittable
-      useOmittable:
-      omittedValue: 'none' # Quotient::none in Quotient/omittable.h
+  - +set: &UseOptional
+      useOptional:
+      omittedValue: 'std::nullopt'
     +on:
     - integer:
       - int64: qint64
@@ -109,8 +109,8 @@ analyzer:
       - OneTimeKeys:
           type: OneTimeKeys
           imports: '<Quotient/e2ee/e2ee_common.h>'
-      - /(Room|Event|RoomEvent)Filter$/: # These do not need Omittable<>
-      - //: *UseOmittable
+      - /(Room|Event|RoomEvent)Filter$/: # These do not need std::optional<>
+      - //: *UseOptional
     - array:
       - /^string(,null)?$/: QStringList
       - +set: { moveOnly: }
@@ -183,19 +183,19 @@ mustache:
     initializer: '{{defaultValue}}'
     cjoin: '{{#hasMore}}, {{/hasMore}}'
 
-    openOmittable:
-      "{{^required?}}{{#useOmittable}}\
-        {{^defaultValue}}Omittable<{{/defaultValue}}\
-      {{/useOmittable}}{{/required?}}"
-    closeOmittable:
-      "{{^required?}}{{#useOmittable}}\
+    openOptional:
+      "{{^required?}}{{#useOptional}}\
+        {{^defaultValue}}std::optional<{{/defaultValue}}\
+      {{/useOptional}}{{/required?}}"
+    closeOptional:
+      "{{^required?}}{{#useOptional}}\
         {{^defaultValue}}>{{/defaultValue}}\
-      {{/useOmittable}}{{/required?}}"
+      {{/useOptional}}{{/required?}}"
 
-    maybeOmittableType: "{{>openOmittable}}{{dataType.name}}{{>closeOmittable}}"
+    maybeOptionalType: "{{>openOptional}}{{dataType.name}}{{>closeOptional}}"
 
     maybeCrefType:
-      "{{#avoidCopy}}const {{/avoidCopy}}{{>maybeOmittableType}}{{#avoidCopy}}&{{/avoidCopy}}"
+      "{{#avoidCopy}}const {{/avoidCopy}}{{>maybeOptionalType}}{{#avoidCopy}}&{{/avoidCopy}}"
 
     maybeCrefJsonObject:
       "{{^propertyMap}}const QJsonObject&{{/propertyMap}}\
@@ -229,7 +229,7 @@ mustache:
 
     nonInlineResponseSignature: |-
       {{>docCommentShort}}
-      {{>maybeOmittableType}} {{paramName}}(){{^moveOnly}} const{{/moveOnly}}
+      {{>maybeOptionalType}} {{paramName}}(){{^moveOnly}} const{{/moveOnly}}
 
     # Doc-comment blocks. Comment indent is managed by clang-format
     # (without clang-format there'd have to be a separate partial definition
@@ -246,12 +246,12 @@ mustache:
       struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
       { {{#vars}}
           {{>docCommentShort}}
-          {{>maybeOmittableType}} {{nameCamelCase}}{{>initializeField}};
+          {{>maybeOptionalType}} {{nameCamelCase}}{{>initializeField}};
 
         {{/vars}}
         {{#propertyMap}}
           {{>docCommentShort}}
-          {{>maybeOmittableType}} {{nameCamelCase}}{};
+          {{>maybeOptionalType}} {{nameCamelCase}}{};
         {{/propertyMap}}
       };
 

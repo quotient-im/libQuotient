@@ -14,23 +14,19 @@ constexpr inline auto PartiallyReadCountKey = "x-quotient.since_fully_read_count
 constexpr inline auto NewUnreadCountKey = "org.matrix.msc2654.unread_count"_ls;
 constexpr inline auto HighlightCountKey = "highlight_count"_ls;
 
-/// Room summary, as defined in MSC688
-/**
- * Every member of this structure is an Omittable; as per the MSC, only
- * changed values are sent from the server so if nothing is in the payload
- * the respective member will be omitted. In particular, `heroes.omitted()`
- * means that nothing has come from the server; heroes.value().isEmpty()
- * means a peculiar case of a room with the only member - the current user.
- */
+//! \brief Room summary, as defined in MSC688
+//!
+//! Every member of this structure is an optional; as per the MSC, only changed values are sent
+//! from the server so if nothing is in the payload the respective member will be omitted.
+//! In particular, `!heroes.has_value()` means that nothing has come from the server;
+//! `heroes.value().isEmpty()` means a peculiar but valid case of a room with the only member -
+//! the current user.
 struct QUOTIENT_API RoomSummary {
-    Omittable<int> joinedMemberCount;
-    Omittable<int> invitedMemberCount;
-    Omittable<QStringList> heroes; //!< mxids used to form the room name
+    std::optional<int> joinedMemberCount;
+    std::optional<int> invitedMemberCount;
+    std::optional<QStringList> heroes; //!< mxids used to form the room name
 
     bool isEmpty() const;
-    /// Merge the contents of another RoomSummary object into this one
-    /// \return true, if the current object has changed; false otherwise
-    bool merge(const RoomSummary& other);
 };
 QDebug operator<<(QDebug dbg, const RoomSummary& rs);
 
@@ -73,9 +69,9 @@ public:
 
     bool timelineLimited;
     QString timelinePrevBatch;
-    Omittable<int> partiallyReadCount;
-    Omittable<int> unreadCount;
-    Omittable<int> highlightCount;
+    std::optional<int> partiallyReadCount;
+    std::optional<int> unreadCount;
+    std::optional<int> highlightCount;
 
     SyncRoomData(QString roomId, JoinState joinState,
                  const QJsonObject& roomJson);

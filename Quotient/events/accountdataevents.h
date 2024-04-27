@@ -11,7 +11,7 @@ constexpr inline auto LowPriorityTag = "m.lowpriority"_ls;
 constexpr inline auto ServerNoticeTag = "m.server_notice"_ls;
 
 struct TagRecord {
-    Omittable<float> order = none;
+    std::optional<float> order = std::nullopt;
 };
 
 inline bool operator<(TagRecord lhs, TagRecord rhs)
@@ -34,7 +34,7 @@ struct JsonObjectConverter<TagRecord> {
             bool ok = false;
             rec.order = orderJv.toString().toFloat(&ok);
             if (!ok)
-                rec.order = none;
+                rec.order = std::nullopt;
         }
     }
     static void dumpTo(QJsonObject& jo, TagRecord rec)

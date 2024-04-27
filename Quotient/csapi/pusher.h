@@ -189,7 +189,8 @@ public:
     explicit PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId,
                            const QString& appDisplayName = {}, const QString& deviceDisplayName = {},
                            const QString& profileTag = {}, const QString& lang = {},
-                           const Omittable<PusherData>& data = none, Omittable<bool> append = none);
+                           const std::optional<PusherData>& data = std::nullopt,
+                           std::optional<bool> append = std::nullopt);
 };
 
 template <>

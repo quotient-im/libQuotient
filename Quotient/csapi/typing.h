@@ -27,7 +27,7 @@ public:
     //! \param timeout
     //!   The length of time in milliseconds to mark this user as typing.
     explicit SetTypingJob(const QString& userId, const QString& roomId, bool typing,
-                          Omittable<int> timeout = none);
+                          std::optional<int> timeout = std::nullopt);
 };
 
 } // namespace Quotient

@@ -159,7 +159,7 @@ public:
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
     explicit Add3PIDJob(const QString& clientSecret, const QString& sid,
-                        const Omittable<AuthenticationData>& auth = none);
+                        const std::optional<AuthenticationData>& auth = std::nullopt);
 };
 
 //! \brief Binds a 3PID to the user's account through an Identity Service.

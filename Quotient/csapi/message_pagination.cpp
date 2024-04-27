@@ -5,7 +5,7 @@
 using namespace Quotient;
 
 auto queryToGetRoomEvents(const QString& from, const QString& to, const QString& dir,
-                          Omittable<int> limit, const QString& filter)
+                          std::optional<int> limit, const QString& filter)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -17,8 +17,8 @@ auto queryToGetRoomEvents(const QString& from, const QString& to, const QString&
 }
 
 QUrl GetRoomEventsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& dir,
-                                      const QString& from, const QString& to, Omittable<int> limit,
-                                      const QString& filter)
+                                      const QString& from, const QString& to,
+                                      std::optional<int> limit, const QString& filter)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    makePath("/_matrix/client/v3", "/rooms/", roomId, "/messages"),
@@ -26,7 +26,8 @@ QUrl GetRoomEventsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const
 }
 
 GetRoomEventsJob::GetRoomEventsJob(const QString& roomId, const QString& dir, const QString& from,
-                                   const QString& to, Omittable<int> limit, const QString& filter)
+                                   const QString& to, std::optional<int> limit,
+                                   const QString& filter)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomEventsJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/messages"),
               queryToGetRoomEvents(from, to, dir, limit, filter))

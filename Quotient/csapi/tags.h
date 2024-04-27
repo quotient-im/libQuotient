@@ -16,7 +16,7 @@ public:
     struct Tag {
         //! A number in a range `[0,1]` describing a relative
         //! position of the room under the given tag.
-        Omittable<float> order{};
+        std::optional<float> order{};
 
         QVariantHash additionalProperties{};
     };
@@ -71,7 +71,7 @@ public:
     //!   position of the room under the given tag.
     //!
     explicit SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag,
-                           Omittable<float> order = none,
+                           std::optional<float> order = std::nullopt,
                            const QVariantHash& additionalProperties = {});
 };
 

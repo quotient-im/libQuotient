@@ -21,7 +21,7 @@ struct Device {
     //! The timestamp (in milliseconds since the unix epoch) when this devices
     //! was last seen. (May be a few minutes out of date, for efficiency
     //! reasons).
-    Omittable<qint64> lastSeenTs{};
+    std::optional<qint64> lastSeenTs{};
 };
 
 template <>

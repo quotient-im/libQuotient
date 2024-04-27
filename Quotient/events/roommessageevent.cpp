@@ -82,7 +82,7 @@ MsgType jsonToMsgType(const QString& matrixType)
     return MsgType::Unknown;
 }
 
-inline bool isReplacement(const Omittable<EventRelation>& rel)
+inline bool isReplacement(const std::optional<EventRelation>& rel)
 {
     return rel && rel->type == EventRelation::ReplacementType;
 }
@@ -281,7 +281,7 @@ QString RoomMessageEvent::rawMsgTypeForFile(const QFileInfo& fi)
 }
 
 TextContent::TextContent(QString text, const QString& contentType,
-                         Omittable<EventRelation> relatesTo)
+                         std::optional<EventRelation> relatesTo)
     : mimeType(QMimeDatabase().mimeTypeForName(contentType))
     , body(std::move(text))
     , relatesTo(std::move(relatesTo))
@@ -291,7 +291,7 @@ TextContent::TextContent(QString text, const QString& contentType,
 }
 
 TextContent::TextContent(const QJsonObject& json)
-    : relatesTo(fromJson<Omittable<EventRelation>>(json[RelatesToKey]))
+    : relatesTo(fromJson<std::optional<EventRelation>>(json[RelatesToKey]))
 {
     QMimeDatabase db;
     static const auto PlainTextMimeType = db.mimeTypeForName("text/plain"_ls);

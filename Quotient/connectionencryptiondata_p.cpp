@@ -73,7 +73,7 @@ Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& id,
     return readJob.error();
 }
 
-Omittable<std::unique_ptr<ConnectionEncryptionData>>
+std::optional<std::unique_ptr<ConnectionEncryptionData>>
 ConnectionEncryptionData::setup(Connection* connection, bool mock)
 {
     if (auto&& maybePicklingKey = setupPicklingKey(connection->userId(), mock)) {
@@ -92,7 +92,7 @@ ConnectionEncryptionData::setup(Connection* connection, bool mock)
 
             qCritical(E2EE) << "Could not unpickle Olm account for"
                             << connection->objectName();
-            return none;
+            return {};
         }
         // A new account has been created
         auto job = connection->callApi<UploadKeysJob>(
@@ -113,7 +113,7 @@ ConnectionEncryptionData::setup(Connection* connection, bool mock)
     }
     qCritical(E2EE) << "Could not load or initialise a pickling key for"
                     << connection->objectName();
-    return none;
+    return {};
 }
 
 void ConnectionEncryptionData::saveDevicesList()

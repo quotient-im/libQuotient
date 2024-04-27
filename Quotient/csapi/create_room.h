@@ -171,7 +171,7 @@ public:
                            const QVector<Invite3pid>& invite3pid = {},
                            const QString& roomVersion = {}, const QJsonObject& creationContent = {},
                            const QVector<StateEvent>& initialState = {}, const QString& preset = {},
-                           Omittable<bool> isDirect = none,
+                           std::optional<bool> isDirect = std::nullopt,
                            const QJsonObject& powerLevelContentOverride = {});
 
     // Result properties

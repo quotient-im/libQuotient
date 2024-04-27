@@ -17,7 +17,7 @@ GetPushersJob::GetPushersJob()
 PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId,
                              const QString& appDisplayName, const QString& deviceDisplayName,
                              const QString& profileTag, const QString& lang,
-                             const Omittable<PusherData>& data, Omittable<bool> append)
+                             const std::optional<PusherData>& data, std::optional<bool> append)
     : BaseJob(HttpVerb::Post, QStringLiteral("PostPusherJob"),
               makePath("/_matrix/client/v3", "/pushers/set"))
 {

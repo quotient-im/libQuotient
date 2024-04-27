@@ -48,18 +48,18 @@ public:
 
     //! The length of time in milliseconds since an action was performed
     //! by this user.
-    Omittable<int> lastActiveAgo() const
+    std::optional<int> lastActiveAgo() const
     {
-        return loadFromJson<Omittable<int>>("last_active_ago"_ls);
+        return loadFromJson<std::optional<int>>("last_active_ago"_ls);
     }
 
     //! The state message for this user if one was set.
     QString statusMsg() const { return loadFromJson<QString>("status_msg"_ls); }
 
     //! Whether the user is currently active
-    Omittable<bool> currentlyActive() const
+    std::optional<bool> currentlyActive() const
     {
-        return loadFromJson<Omittable<bool>>("currently_active"_ls);
+        return loadFromJson<std::optional<bool>>("currently_active"_ls);
     }
 };
 

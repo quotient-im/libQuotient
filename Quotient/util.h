@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <optional>
 
 #define DISABLE_MOVE(_ClassName) \
 static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all used versions of Qt");
@@ -341,4 +342,55 @@ inline QDebug operator<<(QDebug dbg, QElapsedTimer et)
     dbg << static_cast<double>(et.nsecsElapsed() / 1000) / 1000
                  << "ms"; // Show in ms with 3 decimal digits precision
     return dbg;
+}
+
+//! \brief Lift an operation into dereferenceable types (std::optional or pointers)
+//!
+//! This is a more generic version of std::optional::and_then() that accepts an arbitrary number of
+//! arguments of any type that is dereferenceable (i.e. unary operator*() can be applied to it) and
+//! (explicitly or implicitly) convertible to bool. This allows to streamline checking for
+//! nullptr/nullopt before applying the operation on the underlying types. \p fn is only invoked if
+//! all \p args are "truthy" (i.e. <tt>(... && bool(args)) == true</tt>).
+//! \param fn A callable that should accept the types stored inside optionals/pointers passed in
+//!           \p args (NOT optionals/pointers themselves; they are unwrapped)
+//! \return Always an optional: if \p fn returns another type, lift() wraps it in std::optional;
+//!         if \p fn returns std::optional, that return value (or std::nullopt) is returned as is.
+template <typename FnT>
+inline auto lift(FnT&& fn, auto&&... args)
+{
+    if constexpr (std::is_void_v<std::invoke_result_t<FnT, decltype(*args)...>>) {
+        if ((... && bool(args)))
+            std::invoke(std::forward<FnT>(fn), *args...);
+    } else
+        return (... && bool(args))
+                   ? std::optional(std::invoke(std::forward<FnT>(fn), *args...))
+                   : std::nullopt;
+}
+
+//! \brief Merge the value from an optional
+//!
+//! Assigns the value stored at \p rhs to \p lhs if, and only if, \p rhs is not omitted and
+//! `lhs != *rhs`. \p lhs can be either an optional or an ordinary variable.
+//! \return `true` if \p rhs is not omitted and the \p lhs value was different, in other words,
+//!         if \p lhs has changed; `false` otherwise
+template <typename T1, typename T2>
+    requires std::is_assignable_v<T1&, const T2&>
+constexpr inline bool merge(T1& lhs, const std::optional<T2>& rhs)
+{
+    if (!rhs || lhs == *rhs)
+        return false;
+    lhs = *rhs;
+    return true;
+}
+
+//! \brief Merge structure-like types
+//!
+//! Merges fields in \p lhs from counterparts in \p rhs. The list of fields to merge is passed
+//! in additional parameters (\p fields). E.g.:
+//! \codeline mergeStruct(struct1, struct2, &Struct::field1, &Struct::field2, &Struct::field3)
+//! \return the number of fields in \p lhs that were changed
+template <typename StructT>
+constexpr inline size_t mergeStruct(StructT& lhs, const StructT& rhs, const auto... fields)
+{
+    return ((... + static_cast<size_t>(merge(lhs.*fields, rhs.*fields))));
 }

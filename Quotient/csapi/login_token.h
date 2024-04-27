@@ -47,7 +47,7 @@ class QUOTIENT_API GenerateLoginTokenJob : public BaseJob {
 public:
     //! \param auth
     //!   Additional authentication information for the user-interactive authentication API.
-    explicit GenerateLoginTokenJob(const Omittable<AuthenticationData>& auth = none);
+    explicit GenerateLoginTokenJob(const std::optional<AuthenticationData>& auth = std::nullopt);
 
     // Result properties
 

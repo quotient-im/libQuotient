@@ -33,10 +33,10 @@ public:
     //! Java package naming convention.
     struct Capabilities {
         //! Capability to indicate if the user can change their password.
-        Omittable<ChangePasswordCapability> changePassword{};
+        std::optional<ChangePasswordCapability> changePassword{};
 
         //! The room versions the server supports.
-        Omittable<RoomVersionsCapability> roomVersions{};
+        std::optional<RoomVersionsCapability> roomVersions{};
 
         QHash<QString, QJsonObject> additionalProperties{};
     };

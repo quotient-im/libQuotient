@@ -41,7 +41,8 @@ public:
     //!
     //! \param limit
     //!   The maximum number of results to return. Defaults to 10.
-    explicit SearchUserDirectoryJob(const QString& searchTerm, Omittable<int> limit = none);
+    explicit SearchUserDirectoryJob(const QString& searchTerm,
+                                    std::optional<int> limit = std::nullopt);
 
     // Result properties
 

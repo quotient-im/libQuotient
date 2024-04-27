@@ -33,7 +33,7 @@ public:
     QSqlQuery prepareQuery(const QString& queryString) const;
 
     void storeOlmAccount(const QOlmAccount& olmAccount);
-    Omittable<OlmErrorCode> setupOlmAccount(QOlmAccount &olmAccount);
+    std::optional<OlmErrorCode> setupOlmAccount(QOlmAccount &olmAccount);
     void clear();
     void saveOlmSession(const QByteArray& senderKey, const QOlmSession& session,
                         const QDateTime& timestamp);
@@ -51,8 +51,7 @@ public:
     void clearRoomData(const QString& roomId);
     void setOlmSessionLastReceived(const QByteArray& sessionId,
                                    const QDateTime& timestamp);
-    Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
-        const QString& roomId);
+    std::optional<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(const QString& roomId);
     void saveCurrentOutboundMegolmSession(
         const QString& roomId, const QOlmOutboundGroupSession& session);
     void updateOlmSession(const QByteArray& senderKey,

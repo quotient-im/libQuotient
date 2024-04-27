@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-auto queryToPeekEvents(const QString& from, Omittable<int> timeout, const QString& roomId)
+auto queryToPeekEvents(const QString& from, std::optional<int> timeout, const QString& roomId)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
@@ -13,14 +13,14 @@ auto queryToPeekEvents(const QString& from, Omittable<int> timeout, const QStrin
     return _q;
 }
 
-QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from, Omittable<int> timeout,
+QUrl PeekEventsJob::makeRequestUrl(QUrl baseUrl, const QString& from, std::optional<int> timeout,
                                    const QString& roomId)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/events"),
                                    queryToPeekEvents(from, timeout, roomId));
 }
 
-PeekEventsJob::PeekEventsJob(const QString& from, Omittable<int> timeout, const QString& roomId)
+PeekEventsJob::PeekEventsJob(const QString& from, std::optional<int> timeout, const QString& roomId)
     : BaseJob(HttpVerb::Get, QStringLiteral("PeekEventsJob"),
               makePath("/_matrix/client/v3", "/events"), queryToPeekEvents(from, timeout, roomId))
 {}

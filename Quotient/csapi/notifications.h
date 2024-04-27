@@ -51,15 +51,15 @@ public:
     //!   Allows basic filtering of events returned. Supply `highlight`
     //!   to return only events where the notification had the highlight
     //!   tweak set.
-    explicit GetNotificationsJob(const QString& from = {}, Omittable<int> limit = none,
+    explicit GetNotificationsJob(const QString& from = {}, std::optional<int> limit = std::nullopt,
                                  const QString& only = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetNotificationsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {}, Omittable<int> limit = none,
-                               const QString& only = {});
+    static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {},
+                               std::optional<int> limit = std::nullopt, const QString& only = {});
 
     // Result properties
 

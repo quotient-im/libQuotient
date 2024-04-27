@@ -39,14 +39,14 @@ public:
     //!
     //!   See [Filtering](/client-server-api/#filtering) for more information.
     explicit GetEventContextJob(const QString& roomId, const QString& eventId,
-                                Omittable<int> limit = none, const QString& filter = {});
+                                std::optional<int> limit = std::nullopt, const QString& filter = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetEventContextJob
     //! is necessary but the job itself isn't.
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
-                               Omittable<int> limit = none, const QString& filter = {});
+                               std::optional<int> limit = std::nullopt, const QString& filter = {});
 
     // Result properties
 

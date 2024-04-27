@@ -96,10 +96,11 @@ public:
     //!
     //! \param refreshToken
     //!   If true, the client supports refresh tokens.
-    explicit LoginJob(const QString& type, const Omittable<UserIdentifier>& identifier = none,
+    explicit LoginJob(const QString& type,
+                      const std::optional<UserIdentifier>& identifier = std::nullopt,
                       const QString& password = {}, const QString& token = {},
                       const QString& deviceId = {}, const QString& initialDeviceDisplayName = {},
-                      Omittable<bool> refreshToken = none);
+                      std::optional<bool> refreshToken = std::nullopt);
 
     // Result properties
 
@@ -121,7 +122,10 @@ public:
     //! refresh token is provided, the client will need to re-log in
     //! to obtain a new access token. If not given, the client can
     //! assume that the access token will not expire.
-    Omittable<int> expiresInMs() const { return loadFromJson<Omittable<int>>("expires_in_ms"_ls); }
+    std::optional<int> expiresInMs() const
+    {
+        return loadFromJson<std::optional<int>>("expires_in_ms"_ls);
+    }
 
     //! ID of the logged-in device. Will be the same as the
     //! corresponding parameter in the request, if one was specified.
@@ -131,9 +135,9 @@ public:
     //! clients SHOULD use the provided object to reconfigure themselves,
     //! optionally validating the URLs within. This object takes the same
     //! form as the one returned from .well-known autodiscovery.
-    Omittable<DiscoveryInformation> wellKnown() const
+    std::optional<DiscoveryInformation> wellKnown() const
     {
-        return loadFromJson<Omittable<DiscoveryInformation>>("well_known"_ls);
+        return loadFromJson<std::optional<DiscoveryInformation>>("well_known"_ls);
     }
 };
 

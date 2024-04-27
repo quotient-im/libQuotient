@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-auto queryToGetEventContext(Omittable<int> limit, const QString& filter)
+auto queryToGetEventContext(std::optional<int> limit, const QString& filter)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
@@ -13,7 +13,7 @@ auto queryToGetEventContext(Omittable<int> limit, const QString& filter)
 }
 
 QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
-                                        Omittable<int> limit, const QString& filter)
+                                        std::optional<int> limit, const QString& filter)
 {
     return BaseJob::makeRequestUrl(std::move(baseUrl),
                                    makePath("/_matrix/client/v3", "/rooms/", roomId, "/context/",
@@ -22,7 +22,7 @@ QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, con
 }
 
 GetEventContextJob::GetEventContextJob(const QString& roomId, const QString& eventId,
-                                       Omittable<int> limit, const QString& filter)
+                                       std::optional<int> limit, const QString& filter)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetEventContextJob"),
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/context/", eventId),
               queryToGetEventContext(limit, filter))

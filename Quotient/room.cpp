@@ -94,7 +94,7 @@ public:
     Connection* connection;
     QString id;
     JoinState joinState;
-    RoomSummary summary = { none, 0, none };
+    RoomSummary summary = { {}, 0, {} };
     /// The state of the room at timeline position before-0
     UnorderedMap<StateEventKey, StateEventPtr> baseState;
     /// State event stubs - events without content, just type and state key
@@ -137,13 +137,12 @@ public:
     UnorderedMap<QString, EventPtr> accountData;
     //! \brief Previous (i.e. next towards the room beginning) batch token
     //!
-    //! "Emptiness" of this can have two forms. If prevBatch.has_value() it
-    //! means the library assumes the previous batch to exist on the server,
-    //! even though it might not know the token (hence initialisation with
-    //! a null string). If prevBatch == none it means that the server previously
-    //! reported that all events have been loaded and there's no point in
+    //! "Emptiness" of this can have two forms. If prevBatch.has_value() it means the library
+    //! assumes the previous batch to exist on the server, even though it might not know the token
+    //! (hence initialisation with a null string). If <tt>prevBatch == std::nullopt</tt> it means
+    //! that the server previously reported that all events have been loaded and there's no point in
     //! requesting further historical batches.
-    Omittable<QString> prevBatch = QString();
+    std::optional<QString> prevBatch = QString();
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
@@ -274,9 +273,9 @@ public:
     //! \brief update last receipt record for a given user
     //!
     //! \return previous event id of the receipt if the new receipt changed
-    //!         it, or `none` if no change took place
-    Omittable<QString> setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
-                               ReadReceipt newReceipt = {});
+    //!         it, or `std::nullopt` if no change took place
+    std::optional<QString> setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
+                                              ReadReceipt newReceipt = {});
     Changes setLocalLastReadReceipt(const rev_iter_t& newMarker,
                                     ReadReceipt newReceipt = {},
                                     bool deferStatsUpdate = false);
@@ -338,7 +337,7 @@ public:
     bool isLocalMember(const QString& memberId) const { return memberId == connection->userId(); }
 
     UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
-    Omittable<QOlmOutboundGroupSession> currentOutboundMegolmSession = none;
+    std::optional<QOlmOutboundGroupSession> currentOutboundMegolmSession = {};
 
     bool addInboundGroupSession(QByteArray sessionId, QByteArray sessionKey,
                                 const QString& senderId,
@@ -741,9 +740,8 @@ void Room::setJoinState(JoinState state)
     emit joinStateChanged(oldState, state);
 }
 
-Omittable<QString> Room::Private::setLastReadReceipt(const QString& userId,
-                                                     rev_iter_t newMarker,
-                                                     ReadReceipt newReceipt)
+std::optional<QString> Room::Private::setLastReadReceipt(const QString& userId, rev_iter_t newMarker,
+                                                         ReadReceipt newReceipt)
 {
     if (newMarker == historyEdge() && !newReceipt.eventId.isEmpty())
         newMarker = q->findInTimeline(newReceipt.eventId);
@@ -1603,7 +1601,8 @@ GetRoomEventsJob* Room::eventsHistoryJob() const { return d->eventsHistoryJob; }
 
 Room::Changes Room::Private::setSummary(RoomSummary&& newSummary)
 {
-    if (!summary.merge(newSummary))
+    if (mergeStruct(summary, newSummary, &RoomSummary::joinedMemberCount,
+                    &RoomSummary::invitedMemberCount, &RoomSummary::heroes) == 0)
         return Change::None;
     qCDebug(STATE).nospace().noquote()
         << "Updated room summary for " << q->objectName() << ": " << summary;

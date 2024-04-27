@@ -68,15 +68,15 @@ public:
     //! \param server
     //!   The server to fetch the public room lists from. Defaults to the
     //!   local server. Case sensitive.
-    explicit GetPublicRoomsJob(Omittable<int> limit = none, const QString& since = {},
+    explicit GetPublicRoomsJob(std::optional<int> limit = std::nullopt, const QString& since = {},
                                const QString& server = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetPublicRoomsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, Omittable<int> limit = none, const QString& since = {},
-                               const QString& server = {});
+    static QUrl makeRequestUrl(QUrl baseUrl, std::optional<int> limit = std::nullopt,
+                               const QString& since = {}, const QString& server = {});
 
     // Result properties
 
@@ -98,9 +98,9 @@ public:
 
     //! An estimate on the total number of public rooms, if the
     //! server has an estimate.
-    Omittable<int> totalRoomCountEstimate() const
+    std::optional<int> totalRoomCountEstimate() const
     {
-        return loadFromJson<Omittable<int>>("total_room_count_estimate"_ls);
+        return loadFromJson<std::optional<int>>("total_room_count_estimate"_ls);
     }
 };
 
@@ -152,9 +152,10 @@ public:
     //! \param thirdPartyInstanceId
     //!   The specific third-party network/protocol to request from the
     //!   homeserver. Can only be used if `include_all_networks` is false.
-    explicit QueryPublicRoomsJob(const QString& server = {}, Omittable<int> limit = none,
-                                 const QString& since = {}, const Omittable<Filter>& filter = none,
-                                 Omittable<bool> includeAllNetworks = none,
+    explicit QueryPublicRoomsJob(const QString& server = {},
+                                 std::optional<int> limit = std::nullopt, const QString& since = {},
+                                 const std::optional<Filter>& filter = std::nullopt,
+                                 std::optional<bool> includeAllNetworks = std::nullopt,
                                  const QString& thirdPartyInstanceId = {});
 
     // Result properties
@@ -177,9 +178,9 @@ public:
 
     //! An estimate on the total number of public rooms, if the
     //! server has an estimate.
-    Omittable<int> totalRoomCountEstimate() const
+    std::optional<int> totalRoomCountEstimate() const
     {
-        return loadFromJson<Omittable<int>>("total_room_count_estimate"_ls);
+        return loadFromJson<std::optional<int>>("total_room_count_estimate"_ls);
     }
 };
 

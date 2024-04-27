@@ -42,7 +42,7 @@ QUrl {{>titleCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}},
         {{#propertyMap}}
     fillJson(_dataJson, {{nameCamelCase}});
         {{/propertyMap}}{{#inlineBody}}
-    fillJson<{{>maybeOmittableType}}>(_dataJson, {{paramName}});
+    fillJson<{{>maybeOptionalType}}>(_dataJson, {{paramName}});
         {{/inlineBody}}{{#bodyParams}}
     addParam<{{^required?}}IfNotEmpty{{/required?}}>(_dataJson,
                     QStringLiteral("{{baseName}}"), {{paramName}});

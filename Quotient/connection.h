@@ -371,9 +371,9 @@ public:
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;
-    [[deprecated("Use database()->loadCurrentOutboundMegolmSession()")]]
-    Omittable<QOlmOutboundGroupSession> loadCurrentOutboundMegolmSession(
-        const QString& roomId) const;
+    [[deprecated("Use database()->loadCurrentOutboundMegolmSession()")]] //
+    std::optional<QOlmOutboundGroupSession>
+    loadCurrentOutboundMegolmSession(const QString& roomId) const;
     [[deprecated("Use database()->saveCurrentOutboundMegolmSession()")]]
     void saveCurrentOutboundMegolmSession(
         const QString& roomId, const QOlmOutboundGroupSession& session) const;
@@ -979,8 +979,7 @@ protected:
     //! \return a pointer to a Room object with the specified id and the
     //! specified state; nullptr if roomId is empty or if roomFactory()
     //! failed to create a Room object.
-    Room* provideRoom(const QString& roomId,
-                      Omittable<JoinState> joinState = none);
+    Room* provideRoom(const QString& roomId, std::optional<JoinState> joinState = {});
 
     //! Process sync data from a successful sync request
     void onSyncSuccess(SyncData&& data, bool fromCache = false);

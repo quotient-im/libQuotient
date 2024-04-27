@@ -183,7 +183,7 @@ void Database::storeOlmAccount(const QOlmAccount& olmAccount)
     commit();
 }
 
-Omittable<OlmErrorCode> Database::setupOlmAccount(QOlmAccount& olmAccount)
+std::optional<OlmErrorCode> Database::setupOlmAccount(QOlmAccount& olmAccount)
 {
     auto query = prepareQuery(QStringLiteral("SELECT pickle FROM accounts;"));
     execute(query);
@@ -391,7 +391,7 @@ void Database::saveCurrentOutboundMegolmSession(const QString& roomId,
     commit();
 }
 
-Omittable<QOlmOutboundGroupSession> Database::loadCurrentOutboundMegolmSession(
+std::optional<QOlmOutboundGroupSession> Database::loadCurrentOutboundMegolmSession(
     const QString& roomId)
 {
     auto query = prepareQuery(
@@ -407,7 +407,7 @@ Omittable<QOlmOutboundGroupSession> Database::loadCurrentOutboundMegolmSession(
             return std::move(*session);
         }
     }
-    return none;
+    return {};
 }
 
 void Database::setDevicesReceivedKey(

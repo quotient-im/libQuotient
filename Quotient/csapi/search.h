@@ -22,17 +22,17 @@ public:
     struct IncludeEventContext {
         //! How many events before the result are
         //! returned. By default, this is `5`.
-        Omittable<int> beforeLimit{};
+        std::optional<int> beforeLimit{};
 
         //! How many events after the result are
         //! returned. By default, this is `5`.
-        Omittable<int> afterLimit{};
+        std::optional<int> afterLimit{};
 
         //! Requests that the server returns the
         //! historic profile information for the users
         //! that sent the events that were returned.
         //! By default, this is `false`.
-        Omittable<bool> includeProfile{};
+        std::optional<bool> includeProfile{};
     };
 
     //! Configuration for group.
@@ -65,21 +65,21 @@ public:
 
         //! Configures whether any context for the events
         //! returned are included in the response.
-        Omittable<IncludeEventContext> eventContext{};
+        std::optional<IncludeEventContext> eventContext{};
 
         //! Requests the server return the current state for
         //! each room returned.
-        Omittable<bool> includeState{};
+        std::optional<bool> includeState{};
 
         //! Requests that the server partitions the result set
         //! based on the provided list of keys.
-        Omittable<Groupings> groupings{};
+        std::optional<Groupings> groupings{};
     };
 
     //! Describes which categories to search in and their criteria.
     struct Categories {
         //! Mapping of category name to search criteria.
-        Omittable<RoomEventsCriteria> roomEvents{};
+        std::optional<RoomEventsCriteria> roomEvents{};
     };
 
     struct UserProfile {
@@ -113,13 +113,13 @@ public:
     //! The result object.
     struct Result {
         //! A number that describes how closely this result matches the search. Higher is closer.
-        Omittable<double> rank{};
+        std::optional<double> rank{};
 
         //! The event that matched.
         RoomEventPtr result{};
 
         //! Context for result, if requested.
-        Omittable<EventContext> context{};
+        std::optional<EventContext> context{};
     };
 
     //! The results for a particular group value.
@@ -133,7 +133,7 @@ public:
 
         //! Key that can be used to order different
         //! groups.
-        Omittable<int> order{};
+        std::optional<int> order{};
 
         //! Which results are in this group.
         QStringList results{};
@@ -142,7 +142,7 @@ public:
     //! Mapping of category name to search criteria.
     struct ResultRoomEvents {
         //! An approximate count of the total number of results found.
-        Omittable<int> count{};
+        std::optional<int> count{};
 
         //! List of words which should be highlighted, useful for stemming which may change the
         //! query terms.
@@ -176,7 +176,7 @@ public:
     //! Describes which categories to search in and their criteria.
     struct ResultCategories {
         //! Mapping of category name to search criteria.
-        Omittable<ResultRoomEvents> roomEvents{};
+        std::optional<ResultRoomEvents> roomEvents{};
     };
 
     // Construction/destruction

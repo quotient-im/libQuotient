@@ -22,7 +22,7 @@ public:
         QString ip{};
 
         //! Unix timestamp that the session was last active.
-        Omittable<qint64> lastSeen{};
+        std::optional<qint64> lastSeen{};
 
         //! User agent string last seen in the session.
         QString userAgent{};
