@@ -36,6 +36,10 @@ jobs:
         - os: windows-latest
           qt-version: '6.4'
 
+    env:
+      GCC_VERSION: -13
+      CLANG_VERSION: -17
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -45,9 +49,12 @@ jobs:
     - name: Install dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        COMMON_PKGS="libolm-dev ninja-build gnome-keyring"
-        COMMON_PKGS="$COMMON_PKGS g++-13 clang-15" # See https://github.com/actions/runner-images/issues/9679
+        COMMON_PKGS="libolm-dev ninja-build gnome-keyring g++$GCC_VERSION clang$CLANG_VERSION"
+        # See https://github.com/actions/runner-images/issues/9679
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        # Add LLVM repo for newer Clang
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy$CLANG_VERSION main" -y
         sudo apt-get -qq update
         sudo apt-get -qq install $COMMON_PKGS
         gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
@@ -64,12 +71,12 @@ jobs:
     - name: Setup build environment
       run: |
         if [ '${{ matrix.override-compiler }}' == 'GCC' ]; then
-            echo "CC=gcc-13" >>$GITHUB_ENV
-            echo "CXX=g++-13" >>$GITHUB_ENV
+            echo "CC=gcc$GCC_VERSION" >>$GITHUB_ENV
+            echo "CXX=g++$GCC_VERSION" >>$GITHUB_ENV
         elif [[ '${{ runner.os }}' == 'Linux' ]]; then
             # Workaround for https://github.com/actions/runner-images/issues/8659
-            echo "CC=clang-15" >>$GITHUB_ENV
-            echo "CXX=clang++-15" >>$GITHUB_ENV
+            echo "CC=clang$CLANG_VERSION" >>$GITHUB_ENV
+            echo "CXX=clang++$CLANG_VERSION" >>$GITHUB_ENV
         fi
         if grep -q 'refs/tags' <<<'${{ github.ref }}'; then
             VERSION="$(git describe --tags)"
@@ -213,7 +220,7 @@ jobs:
       run: |
         mkdir .coverage && pushd .coverage
         find $BUILD_PATH -name '*.gcda' -print0 \
-            | xargs -0 gcov-13 -s $GITHUB_WORKSPACE -pr
+            | xargs -0 gcov$GCC_VERSION -s $GITHUB_WORKSPACE -pr
         # Coverage of the test source code is not tracked, as it is always 100%
         # (if not, some tests failed and broke the build at an earlier stage)
         rm -f quotest* autotests*
