@@ -91,7 +91,6 @@ set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-
 find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
@@ -111,88 +110,145 @@ set_package_properties(OpenSSL PROPERTIES
     TYPE REQUIRED
 )
 
-# Set up source files
-list(APPEND lib_SRCS
-    Quotient/quotient_common.h
-    Quotient/quotient_export.h
-    Quotient/function_traits.h Quotient/function_traits.cpp
-    Quotient/omittable.h
-    Quotient/expected.h
-    Quotient/networkaccessmanager.h Quotient/networkaccessmanager.cpp
-    Quotient/connectiondata.h Quotient/connectiondata.cpp
-    Quotient/connection.h Quotient/connection.cpp
-    Quotient/connection_p.h
-    Quotient/ssosession.h Quotient/ssosession.cpp
-    Quotient/logging_categories_p.h
-    Quotient/room.h Quotient/room.cpp
-    Quotient/roomstateview.h Quotient/roomstateview.cpp
-    Quotient/user.h Quotient/user.cpp
-    Quotient/roommember.h Quotient/roommember.cpp
-    Quotient/avatar.h Quotient/avatar.cpp
-    Quotient/uri.h Quotient/uri.cpp
-    Quotient/uriresolver.h Quotient/uriresolver.cpp
-    Quotient/eventstats.h Quotient/eventstats.cpp
-    Quotient/syncdata.h Quotient/syncdata.cpp
-    Quotient/settings.h Quotient/settings.cpp
-    Quotient/networksettings.h Quotient/networksettings.cpp
-    Quotient/converters.h Quotient/converters.cpp
-    Quotient/util.h Quotient/util.cpp
-    Quotient/eventitem.h Quotient/eventitem.cpp
-    Quotient/accountregistry.h Quotient/accountregistry.cpp
-    Quotient/mxcreply.h Quotient/mxcreply.cpp
-    Quotient/events/event.h Quotient/events/event.cpp
-    Quotient/events/roomevent.h Quotient/events/roomevent.cpp
-    Quotient/events/stateevent.h Quotient/events/stateevent.cpp
-    Quotient/events/single_key_value.h
-    Quotient/events/simplestateevents.h
-    Quotient/events/eventcontent.h Quotient/events/eventcontent.cpp
-    Quotient/events/eventrelation.h Quotient/events/eventrelation.cpp
-    Quotient/events/roomcreateevent.h Quotient/events/roomcreateevent.cpp
-    Quotient/events/roomtombstoneevent.h Quotient/events/roomtombstoneevent.cpp
-    Quotient/events/roommessageevent.h Quotient/events/roommessageevent.cpp
-    Quotient/events/roommemberevent.h Quotient/events/roommemberevent.cpp
-    Quotient/events/roomcanonicalaliasevent.h
-    Quotient/events/roomavatarevent.h
-    Quotient/events/roompowerlevelsevent.h Quotient/events/roompowerlevelsevent.cpp
-    Quotient/events/typingevent.h
-    Quotient/events/accountdataevents.h
-    Quotient/events/receiptevent.h Quotient/events/receiptevent.cpp
-    Quotient/events/reactionevent.h
-    Quotient/events/callevents.h Quotient/events/callevents.cpp
-    Quotient/events/directchatevent.h Quotient/events/directchatevent.cpp
-    Quotient/events/encryptionevent.h Quotient/events/encryptionevent.cpp
-    Quotient/events/encryptedevent.h Quotient/events/encryptedevent.cpp
-    Quotient/events/roomkeyevent.h
-    Quotient/events/stickerevent.h
-    Quotient/events/filesourceinfo.h Quotient/events/filesourceinfo.cpp
-    Quotient/jobs/requestdata.h Quotient/jobs/requestdata.cpp
-    Quotient/jobs/basejob.h Quotient/jobs/basejob.cpp
-    Quotient/jobs/syncjob.h Quotient/jobs/syncjob.cpp
-    Quotient/jobs/mediathumbnailjob.h Quotient/jobs/mediathumbnailjob.cpp
-    Quotient/jobs/downloadfilejob.h Quotient/jobs/downloadfilejob.cpp
-    Quotient/database.h Quotient/database.cpp
-    Quotient/connectionencryptiondata_p.h Quotient/connectionencryptiondata_p.cpp
-    Quotient/keyverificationsession.h Quotient/keyverificationsession.cpp
-    Quotient/e2ee/e2ee_common.h Quotient/e2ee/e2ee_common.cpp
-    Quotient/e2ee/qolmaccount.h Quotient/e2ee/qolmaccount.cpp
-    Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
-    Quotient/e2ee/qolminboundsession.h Quotient/e2ee/qolminboundsession.cpp
-    Quotient/e2ee/qolmoutboundsession.h Quotient/e2ee/qolmoutboundsession.cpp
-    Quotient/e2ee/qolmutility.h Quotient/e2ee/qolmutility.cpp
-    Quotient/e2ee/qolmsession.h Quotient/e2ee/qolmsession.cpp
-    Quotient/e2ee/qolmmessage.h Quotient/e2ee/qolmmessage.cpp
-    Quotient/e2ee/cryptoutils.h Quotient/e2ee/cryptoutils.cpp
-    Quotient/e2ee/sssshandler.h Quotient/e2ee/sssshandler.cpp
-    Quotient/events/keyverificationevent.h
-    libquotientemojis.qrc
-    )
+add_library(${QUOTIENT_LIB_NAME})
+
+target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
+    FILES
+        Quotient/quotient_common.h
+        Quotient/quotient_export.h
+        Quotient/function_traits.h
+        Quotient/omittable.h
+        Quotient/expected.h
+        Quotient/networkaccessmanager.h
+        Quotient/connectiondata.h
+        Quotient/connection.h
+        Quotient/connection_p.h
+        Quotient/ssosession.h
+        Quotient/logging_categories_p.h
+        Quotient/room.h
+        Quotient/roomstateview.h
+        Quotient/user.h
+        Quotient/roommember.h
+        Quotient/avatar.h
+        Quotient/uri.h
+        Quotient/uriresolver.h
+        Quotient/eventstats.h
+        Quotient/syncdata.h
+        Quotient/settings.h
+        Quotient/networksettings.h
+        Quotient/converters.h
+        Quotient/util.h
+        Quotient/eventitem.h
+        Quotient/accountregistry.h
+        Quotient/mxcreply.h
+        Quotient/events/event.h
+        Quotient/events/roomevent.h
+        Quotient/events/stateevent.h
+        Quotient/events/single_key_value.h
+        Quotient/events/simplestateevents.h
+        Quotient/events/eventcontent.h
+        Quotient/events/eventrelation.h
+        Quotient/events/roomcreateevent.h
+        Quotient/events/roomtombstoneevent.h
+        Quotient/events/roommessageevent.h
+        Quotient/events/roommemberevent.h
+        Quotient/events/roomcanonicalaliasevent.h
+        Quotient/events/roomavatarevent.h
+        Quotient/events/roompowerlevelsevent.h
+        Quotient/events/typingevent.h
+        Quotient/events/accountdataevents.h
+        Quotient/events/receiptevent.h
+        Quotient/events/reactionevent.h
+        Quotient/events/callevents.h
+        Quotient/events/directchatevent.h
+        Quotient/events/encryptionevent.h
+        Quotient/events/encryptedevent.h
+        Quotient/events/roomkeyevent.h
+        Quotient/events/stickerevent.h
+        Quotient/events/filesourceinfo.h
+        Quotient/jobs/requestdata.h
+        Quotient/jobs/basejob.h
+        Quotient/jobs/syncjob.h
+        Quotient/jobs/mediathumbnailjob.h
+        Quotient/jobs/downloadfilejob.h
+        Quotient/database.h
+        Quotient/connectionencryptiondata_p.h
+        Quotient/keyverificationsession.h
+        Quotient/e2ee/e2ee_common.h
+        Quotient/e2ee/qolmaccount.h
+        Quotient/e2ee/qolmsession.h
+        Quotient/e2ee/qolminboundsession.h
+        Quotient/e2ee/qolmoutboundsession.h
+        Quotient/e2ee/qolmutility.h
+        Quotient/e2ee/qolmsession.h
+        Quotient/e2ee/qolmmessage.h
+        Quotient/e2ee/cryptoutils.h
+        Quotient/e2ee/sssshandler.h
+        Quotient/events/keyverificationevent.h
+    PRIVATE
+        Quotient/function_traits.cpp
+        Quotient/networkaccessmanager.cpp
+        Quotient/connectiondata.cpp
+        Quotient/connection.cpp
+        Quotient/ssosession.cpp
+        Quotient/room.cpp
+        Quotient/roomstateview.cpp
+        Quotient/user.cpp
+        Quotient/roommember.cpp
+        Quotient/avatar.cpp
+        Quotient/uri.cpp
+        Quotient/uriresolver.cpp
+        Quotient/eventstats.cpp
+        Quotient/syncdata.cpp
+        Quotient/settings.cpp
+        Quotient/networksettings.cpp
+        Quotient/converters.cpp
+        Quotient/util.cpp
+        Quotient/eventitem.cpp
+        Quotient/accountregistry.cpp
+        Quotient/mxcreply.cpp
+        Quotient/events/event.cpp
+        Quotient/events/roomevent.cpp
+        Quotient/events/stateevent.cpp
+        Quotient/events/eventcontent.cpp
+        Quotient/events/eventrelation.cpp
+        Quotient/events/roomcreateevent.cpp
+        Quotient/events/roomtombstoneevent.cpp
+        Quotient/events/roommessageevent.cpp
+        Quotient/events/roommemberevent.cpp
+        Quotient/events/roompowerlevelsevent.cpp
+        Quotient/events/receiptevent.cpp
+        Quotient/events/callevents.cpp
+        Quotient/events/directchatevent.cpp
+        Quotient/events/encryptionevent.cpp
+        Quotient/events/encryptedevent.cpp
+        Quotient/events/filesourceinfo.cpp
+        Quotient/jobs/requestdata.cpp
+        Quotient/jobs/basejob.cpp
+        Quotient/jobs/syncjob.cpp
+        Quotient/jobs/mediathumbnailjob.cpp
+        Quotient/jobs/downloadfilejob.cpp
+        Quotient/database.cpp
+        Quotient/connectionencryptiondata_p.cpp
+        Quotient/keyverificationsession.cpp
+        Quotient/e2ee/e2ee_common.cpp
+        Quotient/e2ee/qolmaccount.cpp
+        Quotient/e2ee/qolmsession.cpp
+        Quotient/e2ee/qolminboundsession.cpp
+        Quotient/e2ee/qolmoutboundsession.cpp
+        Quotient/e2ee/qolmutility.cpp
+        Quotient/e2ee/qolmsession.cpp
+        Quotient/e2ee/qolmmessage.cpp
+        Quotient/e2ee/cryptoutils.cpp
+        Quotient/e2ee/sssshandler.cpp
+        libquotientemojis.qrc
+)
 
 # Configure API files generation
 
 set(CSAPI_DIR csapi)
 set(FULL_CSAPI_DIR Quotient/${CSAPI_DIR})
 set(ASAPI_DEF_DIR application-service/definitions)
-set(ISAPI_DEF_DIR identity/definitions)
 
 set(API_GENERATION_ENABLED 0)
 if (NOT MATRIX_SPEC_PATH AND MATRIX_DOC_PATH)
@@ -232,7 +288,6 @@ if (API_GENERATION_ENABLED)
     file(GLOB_RECURSE API_DEFS RELATIVE ${PROJECT_SOURCE_DIR}
         ${FULL_CSAPI_SRC_DIR}/*.yaml
         ${ABS_API_DEF_PATH}/${ASAPI_DEF_DIR}/*.yaml
-        ${ABS_API_DEF_PATH}/${ISAPI_DEF_DIR}/*.yaml
     )
     add_custom_target(update-api
         ${ABS_GTAD_PATH} --config ../gtad/gtad.yaml --out ${CSAPI_DIR}
@@ -262,10 +317,13 @@ add_feature_info(EnableApiCodeGeneration "${API_GENERATION_ENABLED}"
 # file list itself and write down to some .cmake file if those are different,
 # which would trigger the reconfiguration specifically before the next build.
 # For now CONFIGURE_DEPENDS is the best approximation of that.
-file(GLOB_RECURSE api_ALL_SRCS CONFIGURE_DEPENDS
-     ${FULL_CSAPI_DIR}/*.* Quotient/${ASAPI_DEF_DIR}/*.* Quotient/${ISAPI_DEF_DIR}/*.*)
 
-add_library(${QUOTIENT_LIB_NAME} ${lib_SRCS} ${api_ALL_SRCS})
+file(GLOB_RECURSE api_ALL_HEADERS CONFIGURE_DEPENDS ${FULL_CSAPI_DIR}/*.h Quotient/${ASAPI_DEF_DIR}/*.h)
+target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS FILES ${api_ALL_HEADERS})
+
+file(GLOB_RECURSE api_ALL_IMPLS CONFIGURE_DEPENDS ${FULL_CSAPI_DIR}/*.cpp)
+target_sources(${QUOTIENT_LIB_NAME} PRIVATE ${api_ALL_IMPLS})
+
 # Set BUILDING_SHARED_QUOTIENT if building as a shared library
 target_compile_definitions(${QUOTIENT_LIB_NAME} PRIVATE
     $<$<STREQUAL:$<TARGET_PROPERTY:${QUOTIENT_LIB_NAME},TYPE>,SHARED_LIBRARY>:BUILDING_SHARED_QUOTIENT>)
@@ -295,12 +353,12 @@ if (NOT CMAKE_CXX_COMPILER_ID STREQUAL GNU)
 endif ()
 
 target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:$<$<NOT:$<BOOL:${QUOTIENT_FORCE_NAMESPACED_INCLUDES}>>:${CMAKE_CURRENT_SOURCE_DIR}/Quotient>>
-    $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${QUOTIENT_LIB_NAME} PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain Olm::Olm ${Qt}::Sql PRIVATE OpenSSL::Crypto)
+target_link_libraries(${QUOTIENT_LIB_NAME}
+    PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain Olm::Olm ${Qt}::Sql
+    PRIVATE OpenSSL::Crypto)
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
@@ -315,11 +373,7 @@ endif()
 # Configure installation
 
 install(TARGETS ${QUOTIENT_LIB_NAME} EXPORT ${QUOTIENT_LIB_NAME}Targets
-        LIBRARY RUNTIME
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-install(DIRECTORY Quotient/ DESTINATION ${${PROJECT_NAME}_INSTALL_INCLUDEDIR}/Quotient
-        FILES_MATCHING PATTERN "*.h")
+    RUNTIME LIBRARY ARCHIVE FILE_SET HEADERS)
 
 include(CMakePackageConfigHelpers)
 # NB: SameMajorVersion doesn't really work yet, as we're within 0.x trail.
