@@ -93,44 +93,31 @@ QColor RoomMember::color() const
     return QColor::fromHslF(static_cast<float>(hueF()), 1.0f, -0.7f * lightness + 0.9f, 1.0f);
 }
 
+namespace {
+QUrl getMediaId(const RoomMemberEvent* evt)
+{
+    // See https://github.com/matrix-org/matrix-spec/issues/322
+    QUrl baseUrl;
+    if (evt->newAvatarUrl())
+        baseUrl = *evt->newAvatarUrl();
+    else if (evt->prevContent() && evt->prevContent()->avatarUrl)
+        baseUrl = *evt->prevContent()->avatarUrl;
+
+    return baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1 ? QUrl() : baseUrl;
+}
+}
+
 QString RoomMember::avatarMediaId() const
 {
-    if (_member == nullptr) {
-        return {};
-    }
-    // See https://github.com/matrix-org/matrix-doc/issues/1375
-    QUrl baseUrl;
-    if (_member->newAvatarUrl()) {
-        baseUrl = *_member->newAvatarUrl();
-    } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
-        baseUrl = *_member->prevContent()->avatarUrl;
-    }
-    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1) {
-        return {};
-    }
-    return baseUrl.toString();
+    return isEmpty() ? QString() : getMediaId(_member).toString();
 }
 
 QUrl RoomMember::avatarUrl() const {
-    if (_room == nullptr || _member == nullptr) {
+    if (isEmpty())
         return {};
-    }
-    // See https://github.com/matrix-org/matrix-doc/issues/1375
-    QUrl baseUrl;
-    if (_member->newAvatarUrl()) {
-        baseUrl = *_member->newAvatarUrl();
-    } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
-        baseUrl = *_member->prevContent()->avatarUrl;
-    }
-    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1) {
-        return {};
-    }
 
-    const auto mediaUrl = _room->connection()->makeMediaUrl(baseUrl);
-    if (mediaUrl.isValid() && mediaUrl.scheme() == "mxc"_L1) {
-        return mediaUrl;
-    }
-    return {};
+    const auto mediaUrl = _room->connection()->makeMediaUrl(getMediaId(_member));
+    return mediaUrl.isValid() && mediaUrl.scheme() == "mxc"_L1 ? mediaUrl : QUrl();
 }
 
 int RoomMember::powerLevel() const
