@@ -22,8 +22,6 @@
 
 namespace Quotient {
 
-class EncryptedEvent;
-
 class Q_DECL_HIDDEN Quotient::Connection::Private {
 public:
     explicit Private(std::unique_ptr<ConnectionData>&& connection)

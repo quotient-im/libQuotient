@@ -2,16 +2,16 @@
 
 #include "connection.h"
 #include "database.h"
+#include "logging_categories_p.h"
 
 #include "e2ee/qolmaccount.h"
 #include "e2ee/qolmsession.h"
 
-#include "logging_categories_p.h"
+#include "events/encryptedevent.h"
 
 namespace Quotient {
 
 struct DevicesList;
-class EncryptedEvent;
 
 namespace _impl {
     class ConnectionEncryptionData {
