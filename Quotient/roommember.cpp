@@ -15,7 +15,7 @@ using namespace Quotient;
 RoomMember::RoomMember(const Room* room, const RoomMemberEvent* member)
     : _room(room)
     , _member(member)
-    , _hueF(_member == nullptr ? 0.0 : stringToHueF(member->userId()))
+    , _hueF(member == nullptr ? 0.0 : stringToHueF(member->userId()))
 {
 }
 
@@ -77,6 +77,11 @@ QString RoomMember::disambiguatedName() const { return _room->needsDisambiguatio
 
 QString RoomMember::htmlSafeDisambiguatedName() const { return disambiguatedName().toHtmlEscaped(); }
 
+bool RoomMember::matches(QStringView substr, Qt::CaseSensitivity cs) const
+{
+    return name().contains(substr, cs) || id().contains(substr, cs);
+}
+
 int RoomMember::hue() const { return static_cast<int>(hueF() * 359); }
 
 qreal RoomMember::hueF() const { return _hueF; }
@@ -126,4 +131,13 @@ QUrl RoomMember::avatarUrl() const {
         return mediaUrl;
     }
     return {};
+}
+
+namespace {
+inline QStringView removeLeadingAt(QStringView sv) { return sv.mid(sv.startsWith(u'@') ? 1 : 0); }
+}
+
+bool MemberSorter::operator()(QStringView u1name, QStringView u2name) const
+{
+    return removeLeadingAt(u1name).localeAwareCompare(removeLeadingAt(u2name)) < 0;
 }

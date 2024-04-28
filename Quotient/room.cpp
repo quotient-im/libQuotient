@@ -3378,22 +3378,7 @@ QJsonObject Room::Private::toJson() const
 
 QJsonObject Room::toJson() const { return d->toJson(); }
 
-MemberSorter Room::memberSorter() const { return MemberSorter(this); }
-
-bool MemberSorter::operator()(const RoomMember& u1, const RoomMember& u2) const
-{
-    return operator()(u1, u2.displayName());
-}
-
-bool MemberSorter::operator()(const RoomMember& u1, QStringView u2name) const
-{
-    auto n1 = u1.displayName();
-    if (n1.startsWith(u'@'))
-        n1.remove(0, 1);
-    const auto n2 = u2name.mid(u2name.startsWith(u'@') ? 1 : 0);
-
-    return n1.localeAwareCompare(n2) < 0;
-}
+MemberSorter Room::memberSorter() const { return MemberSorter(); }
 
 void Room::activateEncryption()
 {

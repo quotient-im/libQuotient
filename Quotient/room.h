@@ -39,7 +39,7 @@ class SyncRoomData;
 class RoomMemberEvent;
 class User;
 class RoomMember;
-class MemberSorter;
+struct MemberSorter;
 class LeaveRoomJob;
 class SetRoomStateWithKeyJob;
 class RedactEventJob;
@@ -641,6 +641,7 @@ public:
      */
     Q_INVOKABLE QString prettyPrint(const QString& plainText) const;
 
+    [[deprecated("Create MemberSorter objects directly instead")]]
     MemberSorter memberSorter() const;
 
     Q_INVOKABLE bool supportsCalls() const;
@@ -922,22 +923,22 @@ private:
     void setJoinState(JoinState state);
 };
 
-class QUOTIENT_API MemberSorter {
-public:
-    explicit MemberSorter(const Room* r) : room(r) {}
+template <template <class> class ContT>
+inline typename ContT<RoomMember>::size_type lowerBoundMemberIndex(const ContT<RoomMember>& c,
+                                                                   const auto& v,
+                                                                   MemberSorter ms = {})
+{
+    return std::ranges::lower_bound(c, v, ms) - c.begin();
+}
 
-    bool operator()(const RoomMember& u1, const RoomMember& u2) const;
-    bool operator()(const RoomMember& u1, QStringView u2name) const;
+template <template <class> class ContT>
+inline typename ContT<QString>::size_type lowerBoundMemberIndex(const ContT<QString>& c,
+                                                                const auto& v, const Room* r,
+                                                                MemberSorter ms = {})
+{
+    return std::ranges::lower_bound(c, v, ms, std::bind_front(&Room::member, r)) - c.begin();
+}
 
-    template <typename ContT, typename ValT>
-    typename ContT::size_type lowerBoundIndex(const ContT& c, const ValT& v) const
-    {
-        return std::lower_bound(c.begin(), c.end(), v, *this) - c.begin();
-    }
-
-private:
-    const Room* room;
-};
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::FileTransferInfo)
 Q_DECLARE_METATYPE(Quotient::ReadReceipt)

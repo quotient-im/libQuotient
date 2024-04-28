@@ -28,6 +28,7 @@ class RoomMemberEvent;
 //! \sa Quotient::User
 class QUOTIENT_API RoomMember {
     Q_GADGET
+    Q_PROPERTY(bool isEmpty READ isEmpty CONSTANT)
     Q_PROPERTY(QString id READ id CONSTANT)
     Q_PROPERTY(Uri uri READ uri CONSTANT)
     Q_PROPERTY(bool isLocalMember READ isLocalMember CONSTANT)
@@ -46,6 +47,8 @@ public:
     RoomMember() = default;
 
     explicit RoomMember(const Room* room, const RoomMemberEvent* member);
+
+    bool isEmpty() const { return _member == nullptr; }
 
     bool operator==(const RoomMember& other) const;
 
@@ -154,6 +157,12 @@ public:
     //! \sa disambiguatedName(), htmlSafeFullName(), htmlSafeDisplayName()
     QString htmlSafeDisambiguatedName() const;
 
+    //! \brief Check whether the name or id of the member contains a substring
+    //!
+    //! This is useful for a predicate to filter room members.
+    //! \sa MemberMatcher
+    Q_INVOKABLE bool matches(QStringView substr, Qt::CaseSensitivity cs = Qt::CaseSensitive) const;
+
     //! \brief Hue color component of this user based on the user's Matrix ID
     //!
     //! The implementation is based on XEP-0392:
@@ -187,9 +196,46 @@ public:
     QUrl avatarUrl() const;
 
 private:
-    const Room* _room;
-    const RoomMemberEvent* _member;
+    const Room* _room = nullptr;
+    const RoomMemberEvent* _member = nullptr;
 
-    qreal _hueF;
+    qreal _hueF = 0;
 };
+
+//! \brief A factory to get a functional object matching room members against a substring
+//!
+//! This is a convenience wrapper to use RoomMember::matches() in standard algorithms.
+inline auto memberMatcher(auto substr, Qt::CaseSensitivity cs = Qt::CaseSensitive)
+{
+#ifdef __cpp_lib_bind_back
+    return std::bind_back(&RoomMember::matches, substr, cs);
+#else
+    return [substr, cs](const RoomMember& m) { return m.matches(substr, cs); };
+#endif
+}
+
+struct QUOTIENT_API MemberSorter {
+    bool operator()(const RoomMember& u1, const RoomMember& u2) const
+    {
+        return operator()(u1.displayName(), u2.displayName());
+    }
+    bool operator()(const RoomMember& u1, QStringView u2name) const
+    {
+        return operator()(u1.displayName(), u2name);
+    }
+    bool operator()(QStringView u1name, const RoomMember& u2) const
+    {
+        return operator()(u1name, u2.displayName());
+    }
+    bool operator()(QStringView u1name, QStringView u2name) const;
+
+    template <template <class> class ContT>
+    [[deprecated("Use Quotient::lowerBoundIndex() or std::ranges::lower_bound() instead")]] //
+    typename ContT<RoomMember>::size_type
+    lowerBoundIndex(const ContT<RoomMember>& c, const auto& v) const
+    {
+        return std::ranges::lower_bound(c, v, *this) - c.begin();
+    }
+};
+
 } // namespace Quotient
