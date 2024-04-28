@@ -93,6 +93,11 @@ QColor RoomMember::color() const
     return QColor::fromHslF(static_cast<float>(hueF()), 1.0f, -0.7f * lightness + 0.9f, 1.0f);
 }
 
+const Avatar& RoomMember::avatarObject() const
+{
+    return _room->connection()->userAvatar(avatarUrl());
+}
+
 namespace {
 QUrl getMediaId(const RoomMemberEvent* evt)
 {
@@ -126,6 +131,16 @@ int RoomMember::powerLevel() const
         return std::numeric_limits<int>::min();
     }
     return _room->memberEffectivePowerLevel(id());
+}
+
+QImage RoomMember::avatar(int width, int height, Avatar::get_callback_t callback)
+{
+    return avatarObject().get(_room->connection(), width, height, callback);
+}
+
+QImage RoomMember::avatar(int dimension, Avatar::get_callback_t callback)
+{
+    return avatar(dimension, dimension, callback);
 }
 
 namespace {

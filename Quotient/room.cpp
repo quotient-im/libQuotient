@@ -630,8 +630,8 @@ QImage Room::avatar(int width, int height)
     // Use the first (excluding self) user's avatar for direct chats
     for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
         if (m != localMember())
-            return memberAvatar(m.id()).get(connection(), width, height,
-                                            [this] { emit avatarChanged(); });
+            return m.avatarObject().get(connection(), width, height,
+                                        [this] { emit avatarChanged(); });
 
     return {};
 }
@@ -1754,13 +1754,24 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
     return Timeline::size_type(insertedSize);
 }
 
-const Avatar& Room::memberAvatar(const QString& memberId) const
+const Avatar& Room::memberAvatarObject(const QString& memberId) const
 {
     return connection()->userAvatar(member(memberId).avatarUrl());
 }
 
-Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
-                                                     bool fromCache)
+QImage Room::memberAvatar(const QString& memberId, int width, int height)
+{
+    return member(memberId).avatar(width, height, [this, memberId] {
+        emit memberAvatarUpdated(member(memberId));
+    });
+}
+
+QImage Room::memberAvatar(const QString& memberId, int dimension)
+{
+    return memberAvatar(memberId, dimension, dimension);
+}
+
+Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data, bool fromCache)
 {
     Changes changes {};
     if (fromCache) {

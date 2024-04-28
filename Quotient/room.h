@@ -332,7 +332,19 @@ public:
     //! Check whether a user with the given id is a member of the room
     Q_INVOKABLE bool isMember(const QString& userId) const;
 
-    const Avatar& memberAvatar(const QString& memberId) const;
+    const Avatar& memberAvatarObject(const QString& memberId) const;
+
+    //! \brief Get a avatar of the specified dimensions
+    //!
+    //! This always returns immediately; if there's no avatar cached yet, the call triggers
+    //! a network request, that will emit Room::memberAvatarUpdated() once completed.
+    //! \return a pixmap with the avatar or a placeholder if there's none available yet
+    Q_INVOKABLE QImage memberAvatar(const QString& memberId, int width, int height);
+
+    //! \brief Get a square avatar of the specified size
+    //!
+    //! This is an overload for the case when the needed width and height are equal.
+    Q_INVOKABLE QImage memberAvatar(const QString& memberId, int dimension);
 
     const Timeline& messageEvents() const;
     const PendingEvents& pendingEvents() const;
