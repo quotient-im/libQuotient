@@ -6,7 +6,7 @@
 
 namespace Quotient {
 
-struct EventFilter {
+struct QUOTIENT_API EventFilter {
     //! The maximum number of events to return, must be an integer greater than 0.
     //!
     //! Servers should apply a default value, and impose a maximum value to avoid

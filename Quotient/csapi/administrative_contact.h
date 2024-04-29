@@ -25,7 +25,7 @@ class QUOTIENT_API GetAccount3PIDsJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct ThirdPartyIdentifier {
+    struct QUOTIENT_API ThirdPartyIdentifier {
         //! The medium of the third-party identifier.
         QString medium;
 
@@ -60,7 +60,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
+struct QUOTIENT_API JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
     static void fillFrom(const QJsonObject& jo, GetAccount3PIDsJob::ThirdPartyIdentifier& result)
     {
         fillFromJson(jo.value("medium"_ls), result.medium);
@@ -87,7 +87,7 @@ public:
     // Inner data structures
 
     //! The third-party credentials to associate with the account.
-    struct ThreePidCredentials {
+    struct QUOTIENT_API ThreePidCredentials {
         //! The client secret used in the session with the identity server.
         QString clientSecret;
 
@@ -127,7 +127,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
+struct QUOTIENT_API JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
     static void dumpTo(QJsonObject& jo, const Post3PIDsJob::ThreePidCredentials& pod)
     {
         addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);

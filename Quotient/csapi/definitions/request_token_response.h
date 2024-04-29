@@ -6,7 +6,7 @@
 
 namespace Quotient {
 
-struct RequestTokenResponse {
+struct QUOTIENT_API RequestTokenResponse {
     //! The session ID. Session IDs are opaque strings that must consist entirely
     //! of the characters `[0-9a-zA-Z.=_-]`. Their length must not exceed 255
     //! characters and they must not be empty.

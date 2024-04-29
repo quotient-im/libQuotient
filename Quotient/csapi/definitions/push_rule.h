@@ -8,7 +8,7 @@
 
 namespace Quotient {
 
-struct PushRule {
+struct QUOTIENT_API PushRule {
     //! The actions to perform when this rule is matched.
     QVector<QVariant> actions;
 

@@ -13,7 +13,7 @@ class QUOTIENT_API GetRoomTagsJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct Tag {
+    struct QUOTIENT_API Tag {
         //! A number in a range `[0,1]` describing a relative
         //! position of the room under the given tag.
         std::optional<float> order{};
@@ -43,7 +43,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetRoomTagsJob::Tag> {
+struct QUOTIENT_API JsonObjectConverter<GetRoomTagsJob::Tag> {
     static void fillFrom(QJsonObject jo, GetRoomTagsJob::Tag& result)
     {
         fillFromJson(jo.take("order"_ls), result.order);

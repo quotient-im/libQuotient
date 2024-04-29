@@ -17,7 +17,7 @@ class QUOTIENT_API GetWhoIsJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct ConnectionInfo {
+    struct QUOTIENT_API ConnectionInfo {
         //! Most recently seen IP address of the session.
         QString ip{};
 
@@ -28,12 +28,12 @@ public:
         QString userAgent{};
     };
 
-    struct SessionInfo {
+    struct QUOTIENT_API SessionInfo {
         //! Information particular connections in the session.
         QVector<ConnectionInfo> connections{};
     };
 
-    struct DeviceInfo {
+    struct QUOTIENT_API DeviceInfo {
         //! A user's sessions (i.e. what they did with an access token from one login).
         QVector<SessionInfo> sessions{};
     };
@@ -63,7 +63,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
+struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::ConnectionInfo& result)
     {
         fillFromJson(jo.value("ip"_ls), result.ip);
@@ -73,7 +73,7 @@ struct JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
 };
 
 template <>
-struct JsonObjectConverter<GetWhoIsJob::SessionInfo> {
+struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::SessionInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
     {
         fillFromJson(jo.value("connections"_ls), result.connections);
@@ -81,7 +81,7 @@ struct JsonObjectConverter<GetWhoIsJob::SessionInfo> {
 };
 
 template <>
-struct JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
+struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
     {
         fillFromJson(jo.value("sessions"_ls), result.sessions);

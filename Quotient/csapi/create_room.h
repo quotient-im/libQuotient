@@ -54,7 +54,7 @@ class QUOTIENT_API CreateRoomJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct Invite3pid {
+    struct QUOTIENT_API Invite3pid {
         //! The hostname+port of the identity server which should be used for third-party identifier
         //! lookups.
         QString idServer;
@@ -72,7 +72,7 @@ public:
         QString address;
     };
 
-    struct StateEvent {
+    struct QUOTIENT_API StateEvent {
         //! The type of event to send.
         QString type;
 
@@ -181,7 +181,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<CreateRoomJob::Invite3pid> {
+struct QUOTIENT_API JsonObjectConverter<CreateRoomJob::Invite3pid> {
     static void dumpTo(QJsonObject& jo, const CreateRoomJob::Invite3pid& pod)
     {
         addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
@@ -192,7 +192,7 @@ struct JsonObjectConverter<CreateRoomJob::Invite3pid> {
 };
 
 template <>
-struct JsonObjectConverter<CreateRoomJob::StateEvent> {
+struct QUOTIENT_API JsonObjectConverter<CreateRoomJob::StateEvent> {
     static void dumpTo(QJsonObject& jo, const CreateRoomJob::StateEvent& pod)
     {
         addParam<>(jo, QStringLiteral("type"), pod.type);

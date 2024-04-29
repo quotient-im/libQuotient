@@ -17,7 +17,7 @@ class QUOTIENT_API GetLoginFlowsJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct LoginFlow {
+    struct QUOTIENT_API LoginFlow {
         //! The login type. This is supplied as the `type` when
         //! logging in.
         QString type;
@@ -48,7 +48,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
+struct QUOTIENT_API JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
     static void fillFrom(const QJsonObject& jo, GetLoginFlowsJob::LoginFlow& result)
     {
         fillFromJson(jo.value("type"_ls), result.type);

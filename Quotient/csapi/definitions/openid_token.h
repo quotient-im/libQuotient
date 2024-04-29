@@ -6,7 +6,7 @@
 
 namespace Quotient {
 
-struct OpenIdCredentials {
+struct QUOTIENT_API OpenIdCredentials {
     //! An access token the consumer may use to verify the identity of
     //! the person who generated the token. This is given to the federation
     //! API `GET /openid/userinfo` to verify the user's identity.
