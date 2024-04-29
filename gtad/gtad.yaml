@@ -243,7 +243,7 @@ mustache:
 
     structDefinition: |-
       {{>docCommentShort}}
-      struct {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
+      struct QUOTIENT_API {{name}}{{#parents?}} : {{#parents}}{{name}}{{>cjoin}}{{/parents}}{{/parents?}}
       { {{#vars}}
           {{>docCommentShort}}
           {{>maybeOptionalType}} {{nameCamelCase}}{{>initializeField}};
