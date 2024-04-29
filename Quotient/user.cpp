@@ -129,7 +129,7 @@ bool User::setAvatar(const QString& fileName)
 {
     auto ft = connection()
                   ->userAvatar(d->defaultAvatarUrl)
-                  .upload(connection(), fileName)
+                  .upload(fileName)
                   .then(std::bind_front(&User::doSetAvatar, this));
     // The return value only says whether the upload has started; the subsequent url setting job
     // will only start after the upload completes
@@ -140,7 +140,7 @@ bool User::setAvatar(QIODevice* source)
 {
     auto ft = connection()
                   ->userAvatar(d->defaultAvatarUrl)
-                  .upload(connection(), source)
+                  .upload(source)
                   .then(std::bind_front(&User::doSetAvatar, this));
     // The return value only says whether the upload has started; the subsequent url setting job
     // will only start after the upload completes

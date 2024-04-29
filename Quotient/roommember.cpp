@@ -135,12 +135,12 @@ int RoomMember::powerLevel() const
 
 QImage RoomMember::avatar(int width, int height, Avatar::get_callback_t callback)
 {
-    return avatarObject().get(_room->connection(), width, height, callback);
+    return avatarObject().get(width, height, std::move(callback));
 }
 
 QImage RoomMember::avatar(int dimension, Avatar::get_callback_t callback)
 {
-    return avatar(dimension, dimension, callback);
+    return avatar(dimension, dimension, std::move(callback));
 }
 
 namespace {

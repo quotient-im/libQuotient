@@ -85,6 +85,7 @@ public:
         : connection(c)
         , id(std::move(id_))
         , joinState(initialJoinState)
+        , avatar(c)
     {}
 
     Room* q = nullptr;
@@ -624,14 +625,12 @@ QImage Room::avatar(int dimension) { return avatar(dimension, dimension); }
 QImage Room::avatar(int width, int height)
 {
     if (!d->avatar.url().isEmpty())
-        return d->avatar.get(connection(), width, height,
-                             [this] { emit avatarChanged(); });
+        return d->avatar.get(width, height, [this] { emit avatarChanged(); });
 
     // Use the first (excluding self) user's avatar for direct chats
     for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
         if (m != localMember())
-            return m.avatarObject().get(connection(), width, height,
-                                        [this] { emit avatarChanged(); });
+            return m.avatarObject().get(width, height, [this] { emit avatarChanged(); });
 
     return {};
 }

@@ -1082,7 +1082,7 @@ Avatar& Connection::userAvatar(const QString& avatarMediaId)
 Avatar& Connection::userAvatar(const QUrl& avatarUrl)
 {
     const auto mediaId = avatarUrl.authority() + avatarUrl.path();
-    return d->userAvatarMap.try_emplace(mediaId, avatarUrl).first->second;
+    return d->userAvatarMap.try_emplace(mediaId, this, avatarUrl).first->second;
 }
 
 QString Connection::deviceId() const { return d->data->deviceId(); }

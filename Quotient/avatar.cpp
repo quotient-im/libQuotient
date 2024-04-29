@@ -15,90 +15,84 @@
 
 using namespace Quotient;
 
-class Q_DECL_HIDDEN Avatar::Private : public QObject {
+class Q_DECL_HIDDEN Avatar::Private {
 public:
-    explicit Private(QUrl url = {}) : _url(std::move(url)) {}
-    ~Private() override
+    explicit Private(Connection* c, QUrl url = {}) : connection(c), _url(std::move(url)) {}
+    ~Private()
     {
-        _thumbnailRequest.abandon();
-        _uploadRequest.abandon();
+        thumbnailRequest.abandon();
+        uploadRequest.abandon();
     }
     Q_DISABLE_COPY_MOVE(Private)
 
     QImage get(Connection* connection, QSize size,
                get_callback_t callback) const;
-    void thumbnailRequestFinished();
+    void thumbnailRequestFinished() const;
 
     bool checkUrl(const QUrl& url) const;
     QString localFile() const;
 
+    Connection* connection;
     QUrl _url;
 
     // The below are related to image caching, hence mutable
-    mutable QImage _originalImage;
-    mutable std::vector<std::pair<QSize, QImage>> _scaledImages;
-    mutable QSize _largestRequestedSize{};
+    mutable QImage originalImage;
+    mutable std::vector<std::pair<QSize, QImage>> scaledImages;
+    mutable QSize largestRequestedSize{};
     enum ImageSource : quint8 { Unknown, Cache, Network, Invalid };
-    mutable ImageSource _imageSource = Unknown;
-    mutable JobHandle<MediaThumbnailJob> _thumbnailRequest = nullptr;
-    mutable JobHandle<UploadContentJob> _uploadRequest = nullptr;
+    mutable ImageSource imageSource = Unknown;
+    mutable JobHandle<MediaThumbnailJob> thumbnailRequest = nullptr;
+    mutable JobHandle<UploadContentJob> uploadRequest = nullptr;
     mutable std::vector<get_callback_t> callbacks{};
 };
 
-Avatar::Avatar() : d(makeImpl<Private>()) {}
+Avatar::Avatar(Connection* c, QUrl url) : d(makeImpl<Private>(c, std::move(url))) {}
 
-Avatar::Avatar(QUrl url) : d(makeImpl<Private>(std::move(url))) {}
-
-QImage Avatar::get(Connection* connection, int dimension,
-                   get_callback_t callback) const
+QImage Avatar::get(int dimension, get_callback_t callback) const
 {
-    return d->get(connection, { dimension, dimension }, std::move(callback));
+    return d->get({ dimension, dimension }, std::move(callback));
 }
 
-QImage Avatar::get(Connection* connection, int width, int height,
-                   get_callback_t callback) const
+QImage Avatar::get(int width, int height, get_callback_t callback) const
 {
-    return d->get(connection, { width, height }, std::move(callback));
+    return d->get({ width, height }, std::move(callback));
 }
 
-bool Avatar::upload(Connection* connection, const QString& fileName,
-                    upload_callback_t callback) const
+bool Avatar::upload(const QString& fileName, upload_callback_t callback) const
 {
-    if (isJobPending(d->_uploadRequest))
+    if (isJobPending(d->uploadRequest))
         return false;
-    upload(connection, fileName).then(std::move(callback));
+    upload(fileName).then(std::move(callback));
     return true;
 }
 
-bool Avatar::upload(Connection* connection, QIODevice* source,
-                    upload_callback_t callback) const
+bool Avatar::upload(QIODevice* source, upload_callback_t callback) const
 {
-    if (isJobPending(d->_uploadRequest) || !source->isReadable())
+    if (isJobPending(d->uploadRequest) || !source->isReadable())
         return false;
-    upload(connection, source).then(std::move(callback));
+    upload(source).then(std::move(callback));
     return true;
 }
 
-QFuture<QUrl> Avatar::upload(Connection* connection, const QString& fileName) const
+QFuture<QUrl> Avatar::upload(const QString& fileName) const
 {
-    d->_uploadRequest = connection->uploadFile(fileName);
-    return d->_uploadRequest.responseFuture();
+    d->uploadRequest = d->connection->uploadFile(fileName);
+    return d->uploadRequest.responseFuture();
 }
 
-QFuture<QUrl> Avatar::upload(Connection* connection, QIODevice* source) const
+QFuture<QUrl> Avatar::upload(QIODevice* source) const
 {
-    d->_uploadRequest = connection->uploadContent(source);
-    return d->_uploadRequest.responseFuture();
+    d->uploadRequest = d->connection->uploadContent(source);
+    return d->uploadRequest.responseFuture();
 }
 
 QString Avatar::mediaId() const { return d->_url.authority() + d->_url.path(); }
 
-QImage Avatar::Private::get(Connection* connection, QSize size,
-                            get_callback_t callback) const
+QImage Avatar::Private::get(QSize size, get_callback_t callback) const
 {
-    if (_imageSource == Unknown && _originalImage.load(localFile())) {
-        _imageSource = Cache;
-        _largestRequestedSize = _originalImage.size();
+    if (imageSource == Unknown && originalImage.load(localFile())) {
+        imageSource = Cache;
+        largestRequestedSize = originalImage.size();
     }
 
     // Assuming that all thumbnails for this avatar have the same aspect ratio,
@@ -106,42 +100,40 @@ QImage Avatar::Private::get(Connection* connection, QSize size,
     // one dimension to be suitable for scaling down to the requested size;
     // therefore the new size has to be larger in both dimensions to warrant a
     // new request to the server
-    if (((_imageSource == Unknown && !_thumbnailRequest)
-         || (size.width() > _largestRequestedSize.width()
-             && size.height() > _largestRequestedSize.height()))
+    if (((imageSource == Unknown && !thumbnailRequest)
+         || (size.width() > largestRequestedSize.width()
+             && size.height() > largestRequestedSize.height()))
         && checkUrl(_url)) {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
-        _largestRequestedSize = size;
-        if (isJobPending(_thumbnailRequest))
-            _thumbnailRequest->abandon();
+        largestRequestedSize = size;
+        thumbnailRequest.abandon();
         if (callback)
             callbacks.emplace_back(std::move(callback));
-        _thumbnailRequest = connection->getThumbnail(_url, size);
-        connect(_thumbnailRequest, &MediaThumbnailJob::finished, this,
-                &Private::thumbnailRequestFinished);
+        thumbnailRequest = connection->getThumbnail(_url, size);
+        thumbnailRequest.onResult([this] { thumbnailRequestFinished(); });
         // The result of this request will only be returned when get() is
         // called next time afterwards
     }
-    if (_imageSource == Invalid || _originalImage.isNull())
+    if (imageSource == Invalid || originalImage.isNull())
         return {};
 
     // NB: because of KeepAspectRatio, scaledImage.size() might not be equal to
     // requestedSize - this is why requestedSize is stored separately
-    for (const auto& [requestedSize, scaledImage] : _scaledImages)
+    for (const auto& [requestedSize, scaledImage] : scaledImages)
         if (requestedSize == size)
             return scaledImage;
 
-    const auto& result = _originalImage.scaled(size, Qt::KeepAspectRatio,
+    const auto& result = originalImage.scaled(size, Qt::KeepAspectRatio,
                                                Qt::SmoothTransformation);
-    _scaledImages.emplace_back(size, result);
+    scaledImages.emplace_back(size, result);
     return result;
 }
 
-void Avatar::Private::thumbnailRequestFinished()
+void Avatar::Private::thumbnailRequestFinished() const
 {
     // NB: The following code preserves _originalImage in case of
     // most errors
-    switch (_thumbnailRequest->error()) {
+    switch (thumbnailRequest->error()) {
     case BaseJob::NoError: break;
     case BaseJob::NetworkError:
     case BaseJob::NetworkAuthRequired:
@@ -152,29 +144,29 @@ void Avatar::Private::thumbnailRequestFinished()
         // Other errors are likely unrecoverable but just in case,
         // check if there's a previous image to fall back to; if
         // there is, assume that the error is temporary
-        if (_originalImage.isNull())
-            _imageSource = Invalid; // Can't do much with the rest
+        if (originalImage.isNull())
+            imageSource = Invalid; // Can't do much with the rest
         return;
     }
-    auto&& img = _thumbnailRequest->thumbnail();
+    auto&& img = thumbnailRequest->thumbnail();
     if (img.format() == QImage::Format_Invalid) {
         qCWarning(MAIN) << "The request for" << _url
                         << "was successful but the received image "
                            "is invalid or unsupported";
         return;
     }
-    _imageSource = Network;
-    _originalImage = std::move(img);
-    _originalImage.save(localFile());
-    _scaledImages.clear();
-    for (const auto& n : callbacks)
+    imageSource = Network;
+    originalImage = std::move(img);
+    originalImage.save(localFile());
+    scaledImages.clear();
+    for (auto&& n : callbacks)
         n();
     callbacks.clear();
 }
 
 bool Avatar::Private::checkUrl(const QUrl& url) const
 {
-    if (_imageSource == Invalid || url.isEmpty())
+    if (imageSource == Invalid || url.isEmpty())
         return false;
 
     // FIXME: Make "mxc" a library-wide constant and maybe even make
@@ -182,9 +174,9 @@ bool Avatar::Private::checkUrl(const QUrl& url) const
     if (!url.isValid() || url.scheme() != "mxc"_L1 || url.path().count(u'/') != 1) {
         qCWarning(MAIN) << "Avatar URL is invalid or not mxc-based:"
                         << url.toDisplayString();
-        _imageSource = Invalid;
+        imageSource = Invalid;
     }
-    return _imageSource != Invalid;
+    return imageSource != Invalid;
 }
 
 QString Avatar::Private::localFile() const
@@ -201,10 +193,9 @@ bool Avatar::updateUrl(const QUrl& newUrl)
         return false;
 
     d->_url = newUrl;
-    d->_imageSource = Private::Unknown;
-    d->_originalImage = {};
-    d->_scaledImages.clear();
-    if (isJobPending(d->_thumbnailRequest))
-        d->_thumbnailRequest->abandon();
+    d->imageSource = Private::Unknown;
+    d->originalImage = {};
+    d->scaledImages.clear();
+    d->thumbnailRequest.abandon();
     return true;
 }
