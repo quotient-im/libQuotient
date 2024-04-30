@@ -145,9 +145,6 @@ public:
     QUrl homeserver() const;
     void setHomeserver(const QUrl& url);
 
-    Q_DECL_DEPRECATED_X("Access tokens are not stored in QSettings any more")
-    Q_INVOKABLE void clearAccessToken();
-
     QByteArray encryptionAccountPickle();
     void setEncryptionAccountPickle(const QByteArray& encryptionAccountPickle);
     Q_INVOKABLE void clearEncryptionAccountPickle();

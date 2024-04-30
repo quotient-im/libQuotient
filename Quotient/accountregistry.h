@@ -79,7 +79,4 @@ private:
     struct Private;
     ImplPtr<Private> d;
 };
-
-[[deprecated("Make and use an application-scope instance instead of a singleton")]]
-extern QUOTIENT_API AccountRegistry Accounts;
 } // namespace Quotient

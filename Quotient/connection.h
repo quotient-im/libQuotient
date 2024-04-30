@@ -295,22 +295,7 @@ public:
     //! to complete synchronisation with the server.
     //!
     //! \sa ignoredUsersListChanged
-    [[deprecated("Use the overload that accepts a user id instead")]] //
-    Q_INVOKABLE void addToIgnoredUsers(const Quotient::User* user);
-
-    //! \brief Add the user to the ignore list
-    //! The change signal is emitted synchronously, without waiting
-    //! to complete synchronisation with the server.
-    //!
-    //! \sa ignoredUsersListChanged
     Q_INVOKABLE void addToIgnoredUsers(const QString& userId);
-
-    //! \brief Remove the user from the ignore list
-    //!
-    //! Similar to adding, the change signal is emitted synchronously.
-    //! \sa ignoredUsersListChanged
-    [[deprecated("Use the overload that accepts a user id instead")]] //
-    Q_INVOKABLE void removeFromIgnoredUsers(const Quotient::User* user);
 
     //! \brief Remove the user from the ignore list
     //!
@@ -371,12 +356,6 @@ public:
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;
-    [[deprecated("Use database()->loadCurrentOutboundMegolmSession()")]] //
-    std::optional<QOlmOutboundGroupSession>
-    loadCurrentOutboundMegolmSession(const QString& roomId) const;
-    [[deprecated("Use database()->saveCurrentOutboundMegolmSession()")]]
-    void saveCurrentOutboundMegolmSession(
-        const QString& roomId, const QOlmOutboundGroupSession& session) const;
 
     QString edKeyForUserDevice(const QString& userId,
                                const QString& deviceId) const;

@@ -1353,18 +1353,6 @@ IgnoredUsersList Connection::ignoredUsers() const
     return event ? event->ignoredUsers() : IgnoredUsersList();
 }
 
-void Connection::addToIgnoredUsers(const User* user)
-{
-    Q_ASSERT(user != nullptr);
-
-    auto ignoreList = ignoredUsers();
-    if (!ignoreList.contains(user->id())) {
-        ignoreList.insert(user->id());
-        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
-        emit ignoredUsersListChanged({ { user->id() } }, {});
-    }
-}
-
 void Connection::addToIgnoredUsers(const QString& userId)
 {
     auto ignoreList = ignoredUsers();
@@ -1372,17 +1360,6 @@ void Connection::addToIgnoredUsers(const QString& userId)
         ignoreList.insert(userId);
         d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
         emit ignoredUsersListChanged({ { userId } }, {});
-    }
-}
-
-void Connection::removeFromIgnoredUsers(const User* user)
-{
-    Q_ASSERT(user != nullptr);
-
-    auto ignoreList = ignoredUsers();
-    if (ignoreList.remove(user->id()) != 0) {
-        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
-        emit ignoredUsersListChanged({}, { { user->id() } });
     }
 }
 
@@ -1888,27 +1865,6 @@ void Connection::sendSessionKeyToDevices(
 {
     Q_ASSERT(d->encryptionData != nullptr);
     d->encryptionData->sendSessionKeyToDevices(roomId, outboundSession, devices);
-}
-
-std::optional<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(
-    const QString& roomId) const
-{
-    const auto& db = database();
-    Q_ASSERT_X(
-        db, __FUNCTION__,
-        "Check encryptionData() or database() before calling this method");
-    return db ? db->loadCurrentOutboundMegolmSession(roomId) : std::nullopt;
-}
-
-void Connection::saveCurrentOutboundMegolmSession(
-    const QString& roomId, const QOlmOutboundGroupSession& session) const
-{
-    if (const auto& db = database())
-        db->saveCurrentOutboundMegolmSession(roomId, session);
-    else
-        Q_ASSERT_X(
-            false, __FUNCTION__,
-            "Check encryptionData() or database() before calling this method");
 }
 
 KeyVerificationSession* Connection::startKeyVerificationSession(const QString& userId,

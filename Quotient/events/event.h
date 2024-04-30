@@ -13,14 +13,6 @@ namespace Quotient {
 template <typename EventT>
 using event_ptr_tt = std::unique_ptr<EventT>;
 
-/// Unwrap a plain pointer and downcast it to the specified type
-template <typename TargetEventT, typename EventT>
-[[deprecated("Use eventCast() instead")]] // Remove after 0.9
-inline TargetEventT* weakPtrCast(const event_ptr_tt<EventT>& ptr)
-{
-    return static_cast<TargetEventT*>(std::to_address(ptr));
-}
-
 // === Standard Matrix key names ===
 
 constexpr inline auto TypeKey = "type"_ls;
@@ -596,19 +588,6 @@ inline auto Event::switchOnType(VisitorTs&&... visitors) const
 {
     return Quotient::switchOnType(*this,
                                   std::forward<VisitorTs>(visitors)...);
-}
-
-// A facility overload that calls void-returning switchOnType() on each event
-// over a range of event pointers
-// TODO: remove after 0.9
-template <typename RangeT, typename... FnTs>
-[[deprecated("Make a range-for and call switchOnType() from it directly")]]
-inline auto visitEach(RangeT&& events, FnTs&&... fns)
-    requires std::is_void_v<
-        decltype(switchOnType(**begin(events), std::forward<FnTs>(fns)...))>
-{
-    for (auto&& evtPtr: events)
-        switchOnType(*evtPtr, std::forward<FnTs>(fns)...);
 }
 
 } // namespace Quotient

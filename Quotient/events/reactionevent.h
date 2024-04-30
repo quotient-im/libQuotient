@@ -24,8 +24,6 @@ public:
         : EventTemplate(EventRelation::annotate(eventId, reactionKey))
     {}
 
-    [[deprecated("Use eventId(), key(), or content().value instead")]]
-    EventRelation relation() const { return content().value; }
     QString eventId() const { return content().value.eventId; }
     QString key() const { return content().value.key; }
 

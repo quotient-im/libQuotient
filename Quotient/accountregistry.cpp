@@ -10,10 +10,6 @@
 
 #include <QtCore/QCoreApplication>
 
-// TODO: remove in 0.9
-QT_IGNORE_DEPRECATIONS(
-    QUOTIENT_API Quotient::AccountRegistry Quotient::Accounts{};)
-
 using namespace Quotient;
 
 struct Q_DECL_HIDDEN AccountRegistry::Private {

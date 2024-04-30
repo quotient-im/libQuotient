@@ -182,10 +182,7 @@ public:
     enum class Change : quint32 { // QFlags can't go more than 32-bit
         None = 0x0, //!< No changes occurred in the room
         RoomNames = 0x1, //!< \sa namesChanged, displaynameChanged
-        DECL_DEPRECATED_ENUMERATOR(Name, RoomNames),
-        DECL_DEPRECATED_ENUMERATOR(Aliases, RoomNames),
-        DECL_DEPRECATED_ENUMERATOR(CanonicalAlias, RoomNames),
-        // Aliases/CanonicalAlias pre-0.8 = 0x2 - open for reuse
+        // NotInUse = 0x2,
         Topic = 0x4, //!< \sa topicChanged
         PartiallyReadStats = 0x8, //!< \sa partiallyReadStatsChanged
         Avatar = 0x10, //!< \sa avatarChanged

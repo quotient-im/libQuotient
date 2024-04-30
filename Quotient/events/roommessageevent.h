@@ -12,8 +12,6 @@
 class QFileInfo;
 
 namespace Quotient {
-//! \deprecated Use namespace EventContent instead
-namespace MessageEventContent = EventContent; // REMOVE after 0.9
 
 /**
  * The event class corresponding to m.room.message events
