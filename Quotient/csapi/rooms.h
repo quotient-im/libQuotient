@@ -135,7 +135,7 @@ class QUOTIENT_API GetJoinedMembersByRoomJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct RoomMember {
+    struct QUOTIENT_API RoomMember {
         //! The display name of the user this object is representing.
         QString displayName{};
 
@@ -166,7 +166,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember> {
+struct QUOTIENT_API JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember> {
     static void fillFrom(const QJsonObject& jo, GetJoinedMembersByRoomJob::RoomMember& result)
     {
         fillFromJson(jo.value("display_name"_ls), result.displayName);

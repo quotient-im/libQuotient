@@ -22,7 +22,7 @@ public:
     // Inner data structures
 
     //! A way to contact the server administrator.
-    struct Contact {
+    struct QUOTIENT_API Contact {
         //! An informal description of what the contact methods
         //! are used for.
         //!
@@ -79,7 +79,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetWellknownSupportJob::Contact> {
+struct QUOTIENT_API JsonObjectConverter<GetWellknownSupportJob::Contact> {
     static void fillFrom(const QJsonObject& jo, GetWellknownSupportJob::Contact& result)
     {
         fillFromJson(jo.value("role"_ls), result.role);

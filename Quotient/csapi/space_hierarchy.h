@@ -20,7 +20,7 @@ class QUOTIENT_API GetSpaceHierarchyJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct SpaceHierarchyRoomsChunk {
+    struct QUOTIENT_API SpaceHierarchyRoomsChunk {
         //! The number of members joined to the room.
         int numJoinedMembers;
 
@@ -118,7 +118,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk> {
+struct QUOTIENT_API JsonObjectConverter<GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk> {
     static void fillFrom(const QJsonObject& jo,
                          GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk& result)
     {

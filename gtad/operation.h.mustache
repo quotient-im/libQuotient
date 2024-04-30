@@ -76,7 +76,7 @@ public:
 };
     {{#models.model}}
 
-template <> struct JsonObjectConverter<{{qualifiedName}}> {
+template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {
         {{#in?}}
     static void dumpTo(QJsonObject& jo, const {{qualifiedName}}& pod)
         {   {{#propertyMap}}

@@ -6,7 +6,7 @@
 
 namespace Quotient {
 
-struct ThirdPartyUser {
+struct QUOTIENT_API ThirdPartyUser {
     //! A Matrix User ID represting a third-party user.
     QString userid;
 

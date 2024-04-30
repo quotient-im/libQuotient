@@ -68,12 +68,12 @@ public:
     //! Additional data added to the device key information
     //! by intermediate servers, and not covered by the
     //! signatures.
-    struct UnsignedDeviceInfo {
+    struct QUOTIENT_API UnsignedDeviceInfo {
         //! The display name which the user set on the device.
         QString deviceDisplayName{};
     };
 
-    struct DeviceInformation : DeviceKeys {
+    struct QUOTIENT_API DeviceInformation : DeviceKeys {
         //! Additional data added to the device key information
         //! by intermediate servers, and not covered by the
         //! signatures.
@@ -149,7 +149,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
+struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
     static void fillFrom(const QJsonObject& jo, QueryKeysJob::UnsignedDeviceInfo& result)
     {
         fillFromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
@@ -157,7 +157,7 @@ struct JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
 };
 
 template <>
-struct JsonObjectConverter<QueryKeysJob::DeviceInformation> {
+struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::DeviceInformation> {
     static void fillFrom(const QJsonObject& jo, QueryKeysJob::DeviceInformation& result)
     {
         fillFromJson<DeviceKeys>(jo, result);

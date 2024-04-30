@@ -15,7 +15,7 @@ public:
 
     //! A dictionary of information for the pusher implementation
     //! itself.
-    struct PusherData {
+    struct QUOTIENT_API PusherData {
         //! Required if `kind` is `http`. The URL to use to send
         //! notifications to.
         QUrl url{};
@@ -25,7 +25,7 @@ public:
         QString format{};
     };
 
-    struct Pusher {
+    struct QUOTIENT_API Pusher {
         //! This is a unique identifier for this pusher. See `/set` for
         //! more detail.
         //! Max length, 512 bytes.
@@ -77,7 +77,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetPushersJob::PusherData> {
+struct QUOTIENT_API JsonObjectConverter<GetPushersJob::PusherData> {
     static void fillFrom(const QJsonObject& jo, GetPushersJob::PusherData& result)
     {
         fillFromJson(jo.value("url"_ls), result.url);
@@ -86,7 +86,7 @@ struct JsonObjectConverter<GetPushersJob::PusherData> {
 };
 
 template <>
-struct JsonObjectConverter<GetPushersJob::Pusher> {
+struct QUOTIENT_API JsonObjectConverter<GetPushersJob::Pusher> {
     static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
     {
         fillFromJson(jo.value("pushkey"_ls), result.pushkey);
@@ -118,7 +118,7 @@ public:
     //! for the pusher implementation itself. If `kind` is `http`,
     //! this should contain `url` which is the URL to use to send
     //! notifications to.
-    struct PusherData {
+    struct QUOTIENT_API PusherData {
         //! Required if `kind` is `http`. The URL to use to send
         //! notifications to. MUST be an HTTPS URL with a path of
         //! `/_matrix/push/v1/notify`.
@@ -194,7 +194,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<PostPusherJob::PusherData> {
+struct QUOTIENT_API JsonObjectConverter<PostPusherJob::PusherData> {
     static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
     {
         addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);

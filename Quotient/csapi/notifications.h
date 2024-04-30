@@ -15,7 +15,7 @@ class QUOTIENT_API GetNotificationsJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct Notification {
+    struct QUOTIENT_API Notification {
         //! The action(s) to perform when the conditions for this rule are met.
         //! See [Push Rules: API](/client-server-api/#push-rules-api).
         QVector<QVariant> actions;
@@ -76,7 +76,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetNotificationsJob::Notification> {
+struct QUOTIENT_API JsonObjectConverter<GetNotificationsJob::Notification> {
     static void fillFrom(const QJsonObject& jo, GetNotificationsJob::Notification& result)
     {
         fillFromJson(jo.value("actions"_ls), result.actions);

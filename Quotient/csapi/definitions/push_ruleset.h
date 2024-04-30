@@ -8,7 +8,7 @@
 
 namespace Quotient {
 
-struct PushRuleset {
+struct QUOTIENT_API PushRuleset {
     QVector<PushRule> content{};
 
     QVector<PushRule> override{};

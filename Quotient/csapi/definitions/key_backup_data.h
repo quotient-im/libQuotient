@@ -6,7 +6,7 @@
 
 namespace Quotient {
 //! The key data
-struct KeyBackupData {
+struct QUOTIENT_API KeyBackupData {
     //! The index of the first message in the session that the key can decrypt.
     int firstMessageIndex;
 

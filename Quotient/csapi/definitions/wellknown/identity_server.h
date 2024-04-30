@@ -6,7 +6,7 @@
 
 namespace Quotient {
 //! Used by clients to discover identity server information.
-struct IdentityServerInformation {
+struct QUOTIENT_API IdentityServerInformation {
     //! The base URL for the identity server for client-server connections.
     QUrl baseUrl;
 };

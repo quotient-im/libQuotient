@@ -6,7 +6,7 @@
 
 namespace Quotient {
 //! Used by clients to discover homeserver information.
-struct HomeserverInformation {
+struct QUOTIENT_API HomeserverInformation {
     //! The base URL for the homeserver for client-server connections.
     QUrl baseUrl;
 };

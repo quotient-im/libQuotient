@@ -22,7 +22,7 @@ class QUOTIENT_API SearchUserDirectoryJob : public BaseJob {
 public:
     // Inner data structures
 
-    struct User {
+    struct QUOTIENT_API User {
         //! The user's matrix user ID.
         QString userId;
 
@@ -54,7 +54,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<SearchUserDirectoryJob::User> {
+struct QUOTIENT_API JsonObjectConverter<SearchUserDirectoryJob::User> {
     static void fillFrom(const QJsonObject& jo, SearchUserDirectoryJob::User& result)
     {
         fillFromJson(jo.value("user_id"_ls), result.userId);

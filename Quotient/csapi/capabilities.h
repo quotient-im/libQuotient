@@ -15,13 +15,13 @@ public:
     // Inner data structures
 
     //! Capability to indicate if the user can change their password.
-    struct ChangePasswordCapability {
+    struct QUOTIENT_API ChangePasswordCapability {
         //! True if the user can change their password, false otherwise.
         bool enabled;
     };
 
     //! The room versions the server supports.
-    struct RoomVersionsCapability {
+    struct QUOTIENT_API RoomVersionsCapability {
         //! The default room version the server is using for new rooms.
         QString defaultVersion;
 
@@ -31,7 +31,7 @@ public:
 
     //! The custom capabilities the server supports, using the
     //! Java package naming convention.
-    struct Capabilities {
+    struct QUOTIENT_API Capabilities {
         //! Capability to indicate if the user can change their password.
         std::optional<ChangePasswordCapability> changePassword{};
 
@@ -59,7 +59,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
+struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
     static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::ChangePasswordCapability& result)
     {
         fillFromJson(jo.value("enabled"_ls), result.enabled);
@@ -67,7 +67,7 @@ struct JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
 };
 
 template <>
-struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability> {
+struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability> {
     static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::RoomVersionsCapability& result)
     {
         fillFromJson(jo.value("default"_ls), result.defaultVersion);
@@ -76,7 +76,7 @@ struct JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability> {
 };
 
 template <>
-struct JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
+struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
     static void fillFrom(QJsonObject jo, GetCapabilitiesJob::Capabilities& result)
     {
         fillFromJson(jo.take("m.change_password"_ls), result.changePassword);

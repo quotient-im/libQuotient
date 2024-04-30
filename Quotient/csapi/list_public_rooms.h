@@ -115,7 +115,7 @@ public:
     // Inner data structures
 
     //! Filter to apply to the results.
-    struct Filter {
+    struct QUOTIENT_API Filter {
         //! An optional string to search for in the room metadata, e.g. name,
         //! topic, canonical alias, etc.
         QString genericSearchTerm{};
@@ -185,7 +185,7 @@ public:
 };
 
 template <>
-struct JsonObjectConverter<QueryPublicRoomsJob::Filter> {
+struct QUOTIENT_API JsonObjectConverter<QueryPublicRoomsJob::Filter> {
     static void dumpTo(QJsonObject& jo, const QueryPublicRoomsJob::Filter& pod)
     {
         addParam<IfNotEmpty>(jo, QStringLiteral("generic_search_term"), pod.genericSearchTerm);
