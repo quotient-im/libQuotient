@@ -31,9 +31,12 @@ public:
     QFuture<QUrl> upload(const QString& fileName) const;
     QFuture<QUrl> upload(QIODevice* source) const;
 
+    bool isEmpty() const;
     QString mediaId() const;
     QUrl url() const;
     bool updateUrl(const QUrl& newUrl);
+
+    static bool isUrlValid(const QUrl& u);
 
 private:
     class Private;

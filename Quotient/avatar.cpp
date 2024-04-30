@@ -17,7 +17,7 @@ using namespace Quotient;
 
 class Q_DECL_HIDDEN Avatar::Private {
 public:
-    explicit Private(Connection* c, QUrl url = {}) : connection(c), _url(std::move(url)) {}
+    explicit Private(Connection* c) : connection(c) {}
     ~Private()
     {
         thumbnailRequest.abandon();
@@ -25,11 +25,9 @@ public:
     }
     Q_DISABLE_COPY_MOVE(Private)
 
-    QImage get(Connection* connection, QSize size,
-               get_callback_t callback) const;
+    QImage get(QSize size, get_callback_t callback) const;
     void thumbnailRequestFinished() const;
 
-    bool checkUrl(const QUrl& url) const;
     QString localFile() const;
 
     Connection* connection;
@@ -40,13 +38,17 @@ public:
     mutable std::vector<std::pair<QSize, QImage>> scaledImages;
     mutable QSize largestRequestedSize{};
     enum ImageSource : quint8 { Unknown, Cache, Network, Invalid };
-    mutable ImageSource imageSource = Unknown;
+    mutable ImageSource imageSource = Invalid;
     mutable JobHandle<MediaThumbnailJob> thumbnailRequest = nullptr;
     mutable JobHandle<UploadContentJob> uploadRequest = nullptr;
     mutable std::vector<get_callback_t> callbacks{};
 };
 
-Avatar::Avatar(Connection* c, QUrl url) : d(makeImpl<Private>(c, std::move(url))) {}
+Avatar::Avatar(Connection* c, QUrl url) : d(makeImpl<Private>(c))
+{
+    if (!url.isEmpty())
+        updateUrl(url);
+}
 
 QImage Avatar::get(int dimension, get_callback_t callback) const
 {
@@ -86,6 +88,8 @@ QFuture<QUrl> Avatar::upload(QIODevice* source) const
     return d->uploadRequest.responseFuture();
 }
 
+bool Avatar::isEmpty() const { return d->_url.isEmpty(); }
+
 QString Avatar::mediaId() const { return d->_url.authority() + d->_url.path(); }
 
 QImage Avatar::Private::get(QSize size, get_callback_t callback) const
@@ -100,10 +104,9 @@ QImage Avatar::Private::get(QSize size, get_callback_t callback) const
     // one dimension to be suitable for scaling down to the requested size;
     // therefore the new size has to be larger in both dimensions to warrant a
     // new request to the server
-    if (((imageSource == Unknown && !thumbnailRequest)
-         || (size.width() > largestRequestedSize.width()
-             && size.height() > largestRequestedSize.height()))
-        && checkUrl(_url)) {
+    if ((imageSource == Unknown && !thumbnailRequest)
+        || (imageSource != Invalid && size.width() > largestRequestedSize.width()
+            && size.height() > largestRequestedSize.height())) {
         qCDebug(MAIN) << "Getting avatar from" << _url.toString();
         largestRequestedSize = size;
         thumbnailRequest.abandon();
@@ -164,21 +167,6 @@ void Avatar::Private::thumbnailRequestFinished() const
     callbacks.clear();
 }
 
-bool Avatar::Private::checkUrl(const QUrl& url) const
-{
-    if (imageSource == Invalid || url.isEmpty())
-        return false;
-
-    // FIXME: Make "mxc" a library-wide constant and maybe even make
-    // the URL checker a Connection(?) method.
-    if (!url.isValid() || url.scheme() != "mxc"_L1 || url.path().count(u'/') != 1) {
-        qCWarning(MAIN) << "Avatar URL is invalid or not mxc-based:"
-                        << url.toDisplayString();
-        imageSource = Invalid;
-    }
-    return imageSource != Invalid;
-}
-
 QString Avatar::Private::localFile() const
 {
     static const auto cachePath = cacheLocation(u"avatars");
@@ -192,10 +180,21 @@ bool Avatar::updateUrl(const QUrl& newUrl)
     if (newUrl == d->_url)
         return false;
 
-    d->_url = newUrl;
-    d->imageSource = Private::Unknown;
+    if (isUrlValid(newUrl)) {
+        d->_url = d->connection->makeMediaUrl(newUrl);
+        d->imageSource = Private::Unknown;
+    } else {
+        qCWarning(MAIN) << "Avatar URL is invalid or not mxc-based:" << newUrl.toDisplayString();
+        d->_url.clear();
+        d->imageSource = Private::Invalid;
+    }
     d->originalImage = {};
     d->scaledImages.clear();
     d->thumbnailRequest.abandon();
     return true;
+}
+
+bool Avatar::isUrlValid(const QUrl& u)
+{
+    return u.isValid() && u.scheme() == u"mxc" && u.path().count(u'/') == 1;
 }

@@ -618,21 +618,24 @@ QString Room::avatarMediaId() const { return d->avatar.mediaId(); }
 
 QUrl Room::avatarUrl() const { return d->avatar.url(); }
 
-const Avatar& Room::avatarObject() const { return d->avatar; }
+const Avatar& Room::avatarObject() const
+{
+    // If the avatar is not empty use it; otherwise, try to use the first (excluding self) user's
+    // avatar for direct chats, or just return the empty room avatar if that doesn't work out
+    if (d->avatar.isEmpty())
+        for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
+            if (m != localMember())
+                return m.avatarObject();
+
+    return d->avatar;
+}
 
 QImage Room::avatar(int dimension) { return avatar(dimension, dimension); }
 
 QImage Room::avatar(int width, int height)
 {
-    if (!d->avatar.url().isEmpty())
-        return d->avatar.get(width, height, [this] { emit avatarChanged(); });
-
-    // Use the first (excluding self) user's avatar for direct chats
-    for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
-        if (m != localMember())
-            return m.avatarObject().get(width, height, [this] { emit avatarChanged(); });
-
-    return {};
+    return d->avatar.isEmpty() ? QImage()
+                               : d->avatar.get(width, height, [this] { emit avatarChanged(); });
 }
 
 RoomMember Room::localMember() const { return member(connection()->userId()); }

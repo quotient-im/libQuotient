@@ -108,7 +108,7 @@ QUrl getMediaId(const RoomMemberEvent* evt)
     else if (evt->prevContent() && evt->prevContent()->avatarUrl)
         baseUrl = *evt->prevContent()->avatarUrl;
 
-    return baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1 ? QUrl() : baseUrl;
+    return Avatar::isUrlValid(baseUrl) ? baseUrl : QUrl();
 }
 }
 
@@ -121,8 +121,8 @@ QUrl RoomMember::avatarUrl() const {
     if (isEmpty())
         return {};
 
-    const auto mediaUrl = _room->connection()->makeMediaUrl(getMediaId(_member));
-    return mediaUrl.isValid() && mediaUrl.scheme() == "mxc"_L1 ? mediaUrl : QUrl();
+    const auto mediaId = getMediaId(_member);
+    return mediaId.isValid() ? _room->connection()->makeMediaUrl(mediaId) : QUrl();
 }
 
 int RoomMember::powerLevel() const
