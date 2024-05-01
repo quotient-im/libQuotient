@@ -462,9 +462,8 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
     if (connection->encryptionEnabled()) {
-        connectSingleShot(this, &Room::encryption, this, [this, connection] {
-            connection->encryptionUpdate(this);
-        });
+        connect(this, &Room::encryption, this,
+                [this, connection] { connection->encryptionUpdate(this); });
         connect(this, &Room::memberListChanged, this, [this, connection] {
             if(usesEncryption()) {
                 connection->encryptionUpdate(this, d->membersInvited);

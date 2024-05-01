@@ -769,8 +769,7 @@ public Q_SLOTS:
     Quotient::KeyVerificationSession* startKeyVerificationSession(const QString& userId,
                                                                   const QString& deviceId);
 
-    void encryptionUpdate(const Room* room, const QList<QString>& invitedIds);
-    void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
+    void encryptionUpdate(const Room* room, const QStringList& invitedIds = {});
 
     static Connection* makeMockConnection(const QString& mxId,
                                           bool enableEncryption = true);

@@ -39,8 +39,6 @@
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
 
-#include <qt6keychain/keychain.h>
-
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
@@ -50,6 +48,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
+#include <qt6keychain/keychain.h>
 
 using namespace Quotient;
 
@@ -1770,20 +1769,9 @@ bool Connection::isQueryingKeys() const
            && d->encryptionData->currentQueryKeysJob != nullptr;
 }
 
-void Connection::encryptionUpdate(const Room* room, const QList<QString>& invitedIds)
+void Connection::encryptionUpdate(const Room* room, const QStringList& invitedIds)
 {
     if (d->encryptionData) {
-        d->encryptionData->encryptionUpdate(room->joinedMemberIds() + invitedIds);
-    }
-}
-
-void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
-{
-    if (d->encryptionData) {
-        QList<QString> invitedIds;
-        for (const auto& u : invited) {
-            invitedIds.append(u->id());
-        }
         d->encryptionData->encryptionUpdate(room->joinedMemberIds() + invitedIds);
     }
 }
