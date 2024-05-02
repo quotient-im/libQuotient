@@ -2865,7 +2865,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         }
         if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
             if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
-                auto session = new KeyVerificationSession(evt->senderId(), connection, q->usesEncryption(), {}, evt->contentPart<QStringList>("methods"_ls), evt->originTimestamp(), evt->contentPart<QString>("from_device"_ls), q, evt->id());
+                auto session = new KeyVerificationSession(evt, q);
                 emit connection->newKeyVerificationSession(session);
                 //TODO connect delete from sessions when finished
                 keyVerificationSessions[evt->id()] = session;

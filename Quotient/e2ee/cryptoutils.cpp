@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
 
 #include "cryptoutils.h"
+#include "e2ee/e2ee_common.h"
 
 #include "../logging_categories_p.h"
 #include "../util.h"
@@ -323,7 +324,7 @@ std::vector<byte_t> Quotient::base58Decode(const QByteArray& encoded)
     return result;
 }
 
-QUOTIENT_API QByteArray Quotient::sign(const QByteArray& key, const QByteArray& data)
+QByteArray Quotient::sign(const QByteArray& key, const QByteArray& data)
 {
     auto context = makeCStruct(olm_pk_signing, olm_pk_signing_size, olm_clear_pk_signing);
     QByteArray pubKey(olm_pk_signing_public_key_length(), 0);
@@ -333,7 +334,7 @@ QUOTIENT_API QByteArray Quotient::sign(const QByteArray& key, const QByteArray& 
     const auto signatureLength = olm_pk_signature_length();
     auto signatureBuffer = byteArrayForOlm(signatureLength);
 
-    if (olm_pk_sign(context.get(), (const uint8_t *) data.data(), unsignedSize(data), (uint8_t*) signatureBuffer.data(), signatureLength)
+    if (olm_pk_sign(context.get(), asCBytes(data).data(), unsignedSize(data), asWritableCBytes(signatureBuffer).data(), signatureLength)
         == olm_error())
         QOLM_INTERNAL_ERROR_X("Failed to sign a message", olm_pk_signing_last_error(context.get()));
 

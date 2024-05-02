@@ -73,27 +73,24 @@ KeyVerificationSession::KeyVerificationSession(
 }
 
 
-KeyVerificationSession::KeyVerificationSession(
-    QString remoteUserId,
-    Connection* connection, bool encrypted, const QString& transactionId, const QStringList& methods, const QDateTime& timestamp, const QString &deviceId, Room *room, const QString &requestEventId
-)
-    : QObject(connection)
-    , m_remoteUserId(std::move(remoteUserId))
-    , m_remoteDeviceId(deviceId)
-    , m_transactionId(transactionId)
-    , m_connection(connection)
-    , m_encrypted(encrypted)
-    , m_remoteSupportedMethods(methods)
+KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent *event, Room *room)
+    : QObject(room->connection())
+    , m_remoteUserId(event->senderId())
+    , m_remoteDeviceId(event->contentPart<QString>("from_device"_ls))
+    , m_transactionId(QString())
+    , m_connection(room->connection())
+    , m_encrypted(room->usesEncryption())
+    , m_remoteSupportedMethods(event->contentPart<QStringList>("methods"_ls))
     , m_room(room)
-    , m_requestEventId(requestEventId)
+    , m_requestEventId(event->id())
 {
-    if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+    if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
         qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
         return;
     }
     const auto& currentTime = QDateTime::currentDateTime();
     const auto timeoutTime =
-        std::min(timestamp.addSecs(600), currentTime.addSecs(120));
+        std::min(event->originTimestamp().addSecs(600), currentTime.addSecs(120));
     const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
     if (timeout > 5s)
         setupTimeout(timeout);

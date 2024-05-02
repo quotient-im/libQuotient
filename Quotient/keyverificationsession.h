@@ -4,6 +4,7 @@
 #pragma once
 
 #include "events/keyverificationevent.h"
+#include "events/roommessageevent.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
@@ -88,19 +89,19 @@ public:
     // Whether this is a user verification (in contrast to a device verification)
     Q_PROPERTY(bool userVerification READ userVerification CONSTANT)
 
+    // Incoming device verification
     KeyVerificationSession(QString remoteUserId,
                            const KeyVerificationRequestEvent& event,
                            Connection* connection, bool encrypted);
+
+    // Outgoing device verification
     KeyVerificationSession(QString userId, QString deviceId,
                            Connection* connection);
 
-    // Use this constructor for in-room verification
-    KeyVerificationSession(QString remoteUserId, Connection* connection,
-                           bool encrypted, const QString& transactionId,
-                           const QStringList& methods, const QDateTime& timestamp,
-                           const QString& deviceId, Quotient::Room *room, const QString &requestEventId);
+    // Incoming user verification
+    KeyVerificationSession(const RoomMessageEvent *event, Room *room);
 
-    // Use this constructor for starting an in-room verification
+    // Outgoing user verification
     explicit KeyVerificationSession(Room *room);
 
     void handleEvent(const KeyVerificationEvent& baseEvent);
