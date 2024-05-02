@@ -2871,8 +2871,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                 keyVerificationSessions[evt->id()] = session;
             }
         }
-        if (it->event()->matrixType().startsWith("m.key.verification."_ls)) {
-            auto event = loadEvent<KeyVerificationEvent>(it->event()->fullJson());
+        if (auto event = it->viewAs<KeyVerificationEvent>()) {
             const auto &baseEvent = event->contentJson()["m.relates_to"_ls]["event_id"_ls].toString();
             if (event->matrixType() == "m.key.verification.done"_ls) {
                 continue;
