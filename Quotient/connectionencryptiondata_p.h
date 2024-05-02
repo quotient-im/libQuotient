@@ -23,7 +23,7 @@ namespace _impl {
         QOlmAccount olmAccount;
         // No easy way in C++ to discern between SQL SELECT from UPDATE, too bad
         mutable Database database;
-        UnorderedMap<QByteArray, std::vector<QOlmSession>> olmSessions;
+        std::unordered_map<QByteArray, std::vector<QOlmSession>> olmSessions;
         //! A map from SenderKey to vector of InboundSession
         QHash<QString, KeyVerificationSession*> verificationSessions{};
         QSet<QString> trackedUsers{};

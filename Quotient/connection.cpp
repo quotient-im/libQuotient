@@ -1829,8 +1829,7 @@ Database* Connection::database() const
     return d->encryptionData ? &d->encryptionData->database : nullptr;
 }
 
-UnorderedMap<QByteArray, QOlmInboundGroupSession>
-Connection::loadRoomMegolmSessions(const Room* room) const
+std::unordered_map<QByteArray, QOlmInboundGroupSession> Connection::loadRoomMegolmSessions(const Room* room) const
 {
     return database()->loadMegolmSessions(room->id());
 }

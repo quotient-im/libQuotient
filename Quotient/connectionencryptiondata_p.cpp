@@ -144,7 +144,7 @@ void ConnectionEncryptionData::saveDevicesList()
         "SELECT :matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, "
         ":edKey, :verified WHERE NOT EXISTS(SELECT 1 FROM tracked_devices "
         "WHERE matrixId=:matrixId AND deviceId=:deviceId);"));
-    for (const auto& [user, devices] : asKeyValueRange(deviceKeys)) {
+    for (const auto& [user, devices] : deviceKeys.asKeyValueRange()) {
         for (const auto& device : devices) {
             auto keys = device.keys.keys();
             auto curveKeyId = keys[0].startsWith("curve"_ls) ? keys[0]
@@ -384,7 +384,7 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
 
 void ConnectionEncryptionData::handleQueryKeys(const QueryKeysJob* job)
 {
-    for (const auto& [user, keys] : asKeyValueRange(job->deviceKeys())) {
+    for (const auto& [user, keys] : job->deviceKeys().asKeyValueRange()) {
         const QHash<QString, Quotient::DeviceKeys> oldDevices = deviceKeys[user];
         deviceKeys[user].clear();
         for (const auto& device : keys) {
@@ -703,7 +703,7 @@ void ConnectionEncryptionData::doSendSessionKeyToDevices(
 {
     qDebug(E2EE) << "Sending room key to devices:" << sessionId << messageIndex;
     QHash<QString, QHash<QString, QString>> hash;
-    for (const auto& [userId, deviceId] : asKeyValueRange(devices))
+    for (const auto& [userId, deviceId] : devices.asKeyValueRange())
         if (!hasOlmSession(userId, deviceId)) {
             hash[userId].insert(deviceId, "signed_curve25519"_ls);
             qDebug(E2EE) << "Adding" << userId << deviceId
@@ -713,8 +713,7 @@ void ConnectionEncryptionData::doSendSessionKeyToDevices(
     const auto sendKey = [devices, this, sessionId, messageIndex, sessionKey,
                           roomId] {
         QHash<QString, QHash<QString, QJsonObject>> usersToDevicesToContent;
-        for (const auto& [targetUserId, targetDeviceId] :
-             asKeyValueRange(devices)) {
+        for (const auto& [targetUserId, targetDeviceId] : devices.asKeyValueRange()) {
             if (!hasOlmSession(targetUserId, targetDeviceId))
                 continue;
 
@@ -735,7 +734,7 @@ void ConnectionEncryptionData::doSendSessionKeyToDevices(
             q->sendToDevices(EncryptedEvent::TypeId, usersToDevicesToContent);
             QVector<std::tuple<QString, QString, QString>> receivedDevices;
             receivedDevices.reserve(devices.size());
-            for (const auto& [user, device] : asKeyValueRange(devices))
+            for (const auto& [user, device] : devices.asKeyValueRange())
                 receivedDevices.push_back(
                     { user, device, curveKeyForUserDevice(user, device) });
 
@@ -751,12 +750,10 @@ void ConnectionEncryptionData::doSendSessionKeyToDevices(
 
     auto job = q->callApi<ClaimKeysJob>(hash);
     QObject::connect(job, &BaseJob::success, q, [job, this, sendKey] {
-        for (const auto oneTimeKeys = job->oneTimeKeys();
-             const auto& [userId, userDevices] : asKeyValueRange(oneTimeKeys)) {
-            for (const auto& [deviceId, keys] : asKeyValueRange(userDevices)) {
+        for (const auto& [userId, userDevices] : job->oneTimeKeys().asKeyValueRange())
+            for (const auto& [deviceId, keys] : userDevices.asKeyValueRange())
                 createOlmSession(userId, deviceId, keys);
-            }
-        }
+
         sendKey();
     });
 }

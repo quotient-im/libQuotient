@@ -29,7 +29,7 @@ static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all
 
 /// \brief Copy an object with slicing
 ///
-/// Unintended slicing is bad, which why there's a C++ Core Guideline that
+/// Unintended slicing is bad, which is why there's a C++ Core Guideline that
 /// basically says "don't slice, or if you do, make it explicit". Sonar and
 /// clang-tidy have warnings matching this guideline; unfortunately, those
 /// warnings trigger even when you have a dedicated method (as the guideline
@@ -44,7 +44,8 @@ static_assert(false, "Use Q_DISABLE_MOVE instead; Quotient enables it across all
 #define SLICE(Object, ToType) ToType{static_cast<const ToType&>(Object)}
 
 namespace Quotient {
-/// An equivalent of std::hash for QTypes to enable std::unordered_map<QType, ...>
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR < 10
+/// This is only to make UnorderedMap alias work until we get rid of it
 template <typename T>
 struct HashQ {
     size_t operator()(const T& s) const Q_DECL_NOEXCEPT
@@ -54,20 +55,16 @@ struct HashQ {
 };
 /// A wrapper around std::unordered_map compatible with types that have qHash
 template <typename KeyT, typename ValT>
-using UnorderedMap = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
+using UnorderedMap
+    [[deprecated("Use std::unordered_map directly")]] = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
 
 constexpr auto operator"" _ls(const char* s, std::size_t size)
 {
     return QLatin1String(s, int(size));
 }
 
-/** An abstraction over a pair of iterators
- * This is a very basic range type over a container with iterators that
- * are at least ForwardIterators. Inspired by Ranges TS.
- */
 template <typename ArrayT>
-class Range {
-    // Looking forward to C++20 ranges
+class [[deprecated("Use std::ranges::subrange instead")]] Range {
     using iterator = typename ArrayT::iterator;
     using const_iterator = typename ArrayT::const_iterator;
     using size_type = typename ArrayT::size_type;
@@ -114,8 +111,8 @@ namespace _impl {
 //!       throughout the loop; with lvalues, no copying occurs, assuming that
 //!       the map object outlives the range-for loop
 template <typename T>
-class asKeyValueRange
-{
+class [[deprecated(
+    "Use the member function with the same name of the respective container")]] asKeyValueRange {
 public:
     explicit asKeyValueRange(T data)
         : m_data { data }
@@ -136,11 +133,15 @@ private:
     T m_data;
 };
 
+// GCC complains about a deprecation even on deduction hints, so here's to suppress noise
+QT_IGNORE_DEPRECATIONS(
 template <typename U>
 asKeyValueRange(U&) -> asKeyValueRange<U&>;
 
 template <typename U>
 asKeyValueRange(U&&) -> asKeyValueRange<U>;
+)
+#endif
 
 /** A replica of std::find_first_of that returns a pair of iterators
  *

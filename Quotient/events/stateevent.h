@@ -138,3 +138,12 @@ concept Keyless_State_Event = !EvT::needsStateKey;
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::StateEvent*)
 Q_DECLARE_METATYPE(const Quotient::StateEvent*)
+
+// https://stackoverflow.com/questions/68320024/why-did-the-c-standards-committee-not-include-stdhash-for-pair-and-tuple
+template <>
+struct std::hash<Quotient::StateEventKey> {
+    size_t operator()(const Quotient::StateEventKey& k) const
+    {
+        return qHash(k, QHashSeed::globalSeed());
+    }
+};

@@ -164,7 +164,7 @@ void User::ignore() const { connection()->addToIgnoredUsers(d->id); }
 
 void User::unmarkIgnore() const { connection()->removeFromIgnoredUsers(d->id); }
 
-bool User::isIgnored() const { return connection()->isIgnored(this); }
+bool User::isIgnored() const { return connection()->isIgnored(d->id); }
 
 QString User::avatarMediaId() const
 {

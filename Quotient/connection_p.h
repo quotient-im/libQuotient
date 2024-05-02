@@ -41,7 +41,7 @@ public:
     QVector<QString> roomIdsToForget;
     QVector<QString> pendingStateRoomIds;
     QMap<QString, User*> userMap;
-    UnorderedMap<QString, Avatar> userAvatarMap;
+    std::unordered_map<QString, Avatar> userAvatarMap;
     DirectChatsMap directChats;
     QMultiHash<QString, QString> directChatMemberIds;
     DirectChatUsersMap directChatUsers;
@@ -49,7 +49,7 @@ public:
     // See https://github.com/quotient-im/libQuotient/wiki/Handling-direct-chat-events
     DirectChatsMap dcLocalAdditions;
     DirectChatsMap dcLocalRemovals;
-    UnorderedMap<QString, EventPtr> accountData;
+    std::unordered_map<QString, EventPtr> accountData;
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
 

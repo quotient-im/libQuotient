@@ -477,7 +477,7 @@ namespace _impl {
     template <typename ValT>
     inline void addTo(QUrlQuery& q, const QString&, const QHash<QString, ValT>& fields)
     {
-        for (const auto& [k, v] : asKeyValueRange(fields))
+        for (const auto& [k, v] : fields.asKeyValueRange())
             addTo(q, k, v);
     }
 

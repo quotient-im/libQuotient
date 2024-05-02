@@ -285,6 +285,7 @@ public:
     Q_INVOKABLE bool isIgnored(const QString& userId) const;
 
     //! Check whether a particular user is in the ignore list
+    [[deprecated("Use the overload accepting UserId instead")]]
     Q_INVOKABLE bool isIgnored(const Quotient::User* user) const;
 
     //! Get the whole list of ignored users
@@ -352,7 +353,7 @@ public:
     QOlmAccount* olmAccount() const;
     Database* database() const;
 
-    UnorderedMap<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
+    std::unordered_map<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;

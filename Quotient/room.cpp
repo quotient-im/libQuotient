@@ -96,7 +96,7 @@ public:
     JoinState joinState;
     RoomSummary summary = { {}, 0, {} };
     /// The state of the room at timeline position before-0
-    UnorderedMap<StateEventKey, StateEventPtr> baseState;
+    std::unordered_map<StateEventKey, StateEventPtr> baseState;
     /// The state of the room at syncEdge()
     /// \sa syncEdge
     RoomStateView currentState;
@@ -132,7 +132,7 @@ public:
     QHash<QString, ReadReceipt> lastReadReceipts;
     QString fullyReadUntilEventId;
     TagsMap tags;
-    UnorderedMap<QString, EventPtr> accountData;
+    std::unordered_map<QString, EventPtr> accountData;
     //! \brief Previous (i.e. next towards the room beginning) batch token
     //!
     //! "Emptiness" of this can have two forms. If prevBatch.has_value() it means the library
@@ -145,7 +145,7 @@ public:
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
-    UnorderedMap<QString, QSet<QString>> undecryptedEvents;
+    std::unordered_map<QString, QSet<QString>> undecryptedEvents;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -335,7 +335,7 @@ public:
 
     bool isLocalMember(const QString& memberId) const { return memberId == connection->userId(); }
 
-    UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
+    std::unordered_map<QByteArray, QOlmInboundGroupSession> groupSessions;
     std::optional<QOlmOutboundGroupSession> currentOutboundMegolmSession = {};
 
     bool addInboundGroupSession(QByteArray sessionId, QByteArray sessionKey,
@@ -2744,7 +2744,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         // NB: We have to store redacting/replacing events to the timeline too -
         // see #220.
         auto it = std::find_if(events.begin(), events.end(), isEditing);
-        for (const auto& eptr : RoomEventsRange(it, events.end())) {
+        for (const auto& eptr : std::ranges::subrange(it, events.end())) {
             if (auto* r = eventCast<RedactionEvent>(eptr)) {
                 // Try to find the target in the timeline, then in the batch.
                 if (processRedaction(*r))
