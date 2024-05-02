@@ -97,8 +97,6 @@ public:
     RoomSummary summary = { {}, 0, {} };
     /// The state of the room at timeline position before-0
     UnorderedMap<StateEventKey, StateEventPtr> baseState;
-    /// State event stubs - events without content, just type and state key
-    static decltype(baseState) stubbedState;
     /// The state of the room at syncEdge()
     /// \sa syncEdge
     RoomStateView currentState;
@@ -453,8 +451,6 @@ private:
     using users_shortlist_t = std::array<QString, 3>;
     users_shortlist_t buildShortlist(const QStringList& userIds) const;
 };
-
-decltype(Room::Private::baseState) Room::Private::stubbedState {};
 
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection), d(new Private(connection, id, initialJoinState))

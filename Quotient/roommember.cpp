@@ -68,7 +68,7 @@ QString RoomMember::fullName() const {
     if (name().isEmpty()) {
         return id();
     }
-    return displayName() % " ("_ls % id() % u')';
+    return name() % u" (" % id() % u')';
 }
 
 QString RoomMember::htmlSafeFullName() const { return fullName().toHtmlEscaped(); }

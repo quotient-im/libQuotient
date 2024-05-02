@@ -29,7 +29,6 @@
 #include <QtGui/QImage>
 
 #include <deque>
-#include <memory>
 #include <utility>
 
 namespace Quotient {
@@ -338,20 +337,18 @@ public:
      *         to load; false otherwise
      */
     bool allHistoryLoaded() const;
-    /**
-     * A convenience method returning the read marker to the position
-     * before the "oldest" event; same as messageEvents().crend()
-     */
+
+    //! \brief Get a reverse iterator at the position before the "oldest" event
+    //!
+    //! Same as messageEvents().crend()
     rev_iter_t historyEdge() const;
-    /**
-     * A convenience method returning the iterator beyond the latest
-     * arrived event; same as messageEvents().cend()
-     */
+    //! \brief Get an iterator for the position beyond the latest arrived event
+    //!
+    //! Same as messageEvents().cend()
     Timeline::const_iterator syncEdge() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t minTimelineIndex() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t maxTimelineIndex() const;
-    Q_INVOKABLE bool
-    isValidIndex(Quotient::TimelineItem::index_t timelineIndex) const;
+    Q_INVOKABLE bool isValidIndex(Quotient::TimelineItem::index_t timelineIndex) const;
 
     rev_iter_t findInTimeline(TimelineItem::index_t index) const;
     rev_iter_t findInTimeline(const QString& evtId) const;

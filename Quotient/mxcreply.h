@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "util.h"
+
 #include "events/filesourceinfo.h"
 
 #include <QtNetwork/QNetworkReply>

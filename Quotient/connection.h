@@ -786,8 +786,8 @@ public Q_SLOTS:
     //! \deprecated Do not use this directly, use Room::leaveRoom() instead
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
-    KeyVerificationSession* startKeyVerificationSession(const QString& userId,
-                                                        const QString& deviceId);
+    Quotient::KeyVerificationSession* startKeyVerificationSession(const QString& userId,
+                                                                  const QString& deviceId);
 
     void encryptionUpdate(const Room* room, const QList<QString>& invitedIds);
     void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
@@ -954,7 +954,7 @@ Q_SIGNALS:
         const Quotient::KeyVerificationSession* session,
         Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
-    bool finishedQueryingKeys();
+    void finishedQueryingKeys();
     void secretReceived(const QString& requestId, const QString& secret);
 
 protected:
@@ -972,14 +972,14 @@ protected:
     //! will be deleted and a new room object with Join state created.
     //! In contrast, switching between Join and Leave happens within
     //! the same object.
-    //! \param roomId room id (not alias!)
+    //! \param id room id (not alias!)
     //! \param joinState desired (target) join state of the room; if
     //! omitted, any state will be found and return unchanged, or a
     //! new Join room created.
     //! \return a pointer to a Room object with the specified id and the
     //! specified state; nullptr if roomId is empty or if roomFactory()
     //! failed to create a Room object.
-    Room* provideRoom(const QString& roomId, std::optional<JoinState> joinState = {});
+    Room* provideRoom(const QString& id, std::optional<JoinState> joinState = {});
 
     //! Process sync data from a successful sync request
     void onSyncSuccess(SyncData&& data, bool fromCache = false);

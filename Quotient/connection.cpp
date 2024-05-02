@@ -1911,8 +1911,8 @@ void Connection::saveCurrentOutboundMegolmSession(
             "Check encryptionData() or database() before calling this method");
 }
 
-KeyVerificationSession* Connection::startKeyVerificationSession(
-    const QString& userId, const QString& deviceId)
+KeyVerificationSession* Connection::startKeyVerificationSession(const QString& userId,
+                                                                const QString& deviceId)
 {
     if (!d->encryptionData) {
         qWarning(E2EE) << "E2EE is switched off on" << objectName()
