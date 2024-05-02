@@ -11,7 +11,7 @@ constexpr inline auto SasV1Method = "m.sas.v1"_ls;
 
 class QUOTIENT_API KeyVerificationEvent : public RoomEvent {
 public:
-    QUO_BASE_EVENT(KeyVerificationEvent, Event, "m.key.*")
+    QUO_BASE_EVENT(KeyVerificationEvent, RoomEvent, "m.key.*")
 
     using RoomEvent::RoomEvent;
 
