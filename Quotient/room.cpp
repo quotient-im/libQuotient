@@ -2852,7 +2852,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     for (auto it = from; it != syncEdge(); ++it) {
         if (it->event()->senderId() == connection->userId()) {
             if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
-                if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
+                if (evt->rawMsgtype() == "m.key.verification.request"_ls && pendingKeyVerificationSession && evt->senderId() == q->localMember().id()) {
                     keyVerificationSessions[evt->id()] = pendingKeyVerificationSession;
                     connect(pendingKeyVerificationSession.get(), &QObject::destroyed, q, [this, evt] {
                         keyVerificationSessions.remove(evt->id());
@@ -2867,12 +2867,14 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         }
         if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
             if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
-                auto session = new KeyVerificationSession(evt, q);
-                emit connection->newKeyVerificationSession(session);
-                keyVerificationSessions[evt->id()] = session;
-                connect(session, &QObject::destroyed, q, [this, evt] {
-                    qWarning() << keyVerificationSessions.remove(evt->id());
-                });
+                if (evt->originTimestamp() > QDateTime::currentDateTime().addSecs(-60)) {
+                    auto session = new KeyVerificationSession(evt, q);
+                    emit connection->newKeyVerificationSession(session);
+                    keyVerificationSessions[evt->id()] = session;
+                    connect(session, &QObject::destroyed, q, [this, evt] {
+                        keyVerificationSessions.remove(evt->id());
+                    });
+                }
             }
         }
         if (auto event = it->viewAs<KeyVerificationEvent>()) {
