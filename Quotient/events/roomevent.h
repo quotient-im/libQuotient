@@ -68,7 +68,7 @@ private:
 };
 using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
-using RoomEventsRange = Range<RoomEvents>;
+using RoomEventsRange = std::ranges::subrange<RoomEvents::iterator>;
 
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)

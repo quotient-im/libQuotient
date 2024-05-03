@@ -46,20 +46,8 @@ struct JsonObjectConverter<TagRecord> {
 using TagsMap = QHash<QString, TagRecord>;
 
 DEFINE_SIMPLE_EVENT(TagEvent, Event, "m.tag", TagsMap, tags, "tags")
-DEFINE_SIMPLE_EVENT(ReadMarkerEventImpl, Event, "m.fully_read", QString,
+DEFINE_SIMPLE_EVENT(ReadMarkerEvent, Event, "m.fully_read", QString,
                     eventId, "event_id")
-class ReadMarkerEvent : public ReadMarkerEventImpl {
-public:
-    using ReadMarkerEventImpl::ReadMarkerEventImpl;
-    [[deprecated("Use ReadMarkerEvent::eventId() instead")]]
-    auto event_id() const { return eventId(); }
-};
-DEFINE_SIMPLE_EVENT(IgnoredUsersEventImpl, Event, "m.ignored_user_list",
+DEFINE_SIMPLE_EVENT(IgnoredUsersEvent, Event, "m.ignored_user_list",
                     QSet<QString>, ignoredUsers, "ignored_users")
-class IgnoredUsersEvent : public IgnoredUsersEventImpl {
-public:
-    using IgnoredUsersEventImpl::IgnoredUsersEventImpl;
-    [[deprecated("Use IgnoredUsersEvent::ignoredUsers() instead")]]
-    auto ignored_users() const { return ignoredUsers(); }
-};
 } // namespace Quotient

@@ -39,8 +39,6 @@
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
 
-#include <qt6keychain/keychain.h>
-
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
 #include <QtCore/QElapsedTimer>
@@ -50,6 +48,7 @@
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtNetwork/QDnsLookup>
+#include <qt6keychain/keychain.h>
 
 using namespace Quotient;
 
@@ -1353,18 +1352,6 @@ IgnoredUsersList Connection::ignoredUsers() const
     return event ? event->ignoredUsers() : IgnoredUsersList();
 }
 
-void Connection::addToIgnoredUsers(const User* user)
-{
-    Q_ASSERT(user != nullptr);
-
-    auto ignoreList = ignoredUsers();
-    if (!ignoreList.contains(user->id())) {
-        ignoreList.insert(user->id());
-        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
-        emit ignoredUsersListChanged({ { user->id() } }, {});
-    }
-}
-
 void Connection::addToIgnoredUsers(const QString& userId)
 {
     auto ignoreList = ignoredUsers();
@@ -1372,17 +1359,6 @@ void Connection::addToIgnoredUsers(const QString& userId)
         ignoreList.insert(userId);
         d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
         emit ignoredUsersListChanged({ { userId } }, {});
-    }
-}
-
-void Connection::removeFromIgnoredUsers(const User* user)
-{
-    Q_ASSERT(user != nullptr);
-
-    auto ignoreList = ignoredUsers();
-    if (ignoreList.remove(user->id()) != 0) {
-        d->packAndSendAccountData<IgnoredUsersEvent>(ignoreList);
-        emit ignoredUsersListChanged({}, { { user->id() } });
     }
 }
 
@@ -1793,20 +1769,9 @@ bool Connection::isQueryingKeys() const
            && d->encryptionData->currentQueryKeysJob != nullptr;
 }
 
-void Connection::encryptionUpdate(const Room* room, const QList<QString>& invitedIds)
+void Connection::encryptionUpdate(const Room* room, const QStringList& invitedIds)
 {
     if (d->encryptionData) {
-        d->encryptionData->encryptionUpdate(room->joinedMemberIds() + invitedIds);
-    }
-}
-
-void Connection::encryptionUpdate(const Room* room, const QList<User*>& invited)
-{
-    if (d->encryptionData) {
-        QList<QString> invitedIds;
-        for (const auto& u : invited) {
-            invitedIds.append(u->id());
-        }
         d->encryptionData->encryptionUpdate(room->joinedMemberIds() + invitedIds);
     }
 }
@@ -1852,8 +1817,7 @@ Database* Connection::database() const
     return d->encryptionData ? &d->encryptionData->database : nullptr;
 }
 
-UnorderedMap<QByteArray, QOlmInboundGroupSession>
-Connection::loadRoomMegolmSessions(const Room* room) const
+std::unordered_map<QByteArray, QOlmInboundGroupSession> Connection::loadRoomMegolmSessions(const Room* room) const
 {
     return database()->loadMegolmSessions(room->id());
 }
@@ -1890,29 +1854,8 @@ void Connection::sendSessionKeyToDevices(
     d->encryptionData->sendSessionKeyToDevices(roomId, outboundSession, devices);
 }
 
-std::optional<QOlmOutboundGroupSession> Connection::loadCurrentOutboundMegolmSession(
-    const QString& roomId) const
-{
-    const auto& db = database();
-    Q_ASSERT_X(
-        db, __FUNCTION__,
-        "Check encryptionData() or database() before calling this method");
-    return db ? db->loadCurrentOutboundMegolmSession(roomId) : std::nullopt;
-}
-
-void Connection::saveCurrentOutboundMegolmSession(
-    const QString& roomId, const QOlmOutboundGroupSession& session) const
-{
-    if (const auto& db = database())
-        db->saveCurrentOutboundMegolmSession(roomId, session);
-    else
-        Q_ASSERT_X(
-            false, __FUNCTION__,
-            "Check encryptionData() or database() before calling this method");
-}
-
-KeyVerificationSession* Connection::startKeyVerificationSession(
-    const QString& userId, const QString& deviceId)
+KeyVerificationSession* Connection::startKeyVerificationSession(const QString& userId,
+                                                                const QString& deviceId)
 {
     if (!d->encryptionData) {
         qWarning(E2EE) << "E2EE is switched off on" << objectName()

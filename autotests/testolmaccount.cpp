@@ -207,9 +207,9 @@ void TestOlmAccount::uploadOneTimeKeys()
     const auto oneTimeKeys = olmAccount->oneTimeKeys();
 
     OneTimeKeys oneTimeKeysHash;
-    for (const auto& [keyId, key] : asKeyValueRange(oneTimeKeys.curve25519())) {
+    for (const auto& [keyId, key] : oneTimeKeys.curve25519().asKeyValueRange())
         oneTimeKeysHash["curve25519:"_ls + keyId] = key;
-    }
+
     auto request = new UploadKeysJob({}, oneTimeKeysHash);
     connect(request, &BaseJob::result, this, [request] {
         if (!request->status().good())
@@ -377,7 +377,7 @@ void TestOlmAccount::claimKeys()
 
     // The key is the one bob sent.
     const auto& claimedDeviceKeys = allClaimedKeys.value(bob->deviceId());
-    for (const auto& claimedKey : asKeyValueRange(claimedDeviceKeys)) {
+    for (const auto& claimedKey : claimedDeviceKeys.asKeyValueRange()) {
         if (!claimedKey.first.startsWith(SignedCurve25519Key))
             continue;
         QVERIFY(std::holds_alternative<SignedOneTimeKey>(claimedKey.second));

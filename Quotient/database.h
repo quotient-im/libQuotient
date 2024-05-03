@@ -37,8 +37,8 @@ public:
     void clear();
     void saveOlmSession(const QByteArray& senderKey, const QOlmSession& session,
                         const QDateTime& timestamp);
-    UnorderedMap<QByteArray, std::vector<QOlmSession>> loadOlmSessions();
-    UnorderedMap<QByteArray, QOlmInboundGroupSession> loadMegolmSessions(
+    std::unordered_map<QByteArray, std::vector<QOlmSession>> loadOlmSessions();
+    std::unordered_map<QByteArray, QOlmInboundGroupSession> loadMegolmSessions(
         const QString& roomId);
     void saveMegolmSession(const QString& roomId,
                            const QOlmInboundGroupSession& session);

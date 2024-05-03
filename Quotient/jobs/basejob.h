@@ -36,9 +36,6 @@ class QUOTIENT_API BaseJob : public QObject {
     }
 
 public:
-#define WITH_DEPRECATED_ERROR_VERSION(Recommended) \
-    Recommended, DECL_DEPRECATED_ENUMERATOR(Recommended##Error, Recommended)
-
     /*! The status code of a job
      *
      * Every job is created in Unprepared status; upon calling prepare()
@@ -58,18 +55,18 @@ public:
         Abandoned = 50, //!< A tiny period between abandoning and object deletion
         ErrorLevel = 100, //!< Errors have codes starting from this
         NetworkError = 101,
-        WITH_DEPRECATED_ERROR_VERSION(Timeout),
+        Timeout,
         Unauthorised,
         ContentAccessError,
-        WITH_DEPRECATED_ERROR_VERSION(NotFound),
-        WITH_DEPRECATED_ERROR_VERSION(IncorrectRequest),
-        WITH_DEPRECATED_ERROR_VERSION(IncorrectResponse),
-        WITH_DEPRECATED_ERROR_VERSION(TooManyRequests),
+        NotFound,
+        IncorrectRequest,
+        IncorrectResponse,
+        TooManyRequests,
         RateLimited = TooManyRequests,
-        WITH_DEPRECATED_ERROR_VERSION(RequestNotImplemented),
-        WITH_DEPRECATED_ERROR_VERSION(UnsupportedRoomVersion),
-        WITH_DEPRECATED_ERROR_VERSION(NetworkAuthRequired),
-        WITH_DEPRECATED_ERROR_VERSION(UserConsentRequired),
+        RequestNotImplemented,
+        UnsupportedRoomVersion,
+        NetworkAuthRequired,
+        UserConsentRequired,
         CannotLeaveRoom,
         UserDeactivated,
         FileError,
@@ -77,19 +74,11 @@ public:
     };
     Q_ENUM(StatusCode)
 
-#undef WITH_DEPRECATED_ERROR_VERSION
-
     template <typename... StrTs>
     static QByteArray makePath(StrTs&&... parts)
     {
         return (QByteArray() % ... % encodeIfParam(parts));
     }
-
-    using Data
-#ifndef Q_CC_MSVC
-        Q_DECL_DEPRECATED_X("Use Quotient::RequestData instead")
-#endif
-        = RequestData;
 
     /*!
      * This structure stores the status of a server call job. The status

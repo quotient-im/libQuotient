@@ -194,11 +194,12 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
         connect(keysJob, &BaseJob::finished, this, [this, keysJob, megolmDecryptionKey](){
             const auto &rooms = keysJob->rooms();
             qCDebug(E2EE) << rooms.size() << "rooms in the backup";
-            for (const auto& [roomId, roomKeyBackup] : asKeyValueRange(rooms)) {
+            for (const auto& [roomId, roomKeyBackup] : rooms.asKeyValueRange()) {
                 if (!m_connection->room(roomId))
                     continue;
 
-                for (const auto& [sessionId, backupData] : asKeyValueRange(roomKeyBackup.sessions)) {
+                for (const auto& [sessionId, backupData] :
+                     roomKeyBackup.sessions.asKeyValueRange()) {
                     const auto& sessionData = backupData.sessionData;
                     const auto result =
                         curve25519AesSha2Decrypt(sessionData["ciphertext"_ls].toString().toLatin1(),

@@ -27,8 +27,7 @@ private Q_SLOTS:
     void testLinkifyUrl();
 
 private:
-    void testLinkified(QString original, const QString& expected,
-                       const int sourceLine) const
+    void testLinkified(QString original, const QString& expected, const int sourceLine) const
     {
         linkifyUrls(original);
         QTest::qCompare(original, expected, "", "", __FILE__, sourceLine);

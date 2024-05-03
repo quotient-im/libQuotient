@@ -108,7 +108,6 @@ QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
 
 namespace {
 constexpr auto HomeserverKey = "homeserver"_ls;
-constexpr auto AccessTokenKey = "access_token"_ls;
 constexpr auto EncryptionAccountPickleKey = "encryption_account_pickle"_ls;
 }
 
@@ -123,14 +122,6 @@ void AccountSettings::setHomeserver(const QUrl& url)
 }
 
 QString AccountSettings::userId() const { return group().section(u'/', -1); }
-
-void AccountSettings::clearAccessToken()
-{
-    legacySettings.remove(AccessTokenKey);
-    legacySettings.remove(QStringLiteral("device_id")); // Force the server to
-                                                        // re-issue it
-    remove(AccessTokenKey);
-}
 
 QByteArray AccountSettings::encryptionAccountPickle()
 {

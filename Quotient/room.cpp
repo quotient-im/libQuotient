@@ -96,9 +96,7 @@ public:
     JoinState joinState;
     RoomSummary summary = { {}, 0, {} };
     /// The state of the room at timeline position before-0
-    UnorderedMap<StateEventKey, StateEventPtr> baseState;
-    /// State event stubs - events without content, just type and state key
-    static decltype(baseState) stubbedState;
+    std::unordered_map<StateEventKey, StateEventPtr> baseState;
     /// The state of the room at syncEdge()
     /// \sa syncEdge
     RoomStateView currentState;
@@ -134,7 +132,7 @@ public:
     QHash<QString, ReadReceipt> lastReadReceipts;
     QString fullyReadUntilEventId;
     TagsMap tags;
-    UnorderedMap<QString, EventPtr> accountData;
+    std::unordered_map<QString, EventPtr> accountData;
     //! \brief Previous (i.e. next towards the room beginning) batch token
     //!
     //! "Emptiness" of this can have two forms. If prevBatch.has_value() it means the library
@@ -143,10 +141,11 @@ public:
     //! that the server previously reported that all events have been loaded and there's no point in
     //! requesting further historical batches.
     std::optional<QString> prevBatch = QString();
+    int lastRequestedHistorySize = 0;
     QPointer<GetRoomEventsJob> eventsHistoryJob;
     QPointer<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
-    UnorderedMap<QString, QSet<QString>> undecryptedEvents;
+    std::unordered_map<QString, QSet<QString>> undecryptedEvents;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -336,7 +335,7 @@ public:
 
     bool isLocalMember(const QString& memberId) const { return memberId == connection->userId(); }
 
-    UnorderedMap<QByteArray, QOlmInboundGroupSession> groupSessions;
+    std::unordered_map<QByteArray, QOlmInboundGroupSession> groupSessions;
     std::optional<QOlmOutboundGroupSession> currentOutboundMegolmSession = {};
 
     bool addInboundGroupSession(QByteArray sessionId, QByteArray sessionKey,
@@ -454,8 +453,6 @@ private:
     users_shortlist_t buildShortlist(const QStringList& userIds) const;
 };
 
-decltype(Room::Private::baseState) Room::Private::stubbedState {};
-
 Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     : QObject(connection), d(new Private(connection, id, initialJoinState))
 {
@@ -465,9 +462,8 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
     d->q = this;
     d->displayname = d->calculateDisplayname(); // Set initial "Empty room" name
     if (connection->encryptionEnabled()) {
-        connectSingleShot(this, &Room::encryption, this, [this, connection] {
-            connection->encryptionUpdate(this);
-        });
+        connect(this, &Room::encryption, this,
+                [this, connection] { connection->encryptionUpdate(this); });
         connect(this, &Room::memberListChanged, this, [this, connection] {
             if(usesEncryption()) {
                 connection->encryptionUpdate(this, d->membersInvited);
@@ -550,6 +546,11 @@ const Room::Timeline& Room::messageEvents() const { return d->timeline; }
 const Room::PendingEvents& Room::pendingEvents() const
 {
     return d->unsyncedEvents;
+}
+
+int Room::requestedHistorySize() const
+{
+    return eventsHistoryJob() != nullptr ? d->lastRequestedHistorySize : 0;
 }
 
 bool Room::allHistoryLoaded() const
@@ -2277,8 +2278,9 @@ void Room::Private::getPreviousContent(int limit, const QString& filter)
     if (!prevBatch || isJobPending(eventsHistoryJob))
         return;
 
-    eventsHistoryJob = connection->callApi<GetRoomEventsJob>(id, "b"_ls, *prevBatch,
-                                                             QString(), limit, filter);
+    lastRequestedHistorySize = limit;
+    eventsHistoryJob =
+        connection->callApi<GetRoomEventsJob>(id, "b"_ls, *prevBatch, QString(), limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         if (const auto newPrevBatch = eventsHistoryJob->end();
@@ -2741,7 +2743,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
         // NB: We have to store redacting/replacing events to the timeline too -
         // see #220.
         auto it = std::find_if(events.begin(), events.end(), isEditing);
-        for (const auto& eptr : RoomEventsRange(it, events.end())) {
+        for (const auto& eptr : std::ranges::subrange(it, events.end())) {
             if (auto* r = eventCast<RedactionEvent>(eptr)) {
                 // Try to find the target in the timeline, then in the batch.
                 if (processRedaction(*r))

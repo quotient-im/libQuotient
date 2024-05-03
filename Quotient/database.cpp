@@ -64,12 +64,8 @@ int Database::version()
 
 QSqlQuery Database::execute(const QString& queryString)
 {
-    auto query = database().exec(queryString);
-    if (query.lastError().type() != QSqlError::NoError) {
-        qCritical(DATABASE) << "Failed to execute query";
-        qCritical(DATABASE) << query.lastQuery();
-        qCritical(DATABASE) << query.lastError();
-    }
+    QSqlQuery query(queryString, database());
+    execute(query);
     return query;
 }
 
@@ -225,14 +221,14 @@ void Database::saveOlmSession(const QByteArray& senderKey,
     commit();
 }
 
-UnorderedMap<QByteArray, std::vector<QOlmSession>> Database::loadOlmSessions()
+std::unordered_map<QByteArray, std::vector<QOlmSession> > Database::loadOlmSessions()
 {
     auto query = prepareQuery(QStringLiteral(
         "SELECT * FROM olm_sessions ORDER BY lastReceived DESC;"));
     transaction();
     execute(query);
     commit();
-    UnorderedMap<QByteArray, std::vector<QOlmSession>> sessions;
+    std::unordered_map<QByteArray, std::vector<QOlmSession>> sessions;
     while (query.next()) {
         if (auto&& expectedSession =
                 QOlmSession::unpickle(query.value("pickle"_ls).toByteArray(),
@@ -246,7 +242,7 @@ UnorderedMap<QByteArray, std::vector<QOlmSession>> Database::loadOlmSessions()
     return sessions;
 }
 
-UnorderedMap<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSessions(
+std::unordered_map<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSessions(
     const QString& roomId)
 {
     auto query = prepareQuery(QStringLiteral("SELECT * FROM inbound_megolm_sessions WHERE roomId=:roomId;"));
@@ -254,7 +250,7 @@ UnorderedMap<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSessions(
     transaction();
     execute(query);
     commit();
-    UnorderedMap<QByteArray, QOlmInboundGroupSession> sessions;
+    decltype(Database::loadMegolmSessions({})) sessions;
     while (query.next()) {
         if (auto&& expectedSession = QOlmInboundGroupSession::unpickle(
                 query.value("pickle"_ls).toByteArray(), m_picklingKey)) {

@@ -29,7 +29,6 @@
 #include <QtGui/QImage>
 
 #include <deque>
-#include <memory>
 #include <utility>
 
 namespace Quotient {
@@ -162,8 +161,8 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(bool isFavourite READ isFavourite NOTIFY tagsChanged STORED false)
     Q_PROPERTY(bool isLowPriority READ isLowPriority NOTIFY tagsChanged STORED false)
 
-    Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY
-                   eventsHistoryJobChanged)
+    Q_PROPERTY(GetRoomEventsJob* eventsHistoryJob READ eventsHistoryJob NOTIFY eventsHistoryJobChanged)
+    Q_PROPERTY(int requestedHistorySize READ requestedHistorySize NOTIFY eventsHistoryJobChanged)
 
     Q_PROPERTY(QStringList accountDataEventTypes READ accountDataEventTypes NOTIFY accountDataChanged)
 
@@ -183,10 +182,7 @@ public:
     enum class Change : quint32 { // QFlags can't go more than 32-bit
         None = 0x0, //!< No changes occurred in the room
         RoomNames = 0x1, //!< \sa namesChanged, displaynameChanged
-        DECL_DEPRECATED_ENUMERATOR(Name, RoomNames),
-        DECL_DEPRECATED_ENUMERATOR(Aliases, RoomNames),
-        DECL_DEPRECATED_ENUMERATOR(CanonicalAlias, RoomNames),
-        // Aliases/CanonicalAlias pre-0.8 = 0x2 - open for reuse
+        // NotInUse = 0x2,
         Topic = 0x4, //!< \sa topicChanged
         PartiallyReadStats = 0x8, //!< \sa partiallyReadStatsChanged
         Avatar = 0x10, //!< \sa avatarChanged
@@ -331,27 +327,26 @@ public:
     const Timeline& messageEvents() const;
     const PendingEvents& pendingEvents() const;
 
-    /// Check whether all historical messages are already loaded
-    /**
-     * \return true if the "oldest" event in the timeline is
-     *         a room creation event and there's no further history
-     *         to load; false otherwise
-     */
+    //! \brief Get the number of requested historical events
+    //! \return The number of requested events if there's a pending request; 0 otherwise
+    int requestedHistorySize() const;
+
+    //! Check whether all historical messages are already loaded
+    //! \return true if the "oldest" event in the timeline is a room creation event and there's
+    //!         no further history to load; false otherwise
     bool allHistoryLoaded() const;
-    /**
-     * A convenience method returning the read marker to the position
-     * before the "oldest" event; same as messageEvents().crend()
-     */
+
+    //! \brief Get a reverse iterator at the position before the "oldest" event
+    //!
+    //! Same as messageEvents().crend()
     rev_iter_t historyEdge() const;
-    /**
-     * A convenience method returning the iterator beyond the latest
-     * arrived event; same as messageEvents().cend()
-     */
+    //! \brief Get an iterator for the position beyond the latest arrived event
+    //!
+    //! Same as messageEvents().cend()
     Timeline::const_iterator syncEdge() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t minTimelineIndex() const;
     Q_INVOKABLE Quotient::TimelineItem::index_t maxTimelineIndex() const;
-    Q_INVOKABLE bool
-    isValidIndex(Quotient::TimelineItem::index_t timelineIndex) const;
+    Q_INVOKABLE bool isValidIndex(Quotient::TimelineItem::index_t timelineIndex) const;
 
     rev_iter_t findInTimeline(TimelineItem::index_t index) const;
     rev_iter_t findInTimeline(const QString& evtId) const;
@@ -641,8 +636,10 @@ public:
      */
     Q_INVOKABLE QString prettyPrint(const QString& plainText) const;
 
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR < 10
     [[deprecated("Create MemberSorter objects directly instead")]]
     MemberSorter memberSorter() const;
+#endif
 
     Q_INVOKABLE bool supportsCalls() const;
 

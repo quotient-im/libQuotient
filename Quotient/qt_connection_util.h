@@ -29,7 +29,7 @@ inline auto connectUntil(auto* sender, auto signal, QObject* context, SmartSlotT
         sender, signal, cHolder,
         [sl = std::forward<SmartSlotT>(smartSlot), cHolder]<typename... Ts>
             requires std::invocable<SmartSlotT, Ts...>
-        (const Ts&... args) {
+        (const Ts&... args) mutable {
             static_assert(std::is_same_v<decltype(sl(args...)), bool>);
             if (sl(args...))
                 delete cHolder; // break the connection

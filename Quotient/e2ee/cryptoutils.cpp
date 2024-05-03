@@ -17,6 +17,8 @@
 #include <olm/pk.h>
 #include <olm/olm.h>
 
+#include <source_location>
+
 using namespace Quotient;
 
 // The checks below make sure the definitions in cryptoutils.h match those in
@@ -135,10 +137,10 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
             ctx.get(),
             encryptedSpan.subspan(static_cast<size_t>(encryptedLength)).data(),
             &tailLength));
-        // In case of AES CTR, the below assumption holds and the addition
-        // can/should be optimised away by the compiler
-        Q_ASSUME(tailLength == 0);
-        encryptedLength += tailLength;
+        Q_ASSERT_X(tailLength == 0, std::source_location::current().function_name(),
+                   "Encryption finalizer returned non-zero-size tail - this should not happen with "
+                   "AES CTR algorithm.");
+        encryptedLength += tailLength; // Recovery for Release builds
     }
     encrypted.resize(encryptedLength);
     return encrypted;
@@ -210,13 +212,13 @@ SslExpected<QByteArray> Quotient::aesCtr256Decrypt(const QByteArray& ciphertext,
                                        asCBytes(ciphertext).data(),
                                        ciphertextSize));
         int tailLength = -1;
-        CALL_OPENSSL(EVP_DecryptFinal_ex(
-            context.get(),
-            decryptedSpan.subspan(static_cast<size_t>(decryptedLength)).data(),
-            &tailLength));
-        // In case of AES CTR, the below assumption holds and the addition
-        // can/should be optimised away by the compiler
-        Q_ASSUME(tailLength == 0);
+        CALL_OPENSSL(
+            EVP_DecryptFinal_ex(context.get(),
+                                decryptedSpan.subspan(static_cast<size_t>(decryptedLength)).data(),
+                                &tailLength));
+        Q_ASSERT_X(tailLength == 0, std::source_location::current().function_name(),
+                   "Decrypt operation finalizer returned non-zero-size tail - this should not "
+                   "happen with AES CTR algorithm.");
         decryptedLength += tailLength;
     }
     decrypted.resize(decryptedLength);

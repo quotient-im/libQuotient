@@ -157,7 +157,7 @@ public:
         //!
         //! The `string` key is the room ID for which the `State
         //! Event` array belongs to.
-        UnorderedMap<QString, StateEvents> state{};
+        std::unordered_map<QString, StateEvents> state{};
 
         //! Any groups that were requested.
         //!

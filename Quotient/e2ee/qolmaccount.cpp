@@ -193,7 +193,7 @@ UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
 OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
 {
     OneTimeKeys signedOneTimeKeys;
-    for (const auto& [keyId, key] : asKeyValueRange(keys.curve25519()))
+    for (const auto& [keyId, key] : keys.curve25519().asKeyValueRange())
         signedOneTimeKeys.insert("signed_curve25519:"_ls % keyId,
                                  SignedOneTimeKey {
                                      key, m_userId, m_deviceId,

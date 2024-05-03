@@ -285,6 +285,7 @@ public:
     Q_INVOKABLE bool isIgnored(const QString& userId) const;
 
     //! Check whether a particular user is in the ignore list
+    [[deprecated("Use the overload accepting UserId instead")]]
     Q_INVOKABLE bool isIgnored(const Quotient::User* user) const;
 
     //! Get the whole list of ignored users
@@ -295,22 +296,7 @@ public:
     //! to complete synchronisation with the server.
     //!
     //! \sa ignoredUsersListChanged
-    [[deprecated("Use the overload that accepts a user id instead")]] //
-    Q_INVOKABLE void addToIgnoredUsers(const Quotient::User* user);
-
-    //! \brief Add the user to the ignore list
-    //! The change signal is emitted synchronously, without waiting
-    //! to complete synchronisation with the server.
-    //!
-    //! \sa ignoredUsersListChanged
     Q_INVOKABLE void addToIgnoredUsers(const QString& userId);
-
-    //! \brief Remove the user from the ignore list
-    //!
-    //! Similar to adding, the change signal is emitted synchronously.
-    //! \sa ignoredUsersListChanged
-    [[deprecated("Use the overload that accepts a user id instead")]] //
-    Q_INVOKABLE void removeFromIgnoredUsers(const Quotient::User* user);
 
     //! \brief Remove the user from the ignore list
     //!
@@ -367,16 +353,10 @@ public:
     QOlmAccount* olmAccount() const;
     Database* database() const;
 
-    UnorderedMap<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
+    std::unordered_map<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;
     void saveMegolmSession(const Room* room,
                            const QOlmInboundGroupSession& session) const;
-    [[deprecated("Use database()->loadCurrentOutboundMegolmSession()")]] //
-    std::optional<QOlmOutboundGroupSession>
-    loadCurrentOutboundMegolmSession(const QString& roomId) const;
-    [[deprecated("Use database()->saveCurrentOutboundMegolmSession()")]]
-    void saveCurrentOutboundMegolmSession(
-        const QString& roomId, const QOlmOutboundGroupSession& session) const;
 
     QString edKeyForUserDevice(const QString& userId,
                                const QString& deviceId) const;
@@ -786,11 +766,10 @@ public Q_SLOTS:
     //! \deprecated Do not use this directly, use Room::leaveRoom() instead
     virtual LeaveRoomJob* leaveRoom(Room* room);
 
-    KeyVerificationSession* startKeyVerificationSession(const QString& userId,
-                                                        const QString& deviceId);
+    Quotient::KeyVerificationSession* startKeyVerificationSession(const QString& userId,
+                                                                  const QString& deviceId);
 
-    void encryptionUpdate(const Room* room, const QList<QString>& invitedIds);
-    void encryptionUpdate(const Room* room, const QList<User*>& invited = {});
+    void encryptionUpdate(const Room* room, const QStringList& invitedIds = {});
 
     static Connection* makeMockConnection(const QString& mxId,
                                           bool enableEncryption = true);
@@ -954,7 +933,7 @@ Q_SIGNALS:
         const Quotient::KeyVerificationSession* session,
         Quotient::KeyVerificationSession::State state);
     void sessionVerified(const QString& userId, const QString& deviceId);
-    bool finishedQueryingKeys();
+    void finishedQueryingKeys();
     void secretReceived(const QString& requestId, const QString& secret);
 
 protected:
@@ -972,14 +951,14 @@ protected:
     //! will be deleted and a new room object with Join state created.
     //! In contrast, switching between Join and Leave happens within
     //! the same object.
-    //! \param roomId room id (not alias!)
+    //! \param id room id (not alias!)
     //! \param joinState desired (target) join state of the room; if
     //! omitted, any state will be found and return unchanged, or a
     //! new Join room created.
     //! \return a pointer to a Room object with the specified id and the
     //! specified state; nullptr if roomId is empty or if roomFactory()
     //! failed to create a Room object.
-    Room* provideRoom(const QString& roomId, std::optional<JoinState> joinState = {});
+    Room* provideRoom(const QString& id, std::optional<JoinState> joinState = {});
 
     //! Process sync data from a successful sync request
     void onSyncSuccess(SyncData&& data, bool fromCache = false);

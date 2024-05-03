@@ -12,8 +12,6 @@
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QCryptographicHash>
 
-
-
 using namespace Quotient;
 
 QByteArray Quotient::decryptFile(const QByteArray& ciphertext,

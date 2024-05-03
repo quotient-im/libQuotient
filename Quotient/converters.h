@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "omittable.h"
 #include "util.h"
 
 #include <QtCore/QDate>
@@ -18,6 +17,7 @@
 #include <vector>
 #include <array>
 #include <variant>
+#include <optional>
 
 class QVariant;
 
@@ -198,8 +198,7 @@ FlagT flagFromJsonString(const QString& s, const FlagStringValuesT& flagValues,
 {
     // Enums based on signed integers don't make much sense for flag types
     static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
-    if (const auto it = std::find(cbegin(flagValues), cend(flagValues), s);
-        it != cend(flagValues))
+    if (const auto it = std::ranges::find(flagValues, s); it != cend(flagValues))
         return static_cast<FlagT>(1U << (it - cbegin(flagValues)));
 
     if (!s.isEmpty())
@@ -211,16 +210,10 @@ template <typename FlagT, typename FlagStringValuesT>
 QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
 {
     static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
-    // TODO: use std::to_underlying once we require C++23
-    if (const auto offset = qCountTrailingZeroBits(
-            static_cast<std::underlying_type_t<FlagT>>(v));
-        offset < size(flagValues)) //
-    {
+    if (const auto offset = std::countr_zero(std::to_underlying(v)); offset < ssize(flagValues))
         return flagValues[offset];
-    }
 
-    _impl::reportEnumOutOfBounds(static_cast<uint32_t>(v),
-                                 qt_getEnumName(FlagT()));
+    _impl::reportEnumOutOfBounds(static_cast<uint32_t>(v), qt_getEnumName(FlagT()));
     Q_ASSERT(false);
     return {};
 }
@@ -454,11 +447,11 @@ namespace _impl {
     template <typename ValT>
     inline void addTo(QJsonObject& o, const QString& k, ValT&& v)
     {
-        o.insert(k, toJson(v));
+        o.insert(k, toJson(std::forward<ValT>(v)));
     }
 
-    template <typename ValT>
-    inline void addTo(QUrlQuery& q, const QString& k, ValT&& v)
+    inline void addTo(QUrlQuery& q, const QString& k, auto v)
+        requires requires { QStringLiteral("%1").arg(v); }
     {
         q.addQueryItem(k, QStringLiteral("%1").arg(v));
     }
@@ -482,20 +475,18 @@ namespace _impl {
     }
 
     template <typename ValT>
-    inline void addTo(QUrlQuery& q, const QString&,
-                      const QHash<QString, ValT>& fields)
+    inline void addTo(QUrlQuery& q, const QString&, const QHash<QString, ValT>& fields)
     {
-        for (const auto& [k, v] : asKeyValueRange(fields))
+        for (const auto& [k, v] : fields.asKeyValueRange())
             addTo(q, k, v);
     }
 
     // This one is for types that don't have isEmpty() and for all types
     // when Force is true
-    template <typename ValT, bool Force = true, typename = bool>
+    template <typename ValT, bool Force = true>
     struct AddNode {
-        template <typename ContT, typename ForwardedT>
-        static void impl(ContT& container, const QString& key,
-                         ForwardedT&& value)
+        template <typename ForwardedT>
+        static void impl(auto& container, const QString& key, ForwardedT&& value)
         {
             addTo(container, key, std::forward<ForwardedT>(value));
         }
@@ -503,10 +494,10 @@ namespace _impl {
 
     // This one is for types that have isEmpty() when Force is false
     template <typename ValT>
-    struct AddNode<ValT, IfNotEmpty, decltype(std::declval<ValT>().isEmpty())> {
-        template <typename ContT, typename ForwardedT>
-        static void impl(ContT& container, const QString& key,
-                         ForwardedT&& value)
+        requires requires(ValT v) { v.isEmpty(); }
+    struct AddNode<ValT, IfNotEmpty> {
+        template <typename ForwardedT>
+        static void impl(auto& container, const QString& key, ForwardedT&& value)
         {
             if (!value.isEmpty())
                 addTo(container, key, std::forward<ForwardedT>(value));
