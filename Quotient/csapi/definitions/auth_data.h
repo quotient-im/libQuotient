@@ -17,7 +17,7 @@ struct QUOTIENT_API AuthenticationData {
     QString session{};
 
     //! Keys dependent on the login type
-    QHash<QString, QJsonObject> authInfo{};
+    QVariantHash authInfo{};
 };
 
 template <>
