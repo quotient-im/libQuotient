@@ -164,7 +164,7 @@ void ConnectionEncryptionData::saveDevicesList()
             query.bindValue(":edKeyId"_ls, edKeyId);
             query.bindValue(":edKey"_ls, device.keys[edKeyId]);
             // If the device gets saved here, it can't be verified
-            query.bindValue(":verified"_ls, false);
+            query.bindValue(":verified"_ls, verifiedDevices[user][device.deviceId]);
             query.bindValue(":selfVerified"_ls, selfVerifiedDevices[user][device.deviceId]);
 
             database.execute(query);
@@ -208,6 +208,7 @@ void ConnectionEncryptionData::loadDevicesList()
                 .signatures{} // not needed after initial validation so not saved
             });
         selfVerifiedDevices[query.value("matrixId"_ls).toString()][query.value("deviceId"_ls).toString()] = query.value("selfVerified"_ls).toBool();
+        verifiedDevices[query.value("matrixId"_ls).toString()][query.value("deviceId"_ls).toString()] = query.value("verified"_ls).toBool();
     }
 }
 

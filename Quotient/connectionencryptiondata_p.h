@@ -41,6 +41,7 @@ namespace _impl {
         bool isUploadingKeys = false;
         bool firstSync = true;
         QHash<QString, QHash<QString, bool>> selfVerifiedDevices;
+        QHash<QString, QHash<QString, bool>> verifiedDevices;
 
         void saveDevicesList();
         void loadDevicesList();
