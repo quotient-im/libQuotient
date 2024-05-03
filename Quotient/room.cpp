@@ -149,7 +149,7 @@ public:
     std::unordered_map<QString, QSet<QString>> undecryptedEvents;
     //! Map from event id of the request event to the session object
     QHash<QString, KeyVerificationSession *> keyVerificationSessions;
-    KeyVerificationSession *pendingKeyVerificationSession = nullptr;
+    QPointer<KeyVerificationSession> pendingKeyVerificationSession;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -2855,8 +2855,11 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
                 if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
                     keyVerificationSessions[evt->id()] = pendingKeyVerificationSession;
+                    connect(pendingKeyVerificationSession.get(), &QObject::destroyed, q, [this, evt] {
+                        keyVerificationSessions.remove(evt->id());
+                    });
                     pendingKeyVerificationSession->setRequestEventId(evt->id());
-                    pendingKeyVerificationSession = nullptr;
+                    pendingKeyVerificationSession.clear();
                 }
                 continue;
             } else {
@@ -2867,8 +2870,10 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
                 auto session = new KeyVerificationSession(evt, q);
                 emit connection->newKeyVerificationSession(session);
-                //TODO connect delete from sessions when finished
                 keyVerificationSessions[evt->id()] = session;
+                connect(session, &QObject::destroyed, q, [this, evt] {
+                    qWarning() << keyVerificationSessions.remove(evt->id());
+                });
             }
         }
         if (auto event = it->viewAs<KeyVerificationEvent>()) {

@@ -67,9 +67,12 @@ KeyVerificationSession::KeyVerificationSession(
     const auto timeoutTime =
         std::min(event.timestamp().addSecs(600), currentTime.addSecs(120));
     const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
-    if (timeout > 5s)
+    if (timeout > 5s) {
         setupTimeout(timeout);
-    // Otherwise don't even bother starting up
+    } else {
+        // Otherwise don't even bother starting up
+        deleteLater();
+    }
 }
 
 
@@ -92,9 +95,12 @@ KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent *event, Ro
     const auto timeoutTime =
         std::min(event->originTimestamp().addSecs(600), currentTime.addSecs(120));
     const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
-    if (timeout > 5s)
+    if (timeout > 5s) {
         setupTimeout(timeout);
-    // Otherwise don't even bother starting up
+    } else {
+        // Otherwise don't even bother starting up
+        deleteLater();
+    }
 }
 
 

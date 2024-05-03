@@ -2011,6 +2011,9 @@ void Connection::startSelfVerification()
     for (const auto &device : devices) {
         auto session = new KeyVerificationSession(userId(), device, this);
         d->encryptionData->verificationSessions[session->transactionId()] = session;
+        connect(session, &QObject::destroyed, this, [this, session] {
+            d->encryptionData->verificationSessions.remove(session->transactionId());
+        });
         connectUntil(this, &Connection::keyVerificationStateChanged, this, [session, this](const auto &changedSession, const auto state){
             if (changedSession->transactionId() == session->transactionId() && state != KeyVerificationSession::CANCELED) {
                 emit newKeyVerificationSession(session);
@@ -2019,7 +2022,6 @@ void Connection::startSelfVerification()
             return state == KeyVerificationSession::CANCELED;
         });
     }
-    //TODO cancel other sessions after one was accepted
 }
 
 bool Connection::allSessionsSelfVerified(const QString& userId) const
