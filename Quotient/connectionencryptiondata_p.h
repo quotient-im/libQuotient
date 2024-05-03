@@ -106,6 +106,13 @@ namespace _impl {
         void handleQueryKeys(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys,
                      const QHash<QString, CrossSigningKey>& masterKeys, const QHash<QString, CrossSigningKey>& selfSigningKeys,
                      const QHash<QString, CrossSigningKey>& userSigningKeys);
+
+        void handleMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys);
+        void handleSelfSigningKeys(const QHash<QString, CrossSigningKey>& selfSigningKeys);
+        void handleUserSigningKeys(const QHash<QString, CrossSigningKey>& userSigningKeys);
+        void handleDevicesList(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys);
+        void checkVerifiedMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys);
+
     private:
         void consumeDevicesList(const DevicesList &devicesList);
         bool processIfVerificationEvent(const Event& evt, bool encrypted);

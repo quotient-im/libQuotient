@@ -391,12 +391,8 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
         });
 }
 
-
-void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys,
-                     const QHash<QString, CrossSigningKey>& masterKeys, const QHash<QString, CrossSigningKey>& selfSigningKeys,
-                     const QHash<QString, CrossSigningKey>& userSigningKeys)
+void ConnectionEncryptionData::handleMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys)
 {
-    database.transaction();
     for (const auto &[userId, key] : asKeyValueRange(masterKeys)) {
         if (key.userId != userId) {
             qCWarning(E2EE) << "Master key: userId mismatch" << key.userId << userId;
@@ -433,6 +429,10 @@ void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QStrin
         query.bindValue(":key"_ls, key.keys.values()[0]);
         database.execute(query);
     }
+}
+
+void ConnectionEncryptionData::handleSelfSigningKeys(const QHash<QString, CrossSigningKey>& selfSigningKeys)
+{
     for (const auto &[userId, key] : asKeyValueRange(selfSigningKeys)) {
         if (key.userId != userId) {
             qCWarning(E2EE) << "Self signing key: userId mismatch"<< key.userId << userId;
@@ -479,6 +479,10 @@ void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QStrin
         query.bindValue(":key"_ls, key.keys.values()[0]);
         database.execute(query);
     }
+}
+
+void ConnectionEncryptionData::handleUserSigningKeys(const QHash<QString, CrossSigningKey>& userSigningKeys)
+{
     for (const auto &[userId, key] : asKeyValueRange(userSigningKeys)) {
         if (key.userId != userId) {
             qWarning() << "User signing key: userId mismatch" << key.userId << userId;
@@ -524,26 +528,36 @@ void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QStrin
         query.bindValue(":key"_ls, key.keys.values()[0]);
         database.execute(query);
     }
-    database.commit();
-    if (q->isUserVerified(q->userId())) {
-        auto query = database.prepareQuery("SELECT key FROM user_signing_keys WHERE userId=:userId;"_ls);
-        query.bindValue(":userId"_ls, q->userId());
-        database.execute(query);
-        if (query.next()) {
-            const auto userSigningKey = query.value("key"_ls).toString();
-            for (const auto& masterKey : masterKeys) {
-                auto signature = masterKey.signatures[q->userId()]["ed25519:"_ls % userSigningKey].toString();
-                if (!signature.isEmpty()) {
-                    if (ed25519VerifySignature(userSigningKey, toJson(masterKey), signature)) {
-                        database.setMasterKeyVerified(masterKey.keys.values()[0]);
-                        emit q->userVerified(masterKey.userId);
-                    } else {
-                        qCWarning(E2EE) << "Master key signature verification failed" << masterKey.userId;
-                    }
-                }
-            }
+}
+
+void ConnectionEncryptionData::checkVerifiedMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys)
+{
+    if (!q->isUserVerified(q->userId())) {
+        return;
+    }
+    auto query = database.prepareQuery("SELECT key FROM user_signing_keys WHERE userId=:userId;"_ls);
+    query.bindValue(":userId"_ls, q->userId());
+    database.execute(query);
+    if (!query.next()) {
+        return;
+    }
+    const auto userSigningKey = query.value("key"_ls).toString();
+    for (const auto& masterKey : masterKeys) {
+        auto signature = masterKey.signatures[q->userId()]["ed25519:"_ls % userSigningKey].toString();
+        if (signature.isEmpty()) {
+            continue;
+        }
+        if (ed25519VerifySignature(userSigningKey, toJson(masterKey), signature)) {
+            database.setMasterKeyVerified(masterKey.keys.values()[0]);
+            emit q->userVerified(masterKey.userId);
+        } else {
+            qCWarning(E2EE) << "Master key signature verification failed" << masterKey.userId;
         }
     }
+}
+
+void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
+{
     for(const auto &[user, keys] : deviceKeys.asKeyValueRange()) {
         const auto oldDevices = this->deviceKeys[user];
         auto query = database.prepareQuery("SELECT * FROM self_signing_keys WHERE userId=:userId;"_ls);
@@ -595,6 +609,21 @@ void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QStrin
         }
         outdatedUsers -= user;
     }
+}
+
+
+void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys,
+                     const QHash<QString, CrossSigningKey>& masterKeys, const QHash<QString, CrossSigningKey>& selfSigningKeys,
+                     const QHash<QString, CrossSigningKey>& userSigningKeys)
+{
+    database.transaction();
+    handleMasterKeys(masterKeys);
+    handleSelfSigningKeys(selfSigningKeys);
+    handleUserSigningKeys(userSigningKeys);
+    checkVerifiedMasterKeys(masterKeys);
+    handleDevicesList(deviceKeys);
+    database.commit();
+
     saveDevicesList();
 
     // A completely faithful code would call std::partition() with bare
