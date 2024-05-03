@@ -2850,7 +2850,6 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                 emit q->callEvent(q, evt);
 
     for (auto it = from; it != syncEdge(); ++it) {
-        //TODO is the order here reversed?
         if (it->event()->senderId() == connection->userId()) {
             if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
                 if (evt->rawMsgtype() == "m.key.verification.request"_ls) {

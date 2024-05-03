@@ -60,7 +60,7 @@ KeyVerificationSession::KeyVerificationSession(
     , m_remoteSupportedMethods(event.methods())
 {
     if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
-        qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
         return;
     }
     const auto& currentTime = QDateTime::currentDateTime();
@@ -88,7 +88,7 @@ KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent *event, Ro
     , m_requestEventId(event->id())
 {
     if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
-        qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
         return;
     }
     const auto& currentTime = QDateTime::currentDateTime();
@@ -114,7 +114,7 @@ KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
     , m_encrypted(false)
 {
     if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
-        qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
         return;
     }
     setupTimeout(600s);
@@ -130,7 +130,7 @@ KeyVerificationSession::KeyVerificationSession(Room *room)
     , m_room(room)
 {
     if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
-        qWarning() << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
         return;
     }
     setupTimeout(600s);
@@ -271,7 +271,6 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
                                event.key(), m_room ? m_requestEventId : m_transactionId)
                           .toLatin1();
 
-    qWarning() << info;
     olm_sas_generate_bytes(olmData, info.data(), unsignedSize(info),
                            output.data(), output.size());
 
@@ -541,15 +540,17 @@ void KeyVerificationSession::trustKeys()
                 };
                 signatures[m_remoteUserId][m_remoteDeviceId] = json;
                 auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
-                connect(uploadSignatureJob, &BaseJob::finished, m_connection /*FIXME*/, [=](){
-                    //TODO error handling
+                connect(uploadSignatureJob, &BaseJob::finished, m_connection, [uploadSignatureJob]() {
+                    if (uploadSignatureJob->error() != BaseJob::Success) {
+                        qCWarning(E2EE) << "Failed to upload self-signing signature" << uploadSignatureJob << uploadSignatureJob->error() << uploadSignatureJob->errorString();
+                    }
                 });
             } else {
                 // Not parenting to this since the session is going to be destroyed soon
-                // TODO: Delete the handler once it's finished
                 auto handler = new SSSSHandler(m_connection);
                 handler->setConnection(m_connection);
                 handler->unlockSSSSFromCrossSigning();
+                connect(handler, &SSSSHandler::finished, handler, &QObject::deleteLater);
             }
         } else {
             const auto userSigningKey = m_connection->database()->loadEncrypted("m.cross_signing.user_signing"_ls);
@@ -570,8 +571,10 @@ void KeyVerificationSession::trustKeys()
                 };
                 signatures[m_remoteUserId][m_pendingMasterKey] = json;
                 auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
-                connect(uploadSignatureJob, &BaseJob::finished, m_connection /*FIXME*/, [=](){
-                    //TODO error handling
+                connect(uploadSignatureJob, &BaseJob::finished, m_connection, [uploadSignatureJob, userId = m_remoteUserId](){
+                    if (uploadSignatureJob->error() != BaseJob::Success) {
+                        qCWarning(E2EE) << "Failed to upload user-signing signature for" << userId << uploadSignatureJob << uploadSignatureJob->error() << uploadSignatureJob->errorString();
+                    }
                 });
             }
         }

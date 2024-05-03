@@ -46,6 +46,9 @@ Q_SIGNALS:
     void error(Error error);
     void connectionChanged();
 
+    //! \brief Emitted after keys are loaded
+    void finished();
+
 private:
     QPointer<Connection> m_connection;
 
