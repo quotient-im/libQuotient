@@ -971,7 +971,7 @@ void ConnectionEncryptionData::sendSessionKeyToDevices(
         doSendSessionKeyToDevices(roomId, sessionId, sessionKey, index, devices);
     };
     if (currentQueryKeysJob != nullptr) {
-        connectSingleShot(q, &Connection::finishedQueryingKeys, q, closure);
+        QObject::connect(q, &Connection::finishedQueryingKeys, q, closure, Qt::SingleShotConnection);
     } else
         closure();
 }

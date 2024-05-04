@@ -39,6 +39,7 @@ inline auto connectUntil(auto* sender, auto signal, QObject* context, SmartSlotT
 
 //! Create a connection that self-disconnects after triggering on the signal
 template <typename ContextT, typename SlotT>
+[[deprecated("Use QObject::connect() with Qt::SingleShotConnection, or QtFuture::connect()")]] //
 inline auto connectSingleShot(auto* sender, auto signal, ContextT* context, SlotT slot,
                               Qt::ConnectionType connType = Qt::AutoConnection)
 {
