@@ -6,12 +6,11 @@
 
 #include "connection.h"
 
-#include "logging_categories_p.h"
-
 #include "connection_p.h"
 #include "connectiondata.h"
 #include "connectionencryptiondata_p.h"
 #include "database.h"
+#include "logging_categories_p.h"
 #include "qt_connection_util.h"
 #include "room.h"
 #include "settings.h"
@@ -159,10 +158,10 @@ void Connection::loginWithPassword(const QString& userId,
                                    const QString& initialDeviceName,
                                    const QString& deviceId)
 {
-    d->checkAndConnect(userId, [=,this] {
+    d->ensureHomeserver(userId, LoginFlows::Password).then([=, this] {
         d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
                          password, /*token*/ QString(), deviceId, initialDeviceName);
-    }, LoginFlows::Password);
+    });
 }
 
 SsoSession* Connection::prepareForSso(const QString& initialDeviceName,
@@ -182,7 +181,7 @@ void Connection::loginWithToken(const QString& loginToken,
 
 void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
 {
-    d->checkAndConnect(mxId, [this, mxId, accessToken] {
+    d->ensureHomeserver(mxId).then([this, mxId, accessToken] {
         d->data->setToken(accessToken.toLatin1());
         auto* job = callApi<GetTokenOwnerJob>();
         connect(job, &BaseJob::success, this, [this, job, mxId] {
@@ -331,40 +330,39 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
         q->reloadCapabilities();
 }
 
-void Connection::Private::checkAndConnect(const QString& userId,
-                                          const std::function<void()>& connectFn,
-                                          const std::optional<LoginFlow>& flow)
+QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
+                                                    const std::optional<LoginFlow>& flow)
 {
+    QPromise<void> promise;
+    auto result = promise.future();
+    promise.start();
     if (data->baseUrl().isValid() && (!flow || loginFlows.contains(*flow))) {
         q->setObjectName(userId % u"(?)");
-        connectFn();
-        return;
-    }
-    // Not good to go, try to ascertain the homeserver URL and flows
-    if (userId.startsWith(u'@') && userId.indexOf(u':') != -1) {
+        promise.finish(); // Perfect, we're already good to go
+    } else if (userId.startsWith(u'@') && userId.indexOf(u':') != -1) {
+        // Try to ascertain the homeserver URL and flows
         q->setObjectName(userId % u"(?)");
         q->resolveServer(userId);
         if (flow)
-            connectSingleShot(q, &Connection::loginFlowsChanged, q,
-                [this, flow, connectFn] {
+            QtFuture::connect(q, &Connection::loginFlowsChanged)
+                .then([this, flow, p = std::move(promise)] mutable {
                     if (loginFlows.contains(*flow))
-                        connectFn();
-                    else
-                        emit q->loginError(
-                            tr("Unsupported login flow"),
-                            tr("The homeserver at %1 does not support"
-                               " the login flow '%2'")
-                                .arg(data->baseUrl().toDisplayString(),
-                                     flow->type));
+                        p.finish();
+                    else // Leave the promise unfinished and emit the error
+                        emit q->loginError(tr("Unsupported login flow"),
+                                           tr("The homeserver at %1 does not support"
+                                              " the login flow '%2'")
+                                               .arg(data->baseUrl().toDisplayString(), flow->type));
                 });
-        else
-            connectSingleShot(q, &Connection::homeserverChanged, q, connectFn);
-    } else
+        else // Any flow is fine, just wait until the homeserver is resolved
+            return QFuture<void>(QtFuture::connect(q, &Connection::homeserverChanged));
+    } else // Leave the promise unfinished and emit the error
         emit q->resolveError(tr("Please provide the fully-qualified user id"
                                 " (such as @user:example.org) so that the"
                                 " homeserver could be resolved; the current"
                                 " homeserver URL(%1) is not good")
-                             .arg(data->baseUrl().toDisplayString()));
+                                 .arg(data->baseUrl().toDisplayString()));
+    return result;
 }
 
 void Connection::logout()
@@ -1710,9 +1708,12 @@ void Connection::encryptionUpdate(const Room* room, const QStringList& invitedId
     }
 }
 
-void Connection::requestKeyFromDevices(event_type_t name,
-                                       const std::function<void(const QByteArray&)>& then)
+QFuture<QByteArray> Connection::requestKeyFromDevices(event_type_t name)
 {
+    QPromise<QByteArray> keyPromise;
+    keyPromise.setProgressRange(0, 10);
+    keyPromise.start();
+
     UsersToDevicesToContent content;
     const auto& requestId = generateTxnId();
     const QJsonObject eventContent{ { "action"_ls, "request"_ls },
@@ -1723,17 +1724,21 @@ void Connection::requestKeyFromDevices(event_type_t name,
         content[userId()][deviceId] = eventContent;
     }
     sendToDevices("m.secret.request"_ls, content);
+    auto futureKey = keyPromise.future();
+    keyPromise.setProgressValue(5); // Already sent the request, now it's only to get the result
     connectUntil(this, &Connection::secretReceived, this,
-                 [this, requestId, then, name](const QString& receivedRequestId,
-                                               const QString& secret) {
+                 [this, requestId, name, kp = std::move(keyPromise)](
+                     const QString& receivedRequestId, const QString& secret) mutable {
                      if (requestId != receivedRequestId) {
                          return false;
                      }
                      const auto& key = QByteArray::fromBase64(secret.toLatin1());
                      database()->storeEncrypted(name, key);
-                     then(key);
+                     kp.addResult(key);
+                     kp.finish();
                      return true;
                  });
+    return futureKey;
 }
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)

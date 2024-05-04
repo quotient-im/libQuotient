@@ -21,6 +21,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
+#include <QtCore/QFuture>
 
 #include <functional>
 
@@ -363,8 +364,7 @@ public:
     QStringList devicesForUser(const QString& userId) const;
     Q_INVOKABLE bool isQueryingKeys() const;
 
-    void requestKeyFromDevices(
-        event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
+    QFuture<QByteArray> requestKeyFromDevices(event_type_t name);
 
     QString masterKeyForUser(const QString& userId) const;
     Q_INVOKABLE bool isUserVerified(const QString& userId) const;

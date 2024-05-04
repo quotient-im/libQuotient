@@ -76,22 +76,21 @@ public:
         != "json"_ls;
     bool lazyLoading = false;
 
-    /** \brief Check the homeserver and resolve it if needed, before connecting
-     *
-     * A single entry for functions that need to check whether the homeserver
-     * is valid before running. May execute connectFn either synchronously
-     * or asynchronously. In case of errors, emits resolveError() if
-     * the homeserver URL is not valid and cannot be resolved from userId, or
-     * the homeserver doesn't support the requested login flow.
-     *
-     * \param userId    fully-qualified MXID to resolve HS from
-     * \param connectFn a function to execute once the HS URL is good
-     * \param flow      optionally, a login flow that should be supported for connectFn to work;
-     *                  `std::nullopt`, if there are no login flow requirements
-     * \sa resolveServer, resolveError
-     */
-    void checkAndConnect(const QString& userId, const std::function<void()>& connectFn,
-                         const std::optional<LoginFlow>& flow = {});
+    //! \brief Check the homeserver and resolve it if needed, before connecting
+    //!
+    //! A single entry for functions that need to check whether the homeserver is valid before
+    //! running. Emits resolveError() if the homeserver URL is not valid and cannot be resolved
+    //! from \p userId; loginError() if the homeserver is accessible but doesn't support \p flow.
+    //!
+    //! \param userId    fully-qualified MXID to resolve HS from
+    //! \param flow      optionally, a login flow that should be supported;
+    //!                  `std::nullopt`, if there are no login flow requirements
+    //! \return a future that becomes ready once the homeserver is available; if the homeserver
+    //!         URL is incorrect or other problems occur, the future is never resolved and is
+    //!         deleted (along with associated continuations) as soon as the problem becomes
+    //!         apparent
+    //! \sa resolveServer, resolveError, loginError
+    QFuture<void> ensureHomeserver(const QString& userId, const std::optional<LoginFlow>& flow = {});
     template <typename... LoginArgTs>
     void loginToServer(LoginArgTs&&... loginArgs);
     void completeSetup(const QString &mxId, bool mock = false);
