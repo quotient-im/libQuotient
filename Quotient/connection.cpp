@@ -804,10 +804,10 @@ void Connection::requestDirectChat(const QString& userId)
     doInDirectChat(userId, [this](Room* r) { emit directChatAvailable(r); });
 }
 
-void Connection::doInDirectChat(const QString& userId,
+void Connection::doInDirectChat(const QString& otherUserId,
                                 const std::function<void(Room*)>& operation)
 {
-    auto* u = user(userId);
+    auto* u = user(otherUserId);
     if (u == nullptr) {
         return;
     }
@@ -818,34 +818,34 @@ void Connection::doInDirectChat(const QString& userId,
     for (auto it = d->directChats.constFind(u);
          it != d->directChats.cend() && it.key() == u; ++it) {
         const auto& roomId = *it;
-    if (auto r = room(roomId, JoinState::Join)) {
-        Q_ASSERT(r->id() == roomId);
-        // A direct chat with yourself should only involve yourself :)
-        if (userId == this->userId() && r->totalMemberCount() > 1)
+        if (auto r = room(roomId, JoinState::Join)) {
+            Q_ASSERT(r->id() == roomId);
+            // A direct chat with yourself should only involve yourself :)
+            if (otherUserId == userId() && r->totalMemberCount() > 1)
+                continue;
+            qCDebug(MAIN) << "Requested direct chat with" << otherUserId
+            << "is already available as" << r->id();
+            operation(r);
+            return;
+        }
+        if (auto ir = invitation(roomId)) {
+            Q_ASSERT(ir->id() == roomId);
+            auto j = joinRoom(ir->id());
+            connect(j, &BaseJob::success, this,
+                    [this, roomId, otherUserId, operation] {
+                        qCDebug(MAIN)
+                        << "Joined the already invited direct chat with"
+                        << otherUserId << "as" << roomId;
+                        operation(room(roomId, JoinState::Join));
+                    });
+            return;
+        }
+        // Avoid reusing previously left chats but don't remove them
+        // from direct chat maps, either.
+        if (room(roomId, JoinState::Leave))
             continue;
-        qCDebug(MAIN) << "Requested direct chat with" << userId
-        << "is already available as" << r->id();
-        operation(r);
-        return;
-    }
-    if (auto ir = invitation(roomId)) {
-        Q_ASSERT(ir->id() == roomId);
-        auto j = joinRoom(ir->id());
-        connect(j, &BaseJob::success, this,
-                [this, roomId, userId, operation] {
-                    qCDebug(MAIN)
-                    << "Joined the already invited direct chat with"
-                    << userId << "as" << roomId;
-                    operation(room(roomId, JoinState::Join));
-                });
-        return;
-    }
-    // Avoid reusing previously left chats but don't remove them
-    // from direct chat maps, either.
-    if (room(roomId, JoinState::Leave))
-        continue;
 
-        qCWarning(MAIN) << "Direct chat with" << userId << "known as room"
+        qCWarning(MAIN) << "Direct chat with" << otherUserId << "known as room"
         << roomId << "is not valid and will be discarded";
         // Postpone actual deletion until we finish iterating d->directChats.
         removals.insert(it.key(), it.value());
@@ -860,9 +860,9 @@ void Connection::doInDirectChat(const QString& userId,
         emit directChatsListChanged({}, removals);
     }
 
-    auto j = createDirectChat(userId);
-    connect(j, &BaseJob::success, this, [this, j, userId, operation] {
-        qCDebug(MAIN) << "Direct chat with" << userId << "has been created as"
+    auto j = createDirectChat(otherUserId);
+    connect(j, &BaseJob::success, this, [this, j, otherUserId, operation] {
+        qCDebug(MAIN) << "Direct chat with" << otherUserId << "has been created as"
         << j->roomId();
         operation(room(j->roomId(), JoinState::Join));
     });

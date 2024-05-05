@@ -683,7 +683,7 @@ public Q_SLOTS:
     //! on whether a direct chat room with the respective person exists
     //! already. Instead of emitting a signal it executes the passed
     //! function object with the direct chat room as its parameter.
-    void doInDirectChat(const QString& userId,
+    void doInDirectChat(const QString& otherUserId,
                         const std::function<void(Room*)>& operation);
 
     //! Create a direct chat with a single user, optional name and topic
