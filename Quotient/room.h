@@ -140,6 +140,8 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(int joinedCount READ joinedCount NOTIFY memberListChanged)
     Q_PROPERTY(int invitedCount READ invitedCount NOTIFY memberListChanged)
     Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
+    Q_PROPERTY(QList<RoomMember> membersTyping READ membersTyping NOTIFY typingChanged)
+    Q_PROPERTY(QList<RoomMember> otherMembersTyping READ otherMembersTyping NOTIFY typingChanged)
 
     Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY
                    displayedChanged)
@@ -303,7 +305,12 @@ public:
     QList<RoomMember> membersLeft() const;
 
     //! Get a list of room members who are currently sending a typing indicator.
-    Q_INVOKABLE QList<RoomMember> membersTyping() const;
+    QList<RoomMember> membersTyping() const;
+
+    //! \brief Get a list of room members who are currently sending a typing indicator.
+    //!
+    //! The local member is excluded from this list.
+    QList<RoomMember> otherMembersTyping() const;
 
     //! Get a list of room member Matrix IDs who have joined the room.
     QStringList joinedMemberIds() const;
@@ -842,6 +849,7 @@ Q_SIGNALS:
      * instead.
      */
     void memberListChanged();
+
     /// The previously lazy-loaded members list is now loaded entirely
     /// \sa setDisplayed
     void allMembersLoaded();
@@ -849,6 +857,8 @@ Q_SIGNALS:
 
     void joinStateChanged(Quotient::JoinState oldState,
                           Quotient::JoinState newState);
+
+    //! The list of members sending typing indicators has changed.
     void typingChanged();
 
     void highlightCountChanged(); ///< \sa highlightCount
