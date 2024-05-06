@@ -105,7 +105,6 @@ auto defaultUserFactory(Connection* c, const QString& id)
 // rooms in Join and Leave state; and direct chats in account data
 // are stored with no regard to their state.
 using DirectChatsMap = QMultiHash<const User*, QString>;
-using DirectChatUsersMap = QMultiHash<QString, User*>;
 using IgnoredUsersList = IgnoredUsersEvent::value_type;
 
 class QUOTIENT_API Connection : public QObject {
@@ -234,14 +233,6 @@ public:
     //! \sa directChatsListChanged
     void addToDirectChats(const Room* room, const QString& userId);
 
-    //! \brief Mark the room as a direct chat with the user
-    //!
-    //! This function marks \p room as a direct chat with \p user.
-    //! Emits the signal synchronously, without waiting to complete
-    //! synchronisation with the server.
-    //! \sa directChatsListChanged
-    void addToDirectChats(const Room* room, User* user);
-
     //! \brief Unmark the room from direct chats
     //!
     //! This function removes the room id from direct chats either for
@@ -252,17 +243,6 @@ public:
     //! the server.
     //! \sa directChatsListChanged
     void removeFromDirectChats(const QString& roomId, const QString& userId = {});
-
-    //! \brief Unmark the room from direct chats
-    //!
-    //! This function removes the room id from direct chats either for
-    //! a specific \p user or for all users if \p user in nullptr.
-    //! The room id is used to allow removal of, e.g., ids of forgotten
-    //! rooms; a Room object need not exist. Emits the signal
-    //! immediately, without waiting to complete synchronisation with
-    //! the server.
-    //! \sa directChatsListChanged
-    void removeFromDirectChats(const QString& roomId, User* user = nullptr);
 
     //! Check whether the room id corresponds to a direct chat
     bool isDirectChat(const QString& roomId) const;
@@ -275,11 +255,6 @@ public:
     //! \return The list of member IDs for which this room is marked as
     //!         a direct chat; an empty list if the room is not a direct chat
     QList<QString> directChatMemberIds(const Room* room) const;
-
-    //! \brief Retrieve the list of users the room is a direct chat with
-    //! \return The list of users for which this room is marked as
-    //!         a direct chat; an empty list if the room is not a direct chat
-    QList<User*> directChatUsers(const Room* room) const;
 
     //! Check whether a particular user id is in the ignore list
     Q_INVOKABLE bool isIgnored(const QString& userId) const;
@@ -303,9 +278,6 @@ public:
     //! Similar to adding, the change signal is emitted synchronously.
     //! \sa ignoredUsersListChanged
     Q_INVOKABLE void removeFromIgnoredUsers(const QString& userId);
-
-    //! Get the full list of users known to this account
-    QMap<QString, User*> users() const;
 
     //! Get the base URL of the homeserver to connect to
     QUrl homeserver() const;
@@ -705,30 +677,14 @@ public Q_SLOTS:
     //! \sa directChatAvailable
     void requestDirectChat(const QString& userId);
 
-    //! \brief Get a direct chat with a single user
-    //!
-    //! This method may return synchronously or asynchoronously depending
-    //! on whether a direct chat room with the respective person exists
-    //! already.
-    //! \sa directChatAvailable
-    void requestDirectChat(User* u);
-
     //! \brief Run an operation in a direct chat with the user
     //!
     //! This method may return synchronously or asynchoronously depending
     //! on whether a direct chat room with the respective person exists
     //! already. Instead of emitting a signal it executes the passed
     //! function object with the direct chat room as its parameter.
-    void doInDirectChat(const QString& userId,
+    void doInDirectChat(const QString& otherUserId,
                         const std::function<void(Room*)>& operation);
-
-    //! \brief Run an operation in a direct chat with the user
-    //!
-    //! This method may return synchronously or asynchoronously depending
-    //! on whether a direct chat room with the respective person exists
-    //! already. Instead of emitting a signal it executes the passed
-    //! function object with the direct chat room as its parameter.
-    void doInDirectChat(User* u, const std::function<void(Room*)>& operation);
 
     //! Create a direct chat with a single user, optional name and topic
     //!

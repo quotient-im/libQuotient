@@ -158,7 +158,7 @@ void User::removeAvatar() const
     connection()->callApi<SetAvatarUrlJob>(id(), QUrl());
 }
 
-void User::requestDirectChat() { connection()->requestDirectChat(this); }
+void User::requestDirectChat() { connection()->requestDirectChat(d->id); }
 
 void User::ignore() const { connection()->addToIgnoredUsers(d->id); }
 
