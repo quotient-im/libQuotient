@@ -683,6 +683,13 @@ QList<RoomMember> Room::membersTyping() const
     return members;
 }
 
+QList<RoomMember> Room::otherMembersTyping() const
+{
+    auto memberTyping = membersTyping();
+    memberTyping.removeAll(localMember());
+    return memberTyping;
+}
+
 QStringList Room::joinedMemberIds() const
 {
     QStringList ids;
