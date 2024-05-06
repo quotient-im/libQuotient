@@ -685,7 +685,7 @@ TEST_IMPL(markDirectChat)
 {
     if (checkDirectChat())
         connection()->removeFromDirectChats(targetRoom->id(),
-                                            connection()->user());
+                                            connection()->user()->id());
 
     const auto id = qRegisterMetaType<DirectChatsMap>(); // For QSignalSpy
     Q_ASSERT(id != -1);
@@ -694,7 +694,7 @@ TEST_IMPL(markDirectChat)
     // operations are synchronous.
     const QSignalSpy spy(connection(), &Connection::directChatsListChanged);
     clog << "Marking the room as a direct chat" << endl;
-    connection()->addToDirectChats(targetRoom, connection()->user());
+    connection()->addToDirectChats(targetRoom, connection()->user()->id());
     if (spy.count() != 1 || !checkDirectChat())
         FAIL_TEST();
 
@@ -707,7 +707,7 @@ TEST_IMPL(markDirectChat)
     }
 
     clog << "Unmarking the direct chat" << endl;
-    connection()->removeFromDirectChats(targetRoom->id(), connection()->user());
+    connection()->removeFromDirectChats(targetRoom->id(), connection()->user()->id());
     if (spy.count() != 2 && checkDirectChat())
         FAIL_TEST();
 
