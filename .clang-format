@@ -95,6 +95,8 @@ IncludeCategories:
     Priority: 12
   - Regex:    '<Quotient/.+\.h>|"\.\./[^/]+\.h"'
     Priority: 16
+  - Regex:    'moc_.+\.cpp'
+    Priority: 20
   - Regex:    '<Qt.+(/.+)?'
     Priority: 24
   - Regex:    '<(openssl|olm)/.+'
