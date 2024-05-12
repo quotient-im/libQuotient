@@ -2860,10 +2860,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                     pendingKeyVerificationSession->setRequestEventId(evt->id());
                     pendingKeyVerificationSession.clear();
                 }
-                continue;
-            } else {
-                continue;
             }
+            continue;
         }
         if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
             if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
