@@ -345,7 +345,7 @@ QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
         q->resolveServer(userId);
         if (flow)
             QtFuture::connect(q, &Connection::loginFlowsChanged)
-                .then([this, flow, p = std::move(promise)] mutable {
+                .then([this, flow, p = std::move(promise)]() mutable {
                     if (loginFlows.contains(*flow))
                         p.finish();
                     else // Leave the promise unfinished and emit the error

@@ -153,7 +153,6 @@ private:
     class Private;
     ImplPtr<Private> d;
 
-    template <typename SourceT>
-    bool doSetAvatar(SourceT&& source);
+    void doSetAvatar(const QUrl& contentUri);
 };
 } // namespace Quotient

@@ -209,14 +209,17 @@ private:
                 // QFuture::then() is meant to cancel the future if the context is gone by the
                 // moment of invocation
                 Q_ASSERT(c);
+                static_assert(
+                    requires { (c->*fn)(); } || requires { (c->fn())(job); },
+                    "To be used for a continuation, the member function must accept either no "
+                    "arguments or (except onCanceled continuations) a single const JobT* argument");
                 if constexpr (requires { (c->*fn)(); })
                     return (c->*fn)();
-                else if constexpr (requires { (c->*fn)(job); } && AllowJobArg)
+                else {
+                    static_assert(AllowJobArg,
+                                  "onCanceled continuations should not accept arguments");
                     return (c->*fn)(job);
-                else
-                    static_assert(false, "To be used for a continuation, the member function must "
-                                         "accept either no arguments at all or (except onCanceled "
-                                         "continuations) a single const JobT* argument");
+                }
             } else if constexpr (requires { fn(); }) {
                 return fn();
             } else {
@@ -290,9 +293,9 @@ private:
         ft.then([newPromise](JobHandle<NewJobT> nestedHandle) mutable {
             Q_ASSERT(nestedHandle.isStarted());
             newPromise.reportStarted();
-            nestedHandle.then([newPromise] mutable { newPromise.reportFinished(); })
-                .onCanceled([newPromise] mutable { newPromise.cancelAndFinish(); });
-        }).onCanceled([newPromise] mutable {
+            nestedHandle.then([newPromise]() mutable { newPromise.reportFinished(); })
+                .onCanceled([newPromise]() mutable { newPromise.cancelAndFinish(); });
+          }).onCanceled([newPromise]() mutable {
             newPromise.reportStarted();
             newPromise.cancelAndFinish();
         });
