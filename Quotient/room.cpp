@@ -2884,7 +2884,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
             if (keyVerificationSessions.contains(baseEvent)) {
                 keyVerificationSessions[baseEvent]->handleEvent(*event);
-            } else qWarning() << "unknown session";
+            } else
+                qCWarning(E2EE) << "Unknown verification session, id" << baseEvent;
         }
     }
 
