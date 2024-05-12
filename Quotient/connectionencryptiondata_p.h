@@ -9,8 +9,6 @@
 
 #include "events/encryptedevent.h"
 
-#include "events/encryptedevent.h"
-
 namespace Quotient {
 
 struct DevicesList;
