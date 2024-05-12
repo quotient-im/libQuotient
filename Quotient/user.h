@@ -105,18 +105,18 @@ public:
     //! \sa RoomMember
     QUrl avatarUrl() const;
 
+    //! Upload the file and use it as an avatar
+    Q_INVOKABLE bool setAvatar(const QString& fileName);
+
+    //! Upload contents of the QIODevice and set that as an avatar
+    Q_INVOKABLE bool setAvatar(QIODevice* source);
+
 public Q_SLOTS:
     //! Set a new name in the global user profile
     void rename(const QString& newName);
 
     //! Set a new name for the user in one room
     void rename(const QString& newName, Room* r);
-
-    //! Upload the file and use it as an avatar
-    bool setAvatar(const QString& fileName);
-
-    //! Upload contents of the QIODevice and set that as an avatar
-    bool setAvatar(QIODevice* source);
 
     //! Removes the avatar from the profile
     void removeAvatar() const;
@@ -136,7 +136,7 @@ public Q_SLOTS:
     //! Check whether the user is in ignore list
     bool isIgnored() const;
 
-    //! \brief Force loading display name and avartar url
+    //! \brief Force loading display name and avatar URL
     //!
     //! This is required in some cases where the you need a user's default details
     //! independent of the room, e.g. in a profile page.
