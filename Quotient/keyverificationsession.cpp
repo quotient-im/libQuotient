@@ -400,7 +400,7 @@ void KeyVerificationSession::sendReady()
     setState(READY);
 
     if (methods.size() == 1) {
-        //sendStartSas();
+        sendStartSas();
     }
 }
 
