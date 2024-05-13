@@ -9,19 +9,14 @@
 #include "logging_categories_p.h"
 #include "room.h"
 
-#include "csapi/content-repo.h"
 #include "csapi/profile.h"
-#include "csapi/room_state.h"
 
-#include "events/event.h"
 #include "events/roommemberevent.h"
 
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTimer>
-
-#include <functional>
 
 using namespace Quotient;
 
@@ -121,20 +116,23 @@ void User::rename(const QString& newName, Room* r)
 template <typename SourceT>
 inline bool User::doSetAvatar(SourceT&& source)
 {
-    return connection()->userAvatar(d->defaultAvatarUrl).upload(
-        connection(), source, [this](const QUrl& contentUri) {
-            auto j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
-            connect(j, &BaseJob::success, this,
-                    [this, contentUri] {
-                        if (contentUri == d->defaultAvatarUrl) {
-                            connection()->userAvatar(d->defaultAvatarUrl).updateUrl(contentUri);
-                            emit defaultAvatarChanged();
-                        } else
-                            qCWarning(MAIN) << "User" << id()
-                                            << "already has avatar URL set to"
-                                            << contentUri.toDisplayString();
-                    });
-        });
+    auto ft =
+        connection()
+            ->userAvatar(d->defaultAvatarUrl)
+            .upload(connection(), source)
+            .then([this](const QUrl& contentUri) {
+                connection()->callApi<SetAvatarUrlJob>(id(), contentUri).then(this, [this, contentUri] {
+                    if (contentUri == d->defaultAvatarUrl) {
+                        connection()->userAvatar(d->defaultAvatarUrl).updateUrl(contentUri);
+                        emit defaultAvatarChanged();
+                    } else
+                        qCWarning(MAIN) << "User" << id() << "already has avatar URL set to"
+                                        << contentUri.toDisplayString();
+                });
+            });
+    // The return value only says whether the upload has started; the subsequent url setting job
+    // hasn't even started as yet
+    return !ft.isCanceled();
 }
 
 bool User::setAvatar(const QString& fileName)

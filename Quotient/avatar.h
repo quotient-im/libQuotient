@@ -5,6 +5,7 @@
 
 #include "util.h"
 
+#include <QtCore/QFuture>
 #include <QtCore/QUrl>
 #include <QtGui/QIcon>
 
@@ -27,10 +28,14 @@ public:
     QImage get(Connection* connection, int w, int h,
                get_callback_t callback) const;
 
+    [[deprecated("Use the QFuture-returning overload instead")]]
     bool upload(Connection* connection, const QString& fileName,
                 upload_callback_t callback) const;
+    [[deprecated("Use the QFuture-returning overload instead")]]
     bool upload(Connection* connection, QIODevice* source,
                 upload_callback_t callback) const;
+    QFuture<QUrl> upload(Connection* connection, const QString& fileName) const;
+    QFuture<QUrl> upload(Connection* connection, QIODevice* source) const;
 
     QString mediaId() const;
     QUrl url() const;

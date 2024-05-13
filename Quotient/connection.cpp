@@ -710,9 +710,9 @@ MediaThumbnailJob* Connection::getThumbnail(const QUrl& url, int requestedWidth,
     return getThumbnail(url, QSize(requestedWidth, requestedHeight), policy);
 }
 
-UploadContentJob*
-Connection::uploadContent(QIODevice* contentSource, const QString& filename,
-                          const QString& overrideContentType)
+JobHandle<UploadContentJob> Connection::uploadContent(QIODevice* contentSource,
+                                                      const QString& filename,
+                                                      const QString& overrideContentType)
 {
     Q_ASSERT(contentSource != nullptr);
     auto contentType = overrideContentType;
@@ -729,7 +729,7 @@ Connection::uploadContent(QIODevice* contentSource, const QString& filename,
     return callApi<UploadContentJob>(contentSource, filename, contentType);
 }
 
-UploadContentJob* Connection::uploadFile(const QString& fileName,
+JobHandle<UploadContentJob> Connection::uploadFile(const QString& fileName,
                                          const QString& overrideContentType)
 {
     auto sourceFile = new QFile(fileName);

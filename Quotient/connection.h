@@ -653,11 +653,10 @@ public Q_SLOTS:
                                     RunningPolicy policy = BackgroundRequest);
 
     // QIODevice* should already be open
-    UploadContentJob* uploadContent(QIODevice* contentSource,
-                                    const QString& filename = {},
-                                    const QString& overrideContentType = {});
-    UploadContentJob* uploadFile(const QString& fileName,
-                                 const QString& overrideContentType = {});
+    JobHandle<UploadContentJob> uploadContent(QIODevice* contentSource, const QString& filename = {},
+                                              const QString& overrideContentType = {});
+    JobHandle<UploadContentJob> uploadFile(const QString& fileName,
+                                           const QString& overrideContentType = {});
     GetContentJob* getContent(const QString& mediaId);
     GetContentJob* getContent(const QUrl& url);
     // If localFilename is empty, a temporary file will be created
