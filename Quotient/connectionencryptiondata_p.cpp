@@ -438,6 +438,14 @@ void ConnectionEncryptionData::handleMasterKeys(const QHash<QString, CrossSignin
     }
 }
 
+namespace {
+QString getEd25519Signature(const CrossSigningKey& keyObject, const QString& userId,
+                            const QString& masterKey)
+{
+    return keyObject.signatures[userId]["ed25519:"_ls + masterKey].toString();
+}
+}
+
 void ConnectionEncryptionData::handleSelfSigningKeys(const QHash<QString, CrossSigningKey>& selfSigningKeys)
 {
     for (const auto &[userId, key] : asKeyValueRange(selfSigningKeys)) {
@@ -449,13 +457,9 @@ void ConnectionEncryptionData::handleSelfSigningKeys(const QHash<QString, CrossS
             qCWarning(E2EE) << "Self signing key: invalid usage" << key.usage;
             continue;
         }
-        auto masterKeyQuery = database.prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_ls);
-        masterKeyQuery.bindValue(":userId"_ls, userId);
-        database.execute(masterKeyQuery);
-        if (!masterKeyQuery.next()) {
+        const auto masterKey = q->masterKeyForUser(userId);
+        if (masterKey.isEmpty())
             continue;
-        }
-        const auto masterKey = masterKeyQuery.value("key"_ls).toString();
 
         auto checkQuery = database.prepareQuery("SELECT key FROM self_signing_keys WHERE userId=:userId;"_ls);
         checkQuery.bindValue(":userId"_ls, userId);
@@ -473,8 +477,8 @@ void ConnectionEncryptionData::handleSelfSigningKeys(const QHash<QString, CrossS
             }
         }
 
-        auto signature = key.signatures[userId]["ed25519:"_ls + masterKey].toString();
-        if (!ed25519VerifySignature(masterKey, toJson(key), signature)) {
+        if (!ed25519VerifySignature(masterKey, toJson(key),
+                                    getEd25519Signature(key, userId, masterKey))) {
             qCWarning(E2EE) << "Self signing key: failed signature verification" << userId;
             continue;
         }
@@ -499,12 +503,9 @@ void ConnectionEncryptionData::handleUserSigningKeys(const QHash<QString, CrossS
             qWarning() << "User signing key: invalid usage" << key.usage;
             continue;
         }
-        auto masterKeyQuery = database.prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_ls);
-        masterKeyQuery.bindValue(":userId"_ls, userId);
-        database.execute(masterKeyQuery);
-        if (!masterKeyQuery.next()) {
+        const auto masterKey = q->masterKeyForUser(userId);
+        if (masterKey.isEmpty())
             continue;
-        }
 
         auto checkQuery = database.prepareQuery("SELECT key FROM user_signing_keys WHERE userId=:userId"_ls);
         checkQuery.bindValue(":userId"_ls, userId);
@@ -521,9 +522,8 @@ void ConnectionEncryptionData::handleUserSigningKeys(const QHash<QString, CrossS
             }
         }
 
-        const auto masterKey = masterKeyQuery.value("key"_ls).toString();
-        const auto signature = key.signatures[userId]["ed25519:"_ls % masterKey].toString();
-        if (!ed25519VerifySignature(masterKey, toJson(key), signature)) {
+        if (!ed25519VerifySignature(masterKey, toJson(key),
+                                    getEd25519Signature(key, userId, masterKey))) {
             qWarning() << "User signing key: failed signature verification" << userId;
             continue;
         }
@@ -550,7 +550,7 @@ void ConnectionEncryptionData::checkVerifiedMasterKeys(const QHash<QString, Cros
     }
     const auto userSigningKey = query.value("key"_ls).toString();
     for (const auto& masterKey : masterKeys) {
-        auto signature = masterKey.signatures[q->userId()]["ed25519:"_ls % userSigningKey].toString();
+        auto signature = getEd25519Signature(masterKey, q->userId(), userSigningKey);
         if (signature.isEmpty()) {
             continue;
         }
