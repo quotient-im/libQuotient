@@ -219,8 +219,8 @@ void Database::clear()
                       QStringLiteral("DELETE FROM inbound_megolm_sessions;"),
                       QStringLiteral("DELETE FROM group_session_record_index;"),
                       QStringLiteral("DELETE FROM master_keys;"),
-                      QStringLiteral("DELETE FROM self_signing_keys"),
-                      QStringLiteral("DELETE FROM user_signing_keys") })
+                      QStringLiteral("DELETE FROM self_signing_keys;"),
+                      QStringLiteral("DELETE FROM user_signing_keys;") })
         execute(q);
     commit();
 
