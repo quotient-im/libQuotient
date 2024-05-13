@@ -235,11 +235,15 @@ void TestManager::setupAndRun()
     c->setLazyLoading(true);
 
     clog << "Joining " << targetRoomName.toStdString() << endl;
-    auto joinJob = c->joinRoom(targetRoomName);
-    // Ensure that the room has been joined and filled with some events
-    // so that other tests could use that
-    connect(joinJob, &BaseJob::success, this, [this, joinJob] {
-        testSuite = new TestSuite(c->room(joinJob->roomId()), origin, this);
+    c->joinAndGetRoom(targetRoomName).then(this, [this](Room* room) {
+        if (!room) {
+            clog << "Failed to join the test room" << endl;
+            finalize();
+            return;
+        }
+        // Ensure that the room has been joined and filled with some events
+        // so that other tests could use that
+        testSuite = new TestSuite(room, origin, this);
         // Only start the sync after joining, to make sure the room just
         // joined is in it
         c->syncLoop();
@@ -259,15 +263,9 @@ void TestManager::setupAndRun()
                 clog << endl;
             }
             if (i == 1) {
-                testSuite->room()->getPreviousContent();
-                connectSingleShot(testSuite->room(), &Room::addedMessages, this,
-                                  &TestManager::doTests);
+                testSuite->room()->getPreviousContent().then(this, &TestManager::doTests);
             }
         });
-    });
-    connect(joinJob, &BaseJob::failure, this, [this] {
-        clog << "Failed to join the test room" << endl;
-        finalize();
     });
 }
 
@@ -604,7 +602,7 @@ TEST_IMPL(changeName)
     // completes (with server roundtrips etc.) the first rename before
     // redactEvent() even starts, redactEvent() will capture the rename event
     // instead of the join, and likely break changeName() as a result.
-    connectSingleShot(targetRoom, &Room::allMembersLoaded, this, [this, thisTest] {
+    QtFuture::connect(targetRoom, &Room::allMembersLoaded).then([this, thisTest] {
         auto* const localUser = connection()->user();
         const auto& newName = connection()->generateTxnId(); // See setTopic()
         clog << "Renaming the user to " << newName.toStdString()

@@ -16,9 +16,6 @@
 #include "settings.h"
 #include "user.h"
 
-// NB: since Qt 6, moc_connection.cpp needs Room and User fully defined
-#include "moc_connection.cpp" // NOLINT(bugprone-suspicious-include)
-
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
 #include "csapi/joining.h"
@@ -37,6 +34,9 @@
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
 #include "jobs/syncjob.h"
+
+// moc needs fully defined deps, see https://www.qt.io/blog/whats-new-in-qmetatype-qvariant
+#include "moc_connection.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
@@ -183,21 +183,21 @@ void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
 {
     d->ensureHomeserver(mxId).then([this, mxId, accessToken] {
         d->data->setToken(accessToken.toLatin1());
-        auto* job = callApi<GetTokenOwnerJob>();
-        connect(job, &BaseJob::success, this, [this, job, mxId] {
-            if (mxId != job->userId())
-                qCWarning(MAIN).nospace()
-                    << "The access_token owner (" << job->userId()
-                    << ") is different from passed MXID (" << mxId << ")!";
-            d->data->setDeviceId(job->deviceId());
-            d->completeSetup(job->userId());
-        });
-        connect(job, &BaseJob::failure, this, [this, job] {
-            if (job->error() == BaseJob::StatusCode::NetworkError)
-                emit networkError(job->errorString(), job->rawDataSample(),
-                                  job->maxRetries(), -1);
-            else
-                emit loginError(job->errorString(), job->rawDataSample());
+        callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
+            switch (job->error()) {
+            case BaseJob::Success:
+                if (mxId != job->userId())
+                    qCWarning(MAIN).nospace()
+                        << "The access_token owner (" << job->userId()
+                        << ") is different from passed MXID (" << mxId << ")!";
+                d->data->setDeviceId(job->deviceId());
+                d->completeSetup(job->userId());
+                return;
+            case BaseJob::NetworkError:
+                emit networkError(job->errorString(), job->rawDataSample(), job->maxRetries(), -1);
+                return;
+            default: emit loginError(job->errorString(), job->rawDataSample());
+            }
         });
     });
 }
@@ -634,19 +634,21 @@ void Connection::stopSync()
 
 QString Connection::nextBatchToken() const { return d->data->lastEvent(); }
 
-JoinRoomJob* Connection::joinRoom(const QString& roomAlias,
-                                  const QStringList& serverNames)
+JobHandle<JoinRoomJob> Connection::joinRoom(const QString& roomAlias, const QStringList& serverNames)
 {
-    auto* const job = callApi<JoinRoomJob>(roomAlias, serverNames);
-    // Upon completion, ensure a room object is created in case it hasn't come
-    // with a sync yet. If the room object is not there, provideRoom() will
-    // create it in Join state. finished() is used here instead of success()
-    // to overtake clients that may add their own slots to finished().
-    connect(job, &BaseJob::finished, this, [this, job] {
-        if (job->status().good())
-            provideRoom(job->roomId());
+    // Upon completion, ensure a room object is created in case it hasn't come with a sync yet.
+    // If the room object is not there, provideRoom() will create it in Join state. Using
+    // the continuation ensures that the room is provided before any client connections.
+    return callApi<JoinRoomJob>(roomAlias, serverNames).then([this](const auto* job) {
+        provideRoom(job->roomId());
     });
-    return job;
+}
+
+QFuture<Room*> Connection::joinAndGetRoom(const QString& roomAlias, const QStringList& serverNames)
+{
+    return joinRoom(roomAlias, serverNames).then([this](const auto* job) {
+        return provideRoom(job->roomId());
+    });
 }
 
 LeaveRoomJob* Connection::leaveRoom(Room* room)
@@ -746,14 +748,11 @@ GetContentJob* Connection::getContent(const QUrl& url)
     return getContent(url.authority() + url.path());
 }
 
-DownloadFileJob* Connection::downloadFile(const QUrl& url,
-                                          const QString& localFilename)
+DownloadFileJob* Connection::downloadFile(const QUrl& url, const QString& localFilename)
 {
     auto mediaId = url.authority() + url.path();
     auto idParts = splitMediaId(mediaId);
-    auto* job =
-        callApi<DownloadFileJob>(idParts.front(), idParts.back(), localFilename);
-    return job;
+    return callApi<DownloadFileJob>(idParts.front(), idParts.back(), localFilename);
 }
 
 DownloadFileJob* Connection::downloadFile(
@@ -766,48 +765,40 @@ DownloadFileJob* Connection::downloadFile(
                                     fileMetadata, localFilename);
 }
 
-CreateRoomJob*
-Connection::createRoom(RoomVisibility visibility, const QString& alias,
-                       const QString& name, const QString& topic,
-                       QStringList invites, const QString& presetName,
-                       const QString& roomVersion, bool isDirect,
-                       const QVector<CreateRoomJob::StateEvent>& initialState,
-                       const QVector<CreateRoomJob::Invite3pid>& invite3pids,
-                       const QJsonObject& creationContent)
+JobHandle<CreateRoomJob> Connection::createRoom(
+    RoomVisibility visibility, const QString& alias, const QString& name, const QString& topic,
+    QStringList invites, const QString& presetName, const QString& roomVersion, bool isDirect,
+    const QVector<CreateRoomJob::StateEvent>& initialState,
+    const QVector<CreateRoomJob::Invite3pid>& invite3pids, const QJsonObject& creationContent)
 {
     invites.removeOne(userId()); // The creator is by definition in the room
-    auto job = callApi<CreateRoomJob>(visibility == PublishRoom
-                                          ? QStringLiteral("public")
-                                          : QStringLiteral("private"),
-                                      alias, name, topic, invites, invite3pids,
-                                      roomVersion, creationContent,
-                                      initialState, presetName, isDirect);
-    connect(job, &BaseJob::success, this, [this, job, invites, isDirect] {
-        auto* room = provideRoom(job->roomId(), JoinState::Join);
-        if (!room) {
-            Q_ASSERT_X(room, "Connection::createRoom",
-                       "Failed to create a room");
-            return;
-        }
-        emit createdRoom(room);
-        if (isDirect)
-            for (const auto& i : invites)
-                addToDirectChats(room, i);
-    });
-    return job;
+    return callApi<CreateRoomJob>(visibility == PublishRoom ? QStringLiteral("public")
+                                                            : QStringLiteral("private"),
+                                  alias, name, topic, invites, invite3pids, roomVersion,
+                                  creationContent, initialState, presetName, isDirect)
+        .then(this, [this, invites, isDirect](auto* j) {
+            if (auto* room = provideRoom(j->roomId(), JoinState::Join)) {
+                emit createdRoom(room);
+                if (isDirect)
+                    for (const auto& i : invites)
+                        addToDirectChats(room, i);
+            } else
+                Q_ASSERT_X(false, "Connection::createRoom", "Failed to create a room");
+        });
 }
 
 void Connection::requestDirectChat(const QString& userId)
 {
-    doInDirectChat(userId, [this](Room* r) { emit directChatAvailable(r); });
+    getDirectChat(userId).then([this](Room* r) { emit directChatAvailable(r); });
 }
 
-void Connection::doInDirectChat(const QString& otherUserId,
-                                const std::function<void(Room*)>& operation)
+QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
 {
     auto* u = user(otherUserId);
     if (u == nullptr) {
-        return;
+        qCCritical(MAIN) << "Connection::getDirectChat: Couldn't get a user object for"
+                         << otherUserId;
+        return {};
     }
 
     // There can be more than one DC; find the first valid (existing and
@@ -822,21 +813,14 @@ void Connection::doInDirectChat(const QString& otherUserId,
             if (otherUserId == userId() && r->totalMemberCount() > 1)
                 continue;
             qCDebug(MAIN) << "Requested direct chat with" << otherUserId
-            << "is already available as" << r->id();
-            operation(r);
-            return;
+                          << "is already available as" << r->id();
+            return QtFuture::makeReadyFuture(r);
         }
         if (auto ir = invitation(roomId)) {
             Q_ASSERT(ir->id() == roomId);
-            auto j = joinRoom(ir->id());
-            connect(j, &BaseJob::success, this,
-                    [this, roomId, otherUserId, operation] {
-                        qCDebug(MAIN)
-                        << "Joined the already invited direct chat with"
-                        << otherUserId << "as" << roomId;
-                        operation(room(roomId, JoinState::Join));
-                    });
-            return;
+            qCDebug(MAIN) << "Joining the already invited direct chat with" << otherUserId << "at"
+                          << roomId;
+            return joinRoom(ir->id()).then([this](auto* j) { return room(j->roomId()); });
         }
         // Avoid reusing previously left chats but don't remove them
         // from direct chat maps, either.
@@ -844,7 +828,7 @@ void Connection::doInDirectChat(const QString& otherUserId,
             continue;
 
         qCWarning(MAIN) << "Direct chat with" << otherUserId << "known as room"
-        << roomId << "is not valid and will be discarded";
+                        << roomId << "is not valid and will be discarded";
         // Postpone actual deletion until we finish iterating d->directChats.
         removals.insert(it.key(), it.value());
         // Add to the list of updates to send to the server upon the next sync.
@@ -858,17 +842,13 @@ void Connection::doInDirectChat(const QString& otherUserId,
         emit directChatsListChanged({}, removals);
     }
 
-    auto j = createDirectChat(otherUserId);
-    connect(j, &BaseJob::success, this, [this, j, otherUserId, operation] {
-        qCDebug(MAIN) << "Direct chat with" << otherUserId << "has been created as"
-        << j->roomId();
-        operation(room(j->roomId(), JoinState::Join));
+    return createDirectChat(otherUserId).then([this](const auto* j) {
+        return room(j->roomId(), JoinState::Join);
     });
 }
 
-CreateRoomJob* Connection::createDirectChat(const QString& userId,
-                                            const QString& topic,
-                                            const QString& name)
+JobHandle<CreateRoomJob> Connection::createDirectChat(const QString& userId, const QString& topic,
+                                                      const QString& name)
 {
     QVector<CreateRoomJob::StateEvent> initialStateEvents;
 
@@ -878,8 +858,11 @@ CreateRoomJob* Connection::createDirectChat(const QString& userId,
     }
 
     return createRoom(UnpublishRoom, {}, name, topic, { userId },
-                      QStringLiteral("trusted_private_chat"), {}, true,
-                      initialStateEvents);
+                      QStringLiteral("trusted_private_chat"), {}, true, initialStateEvents)
+        .then([userId](const auto* j) {
+            qCDebug(MAIN) << "Direct chat with" << userId << "has been created as"
+                          << j->roomId();
+        });
 }
 
 ForgetRoomJob* Connection::forgetRoom(const QString& id)
@@ -1413,10 +1396,8 @@ QString Connection::generateTxnId() const
 
 void Connection::setHomeserver(const QUrl& url)
 {
-    if (isJobPending(d->resolverJob))
-        d->resolverJob->abandon();
-    if (isJobPending(d->loginFlowsJob))
-        d->loginFlowsJob->abandon();
+    d->resolverJob.abandon();
+    d->loginFlowsJob.abandon();
     d->loginFlows.clear();
 
     if (homeserver() != url) {

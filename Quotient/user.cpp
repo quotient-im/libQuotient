@@ -17,7 +17,6 @@
 #include "events/roommemberevent.h"
 
 #include <QtCore/QElapsedTimer>
-#include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTimer>
@@ -50,9 +49,7 @@ Connection* User::connection() const
 
 void User::load()
 {
-    auto* profileJob =
-        connection()->callApi<GetUserProfileJob>(id());
-    connect(profileJob, &BaseJob::result, this, [this, profileJob] {
+    connection()->callApi<GetUserProfileJob>(id()).then([this](const auto* profileJob) {
         d->defaultName = profileJob->displayname();
         d->defaultAvatarUrl = profileJob->avatarUrl();
         emit defaultNameChanged();
@@ -89,17 +86,14 @@ void User::rename(const QString& newName)
     if (actualNewName == d->defaultName)
         return; // Nothing to do
 
-    connect(connection()->callApi<SetDisplayNameJob>(id(), actualNewName),
-            &BaseJob::success, this, [this, actualNewName] {
-                // Check again, it could have changed meanwhile
-                if (actualNewName != d->defaultName) {
-                    d->defaultName = actualNewName;
-                    emit defaultNameChanged();
-                } else
-                    qCWarning(MAIN)
-                        << "User" << id() << "already has profile name set to"
-                        << actualNewName;
-            });
+    connection()->callApi<SetDisplayNameJob>(id(), actualNewName).then([this, actualNewName] {
+        // Check again, it could have changed meanwhile
+        if (actualNewName != d->defaultName) {
+            d->defaultName = actualNewName;
+            emit defaultNameChanged();
+        } else
+            qCWarning(MAIN) << "User" << id() << "already has profile name set to" << actualNewName;
+    });
 }
 
 void User::rename(const QString& newName, Room* r)
@@ -129,7 +123,7 @@ inline bool User::doSetAvatar(SourceT&& source)
 {
     return connection()->userAvatar(d->defaultAvatarUrl).upload(
         connection(), source, [this](const QUrl& contentUri) {
-            auto* j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
+            auto j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
             connect(j, &BaseJob::success, this,
                     [this, contentUri] {
                         if (contentUri == d->defaultAvatarUrl) {

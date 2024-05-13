@@ -1269,11 +1269,9 @@ void Room::switchVersion(QString newVersion)
         Q_ASSERT(!successorId().isEmpty());
         emit upgradeFailed(tr("The room is already upgraded"));
     }
-    if (auto* job = connection()->callApi<UpgradeRoomJob>(id(), newVersion))
-        connect(job, &BaseJob::failure, this,
-                [this, job] { emit upgradeFailed(job->errorString()); });
-    else
-        emit upgradeFailed(tr("Couldn't initiate upgrade"));
+    connection()->callApi<UpgradeRoomJob>(id(), newVersion).onFailure([this](const auto* job) {
+        emit upgradeFailed(job ? job->errorString() : tr("Couldn't initiate upgrade"));
+    });
 }
 
 bool Room::hasAccountData(const QString& type) const

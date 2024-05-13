@@ -18,7 +18,6 @@
 #include "csapi/account-data.h"
 
 #include <QtCore/QCoreApplication>
-#include <QtCore/QPointer>
 
 namespace Quotient {
 
@@ -63,11 +62,11 @@ public:
     bool encryptDirectChats = directChatEncryptionDefault;
     std::unique_ptr<_impl::ConnectionEncryptionData> encryptionData;
 
-    QPointer<GetWellknownJob> resolverJob = nullptr;
-    QPointer<GetLoginFlowsJob> loginFlowsJob = nullptr;
+    JobHandle<GetWellknownJob> resolverJob = nullptr;
+    JobHandle<GetLoginFlowsJob> loginFlowsJob = nullptr;
 
     SyncJob* syncJob = nullptr;
-    QPointer<LogoutJob> logoutJob = nullptr;
+    JobHandle<LogoutJob> logoutJob = nullptr;
 
     bool cacheState = true;
     bool cacheToBinary =

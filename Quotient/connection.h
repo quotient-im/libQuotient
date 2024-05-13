@@ -17,6 +17,8 @@
 
 #include "events/accountdataevents.h"
 
+#include "jobs/jobhandle.h"
+
 #include <QtCore/QDir>
 #include <QtCore/QObject>
 #include <QtCore/QSize>
@@ -498,7 +500,7 @@ public:
     //!
     //! \sa BaseJob::isBackground. QNetworkRequest::BackgroundRequestAttribute
     template <typename JobT, typename... JobArgTs>
-    JobT* callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs)
+    JobHandle<JobT> callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs)
     {
         auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
         run(job, runningPolicy);
@@ -509,10 +511,9 @@ public:
     //!
     //! This is an overload that runs the job with "foreground" policy.
     template <typename JobT, typename... JobArgTs>
-    JobT* callApi(JobArgTs&&... jobArgs)
+    JobHandle<JobT> callApi(JobArgTs&&... jobArgs)
     {
-        return callApi<JobT>(ForegroundRequest,
-                             std::forward<JobArgTs>(jobArgs)...);
+        return callApi<JobT>(ForegroundRequest, std::forward<JobArgTs>(jobArgs)...);
     }
 
     //! \brief Get a request URL for a job with specified type and arguments
@@ -660,8 +661,7 @@ public Q_SLOTS:
     GetContentJob* getContent(const QString& mediaId);
     GetContentJob* getContent(const QUrl& url);
     // If localFilename is empty, a temporary file will be created
-    DownloadFileJob* downloadFile(const QUrl& url,
-                                  const QString& localFilename = {});
+    DownloadFileJob* downloadFile(const QUrl& url, const QString& localFilename = {});
 
     DownloadFileJob* downloadFile(const QUrl& url,
                                   const EncryptedFileMetadata& fileMetadata,
@@ -671,8 +671,7 @@ public Q_SLOTS:
     //!
     //! This method allows to customize room entirely to your liking,
     //! providing all the attributes the original CS API provides.
-    CreateRoomJob*
-    createRoom(RoomVisibility visibility, const QString& alias,
+    JobHandle<CreateRoomJob> createRoom(RoomVisibility visibility, const QString& alias,
                const QString& name, const QString& topic, QStringList invites,
                const QString& presetName = {}, const QString& roomVersion = {},
                bool isDirect = false,
@@ -688,14 +687,8 @@ public Q_SLOTS:
     //! \sa directChatAvailable
     void requestDirectChat(const QString& userId);
 
-    //! \brief Run an operation in a direct chat with the user
-    //!
-    //! This method may return synchronously or asynchoronously depending
-    //! on whether a direct chat room with the respective person exists
-    //! already. Instead of emitting a signal it executes the passed
-    //! function object with the direct chat room as its parameter.
-    void doInDirectChat(const QString& otherUserId,
-                        const std::function<void(Room*)>& operation);
+    //! \brief Get a future to a direct chat with the user
+    QFuture<Room*> getDirectChat(const QString& otherUserId);
 
     //! Create a direct chat with a single user, optional name and topic
     //!
@@ -703,12 +696,13 @@ public Q_SLOTS:
     //! It is advised to use requestDirectChat as a default way of getting
     //! one-on-one with a person, and only use createDirectChat when
     //! a new creation is explicitly desired.
-    CreateRoomJob* createDirectChat(const QString& userId,
-                                    const QString& topic = {},
-                                    const QString& name = {});
+    JobHandle<CreateRoomJob> createDirectChat(const QString& userId, const QString& topic = {},
+                                              const QString& name = {});
 
-    virtual JoinRoomJob* joinRoom(const QString& roomAlias,
-                                  const QStringList& serverNames = {});
+    virtual JobHandle<JoinRoomJob> joinRoom(const QString& roomAlias,
+                                            const QStringList& serverNames = {});
+
+    QFuture<Room*> joinAndGetRoom(const QString& roomAlias, const QStringList& serverNames = {});
 
     //! \brief Send /forget to the server and delete room locally
     //!
