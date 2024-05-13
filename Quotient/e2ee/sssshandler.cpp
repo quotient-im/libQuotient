@@ -146,7 +146,7 @@ void SSSSHandler::unlockSSSSWithPassphrase(const QString& passphrase)
 void SSSSHandler::unlockSSSSFromCrossSigning()
 {
     Q_ASSERT(m_connection);
-    m_connection->requestKeyFromDevices(MegolmBackupKey, [this](const QByteArray &key){
+    m_connection->requestKeyFromDevices(MegolmBackupKey).then([this](const QByteArray& key) {
         loadMegolmBackup(key);
     });
     for (auto k : {CrossSigningUserSigningKey, CrossSigningSelfSigningKey, CrossSigningMasterKey})

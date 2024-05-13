@@ -127,6 +127,8 @@ public:
     // Using QPointer allows us to know when that happend.
     QPointer<QNetworkReply> reply;
 
+    QPromise<void> promise{};
+
     Status status = Unprepared;
     QByteArray rawResponse;
     /// Contains a null document in case of non-JSON body (for a successful
@@ -352,6 +354,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
         }
         Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
         if (Q_LIKELY(status().code == Unprepared)) {
+            d->promise.start();
             d->connection->submit(this);
             return;
         }
@@ -634,6 +637,7 @@ void BaseJob::finishJob()
     // Notify those interested in any completion of the job including abandon()
     emit finished(this);
 
+    d->promise.finish();
     emit result(this); // abandon() doesn't emit this
     if (error())
         emit failure(this);
@@ -806,7 +810,7 @@ void BaseJob::abandon()
         d->reply->disconnect(this);
     emit finished(this);
 
-    deleteLater();
+    deleteLater(); // The promise will cancel itself on deletion
 }
 
 void BaseJob::timeout()
@@ -819,3 +823,5 @@ void BaseJob::setLoggingCategory(QMessageLogger::CategoryFunction lcf)
 {
     d->logCat = lcf;
 }
+
+QFuture<void> BaseJob::future() { return d->promise.future(); }

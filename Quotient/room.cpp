@@ -143,8 +143,8 @@ public:
     //! requesting further historical batches.
     std::optional<QString> prevBatch = QString();
     int lastRequestedHistorySize = 0;
-    QPointer<GetRoomEventsJob> eventsHistoryJob;
-    QPointer<GetMembersByRoomJob> allMembersJob;
+    JobHandle<GetRoomEventsJob> eventsHistoryJob;
+    JobHandle<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
     std::unordered_map<QString, QSet<QString>> undecryptedEvents;
     //! Map from event id of the request event to the session object
@@ -217,7 +217,7 @@ public:
     rev_iter_t historyEdge() const { return timeline.crend(); }
     Timeline::const_iterator syncEdge() const { return timeline.cend(); }
 
-    void getPreviousContent(int limit = 10, const QString &filter = {});
+    JobHandle<GetRoomEventsJob> getPreviousContent(int limit = 10, const QString &filter = {});
 
     Changes updateStateFrom(StateEvents&& events)
     {
@@ -1269,11 +1269,9 @@ void Room::switchVersion(QString newVersion)
         Q_ASSERT(!successorId().isEmpty());
         emit upgradeFailed(tr("The room is already upgraded"));
     }
-    if (auto* job = connection()->callApi<UpgradeRoomJob>(id(), newVersion))
-        connect(job, &BaseJob::failure, this,
-                [this, job] { emit upgradeFailed(job->errorString()); });
-    else
-        emit upgradeFailed(tr("Couldn't initiate upgrade"));
+    connection()->callApi<UpgradeRoomJob>(id(), newVersion).onFailure([this](const auto* job) {
+        emit upgradeFailed(job ? job->errorString() : tr("Couldn't initiate upgrade"));
+    });
 }
 
 bool Room::hasAccountData(const QString& type) const
@@ -2279,15 +2277,18 @@ void Room::hangupCall(const QString& callId)
     d->sendEvent<CallHangupEvent>(callId);
 }
 
-void Room::getPreviousContent(int limit, const QString& filter)
+JobHandle<GetRoomEventsJob> Room::getPreviousContent(int limit, const QString& filter)
 {
-    d->getPreviousContent(limit, filter);
+    return d->getPreviousContent(limit, filter);
 }
 
-void Room::Private::getPreviousContent(int limit, const QString& filter)
+JobHandle<GetRoomEventsJob> Room::Private::getPreviousContent(int limit, const QString& filter)
 {
-    if (!prevBatch || isJobPending(eventsHistoryJob))
-        return;
+    if (!prevBatch)
+        return {}; // No further history = cancelled future
+
+    if (isJobPending(eventsHistoryJob))
+        return eventsHistoryJob;
 
     lastRequestedHistorySize = limit;
     eventsHistoryJob =
@@ -2315,6 +2316,7 @@ void Room::Private::getPreviousContent(int limit, const QString& filter)
     });
     connect(eventsHistoryJob, &QObject::destroyed, q,
             &Room::eventsHistoryJobChanged);
+    return eventsHistoryJob;
 }
 
 void Room::inviteToRoom(const QString& memberId)

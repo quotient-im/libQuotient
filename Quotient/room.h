@@ -721,7 +721,7 @@ public Q_SLOTS:
     /// You shouldn't normally call this method; it's here for debugging
     void refreshDisplayName();
 
-    void getPreviousContent(int limit = 10, const QString &filter = {});
+    JobHandle<GetRoomEventsJob> getPreviousContent(int limit = 10, const QString &filter = {});
 
     void inviteToRoom(const QString& memberId);
     LeaveRoomJob* leaveRoom();

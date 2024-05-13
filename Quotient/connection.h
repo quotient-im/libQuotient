@@ -17,10 +17,13 @@
 
 #include "events/accountdataevents.h"
 
+#include "jobs/jobhandle.h"
+
 #include <QtCore/QDir>
 #include <QtCore/QObject>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
+#include <QtCore/QFuture>
 
 #include <functional>
 
@@ -363,8 +366,7 @@ public:
     QStringList devicesForUser(const QString& userId) const;
     Q_INVOKABLE bool isQueryingKeys() const;
 
-    void requestKeyFromDevices(
-        event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
+    QFuture<QByteArray> requestKeyFromDevices(event_type_t name);
 
     QString masterKeyForUser(const QString& userId) const;
     Q_INVOKABLE bool isUserVerified(const QString& userId) const;
@@ -498,7 +500,7 @@ public:
     //!
     //! \sa BaseJob::isBackground. QNetworkRequest::BackgroundRequestAttribute
     template <typename JobT, typename... JobArgTs>
-    JobT* callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs)
+    JobHandle<JobT> callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs)
     {
         auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
         run(job, runningPolicy);
@@ -509,10 +511,9 @@ public:
     //!
     //! This is an overload that runs the job with "foreground" policy.
     template <typename JobT, typename... JobArgTs>
-    JobT* callApi(JobArgTs&&... jobArgs)
+    JobHandle<JobT> callApi(JobArgTs&&... jobArgs)
     {
-        return callApi<JobT>(ForegroundRequest,
-                             std::forward<JobArgTs>(jobArgs)...);
+        return callApi<JobT>(ForegroundRequest, std::forward<JobArgTs>(jobArgs)...);
     }
 
     //! \brief Get a request URL for a job with specified type and arguments
@@ -583,12 +584,6 @@ public:
         setUserFactory(defaultUserFactory<T>);
     }
 
-public Q_SLOTS:
-    //! \brief Set the homeserver base URL and retrieve its login flows
-    //!
-    //! \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
-    void setHomeserver(const QUrl& baseUrl);
-
     //! \brief Determine and set the homeserver from MXID
     //!
     //! This attempts to resolve the homeserver by requesting
@@ -601,8 +596,33 @@ public Q_SLOTS:
     //! attempt.
     //! \param mxid user Matrix ID, such as @someone:example.org
     //! \sa setHomeserver, homeserverChanged, loginFlowsChanged, resolveError
-    void resolveServer(const QString& mxid);
+    Q_INVOKABLE void resolveServer(const QString& mxid);
 
+    //! \brief Set the homeserver base URL and retrieve its login flows
+    //!
+    //! \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
+    Q_INVOKABLE QFuture<QList<LoginFlow> > setHomeserver(const QUrl& baseUrl);
+
+    //! \brief Get a future to a direct chat with the user
+    Q_INVOKABLE QFuture<Room*> getDirectChat(const QString& otherUserId);
+
+    //! Create a direct chat with a single user, optional name and topic
+    //!
+    //! A room will always be created, unlike in requestDirectChat.
+    //! It is advised to use requestDirectChat as a default way of getting
+    //! one-on-one with a person, and only use createDirectChat when
+    //! a new creation is explicitly desired.
+    Q_INVOKABLE JobHandle<CreateRoomJob> createDirectChat(const QString& userId,
+                                                          const QString& topic = {},
+                                                          const QString& name = {});
+
+    Q_INVOKABLE JobHandle<JoinRoomJob> joinRoom(const QString& roomAlias,
+                                                const QStringList& serverNames = {});
+
+    Q_INVOKABLE QFuture<Room*> joinAndGetRoom(const QString& roomAlias,
+                                              const QStringList& serverNames = {});
+
+public Q_SLOTS:
     //! \brief Log in using a username and password pair
     //!
     //! Before logging in, this method checks if the homeserver is valid and
@@ -652,16 +672,14 @@ public Q_SLOTS:
                                     RunningPolicy policy = BackgroundRequest);
 
     // QIODevice* should already be open
-    UploadContentJob* uploadContent(QIODevice* contentSource,
-                                    const QString& filename = {},
-                                    const QString& overrideContentType = {});
-    UploadContentJob* uploadFile(const QString& fileName,
-                                 const QString& overrideContentType = {});
+    JobHandle<UploadContentJob> uploadContent(QIODevice* contentSource, const QString& filename = {},
+                                              const QString& overrideContentType = {});
+    JobHandle<UploadContentJob> uploadFile(const QString& fileName,
+                                           const QString& overrideContentType = {});
     GetContentJob* getContent(const QString& mediaId);
     GetContentJob* getContent(const QUrl& url);
     // If localFilename is empty, a temporary file will be created
-    DownloadFileJob* downloadFile(const QUrl& url,
-                                  const QString& localFilename = {});
+    DownloadFileJob* downloadFile(const QUrl& url, const QString& localFilename = {});
 
     DownloadFileJob* downloadFile(const QUrl& url,
                                   const EncryptedFileMetadata& fileMetadata,
@@ -671,8 +689,7 @@ public Q_SLOTS:
     //!
     //! This method allows to customize room entirely to your liking,
     //! providing all the attributes the original CS API provides.
-    CreateRoomJob*
-    createRoom(RoomVisibility visibility, const QString& alias,
+    JobHandle<CreateRoomJob> createRoom(RoomVisibility visibility, const QString& alias,
                const QString& name, const QString& topic, QStringList invites,
                const QString& presetName = {}, const QString& roomVersion = {},
                bool isDirect = false,
@@ -687,28 +704,6 @@ public Q_SLOTS:
     //! already.
     //! \sa directChatAvailable
     void requestDirectChat(const QString& userId);
-
-    //! \brief Run an operation in a direct chat with the user
-    //!
-    //! This method may return synchronously or asynchoronously depending
-    //! on whether a direct chat room with the respective person exists
-    //! already. Instead of emitting a signal it executes the passed
-    //! function object with the direct chat room as its parameter.
-    void doInDirectChat(const QString& otherUserId,
-                        const std::function<void(Room*)>& operation);
-
-    //! Create a direct chat with a single user, optional name and topic
-    //!
-    //! A room will always be created, unlike in requestDirectChat.
-    //! It is advised to use requestDirectChat as a default way of getting
-    //! one-on-one with a person, and only use createDirectChat when
-    //! a new creation is explicitly desired.
-    CreateRoomJob* createDirectChat(const QString& userId,
-                                    const QString& topic = {},
-                                    const QString& name = {});
-
-    virtual JoinRoomJob* joinRoom(const QString& roomAlias,
-                                  const QStringList& serverNames = {});
 
     //! \brief Send /forget to the server and delete room locally
     //!

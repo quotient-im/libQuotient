@@ -9,6 +9,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QFuture>
 
 #include <Quotient/converters.h> // Common for csapi/ headers even though not used here
 #include <Quotient/quotient_common.h> // For DECL_DEPRECATED_ENUMERATOR
@@ -458,11 +459,14 @@ private Q_SLOTS:
     void sendRequest();
     void gotReply();
 
-    friend class ConnectionData; // to provide access to sendRequest()
-
 private:
+    friend class ConnectionData; // to provide access to sendRequest()
+    template <class JobT>
+    friend class JobHandle;
+
     void stop();
     void finishJob();
+    QFuture<void> future();
 
     class Private;
     ImplPtr<Private> d;

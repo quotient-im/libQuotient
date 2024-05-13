@@ -168,6 +168,7 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/events/filesourceinfo.h
         Quotient/jobs/requestdata.h
         Quotient/jobs/basejob.h
+        Quotient/jobs/jobhandle.h
         Quotient/jobs/syncjob.h
         Quotient/jobs/mediathumbnailjob.h
         Quotient/jobs/downloadfilejob.h

@@ -9,20 +9,14 @@
 #include "logging_categories_p.h"
 #include "room.h"
 
-#include "csapi/content-repo.h"
 #include "csapi/profile.h"
-#include "csapi/room_state.h"
 
-#include "events/event.h"
 #include "events/roommemberevent.h"
 
 #include <QtCore/QElapsedTimer>
-#include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStringBuilder>
 #include <QtCore/QTimer>
-
-#include <functional>
 
 using namespace Quotient;
 
@@ -50,9 +44,7 @@ Connection* User::connection() const
 
 void User::load()
 {
-    auto* profileJob =
-        connection()->callApi<GetUserProfileJob>(id());
-    connect(profileJob, &BaseJob::result, this, [this, profileJob] {
+    connection()->callApi<GetUserProfileJob>(id()).then([this](const auto* profileJob) {
         d->defaultName = profileJob->displayname();
         d->defaultAvatarUrl = profileJob->avatarUrl();
         emit defaultNameChanged();
@@ -89,17 +81,14 @@ void User::rename(const QString& newName)
     if (actualNewName == d->defaultName)
         return; // Nothing to do
 
-    connect(connection()->callApi<SetDisplayNameJob>(id(), actualNewName),
-            &BaseJob::success, this, [this, actualNewName] {
-                // Check again, it could have changed meanwhile
-                if (actualNewName != d->defaultName) {
-                    d->defaultName = actualNewName;
-                    emit defaultNameChanged();
-                } else
-                    qCWarning(MAIN)
-                        << "User" << id() << "already has profile name set to"
-                        << actualNewName;
-            });
+    connection()->callApi<SetDisplayNameJob>(id(), actualNewName).then([this, actualNewName] {
+        // Check again, it could have changed meanwhile
+        if (actualNewName != d->defaultName) {
+            d->defaultName = actualNewName;
+            emit defaultNameChanged();
+        } else
+            qCWarning(MAIN) << "User" << id() << "already has profile name set to" << actualNewName;
+    });
 }
 
 void User::rename(const QString& newName, Room* r)
@@ -124,33 +113,38 @@ void User::rename(const QString& newName, Room* r)
         << "Attempt to rename a non-member in a room context - ignored";
 }
 
-template <typename SourceT>
-inline bool User::doSetAvatar(SourceT&& source)
+void User::doSetAvatar(const QUrl& contentUri)
 {
-    return connection()->userAvatar(d->defaultAvatarUrl).upload(
-        connection(), source, [this](const QUrl& contentUri) {
-            auto* j = connection()->callApi<SetAvatarUrlJob>(id(), contentUri);
-            connect(j, &BaseJob::success, this,
-                    [this, contentUri] {
-                        if (contentUri == d->defaultAvatarUrl) {
-                            connection()->userAvatar(d->defaultAvatarUrl).updateUrl(contentUri);
-                            emit defaultAvatarChanged();
-                        } else
-                            qCWarning(MAIN) << "User" << id()
-                                            << "already has avatar URL set to"
-                                            << contentUri.toDisplayString();
-                    });
-        });
+    connection()->callApi<SetAvatarUrlJob>(id(), contentUri).then(this, [this, contentUri] {
+        if (contentUri != d->defaultAvatarUrl) {
+            connection()->userAvatar(d->defaultAvatarUrl).updateUrl(contentUri);
+            emit defaultAvatarChanged();
+        } else
+            qCWarning(MAIN) << "User" << id() << "already has avatar URL set to"
+                            << contentUri.toDisplayString();
+    });
 }
 
 bool User::setAvatar(const QString& fileName)
 {
-    return doSetAvatar(fileName);
+    auto ft = connection()
+                  ->userAvatar(d->defaultAvatarUrl)
+                  .upload(connection(), fileName)
+                  .then(std::bind_front(&User::doSetAvatar, this));
+    // The return value only says whether the upload has started; the subsequent url setting job
+    // will only start after the upload completes
+    return !ft.isCanceled();
 }
 
 bool User::setAvatar(QIODevice* source)
 {
-    return doSetAvatar(source);
+    auto ft = connection()
+                  ->userAvatar(d->defaultAvatarUrl)
+                  .upload(connection(), source)
+                  .then(std::bind_front(&User::doSetAvatar, this));
+    // The return value only says whether the upload has started; the subsequent url setting job
+    // will only start after the upload completes
+    return !ft.isCanceled();
 }
 
 void User::removeAvatar() const

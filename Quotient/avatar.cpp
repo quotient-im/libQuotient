@@ -9,7 +9,6 @@
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtCore/QDir>
-#include <QtCore/QPointer>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
 #include <QtGui/QPainter>
@@ -21,17 +20,15 @@ public:
     explicit Private(QUrl url = {}) : _url(std::move(url)) {}
     ~Private() override
     {
-        if (isJobPending(_thumbnailRequest))
-            _thumbnailRequest->abandon();
-        if (isJobPending(_uploadRequest))
-            _uploadRequest->abandon();
+        _thumbnailRequest.abandon();
+        _uploadRequest.abandon();
     }
     Q_DISABLE_COPY_MOVE(Private)
 
     QImage get(Connection* connection, QSize size,
                get_callback_t callback) const;
     void thumbnailRequestFinished();
-    bool upload(UploadContentJob* job, upload_callback_t&& callback);
+    QFuture<QUrl> upload(JobHandle<UploadContentJob>&& job);
 
     bool checkUrl(const QUrl& url) const;
     QString localFile() const;
@@ -44,8 +41,8 @@ public:
     mutable QSize _largestRequestedSize{};
     enum ImageSource : quint8 { Unknown, Cache, Network, Invalid };
     mutable ImageSource _imageSource = Unknown;
-    mutable QPointer<MediaThumbnailJob> _thumbnailRequest = nullptr;
-    mutable QPointer<BaseJob> _uploadRequest = nullptr;
+    mutable JobHandle<MediaThumbnailJob> _thumbnailRequest = nullptr;
+    mutable JobHandle<UploadContentJob> _uploadRequest = nullptr;
     mutable std::vector<get_callback_t> callbacks{};
 };
 
@@ -70,7 +67,8 @@ bool Avatar::upload(Connection* connection, const QString& fileName,
 {
     if (isJobPending(d->_uploadRequest))
         return false;
-    return d->upload(connection->uploadFile(fileName), std::move(callback));
+    upload(connection, fileName).then(std::move(callback));
+    return true;
 }
 
 bool Avatar::upload(Connection* connection, QIODevice* source,
@@ -78,7 +76,18 @@ bool Avatar::upload(Connection* connection, QIODevice* source,
 {
     if (isJobPending(d->_uploadRequest) || !source->isReadable())
         return false;
-    return d->upload(connection->uploadContent(source), std::move(callback));
+    upload(connection, source).then(std::move(callback));
+    return true;
+}
+
+QFuture<QUrl> Avatar::upload(Connection* connection, const QString& fileName) const
+{
+    return d->upload(connection->uploadFile(fileName));
+}
+
+QFuture<QUrl> Avatar::upload(Connection* connection, QIODevice* source) const
+{
+    return d->upload(connection->uploadContent(source));
 }
 
 QString Avatar::mediaId() const { return d->_url.authority() + d->_url.path(); }
@@ -162,14 +171,10 @@ void Avatar::Private::thumbnailRequestFinished()
     callbacks.clear();
 }
 
-bool Avatar::Private::upload(UploadContentJob* job, upload_callback_t &&callback)
+QFuture<QUrl> Avatar::Private::upload(JobHandle<UploadContentJob>&& job)
 {
-    _uploadRequest = job;
-    if (!isJobPending(_uploadRequest))
-        return false;
-    _uploadRequest->connect(_uploadRequest, &BaseJob::success, _uploadRequest,
-                            [job, callback] { callback(job->contentUri()); });
-    return true;
+    _uploadRequest = std::move(job);
+    return _uploadRequest.then([](const auto* j) { return j->contentUri(); });
 }
 
 bool Avatar::Private::checkUrl(const QUrl& url) const
