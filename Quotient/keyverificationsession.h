@@ -134,11 +134,20 @@ Q_SIGNALS:
     void finished();
 
 private:
+    // Internal delegating constructors
+
+    KeyVerificationSession(QString remoteUserId, Connection* connection, QString remoteDeviceId,
+                           bool encrypted, QStringList methods, QDateTime startTimestamp,
+                           QString transactionId, Room* room = nullptr, QString requestEventId = {});
+    KeyVerificationSession(QString remoteUserId, Connection* connection, Room* room,
+                           QString remoteDeviceId = {}, QString transactionId = {});
+
+    Connection* const m_connection;
+    QPointer<Room> m_room;
     const QString m_remoteUserId;
     QString m_remoteDeviceId;
-    const QString m_transactionId;
-    Connection* m_connection;
-    bool m_encrypted;
+    QString m_transactionId;
+    bool m_encrypted = false;
     QStringList m_remoteSupportedMethods{};
     QStringList m_commonMacCodes{};
 
@@ -154,8 +163,7 @@ private:
     bool m_verified = false;
     QString m_pendingEdKeyId{};
     QString m_pendingMasterKey{};
-    QPointer<Room> m_room;
-    QString m_requestEventId;
+    QString m_requestEventId{};
 
     static CStructPtr<OlmSAS> makeOlmData();
     void handleReady(const KeyVerificationReadyEvent& event);

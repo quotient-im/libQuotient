@@ -48,44 +48,34 @@ CStructPtr<OlmSAS> KeyVerificationSession::makeOlmData()
     return data;
 }
 
-KeyVerificationSession::KeyVerificationSession(
-    QString remoteUserId, const KeyVerificationRequestEvent& event,
-    Connection* connection, bool encrypted)
+KeyVerificationSession::KeyVerificationSession(QString remoteUserId,
+                                               const KeyVerificationRequestEvent& event,
+                                               Connection* connection, bool encrypted)
+    : KeyVerificationSession(std::move(remoteUserId), connection, event.fromDevice(), encrypted,
+                             event.methods(), event.timestamp(), event.transactionId())
+{}
+
+KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent* event, Room* room)
+    : KeyVerificationSession(event->senderId(), room->connection(),
+                             event->contentPart<QString>("from_device"_ls), room->usesEncryption(),
+                             event->contentPart<QStringList>("methods"_ls),
+                             event->originTimestamp(), {}, room, event->id())
+{}
+
+KeyVerificationSession::KeyVerificationSession(QString remoteUserId, Connection* connection,
+                                               QString remoteDeviceId, bool encrypted,
+                                               QStringList methods, QDateTime startTimestamp,
+                                               QString transactionId, Room* room,
+                                               QString requestEventId)
     : QObject(connection)
-    , m_remoteUserId(std::move(remoteUserId))
-    , m_remoteDeviceId(event.fromDevice())
-    , m_transactionId(event.transactionId())
     , m_connection(connection)
-    , m_encrypted(encrypted)
-    , m_remoteSupportedMethods(event.methods())
-{
-    if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
-        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
-        return;
-    }
-    const auto& currentTime = QDateTime::currentDateTime();
-    const auto timeoutTime =
-        std::min(event.timestamp().addSecs(600), currentTime.addSecs(120));
-    const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
-    if (timeout > 5s) {
-        setupTimeout(timeout);
-    } else {
-        // Otherwise don't even bother starting up
-        deleteLater();
-    }
-}
-
-
-KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent *event, Room *room)
-    : QObject(room->connection())
-    , m_remoteUserId(event->senderId())
-    , m_remoteDeviceId(event->contentPart<QString>("from_device"_ls))
-    , m_transactionId(QString())
-    , m_connection(room->connection())
-    , m_encrypted(room->usesEncryption())
-    , m_remoteSupportedMethods(event->contentPart<QStringList>("methods"_ls))
     , m_room(room)
-    , m_requestEventId(event->id())
+    , m_remoteUserId(std::move(remoteUserId))
+    , m_remoteDeviceId(std::move(remoteDeviceId))
+    , m_transactionId(std::move(transactionId))
+    , m_encrypted(encrypted)
+    , m_remoteSupportedMethods(std::move(methods))
+    , m_requestEventId(std::move(requestEventId)) // TODO: Consider merging with transactionId
 {
     if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
         qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
@@ -93,7 +83,7 @@ KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent *event, Ro
     }
     const auto& currentTime = QDateTime::currentDateTime();
     const auto timeoutTime =
-        std::min(event->originTimestamp().addSecs(600), currentTime.addSecs(120));
+        std::min(startTimestamp.addSecs(600), currentTime.addSecs(120));
     const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
     if (timeout > 5s) {
         setupTimeout(timeout);
@@ -103,31 +93,27 @@ KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent *event, Ro
     }
 }
 
-
 KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
                                                Connection* connection)
-    : QObject(connection)
-    , m_remoteUserId(std::move(userId))
-    , m_remoteDeviceId(std::move(deviceId))
-    , m_transactionId(QUuid::createUuid().toString())
-    , m_connection(connection)
-    , m_encrypted(false)
-{
-    if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
-        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
-        return;
-    }
-    setupTimeout(600s);
-    QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
-}
+    : KeyVerificationSession(std::move(userId), connection, nullptr, std::move(deviceId),
+                             QUuid::createUuid().toString())
+{}
 
-KeyVerificationSession::KeyVerificationSession(Room *room)
-    : QObject(room->connection())
-    , m_remoteUserId(room->members()[0].isLocalMember() ? room->members()[1].id() : room->members()[0].id())
-    , m_remoteDeviceId(QString())
-    , m_connection(room->connection())
-    , m_encrypted(false)
+KeyVerificationSession::KeyVerificationSession(Room* room)
+    : KeyVerificationSession(room->members()[room->members()[0].isLocalMember() ? 1 : 0].id(),
+                             room->connection(),
+                             room)
+{}
+
+KeyVerificationSession::KeyVerificationSession(QString remoteUserId, Connection* connection,
+                                               Room* room, QString remoteDeviceId,
+                                               QString transactionId)
+    : QObject(connection)
+    , m_connection(connection)
     , m_room(room)
+    , m_remoteUserId(std::move(remoteUserId))
+    , m_remoteDeviceId(std::move(remoteDeviceId))
+    , m_transactionId(std::move(transactionId))
 {
     if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
         qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
