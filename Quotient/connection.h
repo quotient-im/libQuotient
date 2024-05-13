@@ -584,12 +584,6 @@ public:
         setUserFactory(defaultUserFactory<T>);
     }
 
-public Q_SLOTS:
-    //! \brief Set the homeserver base URL and retrieve its login flows
-    //!
-    //! \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
-    void setHomeserver(const QUrl& baseUrl);
-
     //! \brief Determine and set the homeserver from MXID
     //!
     //! This attempts to resolve the homeserver by requesting
@@ -602,8 +596,33 @@ public Q_SLOTS:
     //! attempt.
     //! \param mxid user Matrix ID, such as @someone:example.org
     //! \sa setHomeserver, homeserverChanged, loginFlowsChanged, resolveError
-    void resolveServer(const QString& mxid);
+    Q_INVOKABLE void resolveServer(const QString& mxid);
 
+    //! \brief Set the homeserver base URL and retrieve its login flows
+    //!
+    //! \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
+    Q_INVOKABLE QFuture<QList<LoginFlow> > setHomeserver(const QUrl& baseUrl);
+
+    //! \brief Get a future to a direct chat with the user
+    Q_INVOKABLE QFuture<Room*> getDirectChat(const QString& otherUserId);
+
+    //! Create a direct chat with a single user, optional name and topic
+    //!
+    //! A room will always be created, unlike in requestDirectChat.
+    //! It is advised to use requestDirectChat as a default way of getting
+    //! one-on-one with a person, and only use createDirectChat when
+    //! a new creation is explicitly desired.
+    Q_INVOKABLE JobHandle<CreateRoomJob> createDirectChat(const QString& userId,
+                                                          const QString& topic = {},
+                                                          const QString& name = {});
+
+    Q_INVOKABLE JobHandle<JoinRoomJob> joinRoom(const QString& roomAlias,
+                                                const QStringList& serverNames = {});
+
+    Q_INVOKABLE QFuture<Room*> joinAndGetRoom(const QString& roomAlias,
+                                              const QStringList& serverNames = {});
+
+public Q_SLOTS:
     //! \brief Log in using a username and password pair
     //!
     //! Before logging in, this method checks if the homeserver is valid and
@@ -685,23 +704,6 @@ public Q_SLOTS:
     //! already.
     //! \sa directChatAvailable
     void requestDirectChat(const QString& userId);
-
-    //! \brief Get a future to a direct chat with the user
-    QFuture<Room*> getDirectChat(const QString& otherUserId);
-
-    //! Create a direct chat with a single user, optional name and topic
-    //!
-    //! A room will always be created, unlike in requestDirectChat.
-    //! It is advised to use requestDirectChat as a default way of getting
-    //! one-on-one with a person, and only use createDirectChat when
-    //! a new creation is explicitly desired.
-    JobHandle<CreateRoomJob> createDirectChat(const QString& userId, const QString& topic = {},
-                                              const QString& name = {});
-
-    virtual JobHandle<JoinRoomJob> joinRoom(const QString& roomAlias,
-                                            const QStringList& serverNames = {});
-
-    QFuture<Room*> joinAndGetRoom(const QString& roomAlias, const QStringList& serverNames = {});
 
     //! \brief Send /forget to the server and delete room locally
     //!

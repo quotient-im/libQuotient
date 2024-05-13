@@ -85,8 +85,7 @@ Connection::~Connection()
 
 void Connection::resolveServer(const QString& mxid)
 {
-    if (isJobPending(d->resolverJob))
-        d->resolverJob->abandon();
+    d->resolverJob.abandon(); // The previous network request is no more relevant
 
     auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
     maybeBaseUrl.setScheme("https"_ls); // Instead of the Qt-default "http"
@@ -101,26 +100,20 @@ void Connection::resolveServer(const QString& mxid)
     const auto& oldBaseUrl = d->data->baseUrl();
     d->data->setBaseUrl(maybeBaseUrl); // Temporarily set it for this one call
     d->resolverJob = callApi<GetWellknownJob>();
-    // Connect to finished() to make sure baseUrl is restored in any case
-    connect(d->resolverJob, &BaseJob::finished, this, [this, maybeBaseUrl, oldBaseUrl] {
-        // Revert baseUrl so that setHomeserver() below triggers signals
-        // in case the base URL actually changed
-        d->data->setBaseUrl(oldBaseUrl);
-        if (d->resolverJob->error() == BaseJob::Abandoned)
-            return;
-
+    // Make sure baseUrl is restored in any case, even an abandon, and before any further processing
+    connect(d->resolverJob.get(), &BaseJob::finished, this,
+            [this, oldBaseUrl] { d->data->setBaseUrl(oldBaseUrl); });
+    d->resolverJob.onResult(this, [this, maybeBaseUrl]() mutable {
         if (d->resolverJob->error() != BaseJob::NotFound) {
             if (!d->resolverJob->status().good()) {
-                qCWarning(MAIN)
-                    << "Fetching .well-known file failed, FAIL_PROMPT";
+                qCWarning(MAIN) << "Fetching .well-known file failed, FAIL_PROMPT";
                 emit resolveError(tr("Failed resolving the homeserver"));
                 return;
             }
-            const QUrl baseUrl { d->resolverJob->data().homeserver.baseUrl };
+            const QUrl baseUrl{ d->resolverJob->data().homeserver.baseUrl };
             if (baseUrl.isEmpty()) {
                 qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
-                emit resolveError(
-                    tr("The homeserver base URL is not provided"));
+                emit resolveError(tr("The homeserver base URL is not provided"));
                 return;
             }
             if (!baseUrl.isValid()) {
@@ -132,8 +125,7 @@ void Connection::resolveServer(const QString& mxid)
                          << baseUrl.toString();
             setHomeserver(baseUrl);
         } else {
-            qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl
-                         << "for base URL";
+            qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl << "for base URL";
             setHomeserver(maybeBaseUrl);
         }
         Q_ASSERT(d->loginFlowsJob != nullptr); // Ensured by setHomeserver()
@@ -1394,26 +1386,25 @@ QString Connection::generateTxnId() const
     return d->data->generateTxnId();
 }
 
-void Connection::setHomeserver(const QUrl& url)
+QFuture<QList<LoginFlow>> Connection::setHomeserver(const QUrl& baseUrl)
 {
     d->resolverJob.abandon();
     d->loginFlowsJob.abandon();
     d->loginFlows.clear();
 
-    if (homeserver() != url) {
-        d->data->setBaseUrl(url);
+    if (homeserver() != baseUrl) {
+        d->data->setBaseUrl(baseUrl);
         emit homeserverChanged(homeserver());
     }
 
-    // Whenever a homeserver is updated, retrieve available login flows from it
-    d->loginFlowsJob = callApi<GetLoginFlowsJob>(BackgroundRequest);
-    connect(d->loginFlowsJob, &BaseJob::result, this, [this] {
+    d->loginFlowsJob = callApi<GetLoginFlowsJob>(BackgroundRequest).onResult([this] {
         if (d->loginFlowsJob->status().good())
             d->loginFlows = d->loginFlowsJob->flows();
         else
             d->loginFlows.clear();
         emit loginFlowsChanged();
     });
+    return d->loginFlowsJob.then([this] { return d->loginFlows; });
 }
 
 void Connection::saveRoomState(Room* r) const
