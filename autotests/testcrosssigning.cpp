@@ -26,9 +26,7 @@ private Q_SLOTS:
         auto json = QJsonDocument::fromJson(data).object();
 
         auto connection = Connection::makeMockConnection("@tobiasfella:kde.org"_ls, true);
-        connection->d->encryptionData->handleQueryKeys(fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(json["device_keys"_ls]),
-            fromJson<QHash<QString, CrossSigningKey>>(json["master_keys"_ls]), fromJson<QHash<QString, CrossSigningKey>>(json["self_signing_keys"_ls]),
-                                       fromJson<QHash<QString, CrossSigningKey>>(json["user_signing_keys"_ls]));
+        connection->d->encryptionData->handleQueryKeys(json);
 
         QVERIFY(!connection->isUserVerified("@tobiasfella:kde.org"_ls));
         QVERIFY(!connection->isUserVerified("@carl:kde.org"_ls));
@@ -37,9 +35,8 @@ private Q_SLOTS:
         QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_ls, "LTLVYDIVMO"_ls));
         connection->database()->setMasterKeyVerified("iiNvK2+mJtBXj6t+FVnaPBZ4e/M/n84wPJBfUVN38OE"_ls);
         QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_ls));
-        connection->d->encryptionData->handleQueryKeys(fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(json["device_keys"_ls]),
-            fromJson<QHash<QString, CrossSigningKey>>(json["master_keys"_ls]), fromJson<QHash<QString, CrossSigningKey>>(json["self_signing_keys"_ls]),
-                                       fromJson<QHash<QString, CrossSigningKey>>(json["user_signing_keys"_ls]));
+        connection->d->encryptionData->handleQueryKeys(json);
+
         QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_ls));
         QVERIFY(connection->isUserVerified("@aloy:kde.org"_ls));
         QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_ls, "IDEJTUJQAF"_ls));

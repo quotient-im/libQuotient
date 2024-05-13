@@ -303,7 +303,7 @@ void ConnectionEncryptionData::loadOutdatedUserDevices()
     QObject::connect(queryKeysJob, &BaseJob::result, q, [this, queryKeysJob] {
         currentQueryKeysJob = nullptr;
         if (queryKeysJob->error() == BaseJob::Success) {
-            handleQueryKeys(queryKeysJob->deviceKeys(), queryKeysJob->masterKeys(), queryKeysJob->selfSigningKeys(), queryKeysJob->userSigningKeys());
+            handleQueryKeys(queryKeysJob->jsonData());
         }
         emit q->finishedQueryingKeys();
     });
@@ -618,17 +618,18 @@ void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QStr
     }
 }
 
-
-void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys,
-                     const QHash<QString, CrossSigningKey>& masterKeys, const QHash<QString, CrossSigningKey>& selfSigningKeys,
-                     const QHash<QString, CrossSigningKey>& userSigningKeys)
+void ConnectionEncryptionData::handleQueryKeys(const QJsonObject& keysJson)
 {
     database.transaction();
+    const auto masterKeys = fromJson<QHash<QString, CrossSigningKey>>(keysJson["master_keys"_ls]);
     handleMasterKeys(masterKeys);
-    handleSelfSigningKeys(selfSigningKeys);
-    handleUserSigningKeys(userSigningKeys);
+    handleSelfSigningKeys(
+        fromJson<QHash<QString, CrossSigningKey>>(keysJson["self_signing_keys"_ls]));
+    handleUserSigningKeys(
+        fromJson<QHash<QString, CrossSigningKey>>(keysJson["user_signing_keys"_ls]));
     checkVerifiedMasterKeys(masterKeys);
-    handleDevicesList(deviceKeys);
+    handleDevicesList(fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(
+        keysJson["device_keys"_ls]));
     database.commit();
 
     saveDevicesList();
