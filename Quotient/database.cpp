@@ -212,16 +212,16 @@ std::optional<OlmErrorCode> Database::setupOlmAccount(QOlmAccount& olmAccount)
 
 void Database::clear()
 {
-    auto query = prepareQuery(QStringLiteral("DELETE FROM accounts;"));
-    auto sessionsQuery = prepareQuery(QStringLiteral("DELETE FROM olm_sessions;"));
-    auto megolmSessionsQuery = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions;"));
-    auto groupSessionIndexRecordQuery = prepareQuery(QStringLiteral("DELETE FROM group_session_record_index;"));
-
+    // SQLite driver only supports one query at a time, so feed them one by one
     transaction();
-    execute(query);
-    execute(sessionsQuery);
-    execute(megolmSessionsQuery);
-    execute(groupSessionIndexRecordQuery);
+    for (auto&& q : { QStringLiteral("DELETE FROM accounts;"), // @clang-format: one per line, plz
+                      QStringLiteral("DELETE FROM olm_sessions;"),
+                      QStringLiteral("DELETE FROM inbound_megolm_sessions;"),
+                      QStringLiteral("DELETE FROM group_session_record_index;"),
+                      QStringLiteral("DELETE FROM master_keys;"),
+                      QStringLiteral("DELETE FROM self_signing_keys;"),
+                      QStringLiteral("DELETE FROM user_signing_keys;") })
+        execute(q);
     commit();
 
 }

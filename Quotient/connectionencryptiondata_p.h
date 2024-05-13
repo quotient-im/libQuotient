@@ -101,14 +101,13 @@ namespace _impl {
                                  PicklingKey&& picklingKey);
         bool hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId);
 
-        void handleQueryKeys(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys,
-                     const QHash<QString, CrossSigningKey>& masterKeys, const QHash<QString, CrossSigningKey>& selfSigningKeys,
-                     const QHash<QString, CrossSigningKey>& userSigningKeys);
+        void handleQueryKeys(const QJsonObject& keysJson);
 
         void handleMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys);
         void handleSelfSigningKeys(const QHash<QString, CrossSigningKey>& selfSigningKeys);
         void handleUserSigningKeys(const QHash<QString, CrossSigningKey>& userSigningKeys);
-        void handleDevicesList(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys);
+        void handleDevicesList(
+            const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& newDeviceKeys);
         void checkVerifiedMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys);
 
     private:

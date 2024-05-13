@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
 
 #include "cryptoutils.h"
-#include "e2ee/e2ee_common.h"
+#include "e2ee_common.h"
 
 #include "../logging_categories_p.h"
 #include "../util.h"

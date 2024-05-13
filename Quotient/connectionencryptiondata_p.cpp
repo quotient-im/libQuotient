@@ -143,26 +143,33 @@ void ConnectionEncryptionData::saveDevicesList()
         "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey, verified, selfVerified) "
         "VALUES (:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey, :verified, :selfVerified);"));
     for (const auto& [user, devices] : deviceKeys.asKeyValueRange()) {
-        auto deleteQuery = database.prepareQuery(QStringLiteral("DELETE FROM tracked_devices WHERE matrixId=:matrixId;"));
+        auto deleteQuery = database.prepareQuery(
+            QStringLiteral("DELETE FROM tracked_devices WHERE matrixId=:matrixId;"));
         deleteQuery.bindValue(":matrixId"_ls, user);
         database.execute(deleteQuery);
         for (const auto& device : devices) {
-            auto keys = device.keys.keys();
-            auto deleteQuery = database.prepareQuery("DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_ls);
+            const auto keys = device.keys.asKeyValueRange();
+            deleteQuery.prepare(
+                "DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_ls);
             deleteQuery.bindValue(":matrixId"_ls, user);
             deleteQuery.bindValue(":deviceId"_ls, device.deviceId);
             database.execute(deleteQuery);
 
-            auto curveKeyId = keys[0].startsWith("curve"_ls) ? keys[0]
-                                                             : keys[1];
-            auto edKeyId = keys[0].startsWith("ed"_ls) ? keys[0] : keys[1];
+            const auto curveKeyIt = std::ranges::find_if(keys, [](const auto& p) {
+                return p.first.startsWith("curve"_ls);
+            });
+            Q_ASSERT(curveKeyIt != keys.end());
+            const auto edKeyIt = std::ranges::find_if(keys, [](const auto& p) {
+                return p.first.startsWith("ed"_ls);
+            });
+            Q_ASSERT(edKeyIt != keys.end());
 
             query.bindValue(":matrixId"_ls, user);
             query.bindValue(":deviceId"_ls, device.deviceId);
-            query.bindValue(":curveKeyId"_ls, curveKeyId);
-            query.bindValue(":curveKey"_ls, device.keys[curveKeyId]);
-            query.bindValue(":edKeyId"_ls, edKeyId);
-            query.bindValue(":edKey"_ls, device.keys[edKeyId]);
+            query.bindValue(":curveKeyId"_ls, curveKeyIt->first);
+            query.bindValue(":curveKey"_ls, curveKeyIt->second);
+            query.bindValue(":edKeyId"_ls, edKeyIt->first);
+            query.bindValue(":edKey"_ls, edKeyIt->second);
             // If the device gets saved here, it can't be verified
             query.bindValue(":verified"_ls, verifiedDevices[user][device.deviceId]);
             query.bindValue(":selfVerified"_ls, selfVerifiedDevices[user][device.deviceId]);
@@ -296,7 +303,7 @@ void ConnectionEncryptionData::loadOutdatedUserDevices()
     QObject::connect(queryKeysJob, &BaseJob::result, q, [this, queryKeysJob] {
         currentQueryKeysJob = nullptr;
         if (queryKeysJob->error() == BaseJob::Success) {
-            handleQueryKeys(queryKeysJob->deviceKeys(), queryKeysJob->masterKeys(), queryKeysJob->selfSigningKeys(), queryKeysJob->userSigningKeys());
+            handleQueryKeys(queryKeysJob->jsonData());
         }
         emit q->finishedQueryingKeys();
     });
@@ -431,6 +438,14 @@ void ConnectionEncryptionData::handleMasterKeys(const QHash<QString, CrossSignin
     }
 }
 
+namespace {
+QString getEd25519Signature(const CrossSigningKey& keyObject, const QString& userId,
+                            const QString& masterKey)
+{
+    return keyObject.signatures[userId]["ed25519:"_ls + masterKey].toString();
+}
+}
+
 void ConnectionEncryptionData::handleSelfSigningKeys(const QHash<QString, CrossSigningKey>& selfSigningKeys)
 {
     for (const auto &[userId, key] : asKeyValueRange(selfSigningKeys)) {
@@ -442,13 +457,9 @@ void ConnectionEncryptionData::handleSelfSigningKeys(const QHash<QString, CrossS
             qCWarning(E2EE) << "Self signing key: invalid usage" << key.usage;
             continue;
         }
-        auto masterKeyQuery = database.prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_ls);
-        masterKeyQuery.bindValue(":userId"_ls, userId);
-        database.execute(masterKeyQuery);
-        if (!masterKeyQuery.next()) {
+        const auto masterKey = q->masterKeyForUser(userId);
+        if (masterKey.isEmpty())
             continue;
-        }
-        const auto masterKey = masterKeyQuery.value("key"_ls).toString();
 
         auto checkQuery = database.prepareQuery("SELECT key FROM self_signing_keys WHERE userId=:userId;"_ls);
         checkQuery.bindValue(":userId"_ls, userId);
@@ -466,8 +477,8 @@ void ConnectionEncryptionData::handleSelfSigningKeys(const QHash<QString, CrossS
             }
         }
 
-        auto signature = key.signatures[userId]["ed25519:"_ls + masterKey].toString();
-        if (!ed25519VerifySignature(masterKey, toJson(key), signature)) {
+        if (!ed25519VerifySignature(masterKey, toJson(key),
+                                    getEd25519Signature(key, userId, masterKey))) {
             qCWarning(E2EE) << "Self signing key: failed signature verification" << userId;
             continue;
         }
@@ -492,12 +503,9 @@ void ConnectionEncryptionData::handleUserSigningKeys(const QHash<QString, CrossS
             qWarning() << "User signing key: invalid usage" << key.usage;
             continue;
         }
-        auto masterKeyQuery = database.prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_ls);
-        masterKeyQuery.bindValue(":userId"_ls, userId);
-        database.execute(masterKeyQuery);
-        if (!masterKeyQuery.next()) {
+        const auto masterKey = q->masterKeyForUser(userId);
+        if (masterKey.isEmpty())
             continue;
-        }
 
         auto checkQuery = database.prepareQuery("SELECT key FROM user_signing_keys WHERE userId=:userId"_ls);
         checkQuery.bindValue(":userId"_ls, userId);
@@ -514,9 +522,8 @@ void ConnectionEncryptionData::handleUserSigningKeys(const QHash<QString, CrossS
             }
         }
 
-        const auto masterKey = masterKeyQuery.value("key"_ls).toString();
-        const auto signature = key.signatures[userId]["ed25519:"_ls % masterKey].toString();
-        if (!ed25519VerifySignature(masterKey, toJson(key), signature)) {
+        if (!ed25519VerifySignature(masterKey, toJson(key),
+                                    getEd25519Signature(key, userId, masterKey))) {
             qWarning() << "User signing key: failed signature verification" << userId;
             continue;
         }
@@ -543,7 +550,7 @@ void ConnectionEncryptionData::checkVerifiedMasterKeys(const QHash<QString, Cros
     }
     const auto userSigningKey = query.value("key"_ls).toString();
     for (const auto& masterKey : masterKeys) {
-        auto signature = masterKey.signatures[q->userId()]["ed25519:"_ls % userSigningKey].toString();
+        auto signature = getEd25519Signature(masterKey, q->userId(), userSigningKey);
         if (signature.isEmpty()) {
             continue;
         }
@@ -556,15 +563,16 @@ void ConnectionEncryptionData::checkVerifiedMasterKeys(const QHash<QString, Cros
     }
 }
 
-void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
+void ConnectionEncryptionData::handleDevicesList(
+    const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& newDeviceKeys)
 {
-    for(const auto &[user, keys] : deviceKeys.asKeyValueRange()) {
-        const auto oldDevices = this->deviceKeys[user];
+    for(const auto &[user, keys] : newDeviceKeys.asKeyValueRange()) {
+        const auto oldDevices = deviceKeys[user];
         auto query = database.prepareQuery("SELECT * FROM self_signing_keys WHERE userId=:userId;"_ls);
         query.bindValue(":userId"_ls, user);
         database.execute(query);
         const auto selfSigningKey = query.next() ? query.value("key"_ls).toString() : QString();
-        this->deviceKeys[user].clear();
+        deviceKeys[user].clear();
         selfVerifiedDevices[user].clear();
         for (const auto &device : keys) {
             if (device.userId != user) {
@@ -581,7 +589,7 @@ void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QStr
             }
             if (!verifyIdentitySignature(device, device.deviceId,
                                          device.userId)) {
-                qWarning(E2EE) << "Failed to verify devicekeys signature. "
+                qWarning(E2EE) << "Failed to verify device keys signature. "
                                   "Skipping device" << device.userId << device.deviceId;
                 continue;
             }
@@ -605,23 +613,24 @@ void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QStr
                     qCWarning(E2EE) << "failed self signing signature check" << user << device.deviceId;
                 }
             }
-            this->deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
+            deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
         }
         outdatedUsers -= user;
     }
 }
 
-
-void ConnectionEncryptionData::handleQueryKeys(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys,
-                     const QHash<QString, CrossSigningKey>& masterKeys, const QHash<QString, CrossSigningKey>& selfSigningKeys,
-                     const QHash<QString, CrossSigningKey>& userSigningKeys)
+void ConnectionEncryptionData::handleQueryKeys(const QJsonObject& keysJson)
 {
     database.transaction();
+    const auto masterKeys = fromJson<QHash<QString, CrossSigningKey>>(keysJson["master_keys"_ls]);
     handleMasterKeys(masterKeys);
-    handleSelfSigningKeys(selfSigningKeys);
-    handleUserSigningKeys(userSigningKeys);
+    handleSelfSigningKeys(
+        fromJson<QHash<QString, CrossSigningKey>>(keysJson["self_signing_keys"_ls]));
+    handleUserSigningKeys(
+        fromJson<QHash<QString, CrossSigningKey>>(keysJson["user_signing_keys"_ls]));
     checkVerifiedMasterKeys(masterKeys);
-    handleDevicesList(deviceKeys);
+    handleDevicesList(fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(
+        keysJson["device_keys"_ls]));
     database.commit();
 
     saveDevicesList();
@@ -1006,28 +1015,14 @@ bool ConnectionEncryptionData::hasConflictingDeviceIdsAndCrossSigningKeys(const 
     auto selfQuery = database.prepareQuery("SELECT key FROM self_signing_keys WHERE userId=:userId;"_ls);
     selfQuery.bindValue(":userId"_ls, userId);
     database.execute(selfQuery);
-    if (selfQuery.next()) {
-        if (devices.contains(selfQuery.value("key"_ls).toString())) {
-            return true;
-        }
-    }
+    if (selfQuery.next() && devices.contains(selfQuery.value("key"_ls).toString()))
+        return true;
 
-    auto masterQuery = database.prepareQuery("SELECT key FROM master_keys WHERE userId=:userId;"_ls);
-    masterQuery.bindValue(":userId"_ls, userId);
-    database.execute(masterQuery);
-    if (masterQuery.next()) {
-        if (devices.contains(masterQuery.value("key"_ls).toString())) {
-            return true;
-        }
-    }
+    if (devices.contains(q->masterKeyForUser(userId)))
+        return true;
 
     auto userQuery = database.prepareQuery("SELECT key FROM user_signing_keys WHERE userId=:userId;"_ls);
     userQuery.bindValue(":userId"_ls, userId);
     database.execute(userQuery);
-    if (userQuery.next()) {
-        if (devices.contains(userQuery.value("key"_ls).toString())) {
-            return true;
-        }
-    }
-    return false;
+    return userQuery.next() && devices.contains(userQuery.value("key"_ls).toString());
 }
