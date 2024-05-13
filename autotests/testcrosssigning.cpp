@@ -4,7 +4,7 @@
 
 
 #include <QTest>
-#include "connection_p.h"
+#include <Quotient/connection_p.h>
 #include "testutils.h"
 
 using namespace Quotient;
