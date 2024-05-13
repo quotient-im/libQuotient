@@ -143,26 +143,33 @@ void ConnectionEncryptionData::saveDevicesList()
         "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey, verified, selfVerified) "
         "VALUES (:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey, :verified, :selfVerified);"));
     for (const auto& [user, devices] : deviceKeys.asKeyValueRange()) {
-        auto deleteQuery = database.prepareQuery(QStringLiteral("DELETE FROM tracked_devices WHERE matrixId=:matrixId;"));
+        auto deleteQuery = database.prepareQuery(
+            QStringLiteral("DELETE FROM tracked_devices WHERE matrixId=:matrixId;"));
         deleteQuery.bindValue(":matrixId"_ls, user);
         database.execute(deleteQuery);
         for (const auto& device : devices) {
-            auto keys = device.keys.keys();
-            auto deleteQuery = database.prepareQuery("DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_ls);
+            const auto keys = device.keys.asKeyValueRange();
+            deleteQuery.prepare(
+                "DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_ls);
             deleteQuery.bindValue(":matrixId"_ls, user);
             deleteQuery.bindValue(":deviceId"_ls, device.deviceId);
             database.execute(deleteQuery);
 
-            auto curveKeyId = keys[0].startsWith("curve"_ls) ? keys[0]
-                                                             : keys[1];
-            auto edKeyId = keys[0].startsWith("ed"_ls) ? keys[0] : keys[1];
+            const auto curveKeyIt = std::ranges::find_if(keys, [](const auto& p) {
+                return p.first.startsWith("curve"_ls);
+            });
+            Q_ASSERT(curveKeyIt != keys.end());
+            const auto edKeyIt = std::ranges::find_if(keys, [](const auto& p) {
+                return p.first.startsWith("ed"_ls);
+            });
+            Q_ASSERT(edKeyIt != keys.end());
 
             query.bindValue(":matrixId"_ls, user);
             query.bindValue(":deviceId"_ls, device.deviceId);
-            query.bindValue(":curveKeyId"_ls, curveKeyId);
-            query.bindValue(":curveKey"_ls, device.keys[curveKeyId]);
-            query.bindValue(":edKeyId"_ls, edKeyId);
-            query.bindValue(":edKey"_ls, device.keys[edKeyId]);
+            query.bindValue(":curveKeyId"_ls, curveKeyIt->first);
+            query.bindValue(":curveKey"_ls, curveKeyIt->second);
+            query.bindValue(":edKeyId"_ls, edKeyIt->first);
+            query.bindValue(":edKey"_ls, edKeyIt->second);
             // If the device gets saved here, it can't be verified
             query.bindValue(":verified"_ls, verifiedDevices[user][device.deviceId]);
             query.bindValue(":selfVerified"_ls, selfVerifiedDevices[user][device.deviceId]);
