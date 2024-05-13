@@ -228,9 +228,14 @@ private:
             }
         }
 
-        // A "compressed pair" pattern, see https://www.cppstories.com/2021/no-unique-address/
+        // See https://www.cppstories.com/2021/no-unique-address/
+#ifndef Q_CC_CLANG
+        // Apple Clang crashes with ICE and vanilla Clang 17 generates faulty code if fn has no
+        // unique address. https://github.com/llvm/llvm-project/issues/59831 might be related.
+        [[no_unique_address]]
+#endif
         FnT fn;
-        ConfigT c;
+        [[no_unique_address]] ConfigT c;
     };
 
     template <typename FnT, typename ConfigT = Skip>
