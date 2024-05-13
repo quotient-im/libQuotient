@@ -476,11 +476,11 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
     }
 
     auto masterKey = m_connection->masterKeyForUser(m_remoteUserId);
-    if (event.mac().contains("ed25519:"_ls % masterKey)) {
-        if (calculateMac(masterKey, true, "ed25519:"_ls % masterKey) != event.mac().value("ed25519:"_ls % masterKey)) {
-            cancelVerification(KEY_MISMATCH);
-            return;
-        }
+    if (event.mac().contains("ed25519:"_ls % masterKey)
+        && calculateMac(masterKey, true, "ed25519:"_ls % masterKey)
+               != event.mac().value("ed25519:"_ls % masterKey)) {
+        cancelVerification(KEY_MISMATCH);
+        return;
     }
 
     if (calculateMac(key, true) != event.keys()) {

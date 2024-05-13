@@ -106,7 +106,8 @@ namespace _impl {
         void handleMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys);
         void handleSelfSigningKeys(const QHash<QString, CrossSigningKey>& selfSigningKeys);
         void handleUserSigningKeys(const QHash<QString, CrossSigningKey>& userSigningKeys);
-        void handleDevicesList(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys);
+        void handleDevicesList(
+            const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& newDeviceKeys);
         void checkVerifiedMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys);
 
     private:

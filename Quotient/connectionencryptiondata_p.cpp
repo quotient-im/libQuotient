@@ -563,15 +563,16 @@ void ConnectionEncryptionData::checkVerifiedMasterKeys(const QHash<QString, Cros
     }
 }
 
-void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& deviceKeys)
+void ConnectionEncryptionData::handleDevicesList(
+    const QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>& newDeviceKeys)
 {
-    for(const auto &[user, keys] : deviceKeys.asKeyValueRange()) {
-        const auto oldDevices = this->deviceKeys[user];
+    for(const auto &[user, keys] : newDeviceKeys.asKeyValueRange()) {
+        const auto oldDevices = deviceKeys[user];
         auto query = database.prepareQuery("SELECT * FROM self_signing_keys WHERE userId=:userId;"_ls);
         query.bindValue(":userId"_ls, user);
         database.execute(query);
         const auto selfSigningKey = query.next() ? query.value("key"_ls).toString() : QString();
-        this->deviceKeys[user].clear();
+        deviceKeys[user].clear();
         selfVerifiedDevices[user].clear();
         for (const auto &device : keys) {
             if (device.userId != user) {
@@ -588,7 +589,7 @@ void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QStr
             }
             if (!verifyIdentitySignature(device, device.deviceId,
                                          device.userId)) {
-                qWarning(E2EE) << "Failed to verify devicekeys signature. "
+                qWarning(E2EE) << "Failed to verify device keys signature. "
                                   "Skipping device" << device.userId << device.deviceId;
                 continue;
             }
@@ -612,7 +613,7 @@ void ConnectionEncryptionData::handleDevicesList(const QHash<QString, QHash<QStr
                     qCWarning(E2EE) << "failed self signing signature check" << user << device.deviceId;
                 }
             }
-            this->deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
+            deviceKeys[user][device.deviceId] = SLICE(device, DeviceKeys);
         }
         outdatedUsers -= user;
     }
@@ -1014,28 +1015,14 @@ bool ConnectionEncryptionData::hasConflictingDeviceIdsAndCrossSigningKeys(const 
     auto selfQuery = database.prepareQuery("SELECT key FROM self_signing_keys WHERE userId=:userId;"_ls);
     selfQuery.bindValue(":userId"_ls, userId);
     database.execute(selfQuery);
-    if (selfQuery.next()) {
-        if (devices.contains(selfQuery.value("key"_ls).toString())) {
-            return true;
-        }
-    }
+    if (selfQuery.next() && devices.contains(selfQuery.value("key"_ls).toString()))
+        return true;
 
-    auto masterQuery = database.prepareQuery("SELECT key FROM master_keys WHERE userId=:userId;"_ls);
-    masterQuery.bindValue(":userId"_ls, userId);
-    database.execute(masterQuery);
-    if (masterQuery.next()) {
-        if (devices.contains(masterQuery.value("key"_ls).toString())) {
-            return true;
-        }
-    }
+    if (devices.contains(q->masterKeyForUser(userId)))
+        return true;
 
     auto userQuery = database.prepareQuery("SELECT key FROM user_signing_keys WHERE userId=:userId;"_ls);
     userQuery.bindValue(":userId"_ls, userId);
     database.execute(userQuery);
-    if (userQuery.next()) {
-        if (devices.contains(userQuery.value("key"_ls).toString())) {
-            return true;
-        }
-    }
-    return false;
+    return userQuery.next() && devices.contains(userQuery.value("key"_ls).toString());
 }
