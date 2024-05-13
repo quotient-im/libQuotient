@@ -217,6 +217,7 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
                         static_cast<uint32_t>(backupData.firstMessageIndex));
                 }
             }
+            emit finished();
         });
     });
 }

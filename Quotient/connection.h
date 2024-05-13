@@ -26,6 +26,8 @@
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
 
+class TestCrossSigning;
+
 namespace Quotient {
 
 class Avatar;
@@ -332,6 +334,8 @@ public:
 
     QString edKeyForUserDevice(const QString& userId,
                                const QString& deviceId) const;
+    QString curveKeyForUserDevice(const QString& userId,
+                                const QString& device) const;
     bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
     // This assumes that an olm session already exists. If it doesn't, no message is sent.
@@ -361,6 +365,13 @@ public:
 
     void requestKeyFromDevices(
         event_type_t name, const std::function<void(const QByteArray&)>& then = [](auto) {});
+
+    QString masterKeyForUser(const QString& userId) const;
+    Q_INVOKABLE bool isUserVerified(const QString& userId) const;
+    Q_INVOKABLE bool allSessionsSelfVerified(const QString& userId) const;
+    bool hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId);
+
+    void reloadDevices();
 
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE QString nextBatchToken() const;
@@ -725,6 +736,7 @@ public Q_SLOTS:
     Quotient::KeyVerificationSession* startKeyVerificationSession(const QString& userId,
                                                                   const QString& deviceId);
 
+    Q_INVOKABLE void startSelfVerification();
     void encryptionUpdate(const Room* room, const QStringList& invitedIds = {});
 
     static Connection* makeMockConnection(const QString& mxId,
@@ -892,6 +904,9 @@ Q_SIGNALS:
     void finishedQueryingKeys();
     void secretReceived(const QString& requestId, const QString& secret);
 
+    void userVerified(const QString& userId);
+
+    friend class ::TestCrossSigning;
 protected:
     //! Access the underlying ConnectionData class
     const ConnectionData* connectionData() const;

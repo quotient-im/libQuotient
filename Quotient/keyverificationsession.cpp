@@ -6,7 +6,11 @@
 #include "connection.h"
 #include "database.h"
 #include "logging_categories_p.h"
+#include "csapi/cross_signing.h"
+#include "room.h"
 
+#include "e2ee/cryptoutils.h"
+#include "e2ee/sssshandler.h"
 #include "e2ee/qolmaccount.h"
 
 #include "events/event.h"
@@ -55,14 +59,50 @@ KeyVerificationSession::KeyVerificationSession(
     , m_encrypted(encrypted)
     , m_remoteSupportedMethods(event.methods())
 {
+    if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        return;
+    }
     const auto& currentTime = QDateTime::currentDateTime();
     const auto timeoutTime =
         std::min(event.timestamp().addSecs(600), currentTime.addSecs(120));
     const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
-    if (timeout > 5s)
+    if (timeout > 5s) {
         setupTimeout(timeout);
-    // Otherwise don't even bother starting up
+    } else {
+        // Otherwise don't even bother starting up
+        deleteLater();
+    }
 }
+
+
+KeyVerificationSession::KeyVerificationSession(const RoomMessageEvent *event, Room *room)
+    : QObject(room->connection())
+    , m_remoteUserId(event->senderId())
+    , m_remoteDeviceId(event->contentPart<QString>("from_device"_ls))
+    , m_transactionId(QString())
+    , m_connection(room->connection())
+    , m_encrypted(room->usesEncryption())
+    , m_remoteSupportedMethods(event->contentPart<QStringList>("methods"_ls))
+    , m_room(room)
+    , m_requestEventId(event->id())
+{
+    if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        return;
+    }
+    const auto& currentTime = QDateTime::currentDateTime();
+    const auto timeoutTime =
+        std::min(event->originTimestamp().addSecs(600), currentTime.addSecs(120));
+    const milliseconds timeout{ currentTime.msecsTo(timeoutTime) };
+    if (timeout > 5s) {
+        setupTimeout(timeout);
+    } else {
+        // Otherwise don't even bother starting up
+        deleteLater();
+    }
+}
+
 
 KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
                                                Connection* connection)
@@ -73,6 +113,26 @@ KeyVerificationSession::KeyVerificationSession(QString userId, QString deviceId,
     , m_connection(connection)
     , m_encrypted(false)
 {
+    if (connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        return;
+    }
+    setupTimeout(600s);
+    QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
+}
+
+KeyVerificationSession::KeyVerificationSession(Room *room)
+    : QObject(room->connection())
+    , m_remoteUserId(room->members()[0].isLocalMember() ? room->members()[1].id() : room->members()[0].id())
+    , m_remoteDeviceId(QString())
+    , m_connection(room->connection())
+    , m_encrypted(false)
+    , m_room(room)
+{
+    if (m_connection->hasConflictingDeviceIdsAndCrossSigningKeys(m_remoteUserId)) {
+        qCWarning(E2EE) << "Remote user has conflicting device ids and cross signing keys; refusing to verify.";
+        return;
+    }
     setupTimeout(600s);
     QMetaObject::invokeMethod(this, &KeyVerificationSession::sendRequest);
 }
@@ -208,8 +268,9 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
     const auto info = infoTemplate
                           .arg(m_connection->userId(), m_connection->deviceId(),
                                QString::fromLatin1(key.data()), m_remoteUserId, m_remoteDeviceId,
-                               event.key(), m_transactionId)
+                               event.key(), m_room ? m_requestEventId : m_transactionId)
                           .toLatin1();
+
     olm_sas_generate_bytes(olmData, info.data(), unsignedSize(info),
                            output.data(), output.size());
 
@@ -247,7 +308,7 @@ QString KeyVerificationSession::calculateMac(const QString& input,
         (verifying ? "MATRIX_KEY_VERIFICATION_MAC%3%4%1%2%5%6"_ls
                    : "MATRIX_KEY_VERIFICATION_MAC%1%2%3%4%5%6"_ls)
             .arg(m_connection->userId(), m_connection->deviceId(),
-                 m_remoteUserId, m_remoteDeviceId, m_transactionId, keyId)
+                 m_remoteUserId, m_remoteDeviceId, m_room ? m_requestEventId : m_transactionId, input.contains(u',') ? QStringLiteral("KEY_IDS") : keyId)
             .toLatin1();
     if (m_commonMacCodes.contains(HmacSha256V2Code))
         olm_sas_calculate_mac_fixed_base64(olmData, inputBytes.data(),
@@ -265,13 +326,24 @@ void KeyVerificationSession::sendMac()
 {
     QString keyId{ "ed25519:"_ls % m_connection->deviceId() };
 
-    auto keys = calculateMac(keyId, false);
+    const auto &masterKey = m_connection->isUserVerified(m_connection->userId()) ? m_connection->masterKeyForUser(m_connection->userId()) : QString();
+
+    QStringList keyList{keyId};
+    if (!masterKey.isEmpty()) {
+        keyList += "ed25519:"_ls + masterKey;
+    }
+    keyList.sort();
+
+    auto keys = calculateMac(keyList.join(u','), false);
 
     QJsonObject mac;
     auto key = m_connection->olmAccount()->deviceKeys().keys.value(keyId);
     mac[keyId] = calculateMac(key, false, keyId);
+    if (!masterKey.isEmpty()) {
+        mac["ed25519:"_ls + masterKey] = calculateMac(masterKey, false, "ed25519:"_ls + masterKey);
+    }
 
-    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
+    sendEvent(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationMacEvent(m_transactionId, keys,
                                                        mac),
                                m_encrypted);
@@ -284,7 +356,7 @@ void KeyVerificationSession::sendMac()
 
 void KeyVerificationSession::sendDone()
 {
-    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
+    sendEvent(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationDoneEvent(m_transactionId),
                                m_encrypted);
 }
@@ -294,7 +366,7 @@ void KeyVerificationSession::sendKey()
     const auto pubkeyLength = olm_sas_pubkey_length(olmData);
     auto keyBytes = byteArrayForOlm(pubkeyLength);
     olm_sas_get_pubkey(olmData, keyBytes.data(), pubkeyLength);
-    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
+    sendEvent(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationKeyEvent(m_transactionId,
                                                        QString::fromLatin1(keyBytes)),
                                m_encrypted);
@@ -303,10 +375,8 @@ void KeyVerificationSession::sendKey()
 
 void KeyVerificationSession::cancelVerification(Error error)
 {
-    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
-                               KeyVerificationCancelEvent(m_transactionId,
-                                                          errorToString(error)),
-                               m_encrypted);
+    sendEvent(m_remoteUserId, m_remoteDeviceId, KeyVerificationCancelEvent(m_transactionId,
+                                                          errorToString(error)), m_encrypted);
     setState(CANCELED);
     setError(error);
     emit finished();
@@ -322,7 +392,7 @@ void KeyVerificationSession::sendReady()
         return;
     }
 
-    m_connection->sendToDevice(
+    sendEvent(
         m_remoteUserId, m_remoteDeviceId,
         KeyVerificationReadyEvent(m_transactionId, m_connection->deviceId(),
                                   methods),
@@ -338,9 +408,17 @@ void KeyVerificationSession::sendStartSas()
 {
     startSentByUs = true;
     KeyVerificationStartEvent event(m_transactionId, m_connection->deviceId());
+    auto fixedJson = event.contentJson();
+    if (m_room) {
+        fixedJson.remove("transaction_id"_ls);
+        fixedJson["m.relates_to"_ls] = QJsonObject {
+            {"event_id"_ls, m_requestEventId},
+            {"rel_type"_ls, "m.reference"_ls},
+        };
+    }
     m_startEvent = QString::fromUtf8(
-        QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact));
-    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId, event,
+        QJsonDocument(fixedJson).toJson(QJsonDocument::Compact));
+    sendEvent(m_remoteUserId, m_remoteDeviceId, event,
                                m_encrypted);
     setState(WAITINGFORACCEPT);
 }
@@ -350,6 +428,11 @@ void KeyVerificationSession::handleReady(const KeyVerificationReadyEvent& event)
     setState(READY);
     m_remoteSupportedMethods = event.methods();
     auto methods = commonSupportedMethods(m_remoteSupportedMethods);
+
+    // This happens for outgoing user verification
+    if (m_remoteDeviceId.isEmpty()) {
+        m_remoteDeviceId = event.fromDevice();
+    }
 
     if (methods.isEmpty())
         cancelVerification(UNKNOWN_METHOD);
@@ -384,7 +467,7 @@ void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
                                                      QCryptographicHash::Sha256)
                                 .toBase64(QByteArray::OmitTrailingEquals));
 
-    m_connection->sendToDevice(m_remoteUserId, m_remoteDeviceId,
+    sendEvent(m_remoteUserId, m_remoteDeviceId,
                                KeyVerificationAcceptEvent(m_transactionId,
                                                           commitment),
                                m_encrypted);
@@ -406,12 +489,21 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
         return;
     }
 
+    auto masterKey = m_connection->masterKeyForUser(m_remoteUserId);
+    if (event.mac().contains("ed25519:"_ls % masterKey)) {
+        if (calculateMac(masterKey, true, "ed25519:"_ls % masterKey) != event.mac().value("ed25519:"_ls % masterKey)) {
+            cancelVerification(KEY_MISMATCH);
+            return;
+        }
+    }
+
     if (calculateMac(key, true) != event.keys()) {
         cancelVerification(KEY_MISMATCH);
         return;
     }
 
     m_pendingEdKeyId = edKeyId;
+    m_pendingMasterKey = masterKey;
 
     if (m_verified) {
         trustKeys();
@@ -421,6 +513,74 @@ void KeyVerificationSession::handleMac(const KeyVerificationMacEvent& event)
 void KeyVerificationSession::trustKeys()
 {
     m_connection->database()->setSessionVerified(m_pendingEdKeyId);
+    m_connection->database()->setMasterKeyVerified(m_pendingMasterKey);
+    if (m_remoteUserId == m_connection->userId()) {
+        m_connection->reloadDevices();
+    }
+
+    if (m_pendingMasterKey.length() > 0) {
+        if (m_remoteUserId == m_connection->userId()) {
+            const auto selfSigningKey = m_connection->database()->loadEncrypted("m.cross_signing.self_signing"_ls);
+            if (!selfSigningKey.isEmpty()) {
+                QHash<QString, QHash<QString, QJsonObject>> signatures;
+                auto json = QJsonObject {
+                    {"keys"_ls, QJsonObject {
+                        {"ed25519:"_ls + m_remoteDeviceId, m_connection->edKeyForUserDevice(m_remoteUserId, m_remoteDeviceId)},
+                        {"curve25519:"_ls + m_remoteDeviceId, m_connection->curveKeyForUserDevice(m_remoteUserId, m_remoteDeviceId)},
+                    }},
+                    {"algorithms"_ls, QJsonArray {"m.olm.v1.curve25519-aes-sha2"_ls, "m.megolm.v1.aes-sha2"_ls}},
+                    {"device_id"_ls, m_remoteDeviceId},
+                    {"user_id"_ls, m_remoteUserId},
+                };
+                auto signature = sign(selfSigningKey, QJsonDocument(json).toJson(QJsonDocument::Compact));
+                json["signatures"_ls] = QJsonObject {
+                    {m_connection->userId(), QJsonObject {
+                        {"ed25519:"_ls + m_connection->database()->selfSigningPublicKey(), QString::fromLatin1(signature)},
+                    }},
+                };
+                signatures[m_remoteUserId][m_remoteDeviceId] = json;
+                auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
+                connect(uploadSignatureJob, &BaseJob::finished, m_connection, [uploadSignatureJob]() {
+                    if (uploadSignatureJob->error() != BaseJob::Success) {
+                        qCWarning(E2EE) << "Failed to upload self-signing signature" << uploadSignatureJob << uploadSignatureJob->error() << uploadSignatureJob->errorString();
+                    }
+                });
+            } else {
+                // Not parenting to this since the session is going to be destroyed soon
+                auto handler = new SSSSHandler(m_connection);
+                handler->setConnection(m_connection);
+                handler->unlockSSSSFromCrossSigning();
+                connect(handler, &SSSSHandler::finished, handler, &QObject::deleteLater);
+            }
+        } else {
+            const auto userSigningKey = m_connection->database()->loadEncrypted("m.cross_signing.user_signing"_ls);
+            if (!userSigningKey.isEmpty()) {
+                QHash<QString, QHash<QString, QJsonObject>> signatures;
+                auto json = QJsonObject {
+                    {"keys"_ls, QJsonObject {
+                        {"ed25519:"_ls + m_pendingMasterKey, m_pendingMasterKey},
+                    }},
+                    {"usage"_ls, QJsonArray {"master"_ls}},
+                    {"user_id"_ls, m_remoteUserId},
+                };
+                auto signature = sign(userSigningKey, QJsonDocument(json).toJson(QJsonDocument::Compact));
+                json["signatures"_ls] = QJsonObject {
+                    {m_connection->userId(), QJsonObject {
+                        {"ed25519:"_ls + m_connection->database()->userSigningPublicKey(), QString::fromLatin1(signature)},
+                    }},
+                };
+                signatures[m_remoteUserId][m_pendingMasterKey] = json;
+                auto uploadSignatureJob = m_connection->callApi<UploadCrossSigningSignaturesJob>(signatures);
+                connect(uploadSignatureJob, &BaseJob::finished, m_connection, [uploadSignatureJob, userId = m_remoteUserId](){
+                    if (uploadSignatureJob->error() != BaseJob::Success) {
+                        qCWarning(E2EE) << "Failed to upload user-signing signature for" << userId << uploadSignatureJob << uploadSignatureJob->error() << uploadSignatureJob->errorString();
+                    }
+                });
+            }
+        }
+        emit m_connection->userVerified(m_remoteUserId);
+    }
+
     emit m_connection->sessionVerified(m_remoteUserId, m_remoteDeviceId);
     macReceived = true;
 
@@ -439,7 +599,7 @@ QVector<EmojiEntry> KeyVerificationSession::sasEmojis() const
 
 void KeyVerificationSession::sendRequest()
 {
-    m_connection->sendToDevice(
+    sendEvent(
         m_remoteUserId, m_remoteDeviceId,
         KeyVerificationRequestEvent(m_transactionId, m_connection->deviceId(),
                                     supportedMethods,
@@ -540,4 +700,36 @@ QString KeyVerificationSession::remoteDeviceId() const
 QString KeyVerificationSession::transactionId() const
 {
     return m_transactionId;
+}
+
+void KeyVerificationSession::sendEvent(const QString &userId, const QString &deviceId, const KeyVerificationEvent &event, bool encrypted)
+{
+    if (m_room) {
+        auto json = event.contentJson();
+        json.remove("transaction_id"_ls);
+        if (event.metaType().matrixId == KeyVerificationRequestEvent::TypeId) {
+            json["msgtype"_ls] = event.matrixType();
+            json["body"_ls] = QStringLiteral("%1 sent a verification request").arg(m_connection->userId());
+            json["to"_ls] = m_remoteUserId;
+            m_room->postJson("m.room.message"_ls, json);
+        } else {
+            json["m.relates_to"_ls] = QJsonObject {
+                {"event_id"_ls, m_requestEventId},
+                {"rel_type"_ls, "m.reference"_ls}
+            };
+            m_room->postJson(event.matrixType(), json);
+        }
+    } else {
+        m_connection->sendToDevice(userId, deviceId, event, encrypted);
+    }
+}
+
+bool KeyVerificationSession::userVerification() const
+{
+    return m_room;
+}
+
+void KeyVerificationSession::setRequestEventId(const QString& eventId)
+{
+    m_requestEventId = eventId;
 }

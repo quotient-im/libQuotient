@@ -680,6 +680,8 @@ public:
 
     void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index);
 
+    Q_INVOKABLE void startVerification();
+
 public Q_SLOTS:
     /** Check whether the room should be upgraded */
     void checkVersion();

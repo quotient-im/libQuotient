@@ -4,13 +4,16 @@
 #pragma once
 
 #include "events/keyverificationevent.h"
+#include "events/roommessageevent.h"
 
 #include <QtCore/QObject>
+#include <QtCore/QPointer>
 
 struct OlmSAS;
 
 namespace Quotient {
 class Connection;
+class Room;
 
 struct QUOTIENT_API EmojiEntry {
     QString emoji;
@@ -79,15 +82,27 @@ public:
     Q_ENUM(Error)
 
     Q_PROPERTY(QString remoteDeviceId MEMBER m_remoteDeviceId CONSTANT)
+    Q_PROPERTY(QString remoteUserId MEMBER m_remoteUserId CONSTANT)
     Q_PROPERTY(QVector<EmojiEntry> sasEmojis READ sasEmojis NOTIFY sasEmojisChanged)
     Q_PROPERTY(State state READ state NOTIFY stateChanged)
     Q_PROPERTY(Error error READ error NOTIFY errorChanged)
+    // Whether this is a user verification (in contrast to a device verification)
+    Q_PROPERTY(bool userVerification READ userVerification CONSTANT)
 
+    // Incoming device verification
     KeyVerificationSession(QString remoteUserId,
                            const KeyVerificationRequestEvent& event,
                            Connection* connection, bool encrypted);
+
+    // Outgoing device verification
     KeyVerificationSession(QString userId, QString deviceId,
                            Connection* connection);
+
+    // Incoming user verification
+    KeyVerificationSession(const RoomMessageEvent *event, Room *room);
+
+    // Outgoing user verification
+    explicit KeyVerificationSession(Room *room);
 
     void handleEvent(const KeyVerificationEvent& baseEvent);
 
@@ -98,6 +113,9 @@ public:
 
     QString remoteDeviceId() const;
     QString transactionId() const;
+    bool userVerification() const;
+
+    void setRequestEventId(const QString &eventId);
 
 public Q_SLOTS:
     void sendRequest();
@@ -117,7 +135,7 @@ Q_SIGNALS:
 
 private:
     const QString m_remoteUserId;
-    const QString m_remoteDeviceId;
+    QString m_remoteDeviceId;
     const QString m_transactionId;
     Connection* m_connection;
     bool m_encrypted;
@@ -135,6 +153,9 @@ private:
     bool macReceived = false;
     bool m_verified = false;
     QString m_pendingEdKeyId{};
+    QString m_pendingMasterKey{};
+    QPointer<Room> m_room;
+    QString m_requestEventId;
 
     static CStructPtr<OlmSAS> makeOlmData();
     void handleReady(const KeyVerificationReadyEvent& event);
@@ -147,6 +168,7 @@ private:
     static QString errorToString(Error error);
     static Error stringToError(const QString& error);
     void trustKeys();
+    void sendEvent(const QString &userId, const QString &deviceId, const KeyVerificationEvent &event, bool encrypted);
 
     QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_ls);
     QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_ls);

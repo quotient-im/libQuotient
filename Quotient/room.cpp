@@ -16,6 +16,7 @@
 #include "converters.h"
 #include "database.h"
 #include "eventstats.h"
+#include "keyverificationsession.h"
 #include "qt_connection_util.h"
 #include "roommember.h"
 #include "roomstateview.h"
@@ -146,6 +147,9 @@ public:
     QPointer<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
     std::unordered_map<QString, QSet<QString>> undecryptedEvents;
+    //! Map from event id of the request event to the session object
+    QHash<QString, KeyVerificationSession *> keyVerificationSessions;
+    QPointer<KeyVerificationSession> pendingKeyVerificationSession;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -2852,6 +2856,44 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             if (const auto* evt = it->viewAs<CallEvent>())
                 emit q->callEvent(q, evt);
 
+    for (auto it = from; it != syncEdge(); ++it) {
+        if (it->event()->senderId() == connection->userId()) {
+            if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
+                if (evt->rawMsgtype() == "m.key.verification.request"_ls && pendingKeyVerificationSession && evt->senderId() == q->localMember().id()) {
+                    keyVerificationSessions[evt->id()] = pendingKeyVerificationSession;
+                    connect(pendingKeyVerificationSession.get(), &QObject::destroyed, q, [this, evt] {
+                        keyVerificationSessions.remove(evt->id());
+                    });
+                    pendingKeyVerificationSession->setRequestEventId(evt->id());
+                    pendingKeyVerificationSession.clear();
+                }
+            }
+            continue;
+        }
+        if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
+            if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
+                if (evt->originTimestamp() > QDateTime::currentDateTime().addSecs(-60)) {
+                    auto session = new KeyVerificationSession(evt, q);
+                    emit connection->newKeyVerificationSession(session);
+                    keyVerificationSessions[evt->id()] = session;
+                    connect(session, &QObject::destroyed, q, [this, evt] {
+                        keyVerificationSessions.remove(evt->id());
+                    });
+                }
+            }
+        }
+        if (auto event = it->viewAs<KeyVerificationEvent>()) {
+            const auto &baseEvent = event->contentJson()["m.relates_to"_ls]["event_id"_ls].toString();
+            if (event->matrixType() == "m.key.verification.done"_ls) {
+                continue;
+            }
+            if (keyVerificationSessions.contains(baseEvent)) {
+                keyVerificationSessions[baseEvent]->handleEvent(*event);
+            } else
+                qCWarning(E2EE) << "Unknown verification session, id" << baseEvent;
+        }
+    }
+
     if (totalInserted > 0) {
         addRelations(from, syncEdge());
 
@@ -3417,4 +3459,13 @@ void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteAr
                                 : QByteArrayLiteral("BACKUP"));
     session.setSenderId("BACKUP"_ls);
     d->connection->saveMegolmSession(this, session);
+}
+
+void Room::startVerification()
+{
+    if (joinedMembers().count() != 2) {
+        return;
+    }
+    d->pendingKeyVerificationSession = new KeyVerificationSession(this);
+    emit d->connection->newKeyVerificationSession(d->pendingKeyVerificationSession);
 }
