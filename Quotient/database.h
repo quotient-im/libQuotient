@@ -41,7 +41,8 @@ public:
     std::unordered_map<QByteArray, QOlmInboundGroupSession> loadMegolmSessions(
         const QString& roomId);
     void saveMegolmSession(const QString& roomId,
-                           const QOlmInboundGroupSession& session);
+                           const QOlmInboundGroupSession& session,
+                           const QByteArray& senderKey);
     void addGroupSessionIndexRecord(const QString& roomId,
                                     const QString& sessionId, uint32_t index,
                                     const QString& eventId, qint64 ts);
@@ -86,6 +87,7 @@ private:
     void migrateTo5();
     void migrateTo6();
     void migrateTo7();
+    void migrateTo8();
 
     QString m_userId;
     QString m_deviceId;
