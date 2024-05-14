@@ -264,7 +264,8 @@ public:
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
     void handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                             const QString& senderId,
-                            const QByteArray& olmSessionId);
+                            const QByteArray& olmSessionId,
+                            const QByteArray& senderKey);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
@@ -678,7 +679,7 @@ public:
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
 
-    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index);
+    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index, const QByteArray& senderKey);
 
     Q_INVOKABLE void startVerification();
 

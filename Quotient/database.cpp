@@ -44,7 +44,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 3: migrateTo4(); [[fallthrough]];
     case 4: migrateTo5(); [[fallthrough]];
     case 5: migrateTo6(); [[fallthrough]];
-    case 6: migrateTo7();
+    case 6: migrateTo7(); [[fallthrough]];
+    case 7: migrateTo8();
     }
 }
 
@@ -187,6 +188,34 @@ void Database::migrateTo7()
     commit();
 }
 
+void Database::migrateTo8()
+{
+    qCDebug(DATABASE) << "Migrating database to version 8";
+    transaction();
+
+    execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD senderKey TEXT;"));
+    auto query = prepareQuery("SELECT sessionId, olmSessionId FROM inbound_megolm_sessions;"_ls);
+    execute(query);
+    while (query.next()) {
+        if (query.value("olmSessionId"_ls).toString().startsWith("BACKUP"_ls)) {
+            continue;
+        }
+        auto senderKeyQuery = prepareQuery("SELECT senderKey FROM olm_sessions WHERE sessionId=:olmSessionId;"_ls);
+        senderKeyQuery.bindValue(":olmSessionId"_ls, query.value("olmSessionId"_ls).toByteArray());
+        execute(senderKeyQuery);
+        if (!senderKeyQuery.next()) {
+            continue;
+        }
+        auto updateQuery = prepareQuery("UPDATE inbound_megolm_sessions SET senderKey=:senderKey WHERE sessionId=:sessionId;"_ls);
+        updateQuery.bindValue(":sessionId"_ls, query.value("sessionId"_ls).toByteArray());
+        updateQuery.bindValue(":senderKey"_ls, senderKeyQuery.value("senderKey"_ls).toByteArray());
+
+        execute(updateQuery);
+    }
+    execute(QStringLiteral("PRAGMA user_version = 8;"));
+    commit();
+}
+
 void Database::storeOlmAccount(const QOlmAccount& olmAccount)
 {
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM accounts;"));
@@ -298,18 +327,19 @@ std::unordered_map<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSess
 }
 
 void Database::saveMegolmSession(const QString& roomId,
-                                 const QOlmInboundGroupSession& session)
+                                 const QOlmInboundGroupSession& session, const QByteArray &senderKey)
 {
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
     deleteQuery.bindValue(":roomId"_ls, roomId);
     deleteQuery.bindValue(":sessionId"_ls, session.sessionId());
     auto query = prepareQuery(
-        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId);"));
+        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId, senderKey) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId, :senderKey);"));
     query.bindValue(":roomId"_ls, roomId);
     query.bindValue(":sessionId"_ls, session.sessionId());
     query.bindValue(":pickle"_ls, session.pickle(m_picklingKey));
     query.bindValue(":senderId"_ls, session.senderId());
     query.bindValue(":olmSessionId"_ls, session.olmSessionId());
+    query.bindValue(":senderKey"_ls, senderKey);
     transaction();
     execute(deleteQuery);
     execute(query);

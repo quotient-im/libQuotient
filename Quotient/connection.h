@@ -333,7 +333,7 @@ public:
     std::unordered_map<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;
     void saveMegolmSession(const Room* room,
-                           const QOlmInboundGroupSession& session) const;
+                           const QOlmInboundGroupSession& session, const QByteArray &senderKey) const;
 
     QString edKeyForUserDevice(const QString& userId,
                                const QString& deviceId) const;
