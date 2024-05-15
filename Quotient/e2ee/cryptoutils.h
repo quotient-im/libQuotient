@@ -41,6 +41,7 @@ struct QUOTIENT_API Curve25519Encrypted {
 using SslErrorCode = unsigned long; // decltype(ERR_get_error())
 
 using key_material_t = std::array<byte_t, DefaultPbkdf2KeyLength>;
+using key_material_64_t = std::array<byte_t, 64>;
 using key_view_t = byte_view_t<DefaultPbkdf2KeyLength>;
 
 enum SslErrorCodes : SslErrorCode {
@@ -62,6 +63,10 @@ template <size_t N, typename T = uint8_t> consteval std::array<T, N> zeroes() { 
 
 //! Generate a key out of the given passphrase
 QUOTIENT_API SslExpected<key_material_t> pbkdf2HmacSha512(const QByteArray& passphrase,
+                                                          const QByteArray& salt, int iterations);
+
+//! Generate a key out of the given passphrase
+QUOTIENT_API SslExpected<key_material_64_t> pbkdf2HmacSha512_64(const QByteArray& passphrase,
                                                           const QByteArray& salt, int iterations);
 
 //! \brief Derive a key from the input data using HKDF-SHA256

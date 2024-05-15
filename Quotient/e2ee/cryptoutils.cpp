@@ -101,6 +101,18 @@ SslExpected<key_material_t> Quotient::pbkdf2HmacSha512(const QByteArray& passphr
     return output;
 }
 
+SslExpected<key_material_64_t> Quotient::pbkdf2HmacSha512_64(const QByteArray& passphrase,
+                                                       const QByteArray& salt, int iterations)
+{
+    CLAMP_SIZE(passphraseSize, passphrase);
+    CLAMP_SIZE(saltSize, salt);
+    key_material_64_t output;
+    CALL_OPENSSL(PKCS5_PBKDF2_HMAC(passphrase.data(), passphraseSize, asCBytes(salt).data(),
+                                   saltSize, iterations, EVP_sha512(), output.size(),
+                                   output.data()));
+    return output;
+}
+
 SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
                                                    byte_view_t<Aes256KeySize> key,
                                                    byte_view_t<AesBlockSize> iv)
