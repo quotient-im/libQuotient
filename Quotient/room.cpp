@@ -2550,26 +2550,23 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
             { "m.room.history_visibility"_ls, { "history_visibility"_ls } }
         };
 
-        if (const auto contentKeysToKeep =
-                ContentKeysToKeepPerType.value(target.matrixType());
+        if (const auto contentKeysToKeep = ContentKeysToKeepPerType.value(target.matrixType());
             !contentKeysToKeep.isEmpty()) //
         {
-            auto content = originalJson.take(ContentKey).toObject();
-            for (auto it = content.begin(); it != content.end();) {
-                if (!contentKeysToKeep.contains(it.key()))
-                    it = content.erase(it);
-                else
-                    ++it;
-            }
-            originalJson.insert(ContentKey, content);
+            editSubobject(originalJson, ContentKey, [&contentKeysToKeep](QJsonObject& content) {
+                for (auto it = content.begin(); it != content.end();) {
+                    if (!contentKeysToKeep.contains(it.key()))
+                        it = content.erase(it);
+                    else
+                        ++it;
+                }
+            });
         } else {
             originalJson.remove(ContentKey);
             originalJson.remove(PrevContentKey);
         }
     }
-    auto unsignedData = originalJson.take(UnsignedKey).toObject();
-    unsignedData[RedactedCauseKey] = redaction.fullJson();
-    originalJson.insert(QStringLiteral("unsigned"), unsignedData);
+    replaceSubvalue(originalJson, UnsignedKey, RedactedCauseKey, redaction.fullJson());
 
     return loadEvent<RoomEvent>(originalJson);
 }
@@ -2637,19 +2634,13 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
 RoomEventPtr makeReplaced(const RoomEvent& target,
                           const RoomMessageEvent& replacement)
 {
-    const auto& targetReply = target.contentPart<QJsonObject>("m.relates_to"_ls);
     auto newContent = replacement.contentPart<QJsonObject>("m.new_content"_ls);
-    if (!targetReply.empty()) {
-        newContent["m.relates_to"_ls] = targetReply;
-    }
+    addParam<IfNotEmpty>(newContent, RelatesToKey, target.contentPart<QJsonObject>(RelatesToKey));
     auto originalJson = target.fullJson();
     originalJson[ContentKey] = newContent;
-
-    auto unsignedData = originalJson.take(UnsignedKey).toObject();
-    auto relations = unsignedData.take("m.relations"_ls).toObject();
-    relations["m.replace"_ls] = replacement.id();
-    unsignedData.insert("m.relations"_ls, relations);
-    originalJson.insert(UnsignedKey, unsignedData);
+    editSubobject(originalJson, UnsignedKey, [&replacement](QJsonObject& unsignedData) {
+        replaceSubvalue(unsignedData, "m.relations"_ls, "m.replace"_ls, replacement.id());
+    });
 
     return loadEvent<RoomEvent>(originalJson);
 }

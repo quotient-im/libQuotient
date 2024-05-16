@@ -22,6 +22,21 @@
 class QVariant;
 
 namespace Quotient {
+
+inline void editSubobject(QJsonObject& json, auto key, std::invocable<QJsonObject&> auto visitor)
+{
+    auto subObject = json.take(key).toObject();
+    visitor(subObject);
+    json.insert(key, subObject);
+}
+
+inline void replaceSubvalue(QJsonObject& json, auto topLevelKey, auto subKey, QJsonValue subValue)
+{
+    editSubobject(json, topLevelKey, [subKey, subValue](QJsonObject& innerJson) {
+        innerJson.insert(subKey, subValue);
+    });
+}
+
 template <typename T>
 struct JsonObjectConverter;
 // Specialisations should implement either or both of:

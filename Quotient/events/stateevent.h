@@ -7,6 +7,8 @@
 
 namespace Quotient {
 
+constexpr inline auto PrevContentKey = "prev_content"_ls;
+
 class QUOTIENT_API StateEvent : public RoomEvent {
 public:
     QUO_BASE_EVENT(StateEvent, RoomEvent, "json.contains('state_key')")

@@ -18,13 +18,7 @@ using event_ptr_tt = std::unique_ptr<EventT>;
 constexpr inline auto TypeKey = "type"_ls;
 constexpr inline auto BodyKey = "body"_ls;
 constexpr inline auto ContentKey = "content"_ls;
-constexpr inline auto EventIdKey = "event_id"_ls;
 constexpr inline auto SenderKey = "sender"_ls;
-constexpr inline auto RoomIdKey = "room_id"_ls;
-constexpr inline auto UnsignedKey = "unsigned"_ls;
-constexpr inline auto RedactedCauseKey = "redacted_because"_ls;
-constexpr inline auto PrevContentKey = "prev_content"_ls;
-constexpr inline auto StateKeyKey = "state_key"_ls;
 
 using event_type_t = QLatin1String;
 
