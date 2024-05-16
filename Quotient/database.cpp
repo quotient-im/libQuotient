@@ -46,7 +46,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 5: migrateTo6(); [[fallthrough]];
     case 6: migrateTo7(); [[fallthrough]];
     case 7: migrateTo8(); [[fallthrough]];
-    case 8: migrateTo9();
+    case 8: migrateTo9(); [[fallthrough]];
+    case 9: migrateTo10();
     }
 }
 
@@ -236,6 +237,41 @@ void Database::migrateTo9()
     execute(QStringLiteral("PRAGMA user_version = 9;"));
     execute(query);
     commit();
+}
+
+void Database::migrateTo10()
+{
+    qCDebug(DATABASE) << "Migrating database to version 10";
+
+    transaction();
+
+    execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD senderClaimedEd25519Key TEXT;"));
+
+    auto query = prepareQuery("SELECT senderKey FROM inbound_megolm_sessions;"_ls);
+    execute(query);
+
+    QSet<QString> keys;
+    while (query.next()) {
+        keys += query.value("senderKey"_ls).toString();
+    }
+    for (const auto& key : keys) {
+        auto query = prepareQuery("SELECT edKey FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
+        query.bindValue(":curveKey"_ls, key);
+        execute(query);
+        if (!query.next()) {
+            continue;
+        }
+        const auto &edKey = query.value("edKey"_ls).toByteArray();
+
+        auto updateQuery = prepareQuery("UPDATE inbound_megolm_sessions SET senderClaimedEd25519Key=:senderClaimedEd25519Key WHERE senderKey=:senderKey;"_ls);
+        updateQuery.bindValue(":senderKey"_ls, key.toLatin1());
+        updateQuery.bindValue(":senderClaimedEd25519Key"_ls, edKey);
+        execute(updateQuery);
+    }
+
+    execute(QStringLiteral("pragma user_version = 10"));
+    commit();
+
 }
 
 void Database::storeOlmAccount(const QOlmAccount& olmAccount)
