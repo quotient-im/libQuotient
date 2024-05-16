@@ -28,7 +28,7 @@ KeyImport::KeyImport(QObject* parent)
 {
 }
 
-KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, Connection* connection)
+Expected<QJsonArray, KeyImport::Error> KeyImport::decrypt(QString data, const QString& passphrase)
 {
     data.remove(QLatin1String("-----BEGIN MEGOLM SESSION DATA-----"));
     data.remove(QLatin1String("-----END MEGOLM SESSION DATA-----"));
@@ -72,8 +72,17 @@ KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, 
         qCWarning(E2EE) << "Failed to decrypt data";
         return OtherError;
     }
-    const auto array = QJsonDocument::fromJson(plain.value()).array();
-    for (const auto& key : array) {
+    return QJsonDocument::fromJson(plain.value()).array();
+}
+
+KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, Connection* connection)
+{
+    auto result = decrypt(data, passphrase);
+    if (!result.has_value()) {
+        return result.error();
+    }
+
+    for (const auto& key : result.value()) {
         const auto& keyObject = key.toObject();
         const auto& room = connection->room(keyObject[QStringLiteral("room_id")].toString());
         if (!room) {
