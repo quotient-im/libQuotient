@@ -45,7 +45,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 4: migrateTo5(); [[fallthrough]];
     case 5: migrateTo6(); [[fallthrough]];
     case 6: migrateTo7(); [[fallthrough]];
-    case 7: migrateTo8();
+    case 7: migrateTo8(); [[fallthrough]];
+    case 8: migrateTo9();
     }
 }
 
@@ -213,6 +214,27 @@ void Database::migrateTo8()
         execute(updateQuery);
     }
     execute(QStringLiteral("PRAGMA user_version = 8;"));
+    commit();
+}
+
+void Database::migrateTo9()
+{
+    qCDebug(DATABASE) << "Migrating database to version 9";
+    transaction();
+
+    auto query = prepareQuery("SELECT curveKey FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_ls);
+    query.bindValue(":matrixId"_ls, m_userId);
+    query.bindValue(":deviceId"_ls, m_deviceId);
+    execute(query);
+    if (!query.next()) {
+        return;
+    }
+    auto curveKey = query.value("curveKey"_ls).toByteArray();
+    query = prepareQuery("UPDATE inbound_megolm_sessions SET senderKey=:senderKey WHERE olmSessionId=:self;"_ls);
+    query.bindValue(":senderKey"_ls, curveKey);
+    query.bindValue(":self"_ls, QByteArrayLiteral("SELF"));
+    execute(QStringLiteral("PRAGMA user_version = 9;"));
+    execute(query);
     commit();
 }
 
