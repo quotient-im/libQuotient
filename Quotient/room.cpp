@@ -2313,7 +2313,7 @@ void Room::inviteToRoom(const QString& memberId)
     connection()->callApi<InviteUserJob>(id(), memberId);
 }
 
-LeaveRoomJob* Room::leaveRoom()
+JobHandle<LeaveRoomJob> Room::leaveRoom()
 {
     // FIXME, #63: It should be RoomManager, not Connection
     return connection()->leaveRoom(this);

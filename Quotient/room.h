@@ -725,7 +725,7 @@ public Q_SLOTS:
     JobHandle<GetRoomEventsJob> getPreviousContent(int limit = 10, const QString &filter = {});
 
     void inviteToRoom(const QString& memberId);
-    LeaveRoomJob* leaveRoom();
+    JobHandle<LeaveRoomJob> leaveRoom();
     void kickMember(const QString& memberId, const QString& reason = {});
     void ban(const QString& userId, const QString& reason = {});
     void unban(const QString& userId);

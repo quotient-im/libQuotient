@@ -655,7 +655,7 @@ public Q_SLOTS:
     //! Explicitly request capabilities from the server
     void reloadCapabilities();
 
-    void logout();
+    QFuture<void> logout();
 
     void sync(int timeout = -1);
     void syncLoop(int timeout = 30000);

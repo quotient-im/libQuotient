@@ -357,7 +357,7 @@ QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
     return result;
 }
 
-void Connection::logout()
+QFuture<void> Connection::logout()
 {
     // If there's an ongoing sync job, stop it (this also suspends sync loop)
     const auto wasSyncing = bool(d->syncJob);
@@ -368,9 +368,11 @@ void Connection::logout()
     }
 
     d->logoutJob = callApi<LogoutJob>();
-    emit stateChanged(); // isLoggedIn() == false from now
+    Q_ASSERT(!isLoggedIn()); // Because d->logoutJob is running
+    emit stateChanged();
 
-    connect(d->logoutJob, &LogoutJob::finished, this, [this, wasSyncing] {
+    QFutureInterface<void> p;
+    connect(d->logoutJob.get(), &BaseJob::finished, this, [this, wasSyncing, p]() mutable {
         if (d->logoutJob->status().good()
             || d->logoutJob->error() == BaseJob::Unauthorised
             || d->logoutJob->error() == BaseJob::ContentAccessError) {
@@ -381,11 +383,15 @@ void Connection::logout()
             emit loggedOut();
             deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state
+            Q_ASSERT(isLoggedIn());
             emit stateChanged();
             if (wasSyncing)
                 syncLoopIteration(); // Resume sync loop (or a single sync)
+            p.cancel();
         }
+        p.reportFinished();
     });
+    return p.future();
 }
 
 void Connection::sync(int timeout)
