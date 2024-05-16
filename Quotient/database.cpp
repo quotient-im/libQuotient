@@ -385,19 +385,20 @@ std::unordered_map<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSess
 }
 
 void Database::saveMegolmSession(const QString& roomId,
-                                 const QOlmInboundGroupSession& session, const QByteArray &senderKey)
+                                 const QOlmInboundGroupSession& session, const QByteArray &senderKey, const QByteArray& senderClaimedEdKey)
 {
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
     deleteQuery.bindValue(":roomId"_ls, roomId);
     deleteQuery.bindValue(":sessionId"_ls, session.sessionId());
     auto query = prepareQuery(
-        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId, senderKey) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId, :senderKey);"));
+        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId, senderKey, sender_) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId, :senderKey, :senderClaimedEd25519Key);"));
     query.bindValue(":roomId"_ls, roomId);
     query.bindValue(":sessionId"_ls, session.sessionId());
     query.bindValue(":pickle"_ls, session.pickle(m_picklingKey));
     query.bindValue(":senderId"_ls, session.senderId());
     query.bindValue(":olmSessionId"_ls, session.olmSessionId());
     query.bindValue(":senderKey"_ls, senderKey);
+    query.bindValue(":senderClaimedEd25519Key"_ls, senderClaimedEdKey);
     transaction();
     execute(deleteQuery);
     execute(query);

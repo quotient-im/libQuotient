@@ -42,7 +42,8 @@ public:
         const QString& roomId);
     void saveMegolmSession(const QString& roomId,
                            const QOlmInboundGroupSession& session,
-                           const QByteArray& senderKey);
+                           const QByteArray& senderKey,
+                           const QByteArray& senderClaimedEdKey);
     void addGroupSessionIndexRecord(const QString& roomId,
                                     const QString& sessionId, uint32_t index,
                                     const QString& eventId, qint64 ts);

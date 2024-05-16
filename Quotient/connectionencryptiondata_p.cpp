@@ -381,8 +381,8 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(const EncryptedEvent
     decryptedEvent->switchOnType(
         [this, &event, olmSessionId](const RoomKeyEvent& roomKeyEvent) {
             if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId,
-                                                 event.senderKey().toLatin1());
+                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(),
+                                                 olmSessionId, event.senderKey().toLatin1(), q->edKeyForUserDevice(event.senderId(), event.deviceId()).toLatin1());
             } else {
                 qCDebug(E2EE)
                     << "Encrypted event room id" << roomKeyEvent.roomId()
