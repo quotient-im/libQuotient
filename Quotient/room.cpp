@@ -18,6 +18,7 @@
 #include "logging_categories_p.h"
 #include "qt_connection_util.h"
 #include "quotient_common.h"
+#include "ranges_extras.h"
 #include "roommember.h"
 #include "roomstateview.h"
 #include "syncdata.h"
@@ -1094,19 +1095,12 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
 
 Room::PendingEvents::iterator Room::findPendingEvent(const QString& txnId)
 {
-    return std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
-                        [txnId](const auto& item) {
-                            return item->transactionId() == txnId;
-                        });
+    return findIndirect(d->unsyncedEvents, txnId, &RoomEvent::transactionId);
 }
 
-Room::PendingEvents::const_iterator
-Room::findPendingEvent(const QString& txnId) const
+Room::PendingEvents::const_iterator Room::findPendingEvent(const QString& txnId) const
 {
-    return std::find_if(d->unsyncedEvents.cbegin(), d->unsyncedEvents.cend(),
-                        [txnId](const auto& item) {
-                            return item->transactionId() == txnId;
-                        });
+    return findIndirect(d->unsyncedEvents, txnId, &RoomEvent::transactionId);
 }
 
 const Room::RelatedEvents Room::relatedEvents(
@@ -2756,10 +2750,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                 // Try to find the target in the timeline, then in the batch.
                 if (processRedaction(*r))
                     continue;
-                if (auto targetIt = std::find_if(events.begin(), events.end(),
-                        [id = r->redactedEvent()](const RoomEventPtr& ep) {
-                            return ep->id() == id;
-                        }); targetIt != events.end())
+                if (auto targetIt = findIndirect(events, r->redactedEvent(), &RoomEvent::id);
+                    targetIt != events.end())
                     *targetIt = makeRedacted(**targetIt, *r);
                 else
                     qCDebug(STATE)
@@ -2771,11 +2763,9 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                     msg && !msg->replacedEvent().isEmpty()) {
                 if (processReplacement(*msg))
                     continue;
-                auto targetIt = std::find_if(events.begin(), it,
-                        [id = msg->replacedEvent()](const RoomEventPtr& ep) {
-                            return ep->id() == id;
-                        });
-                if (targetIt != it)
+                if (auto targetIt =
+                        findIndirect(events.begin(), it, msg->replacedEvent(), &RoomEvent::id);
+                    targetIt != it)
                     *targetIt = makeReplaced(**targetIt, *msg);
                 else // FIXME: hide the replacing event when target arrives later
                     qCDebug(EVENTS)

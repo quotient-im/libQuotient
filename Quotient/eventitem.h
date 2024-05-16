@@ -36,6 +36,8 @@ namespace EventStatus {
 
 class QUOTIENT_API EventItemBase {
 public:
+    using value_type = RoomEvent;
+
     explicit EventItemBase(RoomEventPtr&& e) : evt(std::move(e))
     {
         Q_ASSERT(evt);
