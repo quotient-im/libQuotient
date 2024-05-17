@@ -227,6 +227,6 @@ jobs:
         popd
         ${{ steps.sonar.outputs.sonar-scanner-binary }} \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
-            -Dsonar.cfamily.build-wrapper-output="$BUILD_PATH/sonar" \
+            -Dsonar.cfamily.compile-commands="$BUILD_PATH/sonar/compile_commands.json" \
             -Dsonar.cfamily.threads=2 \
             -Dsonar.cfamily.gcov.reportsPath=.coverage
