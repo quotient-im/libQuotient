@@ -23,16 +23,11 @@ const auto PayloadOffset = RoundsOffset + RoundsLength;
 const auto MacLength = 32;
 const auto HeaderLength = VersionLength + AesBlockSize + AesBlockSize + RoundsLength + MacLength;
 
-KeyImport::KeyImport(QObject* parent)
-    : QObject(parent)
-{
-}
-
 Expected<QJsonArray, KeyImport::Error> KeyImport::decrypt(QString data, const QString& passphrase)
 {
-    data.remove(QLatin1String("-----BEGIN MEGOLM SESSION DATA-----"));
-    data.remove(QLatin1String("-----END MEGOLM SESSION DATA-----"));
-    data.remove(QLatin1Char('\n'));
+    data.remove("-----BEGIN MEGOLM SESSION DATA-----"_ls);
+    data.remove("-----END MEGOLM SESSION DATA-----"_ls);
+    data.remove(u'\n');
     auto decoded = QByteArray::fromBase64(data.toLatin1());
     if (decoded[0] != 1) {
         qCWarning(E2EE) << "Wrong version byte";
@@ -56,7 +51,7 @@ Expected<QJsonArray, KeyImport::Error> KeyImport::decrypt(QString data, const QS
         return OtherError;
     }
 
-    auto actualMac = hmacSha256(key_view_t(keys.value().begin() + 32, 32), decoded.mid(0, decoded.size() - MacLength));
+    auto actualMac = hmacSha256(key_view_t(keys.value().begin() + 32, 32), decoded.left(decoded.size() - MacLength));
     if (!actualMac.has_value()) {
         qCWarning(E2EE) << "Failed to calculate hmac:" << actualMac.error();
         return OtherError;
@@ -75,21 +70,24 @@ Expected<QJsonArray, KeyImport::Error> KeyImport::decrypt(QString data, const QS
     return QJsonDocument::fromJson(plain.value()).array();
 }
 
-KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, Connection* connection)
+KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, const Connection* connection)
 {
-    auto result = decrypt(data, passphrase);
+    auto result = decrypt(std::move(data), passphrase);
     if (!result.has_value()) {
         return result.error();
     }
 
     for (const auto& key : result.value()) {
         const auto& keyObject = key.toObject();
-        const auto& room = connection->room(keyObject[QStringLiteral("room_id")].toString());
+        const auto& room = connection->room(keyObject[RoomIdKey].toString());
         if (!room) {
             continue;
         }
         // We don't know the session index for these sessions here. We just pretend it's 0, it's not terribly important.
-        room->addMegolmSessionFromBackup(keyObject[QStringLiteral("session_id")].toString().toLatin1(), keyObject[QStringLiteral("session_key")].toString().toLatin1(), 0, keyObject["sender_key"_ls].toVariant().toByteArray());
+        room->addMegolmSessionFromBackup(
+            keyObject["session_id"_ls].toString().toLatin1(),
+            keyObject["session_key"_ls].toString().toLatin1(), 0,
+            keyObject[SenderKeyKey].toVariant().toByteArray());
     }
     return Success;
 }

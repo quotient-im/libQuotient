@@ -29,11 +29,12 @@ public:
         InvalidData,
         OtherError,
     };
-    Q_ENUM(Error);
+    Q_ENUM(Error)
 
-    explicit KeyImport(QObject* parent = nullptr);
+    using QObject::QObject;
 
-    Q_INVOKABLE Error importKeys(QString data, const QString& passphrase, Quotient::Connection* connection);
+    Q_INVOKABLE Error importKeys(QString data, const QString& passphrase,
+                                 const Quotient::Connection* connection);
 
     friend class ::TestKeyImport;
 private:
