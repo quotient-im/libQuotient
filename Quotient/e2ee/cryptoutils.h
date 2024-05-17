@@ -40,7 +40,8 @@ struct QUOTIENT_API Curve25519Encrypted {
 // NOLINTNEXTLINE(google-runtime-int): the type is copied from OpenSSL
 using SslErrorCode = unsigned long; // decltype(ERR_get_error())
 
-using key_material_t = std::array<byte_t, DefaultPbkdf2KeyLength>;
+template <size_t Size = DefaultPbkdf2KeyLength>
+using key_material_t = std::array<byte_t, Size>;
 using key_view_t = byte_view_t<DefaultPbkdf2KeyLength>;
 
 enum SslErrorCodes : SslErrorCode {
@@ -60,9 +61,22 @@ inline QByteArray zeroedByteArray(QByteArray::size_type n = 32) { return { n, '\
 
 template <size_t N, typename T = uint8_t> consteval std::array<T, N> zeroes() { return {}; }
 
+namespace _impl {
+    QUOTIENT_API SslErrorCode pbkdf2HmacSha512(const QByteArray& passphrase, const QByteArray& salt,
+                                               int iterations, byte_span_t<> output);
+}
+
 //! Generate a key out of the given passphrase
-QUOTIENT_API SslExpected<key_material_t> pbkdf2HmacSha512(const QByteArray& passphrase,
-                                                          const QByteArray& salt, int iterations);
+template <size_t Size = DefaultPbkdf2KeyLength>
+QUOTIENT_API inline SslExpected<key_material_t<Size>> pbkdf2HmacSha512(const QByteArray& passphrase,
+                                                                       const QByteArray& salt,
+                                                                       int iterations)
+{
+    key_material_t<Size> result;
+    if (auto code = _impl::pbkdf2HmacSha512(passphrase, salt, iterations, result); code != 0)
+        return code;
+    return result;
+}
 
 //! \brief Derive a key from the input data using HKDF-SHA256
 //!
