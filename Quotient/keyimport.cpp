@@ -50,7 +50,7 @@ Expected<QJsonArray, KeyImport::Error> KeyImport::decrypt(QString data, const QS
     const auto payload = decoded.mid(PayloadOffset, decoded.size() - HeaderLength);
     const auto expectedMac = decoded.right(MacLength);
 
-    auto keys = pbkdf2HmacSha512_64(passphrase.toLatin1(), salt, rounds);
+    auto keys = pbkdf2HmacSha512<64>(passphrase.toLatin1(), salt, rounds);
     if (!keys.has_value()) {
         qCWarning(E2EE) << "Failed to calculate pbkdf:" << keys.error();
         return OtherError;

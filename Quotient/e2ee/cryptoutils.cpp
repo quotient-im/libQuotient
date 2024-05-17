@@ -89,28 +89,15 @@ inline std::pair<int, bool> checkedSize(
 // End of macro
 // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
-SslExpected<key_material_t> Quotient::pbkdf2HmacSha512(const QByteArray& passphrase,
-                                                       const QByteArray& salt, int iterations)
+SslErrorCode Quotient::_impl::pbkdf2HmacSha512(const QByteArray& passphrase, const QByteArray& salt,
+                                               int iterations, byte_span_t<> output)
 {
     CLAMP_SIZE(passphraseSize, passphrase);
     CLAMP_SIZE(saltSize, salt);
-    key_material_t output;
     CALL_OPENSSL(PKCS5_PBKDF2_HMAC(passphrase.data(), passphraseSize, asCBytes(salt).data(),
                                    saltSize, iterations, EVP_sha512(), output.size(),
                                    output.data()));
-    return output;
-}
-
-SslExpected<key_material_64_t> Quotient::pbkdf2HmacSha512_64(const QByteArray& passphrase,
-                                                       const QByteArray& salt, int iterations)
-{
-    CLAMP_SIZE(passphraseSize, passphrase);
-    CLAMP_SIZE(saltSize, salt);
-    key_material_64_t output;
-    CALL_OPENSSL(PKCS5_PBKDF2_HMAC(passphrase.data(), passphraseSize, asCBytes(salt).data(),
-                                   saltSize, iterations, EVP_sha512(), output.size(),
-                                   output.data()));
-    return output;
+    return 0; // OpenSSL doesn't have a special constant for success code :/
 }
 
 SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
