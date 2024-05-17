@@ -148,8 +148,8 @@ class QUOTIENT_API FixedBufferBase {
 public:
     enum InitOptions { Uninitialized, FillWithZeros, FillWithRandom };
 
-    using value_type = byte_t; // TODO, 0.9: uint8_t -> value_type below
-    using size_type = size_t; // TODO, 0.9: size_t -> size_type below
+    using value_type = byte_t;
+    using size_type = size_t;
 
     static constexpr auto TotalSecureHeapSize = 65'536;
 
@@ -197,7 +197,7 @@ public:
     FixedBufferBase& operator=(FixedBufferBase&&) = delete;
 
 protected:
-    FixedBufferBase(size_t bufferSize, InitOptions options);
+    FixedBufferBase(size_type bufferSize, InitOptions options);
     ~FixedBufferBase() { clear(); }
 
     FixedBufferBase(FixedBufferBase&& other)
@@ -206,12 +206,12 @@ protected:
 
     void fillFrom(QByteArray&& source);
 
-    uint8_t* dataForWriting() { return data_; }
-    const uint8_t* data() const { return data_; }
+    value_type* dataForWriting() { return data_; }
+    const value_type* data() const { return data_; }
 
 private:
-    uint8_t* data_ = nullptr;
-    size_t size_ = 0;
+    value_type* data_ = nullptr;
+    size_type size_ = 0;
 };
 
 template <size_t ExtentN = std::dynamic_extent, bool DataIsWriteable = true>
@@ -229,17 +229,17 @@ public:
         requires(extent != std::dynamic_extent)
         : FixedBufferBase(ExtentN, fillMode)
     {}
-    explicit FixedBuffer(size_t bufferSize)
+    explicit FixedBuffer(size_type bufferSize)
         requires(extent == std::dynamic_extent)
         : FixedBuffer(bufferSize, FillWithZeros)
     {}
-    explicit FixedBuffer(size_t bufferSize, InitOptions fillMode)
+    explicit FixedBuffer(size_type bufferSize, InitOptions fillMode)
         requires(extent == std::dynamic_extent)
         : FixedBufferBase(bufferSize, fillMode)
     {}
 
     using FixedBufferBase::data;
-    uint8_t* data() requires DataIsWriteable { return dataForWriting(); }
+    value_type* data() requires DataIsWriteable { return dataForWriting(); }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     QUO_IMPLICIT operator byte_view_t<ExtentN>() const

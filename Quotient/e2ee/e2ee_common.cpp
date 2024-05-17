@@ -107,30 +107,28 @@ auto initializeSecureHeap()
     return result;
 }
 
-uint8_t* allocate(size_t bytes, bool initWithZeros = false)
+FixedBufferBase::value_type* allocate(size_t bytes, bool initWithZeros = false)
 {
 #if !defined(LIBRESSL_VERSION_NUMBER)
     static auto secureHeapInitialised [[maybe_unused]] = initializeSecureHeap();
 
-    const auto p = static_cast<uint8_t*>(initWithZeros
-                                             ? OPENSSL_secure_zalloc(bytes)
-                                             : OPENSSL_secure_malloc(bytes));
+    const auto p = static_cast<FixedBufferBase::value_type*>(
+        initWithZeros ? OPENSSL_secure_zalloc(bytes) : OPENSSL_secure_malloc(bytes));
     Q_ASSERT(CRYPTO_secure_allocated(p));
     qDebug(E2EE) << "Allocated" << CRYPTO_secure_actual_size(p)
                  << "bytes of secure heap (requested" << bytes << "bytes),"
                  << CRYPTO_secure_used()
                  << "/ 65536 bytes of secure heap used in total";
 #else
-    const auto p = static_cast<uint8_t*>(initWithZeros
-                                             ? calloc(bytes, 1)
-                                             : malloc(bytes));
+    const auto p =
+        static_cast<FixedBufferBase::value_type*>(initWithZeros ? calloc(bytes, 1) : malloc(bytes));
 #endif
     return p;
 }
 
 } // namespace
 
-FixedBufferBase::FixedBufferBase(size_t bufferSize, InitOptions options)
+FixedBufferBase::FixedBufferBase(size_type bufferSize, InitOptions options)
     : size_(bufferSize)
 {
     if (bufferSize >= TotalSecureHeapSize) {
