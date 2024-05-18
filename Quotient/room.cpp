@@ -300,7 +300,7 @@ public:
     QString doSendEvent(const RoomEvent* pEvent);
 
     void onEventReachedServer(PendingEvents::iterator eventItemIter, const QString& eventId);
-    void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
+    void onEventSendingFailure(PendingEvents::iterator eventItemIter, const BaseJob* call = nullptr);
 
     SetRoomStateWithKeyJob* requestSetState(const QString& evtType,
                                             const QString& stateKey,
@@ -1967,11 +1967,11 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
         Room::connect(call, &BaseJob::result, q, [this, txnId, call] {
+            auto it = q->findPendingEvent(txnId);
             if (!call->status().good()) {
-                onEventSendingFailure(txnId, call);
+                onEventSendingFailure(it, call);
                 return;
             }
-            auto it = q->findPendingEvent(txnId);
             if (it != unsyncedEvents.end())
                 onEventReachedServer(it, call->eventId());
             else
@@ -1981,7 +1981,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             emit q->messageSent(txnId, call->eventId());
         });
     } else
-        onEventSendingFailure(txnId);
+        onEventSendingFailure(eventItemIter);
     return txnId;
 }
 
@@ -1997,17 +1997,15 @@ void Room::Private::onEventReachedServer(PendingEvents::iterator eventItemIter,
     }
 }
 
-void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
+void Room::Private::onEventSendingFailure(PendingEvents::iterator eventItemIter, const BaseJob* call)
 {
-    auto it = q->findPendingEvent(txnId);
-    if (it == unsyncedEvents.end()) {
-        qCritical(EVENTS) << "Pending event for transaction" << txnId
-                          << "could not be sent";
+    Q_ASSERT(eventItemIter != unsyncedEvents.end());
+    if (eventItemIter == unsyncedEvents.end()) // ¯\_(ツ)_/¯
         return;
-    }
-    it->setSendingFailed(call ? call->statusCaption() % ": "_ls % call->errorString()
-                              : tr("The call could not be started"));
-    emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+
+    eventItemIter->setSendingFailed(call ? call->statusCaption() % ": "_ls % call->errorString()
+                                         : tr("The call could not be started"));
+    emit q->pendingEventChanged(int(eventItemIter - unsyncedEvents.begin()));
 }
 
 PendingEventItem::future_type Room::whenMessageMerged(QString txnId) const
