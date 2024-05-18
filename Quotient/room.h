@@ -657,6 +657,8 @@ public:
     /// \brief Get the current room state
     RoomStateView currentState() const;
 
+    PendingEventItem::future_type whenMessageMerged(QString txnId) const;
+
     //! Send a request to update the room state with the given event
     SetRoomStateWithKeyJob* setState(const StateEvent& evt);
 

@@ -298,6 +298,8 @@ public:
     RoomEvent* addAsPending(RoomEventPtr&& event);
 
     QString doSendEvent(const RoomEvent* pEvent);
+
+    void onEventReachedServer(PendingEvents::iterator eventItemIter, const QString& eventId);
     void onEventSendingFailure(const QString& txnId, BaseJob* call = nullptr);
 
     SetRoomStateWithKeyJob* requestSetState(const QString& evtType,
@@ -449,6 +451,9 @@ public:
     }
 
 private:
+    Room::Timeline::size_type mergePendingEvent(PendingEvents::iterator localEchoIt,
+                                                RoomEvents::iterator remoteEchoIt);
+
     using users_shortlist_t = std::array<QString, 3>;
     users_shortlist_t buildShortlist(const QStringList& userIds) const;
 };
@@ -1967,12 +1972,9 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                 return;
             }
             auto it = q->findPendingEvent(txnId);
-            if (it != unsyncedEvents.end()) {
-                if (it->deliveryStatus() != EventStatus::ReachedServer) {
-                    it->setReachedServer(call->eventId());
-                    emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
-                }
-            } else
+            if (it != unsyncedEvents.end())
+                onEventReachedServer(it, call->eventId());
+            else
                 qDebug(EVENTS) << "Pending event for transaction" << txnId
                                << "already merged";
 
@@ -1981,6 +1983,18 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
     } else
         onEventSendingFailure(txnId);
     return txnId;
+}
+
+void Room::Private::onEventReachedServer(PendingEvents::iterator eventItemIter,
+                                         const QString& eventId)
+{
+    if (ALARM(eventItemIter == unsyncedEvents.end()))
+        return;
+
+    if (eventItemIter->deliveryStatus() != EventStatus::ReachedServer) {
+        eventItemIter->setReachedServer(eventId);
+        emit q->pendingEventChanged(int(eventItemIter - unsyncedEvents.begin()));
+    }
 }
 
 void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
@@ -1994,6 +2008,13 @@ void Room::Private::onEventSendingFailure(const QString& txnId, BaseJob* call)
     it->setSendingFailed(call ? call->statusCaption() % ": "_ls % call->errorString()
                               : tr("The call could not be started"));
     emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+}
+
+PendingEventItem::future_type Room::whenMessageMerged(QString txnId) const
+{
+    if (auto it = findPendingEvent(txnId); it != d->unsyncedEvents.cend())
+        return it->whenMerged();
+    return {};
 }
 
 QString Room::retryMessage(const QString& txnId)
@@ -2718,6 +2739,34 @@ inline bool isEditing(const RoomEventPtr& ep)
                      false);
 }
 
+Room::Timeline::size_type Room::Private::mergePendingEvent(PendingEvents::iterator localEchoIt,
+                                                           RoomEvents::iterator remoteEchoIt)
+{
+    auto* remoteEcho = remoteEchoIt->get();
+    const auto pendingEvtIdx = int(localEchoIt - unsyncedEvents.begin());
+    onEventReachedServer(localEchoIt, remoteEcho->id());
+    emit q->pendingEventAboutToMerge(remoteEcho, pendingEvtIdx);
+    qCDebug(MESSAGES) << "Merging pending event from transaction" << remoteEcho->transactionId()
+                      << "into" << remoteEcho->id();
+    auto transfer = fileTransfers.take(remoteEcho->transactionId());
+    if (transfer.status != FileTransferInfo::None)
+        fileTransfers.insert(remoteEcho->id(), transfer);
+    // After emitting pendingEventAboutToMerge() above we cannot rely
+    // on the previously obtained localEcho staying valid
+    // because a signal handler may send another message, thereby altering
+    // unsyncedEvents (see #286). Fortunately, unsyncedEvents only grows at
+    // its back so we can rely on the index staying valid at least.
+    localEchoIt = unsyncedEvents.begin() + pendingEvtIdx;
+    localEchoIt->setMerged(*remoteEcho);
+    unsyncedEvents.erase(localEchoIt);
+    const auto insertedSize = moveEventsToTimeline({ remoteEchoIt, remoteEchoIt + 1 }, Newer);
+    if (insertedSize > 0)
+        q->onAddNewTimelineEvents(syncEdge() - insertedSize);
+
+    emit q->pendingEventMerged();
+    return insertedSize;
+}
+
 Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
 {
     dropExtraneousEvents(events);
@@ -2798,30 +2847,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             break;
 
         it = remoteEcho + 1;
-        auto* nextPendingEvt = remoteEcho->get();
-        const auto pendingEvtIdx = int(localEcho - unsyncedEvents.begin());
-        if (localEcho->deliveryStatus() != EventStatus::ReachedServer) {
-            localEcho->setReachedServer(nextPendingEvt->id());
-            emit q->pendingEventChanged(pendingEvtIdx);
-        }
-        emit q->pendingEventAboutToMerge(nextPendingEvt, pendingEvtIdx);
-        qCDebug(MESSAGES) << "Merging pending event from transaction"
-                         << nextPendingEvt->transactionId() << "into"
-                         << nextPendingEvt->id();
-        auto transfer = fileTransfers.take(nextPendingEvt->transactionId());
-        if (transfer.status != FileTransferInfo::None)
-            fileTransfers.insert(nextPendingEvt->id(), transfer);
-        // After emitting pendingEventAboutToMerge() above we cannot rely
-        // on the previously obtained localEcho staying valid
-        // because a signal handler may send another message, thereby altering
-        // unsyncedEvents (see #286). Fortunately, unsyncedEvents only grows at
-        // its back so we can rely on the index staying valid at least.
-        unsyncedEvents.erase(unsyncedEvents.begin() + pendingEvtIdx);
-        if (auto insertedSize = moveEventsToTimeline({ remoteEcho, it }, Newer)) {
-            totalInserted += insertedSize;
-            q->onAddNewTimelineEvents(syncEdge() - insertedSize);
-        }
-        emit q->pendingEventMerged();
+        totalInserted += mergePendingEvent(localEcho, remoteEcho);
     }
     // Events merged and transferred from `events` to `timeline` now.
     const auto from = syncEdge() - totalInserted;
