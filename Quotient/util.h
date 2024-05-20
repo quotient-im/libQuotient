@@ -14,6 +14,7 @@
 #include <memory>
 #include <unordered_map>
 #include <optional>
+#include <source_location>
 
 #define QUO_IMPLICIT explicit(false)
 
@@ -37,6 +38,38 @@
 #define SLICE(Object, ToType) ToType{static_cast<const ToType&>(Object)}
 
 namespace Quotient {
+
+inline const char* printable(std::convertible_to<QString> auto s)
+{
+    return QString(s).toUtf8().constData();
+}
+inline const char* printable(const char* s) { return s; }
+inline const char* printable(QUtf8StringView s) { return s.data(); }
+
+inline bool alarmX(bool alarmCondition, const auto& msg,
+                   [[maybe_unused]] std::source_location loc = std::source_location::current())
+{
+    if (alarmCondition) [[unlikely]] {
+        Q_ASSERT_X(false, loc.function_name(), printable(msg));
+        qCritical() << msg;
+    }
+    return alarmCondition;
+}
+
+//! \brief A negative assertion facility that can be put in an if statement
+//!
+//! Unlike most other assertion functions or macros, this doesn't collapse to no-op in Release
+//! builds; rather, it sends a critical level message to the log and returns true so that you could
+//! immediately return or do some other damage control for Release builds. Also unlike most other
+//! assertion functions, \p AlarmCondition is the condition for failure, not for health; in other
+//! words, \p Message is sent to logs (and, in Debug configuration, the assertion fails)
+//! if \p AlarmCondition holds, not the other way around.
+//!
+//! This macro is a trivial wrapper around alarmX(), provided for API uniformity with ALARM()
+#define ALARM_X(AlarmCondition, Message) alarmX(AlarmCondition, Message)
+
+#define ALARM(AlarmCondition) alarmX(AlarmCondition, "Alarm: " #AlarmCondition)
+
 #if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR < 10
 /// This is only to make UnorderedMap alias work until we get rid of it
 template <typename T>

@@ -775,13 +775,14 @@ JobHandle<CreateRoomJob> Connection::createRoom(
                                   alias, name, topic, invites, invite3pids, roomVersion,
                                   creationContent, initialState, presetName, isDirect)
         .then(this, [this, invites, isDirect](auto* j) {
-            if (auto* room = provideRoom(j->roomId(), JoinState::Join)) {
-                emit createdRoom(room);
-                if (isDirect)
-                    for (const auto& i : invites)
-                        addToDirectChats(room, i);
-            } else
-                Q_ASSERT_X(false, "Connection::createRoom", "Failed to create a room");
+            auto* room = provideRoom(j->roomId(), JoinState::Join);
+            if (ALARM_X(!room, "Failed to create a room"))
+                return;
+
+            emit createdRoom(room);
+            if (isDirect)
+                for (const auto& i : invites)
+                    addToDirectChats(room, i);
         });
 }
 
@@ -793,11 +794,8 @@ void Connection::requestDirectChat(const QString& userId)
 QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
 {
     auto* u = user(otherUserId);
-    if (u == nullptr) {
-        qCCritical(MAIN) << "Connection::getDirectChat: Couldn't get a user object for"
-                         << otherUserId;
+    if (ALARM_X(!u, u"Couldn't get a user object for" % otherUserId))
         return {};
-    }
 
     // There can be more than one DC; find the first valid (existing and
     // not left), and delete inexistent (forgotten?) ones along the way.
