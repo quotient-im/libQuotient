@@ -3454,7 +3454,7 @@ QJsonArray Room::exportMegolmSessions()
     for (auto &[key, value] : d->groupSessions) {
         auto session = value.exportSession(value.firstKnownIndex());
         if (!session.has_value()) {
-            qWarning() << "Failed to export session" << session.error();
+            qCWarning(E2EE) << "Failed to export session" << session.error();
             continue;
         }
 
@@ -3472,6 +3472,7 @@ QJsonArray Room::exportMegolmSessions()
         if (json["sender_claimed_keys"_ls]["ed25519"_ls].toString().isEmpty() || json["sender_key"_ls].toString().isEmpty()) {
             // These are edge-cases for some sessions that were added before libquotient started storing these fields.
             // Some clients refuse to the entire file if this is missing for one key, so we shouldn't export the session in this case.
+            qCWarning(E2EE) << "Session" << value.sessionId() << "has unknown sender key.";
             continue;
         }
         sessions.append(json);
