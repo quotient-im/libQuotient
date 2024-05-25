@@ -35,6 +35,7 @@ public:
 
     Q_INVOKABLE Error importKeys(QString data, const QString& passphrase,
                                  const Quotient::Connection* connection);
+    Q_INVOKABLE Quotient::Expected<QByteArray, Error> exportKeys(const QString& passphrase, Quotient::Connection* connection);
 
     friend class ::TestKeyImport;
 private:

@@ -683,6 +683,8 @@ public:
 
     Q_INVOKABLE void startVerification();
 
+    QJsonArray exportMegolmSessions();
+
 public Q_SLOTS:
     /** Check whether the room should be upgraded */
     void checkVersion();

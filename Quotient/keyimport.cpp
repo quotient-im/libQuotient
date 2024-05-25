@@ -87,8 +87,64 @@ KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, 
         room->addMegolmSessionFromBackup(
             keyObject["session_id"_ls].toString().toLatin1(),
             keyObject["session_key"_ls].toString().toLatin1(), 0,
-            keyObject[SenderKeyKey].toVariant().toByteArray());
+            keyObject[SenderKeyKey].toVariant().toByteArray(),
+            keyObject["sender_claimed_keys"_ls]["ed25519"_ls].toString().toLatin1()
+        );
     }
     return Success;
+}
+
+Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QString& passphrase, Connection* connection)
+{
+    QJsonArray sessions;
+    for (const auto& room : connection->allRooms()) {
+        for (const auto &session : room->exportMegolmSessions()) {
+            sessions += session;
+        }
+    }
+    auto plainText = QJsonDocument(sessions).toJson(QJsonDocument::Compact);
+
+    auto salt = getRandom(AesBlockSize);
+    auto iv = getRandom(AesBlockSize);
+    quint32 rounds = 200000; // spec: "N should be at least 100,000";
+
+    auto keys = pbkdf2HmacSha512<64>(passphrase.toLatin1(), salt.viewAsByteArray(), rounds);
+    if (!keys.has_value()) {
+        qCWarning(E2EE) << "Failed to calculate pbkdf:" << keys.error();
+        return OtherError;
+    }
+
+    auto result = aesCtr256Encrypt(plainText, byte_view_t<Aes256KeySize>(keys.value().begin(), Aes256KeySize), asCBytes<AesBlockSize>(iv.viewAsByteArray()));
+
+    if (!result.has_value()) {
+        qCWarning(E2EE) << "Failed to encrypt export" << result.error();
+        return OtherError;
+    }
+
+    QByteArray data;
+    data.append("\x01");
+    data.append(salt.viewAsByteArray());
+    data.append(iv.viewAsByteArray());
+    QByteArray roundsData(4, u'\x0');
+    qToBigEndian<quint32>(rounds, roundsData.data());
+    data.append(roundsData);
+    data.append(result.value());
+    auto mac = hmacSha256(key_view_t(keys.value().begin() + 32, 32), data);
+    if (!mac.has_value()) {
+        qCWarning(E2EE) << "Failed to calculate MAC" << mac.error();
+        return OtherError;
+    }
+    data.append(mac.value());
+
+    QByteArray base64 = data.toBase64();
+
+    // Limit base64 line length. 96 is chosen arbitrarily.
+    for (auto i = 96; i < base64.length(); i += 96) {
+        base64.insert(i, "\n");
+        i++;
+    }
+    base64.prepend("-----BEGIN MEGOLM SESSION DATA-----\n"_ls);
+    base64.append("\n-----END MEGOLM SESSION DATA-----\n"_ls);
+    return base64;
 }
 

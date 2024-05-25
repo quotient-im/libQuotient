@@ -79,6 +79,9 @@ public:
     QString userSigningPublicKey();
     QString selfSigningPublicKey();
 
+    QString edKeyForMegolmSession(const QString& sessionId);
+    QString senderKeyForMegolmSession(const QString& sessionId);
+
 private:
     void migrateTo1();
     void migrateTo2();

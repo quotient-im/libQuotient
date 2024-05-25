@@ -621,3 +621,19 @@ QString Database::selfSigningPublicKey()
     execute(query);
     return query.next() ? query.value("key"_ls).toString() : QString();
 }
+
+QString Database::edKeyForMegolmSession(const QString& sessionId)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT senderClaimedEd25519Key FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"));
+    query.bindValue(":sessionId"_ls, sessionId);
+    execute(query);
+    return query.next() ? query.value("senderClaimedEd25519Key"_ls).toString() : QString();
+}
+
+QString Database::senderKeyForMegolmSession(const QString& sessionId)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT senderKey FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"));
+    query.bindValue(":sessionId"_ls, sessionId);
+    execute(query);
+    return query.next() ? query.value("senderKey"_ls).toString() : QString();
+}
