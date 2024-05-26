@@ -43,6 +43,8 @@ public:
     QString displayname() const { return loadFromJson<QString>("displayname"_ls); }
 };
 
+inline auto collectResponse(const GetDisplayNameJob* job) { return job->displayname(); }
+
 //! \brief Set the user's avatar URL.
 //!
 //! This API sets the given user's avatar URL. You must have permission to
@@ -80,6 +82,8 @@ public:
     QUrl avatarUrl() const { return loadFromJson<QUrl>("avatar_url"_ls); }
 };
 
+inline auto collectResponse(const GetAvatarUrlJob* job) { return job->avatarUrl(); }
+
 //! \brief Get this user's profile information.
 //!
 //! Get the combined profile information for this user. This API may be used
@@ -105,6 +109,18 @@ public:
 
     //! The user's display name if they have set one, otherwise not present.
     QString displayname() const { return loadFromJson<QString>("displayname"_ls); }
+
+    struct Response {
+        //! The user's avatar URL if they have set one, otherwise not present.
+        QUrl avatarUrl{};
+
+        //! The user's display name if they have set one, otherwise not present.
+        QString displayname{};
+    };
 };
+
+template <std::derived_from<GetUserProfileJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetUserProfileJob::Response { return { j->avatarUrl(), j->displayname() }; };
 
 } // namespace Quotient

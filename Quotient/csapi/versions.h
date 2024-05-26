@@ -52,6 +52,20 @@ public:
     {
         return loadFromJson<QHash<QString, bool>>("unstable_features"_ls);
     }
+
+    struct Response {
+        //! The supported versions.
+        QStringList versions{};
+
+        //! Experimental features the server supports. Features not listed here,
+        //! or the lack of this property all together, indicate that a feature is
+        //! not supported.
+        QHash<QString, bool> unstableFeatures{};
+    };
 };
+
+template <std::derived_from<GetVersionsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetVersionsJob::Response { return { j->versions(), j->unstableFeatures() }; };
 
 } // namespace Quotient

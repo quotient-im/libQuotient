@@ -115,7 +115,20 @@ public:
     //! A token to supply to `from` to keep paginating the responses. Not present when there are
     //! no further results.
     QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+
+    struct Response {
+        //! The rooms for the current page, with the current filters.
+        std::vector<SpaceHierarchyRoomsChunk> rooms{};
+
+        //! A token to supply to `from` to keep paginating the responses. Not present when there are
+        //! no further results.
+        QString nextBatch{};
+    };
 };
+
+template <std::derived_from<GetSpaceHierarchyJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetSpaceHierarchyJob::Response { return { j->rooms(), j->nextBatch() }; };
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk> {

@@ -198,6 +198,8 @@ public:
     }
 };
 
+inline auto collectResponse(const SearchJob* job) { return job->searchCategories(); }
+
 template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::IncludeEventContext> {
     static void dumpTo(QJsonObject& jo, const SearchJob::IncludeEventContext& pod)

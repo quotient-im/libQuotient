@@ -28,6 +28,8 @@ public:
     QVector<Device> devices() const { return loadFromJson<QVector<Device>>("devices"_ls); }
 };
 
+inline auto collectResponse(const GetDevicesJob* job) { return job->devices(); }
+
 //! \brief Get a single device
 //!
 //! Gets information on a single device, by device id.
@@ -48,6 +50,8 @@ public:
     //! Device information
     Device device() const { return fromJson<Device>(jsonData()); }
 };
+
+inline auto collectResponse(const GetDeviceJob* job) { return job->device(); }
 
 //! \brief Update a device
 //!

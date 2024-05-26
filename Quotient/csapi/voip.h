@@ -26,4 +26,6 @@ public:
     QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
+inline auto collectResponse(const GetTurnServerJob* job) { return job->data(); }
+
 } // namespace Quotient

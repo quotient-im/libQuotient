@@ -34,6 +34,8 @@ public:
     }
 };
 
+inline auto collectResponse(const GetProtocolsJob* job) { return job->protocols(); }
+
 //! \brief Retrieve metadata about a specific protocol that the homeserver supports.
 //!
 //! Fetches the metadata from the homeserver about a particular third-party protocol.
@@ -54,6 +56,8 @@ public:
     //! The protocol was found and metadata returned.
     ThirdPartyProtocol data() const { return fromJson<ThirdPartyProtocol>(jsonData()); }
 };
+
+inline auto collectResponse(const GetProtocolMetadataJob* job) { return job->data(); }
 
 //! \brief Retrieve Matrix-side portals rooms leading to a third-party location.
 //!
@@ -91,6 +95,8 @@ public:
     }
 };
 
+inline auto collectResponse(const QueryLocationByProtocolJob* job) { return job->data(); }
+
 //! \brief Retrieve the Matrix User ID of a corresponding third-party user.
 //!
 //! Retrieve a Matrix User ID linked to a user on the third-party service, given
@@ -118,6 +124,8 @@ public:
     QVector<ThirdPartyUser> data() const { return fromJson<QVector<ThirdPartyUser>>(jsonData()); }
 };
 
+inline auto collectResponse(const QueryUserByProtocolJob* job) { return job->data(); }
+
 //! \brief Reverse-lookup third-party locations given a Matrix room alias.
 //!
 //! Retrieve an array of third-party network locations from a Matrix room
@@ -143,6 +151,8 @@ public:
     }
 };
 
+inline auto collectResponse(const QueryLocationByAliasJob* job) { return job->data(); }
+
 //! \brief Reverse-lookup third-party users given a Matrix User ID.
 //!
 //! Retrieve an array of third-party users from a Matrix User ID.
@@ -163,5 +173,7 @@ public:
     //! An array of third-party users.
     QVector<ThirdPartyUser> data() const { return fromJson<QVector<ThirdPartyUser>>(jsonData()); }
 };
+
+inline auto collectResponse(const QueryUserByIDJob* job) { return job->data(); }
 
 } // namespace Quotient

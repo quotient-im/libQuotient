@@ -58,6 +58,8 @@ public:
     Capabilities capabilities() const { return loadFromJson<Capabilities>("capabilities"_ls); }
 };
 
+inline auto collectResponse(const GetCapabilitiesJob* job) { return job->capabilities(); }
+
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
     static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::ChangePasswordCapability& result)

@@ -53,6 +53,23 @@ public:
 
     //! An array of events.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+
+    struct Response {
+        //! A token which correlates to the first value in `chunk`. This
+        //! is usually the same token supplied to `from=`.
+        QString begin{};
+
+        //! A token which correlates to the last value in `chunk`. This
+        //! token should be used in the next request to `/events`.
+        QString end{};
+
+        //! An array of events.
+        RoomEvents chunk{};
+    };
 };
+
+template <std::derived_from<PeekEventsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> PeekEventsJob::Response { return { j->begin(), j->end(), j->chunk() }; };
 
 } // namespace Quotient

@@ -42,6 +42,8 @@ public:
     QHash<QString, Tag> tags() const { return loadFromJson<QHash<QString, Tag>>("tags"_ls); }
 };
 
+inline auto collectResponse(const GetRoomTagsJob* job) { return job->tags(); }
+
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetRoomTagsJob::Tag> {
     static void fillFrom(QJsonObject jo, GetRoomTagsJob::Tag& result)

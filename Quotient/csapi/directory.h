@@ -45,7 +45,19 @@ public:
 
     //! A list of servers that are aware of this room alias.
     QStringList servers() const { return loadFromJson<QStringList>("servers"_ls); }
+
+    struct Response {
+        //! The room ID for this room alias.
+        QString roomId{};
+
+        //! A list of servers that are aware of this room alias.
+        QStringList servers{};
+    };
 };
+
+template <std::derived_from<GetRoomIdByAliasJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetRoomIdByAliasJob::Response { return { j->roomId(), j->servers() }; };
 
 //! \brief Remove a mapping of room alias to room ID.
 //!
@@ -109,5 +121,7 @@ public:
     //! The server's local aliases on the room. Can be empty.
     QStringList aliases() const { return loadFromJson<QStringList>("aliases"_ls); }
 };
+
+inline auto collectResponse(const GetLocalAliasesJob* job) { return job->aliases(); }
 
 } // namespace Quotient

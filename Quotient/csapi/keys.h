@@ -58,6 +58,8 @@ public:
     }
 };
 
+inline auto collectResponse(const UploadKeysJob* job) { return job->oneTimeKeyCounts(); }
+
 //! \brief Download device identity keys.
 //!
 //! Returns the current devices and identity keys for the given users.
@@ -146,6 +148,51 @@ public:
     {
         return loadFromJson<QHash<QString, CrossSigningKey>>("user_signing_keys"_ls);
     }
+
+    struct Response {
+        //! If any remote homeservers could not be reached, they are
+        //! recorded here. The names of the properties are the names of
+        //! the unreachable servers.
+        //!
+        //! If the homeserver could be reached, but the user or device
+        //! was unknown, no failure is recorded. Instead, the corresponding
+        //! user or device is missing from the `device_keys` result.
+        QHash<QString, QJsonObject> failures{};
+
+        //! Information on the queried devices. A map from user ID, to a
+        //! map from device ID to device information.  For each device,
+        //! the information returned will be the same as uploaded via
+        //! `/keys/upload`, with the addition of an `unsigned`
+        //! property.
+        QHash<QString, QHash<QString, DeviceInformation>> deviceKeys{};
+
+        //! Information on the master cross-signing keys of the queried users.
+        //! A map from user ID, to master key information.  For each key, the
+        //! information returned will be the same as uploaded via
+        //! `/keys/device_signing/upload`, along with the signatures
+        //! uploaded via `/keys/signatures/upload` that the requesting user
+        //! is allowed to see.
+        QHash<QString, CrossSigningKey> masterKeys{};
+
+        //! Information on the self-signing keys of the queried users. A map
+        //! from user ID, to self-signing key information.  For each key, the
+        //! information returned will be the same as uploaded via
+        //! `/keys/device_signing/upload`.
+        QHash<QString, CrossSigningKey> selfSigningKeys{};
+
+        //! Information on the user-signing key of the user making the
+        //! request, if they queried their own device information. A map
+        //! from user ID, to user-signing key information.  The
+        //! information returned will be the same as uploaded via
+        //! `/keys/device_signing/upload`.
+        QHash<QString, CrossSigningKey> userSigningKeys{};
+    };
+};
+
+template <std::derived_from<QueryKeysJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> QueryKeysJob::Response {
+    return { j->failures(), j->deviceKeys(), j->masterKeys(), j->selfSigningKeys(),
+             j->userSigningKeys() };
 };
 
 template <>
@@ -206,7 +253,32 @@ public:
     {
         return loadFromJson<QHash<QString, QHash<QString, OneTimeKeys>>>("one_time_keys"_ls);
     }
+
+    struct Response {
+        //! If any remote homeservers could not be reached, they are
+        //! recorded here. The names of the properties are the names of
+        //! the unreachable servers.
+        //!
+        //! If the homeserver could be reached, but the user or device
+        //! was unknown, no failure is recorded. Instead, the corresponding
+        //! user or device is missing from the `one_time_keys` result.
+        QHash<QString, QJsonObject> failures{};
+
+        //! One-time keys for the queried devices. A map from user ID, to a
+        //! map from devices to a map from `<algorithm>:<key_id>` to the key object.
+        //!
+        //! See the [key algorithms](/client-server-api/#key-algorithms) section for information
+        //! on the Key Object format.
+        //!
+        //! If necessary, the claimed key might be a fallback key. Fallback
+        //! keys are re-used by the server until replaced by the device.
+        QHash<QString, QHash<QString, OneTimeKeys>> oneTimeKeys{};
+    };
 };
+
+template <std::derived_from<ClaimKeysJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> ClaimKeysJob::Response { return { j->failures(), j->oneTimeKeys() }; };
 
 //! \brief Query users with recent device key updates.
 //!
@@ -251,6 +323,21 @@ public:
     //! the end-to-end encrypted rooms they previously shared
     //! with the user.
     QStringList left() const { return loadFromJson<QStringList>("left"_ls); }
+
+    struct Response {
+        //! The Matrix User IDs of all users who updated their device
+        //! identity keys.
+        QStringList changed{};
+
+        //! The Matrix User IDs of all users who may have left all
+        //! the end-to-end encrypted rooms they previously shared
+        //! with the user.
+        QStringList left{};
+    };
 };
+
+template <std::derived_from<GetKeysChangesJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetKeysChangesJob::Response { return { j->changed(), j->left() }; };
 
 } // namespace Quotient

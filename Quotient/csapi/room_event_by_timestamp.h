@@ -61,6 +61,22 @@ public:
     //! `event_id` fetched is too far out of range to be useful for your
     //! use case.
     int originServerTimestamp() const { return loadFromJson<int>("origin_server_ts"_ls); }
+
+    struct Response {
+        //! The ID of the event found
+        QString eventId{};
+
+        //! The event's timestamp, in milliseconds since the Unix epoch.
+        //! This makes it easy to do a quick comparison to see if the
+        //! `event_id` fetched is too far out of range to be useful for your
+        //! use case.
+        int originServerTimestamp{};
+    };
+};
+
+template <std::derived_from<GetEventByTimestampJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetEventByTimestampJob::Response {
+    return { j->eventId(), j->originServerTimestamp() };
 };
 
 } // namespace Quotient

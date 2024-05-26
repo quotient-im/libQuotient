@@ -33,6 +33,8 @@ public:
     RoomEventPtr event() { return fromJson<RoomEventPtr>(jsonData()); }
 };
 
+inline auto collectResponse(GetOneRoomEventJob* job) { return job->event(); }
+
 //! \brief Get the state identified by the type and key.
 //!
 //! Looks up the contents of a state event in a room. If the user is
@@ -66,6 +68,8 @@ public:
     QJsonObject content() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
+inline auto collectResponse(const GetRoomStateWithKeyJob* job) { return job->content(); }
+
 //! \brief Get all state events in the current state of a room.
 //!
 //! Get the state events for the current state of a room.
@@ -86,6 +90,8 @@ public:
     //! The current state of the room
     StateEvents events() { return fromJson<StateEvents>(jsonData()); }
 };
+
+inline auto collectResponse(GetRoomStateJob* job) { return job->events(); }
 
 //! \brief Get the m.room.member events for the room.
 //!
@@ -124,6 +130,8 @@ public:
 
     StateEvents chunk() { return takeFromJson<StateEvents>("chunk"_ls); }
 };
+
+inline auto collectResponse(GetMembersByRoomJob* job) { return job->chunk(); }
 
 //! \brief Gets the list of currently joined users and their profile data.
 //!
@@ -164,6 +172,8 @@ public:
         return loadFromJson<QHash<QString, RoomMember>>("joined"_ls);
     }
 };
+
+inline auto collectResponse(const GetJoinedMembersByRoomJob* job) { return job->joined(); }
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember> {

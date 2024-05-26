@@ -55,6 +55,8 @@ public:
     QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
+inline auto collectResponse(const GetAccountDataJob* job) { return job->data(); }
+
 //! \brief Set some account data for the user that is specific to a room.
 //!
 //! Set some account data for the client on a given room. This config is only
@@ -110,5 +112,7 @@ public:
     //! The account data content for the given type.
     QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
+
+inline auto collectResponse(const GetAccountDataPerRoomJob* job) { return job->data(); }
 
 } // namespace Quotient

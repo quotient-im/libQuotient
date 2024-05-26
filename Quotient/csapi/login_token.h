@@ -57,6 +57,20 @@ public:
     //! The time remaining in milliseconds until the homeserver will no longer accept the token.
     //! `120000` (2 minutes) is recommended as a default.
     int expiresInMs() const { return loadFromJson<int>("expires_in_ms"_ls); }
+
+    struct Response {
+        //! The login token for the `m.login.token` login flow.
+        QString loginToken{};
+
+        //! The time remaining in milliseconds until the homeserver will no longer accept the token.
+        //! `120000` (2 minutes) is recommended as a default.
+        int expiresInMs{};
+    };
+};
+
+template <std::derived_from<GenerateLoginTokenJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GenerateLoginTokenJob::Response {
+    return { j->loginToken(), j->expiresInMs() };
 };
 
 } // namespace Quotient

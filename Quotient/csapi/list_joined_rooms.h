@@ -25,4 +25,6 @@ public:
     QStringList joinedRooms() const { return loadFromJson<QStringList>("joined_rooms"_ls); }
 };
 
+inline auto collectResponse(const GetJoinedRoomsJob* job) { return job->joinedRooms(); }
+
 } // namespace Quotient

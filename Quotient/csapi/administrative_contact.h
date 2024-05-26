@@ -59,6 +59,8 @@ public:
     }
 };
 
+inline auto collectResponse(const GetAccount3PIDsJob* job) { return job->threepids(); }
+
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
     static void fillFrom(const QJsonObject& jo, GetAccount3PIDsJob::ThirdPartyIdentifier& result)
@@ -125,6 +127,8 @@ public:
     //! in the `/versions` response (ie: r0.5.0).
     QUrl submitUrl() const { return loadFromJson<QUrl>("submit_url"_ls); }
 };
+
+inline auto collectResponse(const Post3PIDsJob* job) { return job->submitUrl(); }
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
@@ -226,6 +230,11 @@ public:
     }
 };
 
+inline auto collectResponse(const Delete3pidFromAccountJob* job)
+{
+    return job->idServerUnbindResult();
+}
+
 //! \brief Removes a user's third-party identifier from an identity server.
 //!
 //! Removes a user's third-party identifier from the provided identity server
@@ -263,6 +272,11 @@ public:
     }
 };
 
+inline auto collectResponse(const Unbind3pidFromAccountJob* job)
+{
+    return job->idServerUnbindResult();
+}
+
 //! \brief Begins the validation process for an email address for association with the user's
 //! account.
 //!
@@ -287,6 +301,8 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
+inline auto collectResponse(const RequestTokenTo3PIDEmailJob* job) { return job->response(); }
+
 //! \brief Begins the validation process for a phone number for association with the user's account.
 //!
 //! The homeserver must check that the given phone number is **not**
@@ -307,5 +323,7 @@ public:
     //! An SMS message was sent to the given phone number.
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
+
+inline auto collectResponse(const RequestTokenTo3PIDMSISDNJob* job) { return job->response(); }
 
 } // namespace Quotient

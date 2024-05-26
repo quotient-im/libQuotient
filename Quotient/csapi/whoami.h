@@ -41,6 +41,27 @@ public:
     //! not present or `false`, the user is presumed to be a non-guest
     //! user.
     std::optional<bool> isGuest() const { return loadFromJson<std::optional<bool>>("is_guest"_ls); }
+
+    struct Response {
+        //! The user ID that owns the access token.
+        QString userId{};
+
+        //! Device ID associated with the access token. If no device
+        //! is associated with the access token (such as in the case
+        //! of application services) then this field can be omitted.
+        //! Otherwise this is required.
+        QString deviceId{};
+
+        //! When `true`, the user is a [Guest User](#guest-access). When
+        //! not present or `false`, the user is presumed to be a non-guest
+        //! user.
+        std::optional<bool> isGuest{};
+    };
+};
+
+template <std::derived_from<GetTokenOwnerJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetTokenOwnerJob::Response {
+    return { j->userId(), j->deviceId(), j->isGuest() };
 };
 
 } // namespace Quotient

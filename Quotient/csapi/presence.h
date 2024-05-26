@@ -61,6 +61,26 @@ public:
     {
         return loadFromJson<std::optional<bool>>("currently_active"_ls);
     }
+
+    struct Response {
+        //! This user's presence.
+        QString presence{};
+
+        //! The length of time in milliseconds since an action was performed
+        //! by this user.
+        std::optional<int> lastActiveAgo{};
+
+        //! The state message for this user if one was set.
+        QString statusMsg{};
+
+        //! Whether the user is currently active
+        std::optional<bool> currentlyActive{};
+    };
+};
+
+template <std::derived_from<GetPresenceJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetPresenceJob::Response {
+    return { j->presence(), j->lastActiveAgo(), j->statusMsg(), j->currentlyActive() };
 };
 
 } // namespace Quotient

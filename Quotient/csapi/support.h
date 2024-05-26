@@ -76,7 +76,26 @@ public:
     //!
     //! At least one of `contacts` or `support_page` is required.
     QString supportPage() const { return loadFromJson<QString>("support_page"_ls); }
+
+    struct Response {
+        //! Ways to contact the server administrator.
+        //!
+        //! At least one of `contacts` or `support_page` is required.
+        //! If only `contacts` is set, it must contain at least one
+        //! item.
+        QVector<Contact> contacts{};
+
+        //! The URL of a page to give users help specific to the
+        //! homeserver, like extra login/registration steps.
+        //!
+        //! At least one of `contacts` or `support_page` is required.
+        QString supportPage{};
+    };
 };
+
+template <std::derived_from<GetWellknownSupportJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetWellknownSupportJob::Response { return { j->contacts(), j->supportPage() }; };
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetWellknownSupportJob::Contact> {

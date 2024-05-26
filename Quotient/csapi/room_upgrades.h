@@ -24,4 +24,6 @@ public:
     QString replacementRoom() const { return loadFromJson<QString>("replacement_room"_ls); }
 };
 
+inline auto collectResponse(const UpgradeRoomJob* job) { return job->replacementRoom(); }
+
 } // namespace Quotient

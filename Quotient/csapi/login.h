@@ -47,6 +47,8 @@ public:
     QVector<LoginFlow> flows() const { return loadFromJson<QVector<LoginFlow>>("flows"_ls); }
 };
 
+inline auto collectResponse(const GetLoginFlowsJob* job) { return job->flows(); }
+
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
     static void fillFrom(const QJsonObject& jo, GetLoginFlowsJob::LoginFlow& result)
@@ -139,6 +141,44 @@ public:
     {
         return loadFromJson<std::optional<DiscoveryInformation>>("well_known"_ls);
     }
+
+    struct Response {
+        //! The fully-qualified Matrix ID for the account.
+        QString userId{};
+
+        //! An access token for the account.
+        //! This access token can then be used to authorize other requests.
+        QString accessToken{};
+
+        //! A refresh token for the account. This token can be used to
+        //! obtain a new access token when it expires by calling the
+        //! `/refresh` endpoint.
+        QString refreshToken{};
+
+        //! The lifetime of the access token, in milliseconds. Once
+        //! the access token has expired a new access token can be
+        //! obtained by using the provided refresh token. If no
+        //! refresh token is provided, the client will need to re-log in
+        //! to obtain a new access token. If not given, the client can
+        //! assume that the access token will not expire.
+        std::optional<int> expiresInMs{};
+
+        //! ID of the logged-in device. Will be the same as the
+        //! corresponding parameter in the request, if one was specified.
+        QString deviceId{};
+
+        //! Optional client configuration provided by the server. If present,
+        //! clients SHOULD use the provided object to reconfigure themselves,
+        //! optionally validating the URLs within. This object takes the same
+        //! form as the one returned from .well-known autodiscovery.
+        std::optional<DiscoveryInformation> wellKnown{};
+    };
+};
+
+template <std::derived_from<LoginJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> LoginJob::Response {
+    return { j->userId(),      j->accessToken(), j->refreshToken(),
+             j->expiresInMs(), j->deviceId(),    j->wellKnown() };
 };
 
 } // namespace Quotient

@@ -76,6 +76,8 @@ public:
     QVector<Pusher> pushers() const { return loadFromJson<QVector<Pusher>>("pushers"_ls); }
 };
 
+inline auto collectResponse(const GetPushersJob* job) { return job->pushers(); }
+
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetPushersJob::PusherData> {
     static void fillFrom(const QJsonObject& jo, GetPushersJob::PusherData& result)

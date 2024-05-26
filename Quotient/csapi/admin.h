@@ -60,7 +60,19 @@ public:
     {
         return loadFromJson<QHash<QString, DeviceInfo>>("devices"_ls);
     }
+
+    struct Response {
+        //! The Matrix user ID of the user.
+        QString userId{};
+
+        //! Each key is an identifier for one of the user's devices.
+        QHash<QString, DeviceInfo> devices{};
+    };
 };
+
+template <std::derived_from<GetWhoIsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetWhoIsJob::Response { return { j->userId(), j->devices() }; };
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
