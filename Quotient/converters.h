@@ -23,11 +23,10 @@ class QVariant;
 
 namespace Quotient {
 template <typename T>
-struct JsonObjectConverter {
-    // To be implemented in specialisations
-    static void dumpTo(QJsonObject&, const T&) = delete;
-    static void fillFrom(const QJsonObject&, T&) = delete;
-};
+struct JsonObjectConverter;
+// Specialisations should implement either or both of:
+//static void dumpTo(QJsonObject&, const T&); // For toJson() and fillJson() to work
+//static void fillFrom(const QJsonObject&, T&); // For fromJson() and fillFromJson() to work
 
 template <typename PodT, typename JsonT>
 PodT fromJson(const JsonT&);
@@ -133,9 +132,8 @@ inline void fillFromJson(const QJsonValue& jv, T& pod)
 }
 
 namespace _impl {
-    void warnUnknownEnumValue(const QString& stringValue,
-                              const char* enumTypeName);
-    void reportEnumOutOfBounds(uint32_t v, const char* enumTypeName);
+    QUOTIENT_API void warnUnknownEnumValue(const QString& stringValue, const char* enumTypeName);
+    QUOTIENT_API void reportEnumOutOfBounds(uint32_t v, const char* enumTypeName);
 }
 
 //! \brief Facility string-to-enum converter
@@ -147,12 +145,11 @@ namespace _impl {
 //! matching respective enum values, 0-based.
 //! \sa enumToJsonString
 template <typename EnumT, typename EnumStringValuesT>
-EnumT enumFromJsonString(const QString& s, const EnumStringValuesT& enumValues,
-                         EnumT defaultValue)
+inline EnumT enumFromJsonString(const QString& s, const EnumStringValuesT& enumValues,
+                                EnumT defaultValue)
 {
     static_assert(std::is_unsigned_v<std::underlying_type_t<EnumT>>);
-    if (const auto it = std::find(cbegin(enumValues), cend(enumValues), s);
-        it != cend(enumValues))
+    if (const auto it = std::ranges::find(enumValues, s); it != cend(enumValues))
         return static_cast<EnumT>(it - cbegin(enumValues));
 
     if (!s.isEmpty())
@@ -170,7 +167,7 @@ EnumT enumFromJsonString(const QString& s, const EnumStringValuesT& enumValues,
 //!       }</tt> (mind the gap at value 0, in particular).
 //! \sa enumFromJsonString
 template <typename EnumT, typename EnumStringValuesT>
-QString enumToJsonString(EnumT v, const EnumStringValuesT& enumValues)
+inline QString enumToJsonString(EnumT v, const EnumStringValuesT& enumValues)
 {
     static_assert(std::is_unsigned_v<std::underlying_type_t<EnumT>>);
     if (v < size(enumValues))
@@ -193,8 +190,8 @@ QString enumToJsonString(EnumT v, const EnumStringValuesT& enumValues)
 //! \note This function does not support flag combinations.
 //! \sa QUO_DECLARE_FLAGS, QUO_DECLARE_FLAGS_NS
 template <typename FlagT, typename FlagStringValuesT>
-FlagT flagFromJsonString(const QString& s, const FlagStringValuesT& flagValues,
-                         FlagT defaultValue = FlagT(0U))
+inline FlagT flagFromJsonString(const QString& s, const FlagStringValuesT& flagValues,
+                                FlagT defaultValue = FlagT(0U))
 {
     // Enums based on signed integers don't make much sense for flag types
     static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
@@ -207,7 +204,7 @@ FlagT flagFromJsonString(const QString& s, const FlagStringValuesT& flagValues,
 }
 
 template <typename FlagT, typename FlagStringValuesT>
-QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
+inline QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
 {
     static_assert(std::is_unsigned_v<std::underlying_type_t<FlagT>>);
     if (const auto offset = std::countr_zero(std::to_underlying(v)); offset < ssize(flagValues))
@@ -220,7 +217,7 @@ QString flagToJsonString(FlagT v, const FlagStringValuesT& flagValues)
 
 // Specialisations
 
-template<>
+template <>
 inline bool fromJson(const QJsonValue& jv) { return jv.toBool(); }
 
 template <>
