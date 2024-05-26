@@ -800,6 +800,13 @@ void BaseJob::setStatus(int code, QString message)
     setStatus({ code, std::move(message) });
 }
 
+void BaseJob::forceResult(QJsonDocument resultDoc, Status s)
+{
+    d->jsonResponse = std::move(resultDoc);
+    setStatus(std::move(s));
+    QMetaObject::invokeMethod(this, [this] { finishJob(); }, Qt::QueuedConnection);
+}
+
 void BaseJob::abandon()
 {
     beforeAbandon();

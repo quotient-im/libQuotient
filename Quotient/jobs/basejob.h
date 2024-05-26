@@ -422,6 +422,12 @@ protected:
     void setStatus(Status s);
     void setStatus(int code, QString message);
 
+    //! \brief Force completion of the job for sake of testing
+    //!
+    //! Normal jobs should never use; this is only meant to be used in test mocks.
+    //! \sa Mocked
+    void forceResult(QJsonDocument resultDoc, Status s = { Success });
+
     //! \brief Set the logging category for the given job instance
     //!
     //! \param lcf The logging category function to provide the category -
@@ -476,4 +482,12 @@ inline bool QUOTIENT_API isJobPending(BaseJob* job)
 {
     return job && job->error() == BaseJob::Pending;
 }
+
+template <std::derived_from<BaseJob> JobT>
+class Mocked : public JobT {
+public:
+    using JobT::JobT;
+    void setResult(QJsonDocument d) { JobT::forceResult(std::move(d)); }
+};
+
 } // namespace Quotient
