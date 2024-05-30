@@ -52,7 +52,7 @@ inline auto connectSingleShot(auto* sender, auto signal, ContextT* context, Slot
  * It's almost QPointer<> except that you have to initialise it with one
  * more additional parameter - a pointer to a QObject that will be
  * disconnected from signals of the underlying pointer upon the guard's
- * destruction. Note that destructing the guide doesn't destruct either QObject.
+ * destruction. Note that destructing the guard doesn't destruct either QObject.
  */
 template <typename T>
 class ConnectionsGuard : public QPointer<T> {
@@ -73,4 +73,5 @@ public:
 private:
     QObject* subscriber;
 };
+
 } // namespace Quotient

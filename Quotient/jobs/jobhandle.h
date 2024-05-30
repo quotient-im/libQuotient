@@ -30,9 +30,10 @@ concept BoundResultHandler = std::invocable<FnT, const JobT*> || std::invocable<
 //! so this class extends it by allowing two additional kinds of functions for normal (i.e. success
 //! or failure, not abandon) job completion:
 //! - member functions of QObject-derived classes; and
-//! - (except onCanceled continuations) functions with no parameters (the original QFuture mandates
+//! - for then() and onResult(), functions with no parameters (the original QFuture mandates
 //!   the continuation function to accept a single argument of the type carried by the future,
-//!   or of the future type itself).
+//!   or of the future type itself; this is still allowed, although you shouldn't need to pass
+//!   the full future type since we don't need to deal with exceptions).
 //!
 //! This helps with migration of the current code that `connect()`s to the job signals. Basically,
 //! all you need to do with the existing code (and only if you want; the existing code will mostly

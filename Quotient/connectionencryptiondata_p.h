@@ -68,8 +68,7 @@ namespace _impl {
         std::pair<QByteArray, QByteArray> sessionDecryptMessage(
             const QJsonObject& personalCipherObject,
             const QByteArray& senderKey);
-        std::pair<EventPtr, QByteArray> sessionDecryptMessage(
-            const EncryptedEvent& encryptedEvent);
+        std::pair<EventPtr, QByteArray> sessionDecryptMessage(const EncryptedEvent& encryptedEvent);
 
         QJsonObject assembleEncryptedContent(
             QJsonObject payloadJson, const QString& targetUserId,

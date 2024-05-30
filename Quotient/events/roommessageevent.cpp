@@ -61,11 +61,8 @@ constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
 
 QString msgTypeToJson(MsgType enumType)
 {
-    auto it = std::find_if(msgTypes.begin(), msgTypes.end(),
-                           [=](const MsgTypeDesc& mtd) {
-                               return mtd.enumType == enumType;
-                           });
-    if (it != msgTypes.end())
+    if (auto it = std::ranges::find(msgTypes, enumType, &MsgTypeDesc::enumType);
+        it != msgTypes.end())
         return it->matrixType;
 
     return {};
@@ -73,11 +70,8 @@ QString msgTypeToJson(MsgType enumType)
 
 MsgType jsonToMsgType(const QString& matrixType)
 {
-    auto it = std::find_if(msgTypes.begin(), msgTypes.end(),
-                           [=](const MsgTypeDesc& mtd) {
-                               return mtd.matrixType == matrixType;
-                           });
-    if (it != msgTypes.end())
+    if (auto it = std::ranges::find(msgTypes, matrixType, &MsgTypeDesc::matrixType);
+        it != msgTypes.end())
         return it->enumType;
 
     return MsgType::Unknown;

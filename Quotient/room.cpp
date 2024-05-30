@@ -9,22 +9,19 @@
 
 #include "room.h"
 
-#include "logging_categories_p.h"
-
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
 #include "database.h"
 #include "eventstats.h"
 #include "keyverificationsession.h"
+#include "logging_categories_p.h"
 #include "qt_connection_util.h"
+#include "quotient_common.h"
 #include "roommember.h"
 #include "roomstateview.h"
 #include "syncdata.h"
 #include "user.h"
-
-// NB: since Qt 6, moc_room.cpp needs User fully defined
-#include "moc_room.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include "csapi/account-data.h"
 #include "csapi/banning.h"
@@ -60,7 +57,9 @@
 #include "events/typingevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include "Quotient/quotient_common.h"
+
+// NB: since Qt 6, moc_room.cpp needs User fully defined
+#include "moc_room.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -72,13 +71,10 @@
 #include <array>
 #include <cmath>
 #include <functional>
-#include <qhash.h>
 
 using namespace Quotient;
 using namespace std::placeholders;
-#if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
 using std::llround;
-#endif
 
 enum EventsPlacement : int { Older = -1, Newer = 1 };
 
@@ -108,9 +104,9 @@ public:
     Timeline timeline;
     PendingEvents unsyncedEvents;
     QHash<QString, TimelineItem::index_t> eventsIndex;
-    // A map from evtId to a map of relation type to a vector of event
-    // pointers. Not using QMultiHash, because we want to quickly return
-    // a number of relations for a given event without enumerating them.
+    // A map from event id/relation type pairs to a vector of event pointers. Not using QMultiHash,
+    // because we want to quickly return a number of relations for a given event without enumerating
+    // them.
     QHash<std::pair<QString, QString>, RelatedEvents> relations;
     QString displayname;
     Avatar avatar;
@@ -312,7 +308,6 @@ public:
         //            if (event.senderId().isEmpty())
         //                event.setSender(connection->userId());
         // TODO: Queue up state events sending (see #133).
-        // TODO: Maybe addAsPending() as well, despite having no txnId
         return connection->callApi<SetRoomStateWithKeyJob>(id, evtType, stateKey,
                                                            contentJson);
     }
@@ -760,10 +755,9 @@ std::optional<QString> Room::Private::setLastReadReceipt(const QString& userId, 
     if (newMarker != historyEdge()) {
         // Try to auto-promote the read marker over the user's own messages
         // (switch to direct iterators for that).
-        const auto eagerMarker = find_if(newMarker.base(), syncEdge(),
-                                         [=](const TimelineItem& ti) {
-                                             return ti->senderId() != userId;
-                                         });
+        const auto eagerMarker =
+            find_if(newMarker.base(), syncEdge(),
+                    [userId](const TimelineItem& ti) { return ti->senderId() != userId; });
         // eagerMarker is now just after the desired event for newMarker
         if (eagerMarker != newMarker.base()) {
             newMarker = rev_iter_t(eagerMarker);
@@ -2806,11 +2800,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     auto timelineSize = timeline.size();
     size_t totalInserted = 0;
     for (auto it = events.begin(); it != events.end();) {
-        auto nextPendingPair =
-                    findFirstOf(it, events.end(), unsyncedEvents.begin(),
-                                unsyncedEvents.end(), isEchoEvent);
-                const auto& remoteEcho = nextPendingPair.first;
-                const auto& localEcho = nextPendingPair.second;
+        const auto& [remoteEcho, localEcho] = findFirstOf(it, events.end(), unsyncedEvents.begin(),
+                                                          unsyncedEvents.end(), isEchoEvent);
 
         if (it != remoteEcho) {
             RoomEventsRange eventsSpan { it, remoteEcho };

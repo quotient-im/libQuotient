@@ -362,8 +362,15 @@ bool ConnectionEncryptionData::processIfVerificationEvent(const Event& evt,
         false);
 }
 
-void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
-    const EncryptedEvent& event)
+class SecretSendEvent : public Event {
+public:
+    using Event::Event;
+    QUO_EVENT(SecretSendEvent, "m.secret.send")
+    QUO_CONTENT_GETTER(QString, requestId)
+    QUO_CONTENT_GETTER(QString, secret)
+};
+
+void ConnectionEncryptionData::handleEncryptedToDeviceEvent(const EncryptedEvent& event)
 {
     const auto [decryptedEvent, olmSessionId] = sessionDecryptMessage(event);
     if (!decryptedEvent) {
@@ -374,27 +381,22 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(
 
     if (processIfVerificationEvent(*decryptedEvent, true))
         return;
-    switchOnType(
-        *decryptedEvent,
-        [this, &event,
-         olmSessionId = olmSessionId](const RoomKeyEvent& roomKeyEvent) {
+    decryptedEvent->switchOnType(
+        [this, &event, olmSessionId](const RoomKeyEvent& roomKeyEvent) {
             if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(),
-                                                 olmSessionId, event.senderKey().toLatin1());
+                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId,
+                                                 event.senderKey().toLatin1());
             } else {
                 qCDebug(E2EE)
                     << "Encrypted event room id" << roomKeyEvent.roomId()
                     << "is not found at the connection" << q->objectName();
             }
         },
-        [this](const Event& evt) {
-            //TODO create an event subclass for this
-            if (evt.matrixType() == "m.secret.send"_ls) {
-                emit q->secretReceived(evt.contentPart<QString>("request_id"_ls), evt.contentPart<QString>("secret"_ls));
-                return;
-            }
-            qCWarning(E2EE) << "Skipping encrypted to_device event, type"
-                            << evt.matrixType();
+        [this](const SecretSendEvent& sse) {
+            emit q->secretReceived(sse.requestId(), sse.secret());
+        },
+        [](const Event& evt) {
+            qCWarning(E2EE) << "Skipping encrypted to_device event, type" << evt.matrixType();
         });
 }
 
@@ -830,29 +832,22 @@ std::pair<EventPtr, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(
         query.bindValue(":curveKey"_ls, encryptedEvent.senderKey());
         database.execute(query);
         if (!query.next()) {
-            qCWarning(E2EE) << "Unknown device while trying to recover from "
-                               "broken olm session";
+            qCWarning(E2EE) << "Unknown device while trying to recover from broken olm session";
             return {};
         }
         auto senderId = encryptedEvent.senderId();
         auto deviceId = query.value("deviceId"_ls).toString();
-        QHash<QString, QHash<QString, QString>> hash{
-            { encryptedEvent.senderId(),
-              { { deviceId, "signed_curve25519"_ls } } }
-        };
-        auto job = q->callApi<ClaimKeysJob>(hash);
-        QObject::connect(
-            job, &BaseJob::finished, q, [this, deviceId, job, senderId] {
-                if (triedDevices.contains({ senderId, deviceId })) {
-                    return;
-                }
-                triedDevices += { senderId, deviceId };
-                qDebug(E2EE)
-                    << "Sending dummy event to" << senderId << deviceId;
-                createOlmSession(senderId, deviceId,
-                                 job->oneTimeKeys()[senderId][deviceId]);
-                q->sendToDevice(senderId, deviceId, DummyEvent(), true);
-            });
+        QHash<QString, QHash<QString, QString>> hash{ { encryptedEvent.senderId(),
+                                                        { { deviceId, "signed_curve25519"_ls } } } };
+        q->callApi<ClaimKeysJob>(hash).then(q, [this, deviceId, senderId](const auto* job) {
+            if (triedDevices.contains({ senderId, deviceId })) {
+                return;
+            }
+            triedDevices += { senderId, deviceId };
+            qDebug(E2EE) << "Sending dummy event to" << senderId << deviceId;
+            createOlmSession(senderId, deviceId, job->oneTimeKeys()[senderId][deviceId]);
+            q->sendToDevice(senderId, deviceId, DummyEvent(), true);
+        });
         return {};
     }
 
@@ -861,8 +856,8 @@ std::pair<EventPtr, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(
 
     if (auto sender = decryptedEvent->fullJson()[SenderKey].toString();
         sender != encryptedEvent.senderId()) {
-        qWarning(E2EE) << "Found user" << sender << "instead of sender"
-                       << encryptedEvent.senderId() << "in Olm plaintext";
+        qWarning(E2EE) << "Found user" << sender << "instead of sender" << encryptedEvent.senderId()
+                       << "in Olm plaintext";
         return {};
     }
 
@@ -872,12 +867,10 @@ std::pair<EventPtr, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(
     query.bindValue(":curveKey"_ls, senderKey);
     database.execute(query);
     if (!query.next()) {
-        qWarning(E2EE) << "Received olm message from unknown device"
-                       << senderKey;
+        qWarning(E2EE) << "Received olm message from unknown device" << senderKey;
         return {};
     }
-    if (auto edKey =
-            decryptedEvent->fullJson()["keys"_ls][Ed25519Key].toString();
+    if (auto edKey = decryptedEvent->fullJson()["keys"_ls][Ed25519Key].toString();
         edKey.isEmpty() || query.value("edKey"_ls).toString() != edKey) //
     {
         qDebug(E2EE) << "Received olm message with invalid ed key";
