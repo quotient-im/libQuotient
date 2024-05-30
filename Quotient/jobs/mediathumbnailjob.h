@@ -19,6 +19,7 @@ public:
     MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize);
 
     QImage thumbnail() const;
+    [[deprecated("Use thumbnail().scaled() instead")]]
     QImage scaledThumbnail(QSize toSize) const;
 
 protected:

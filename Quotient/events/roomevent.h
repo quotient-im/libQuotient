@@ -8,6 +8,14 @@
 #include <QtCore/QDateTime>
 
 namespace Quotient {
+
+constexpr inline auto EventIdKey = "event_id"_ls;
+constexpr inline auto RoomIdKey = "room_id"_ls;
+constexpr inline auto StateKeyKey = "state_key"_ls;
+constexpr inline auto RedactedCauseKey = "redacted_because"_ls;
+constexpr inline auto RelatesToKey = "m.relates_to"_ls;
+constexpr inline auto UnsignedKey = "unsigned"_ls;
+
 class RedactionEvent;
 class EncryptedEvent;
 

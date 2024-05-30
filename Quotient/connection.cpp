@@ -357,7 +357,7 @@ QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
     return result;
 }
 
-void Connection::logout()
+QFuture<void> Connection::logout()
 {
     // If there's an ongoing sync job, stop it (this also suspends sync loop)
     const auto wasSyncing = bool(d->syncJob);
@@ -368,9 +368,11 @@ void Connection::logout()
     }
 
     d->logoutJob = callApi<LogoutJob>();
-    emit stateChanged(); // isLoggedIn() == false from now
+    Q_ASSERT(!isLoggedIn()); // Because d->logoutJob is running
+    emit stateChanged();
 
-    connect(d->logoutJob, &LogoutJob::finished, this, [this, wasSyncing] {
+    QFutureInterface<void> p;
+    connect(d->logoutJob.get(), &BaseJob::finished, this, [this, wasSyncing, p]() mutable {
         if (d->logoutJob->status().good()
             || d->logoutJob->error() == BaseJob::Unauthorised
             || d->logoutJob->error() == BaseJob::ContentAccessError) {
@@ -381,11 +383,15 @@ void Connection::logout()
             emit loggedOut();
             deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state
+            Q_ASSERT(isLoggedIn());
             emit stateChanged();
             if (wasSyncing)
                 syncLoopIteration(); // Resume sync loop (or a single sync)
+            p.cancel();
         }
+        p.reportFinished();
     });
+    return p.future();
 }
 
 void Connection::sync(int timeout)
@@ -608,8 +614,14 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
-    if (encryptionData)
-        encryptionData->consumeToDeviceEvents(std::move(toDeviceEvents));
+    if (toDeviceEvents.empty())
+        return;
+
+    qCDebug(E2EE) << "Consuming" << toDeviceEvents.size() << "to-device events";
+    for (auto&& tdEvt : std::move(toDeviceEvents)) {
+        if (encryptionData)
+            encryptionData->consumeToDeviceEvent(std::move(tdEvt));
+    }
 }
 
 void Connection::stopSync()
@@ -769,13 +781,14 @@ JobHandle<CreateRoomJob> Connection::createRoom(
                                   alias, name, topic, invites, invite3pids, roomVersion,
                                   creationContent, initialState, presetName, isDirect)
         .then(this, [this, invites, isDirect](auto* j) {
-            if (auto* room = provideRoom(j->roomId(), JoinState::Join)) {
-                emit createdRoom(room);
-                if (isDirect)
-                    for (const auto& i : invites)
-                        addToDirectChats(room, i);
-            } else
-                Q_ASSERT_X(false, "Connection::createRoom", "Failed to create a room");
+            auto* room = provideRoom(j->roomId(), JoinState::Join);
+            if (ALARM_X(!room, "Failed to create a room"))
+                return;
+
+            emit createdRoom(room);
+            if (isDirect)
+                for (const auto& i : invites)
+                    addToDirectChats(room, i);
         });
 }
 
@@ -787,11 +800,8 @@ void Connection::requestDirectChat(const QString& userId)
 QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
 {
     auto* u = user(otherUserId);
-    if (u == nullptr) {
-        qCCritical(MAIN) << "Connection::getDirectChat: Couldn't get a user object for"
-                         << otherUserId;
+    if (ALARM_X(!u, u"Couldn't get a user object for" % otherUserId))
         return {};
-    }
 
     // There can be more than one DC; find the first valid (existing and
     // not left), and delete inexistent (forgotten?) ones along the way.

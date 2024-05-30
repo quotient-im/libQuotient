@@ -3,11 +3,8 @@
 
 #pragma once
 
-#include "quotient_common.h"
-
-#include "events/callevents.h"
+#include "events/roomevent.h"
 #include "events/filesourceinfo.h"
-#include "events/stateevent.h"
 
 #include <any>
 #include <utility>
@@ -22,7 +19,7 @@ namespace EventStatus {
      * This is used to hint at a special status of some events in UI.
      * All values except Redacted and Hidden are mutually exclusive.
      */
-    enum Code {
+    enum Code : uint16_t {
         Normal = 0x0, ///< No special designation
         Submitted = 0x01, ///< The event has just been submitted for sending
         FileUploaded = 0x02, ///< The file attached to the event has been
@@ -39,6 +36,8 @@ namespace EventStatus {
 
 class QUOTIENT_API EventItemBase {
 public:
+    using value_type = RoomEvent;
+
     explicit EventItemBase(RoomEventPtr&& e) : evt(std::move(e))
     {
         Q_ASSERT(evt);

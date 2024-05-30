@@ -70,13 +70,16 @@ using QOlmExpected = Expected<T, OlmErrorCode>;
 //! Qt and Olm use different size types; this causes the warning noise
 QUOTIENT_API QByteArray byteArrayForOlm(size_t bufferSize);
 
-//! \brief Get a size of Qt container coerced to size_t
+//! \brief Get a size of a container coerced to size_t
 //!
-//! It's a safe cast since size_t can always accommodate the range between
-//! 0 and SIZE_MAX / 2 - 1 that Qt containers support; yet compilers complain...
-inline size_t unsignedSize(const auto& qtBuffer)
+//! This is mainly aimed at Qt containers because they have signed size; but it can also be called
+//! on other containers or even C arrays, e.g. - to spare generic code from special-casing.
+//! For Qt containers, it's a safe cast since size_t can always accommodate the range between 0 and
+//! SIZE_MAX / 2 - 1 that they support; yet compilers complain...
+inline size_t unsignedSize(const auto& buffer)
+    requires (sizeof(std::size(buffer)) <= sizeof(size_t))
 {
-    return static_cast<size_t>(qtBuffer.size());
+    return static_cast<size_t>(std::size(buffer));
 }
 
 // Can't use std::byte normally recommended for the purpose because both Olm
@@ -97,15 +100,15 @@ namespace _impl {
     QUOTIENT_API void checkForSpanShortfall(QByteArray::size_type inputSize, int neededSize);
 
     template <typename SpanT>
-    inline auto spanFromByteArray(auto& byteArray)
+    inline auto spanFromBytes(auto& byteArray)
     {
         // OpenSSL only handles int sizes; Release builds will cut the tail off
-        Q_ASSERT_X(std::in_range<int>(byteArray.size()), __func__, "Too long array for OpenSSL");
+        Q_ASSERT_X(std::in_range<int>(std::size(byteArray)), __func__, "Too long array for OpenSSL");
         if constexpr (SpanT::extent != std::dynamic_extent) {
             static_assert(std::in_range<int>(SpanT::extent));
-            checkForSpanShortfall(byteArray.size(), static_cast<int>(SpanT::extent));
+            checkForSpanShortfall(std::size(byteArray), static_cast<int>(SpanT::extent));
         }
-        return SpanT(reinterpret_cast<typename SpanT::pointer>(byteArray.data()),
+        return SpanT(reinterpret_cast<typename SpanT::pointer>(std::data(byteArray)),
                      std::min(SpanT::extent, unsignedSize(byteArray)));
     }
 } // namespace _impl
@@ -114,43 +117,22 @@ namespace _impl {
 //!
 //! This function returns an adaptor object that is suitable for OpenSSL/Olm
 //! invocations (via std::span<>::data() accessor) so that you don't have
-//! to wrap your QByteArray into ugly reinterpret_casts on every OpenSSL call.
+//! to wrap your containers into ugly reinterpret_casts on every OpenSSL call.
 //! \note The caller is responsible for making sure that bytes.size() is small
 //!       enough to fit into an int (OpenSSL only handles int sizes atm) but
-//!       also large enough to have at least N bytes if N is not
-//!       `std::dynamic_extent`
+//!       also large enough to have at least N bytes if N is not `std::dynamic_extent`
 //! \sa asWritableCBytes for the case when you need to pass a buffer for writing
 template <size_t N = std::dynamic_extent>
-inline auto asCBytes(const QByteArray& bytes)
+inline auto asCBytes(const auto& buf)
 {
-    return _impl::spanFromByteArray<byte_view_t<N>>(bytes);
-}
-
-template <size_t N = std::dynamic_extent>
-inline auto asCBytes(QLatin1String bytes)
-{ // TODO, 0.9: Replace this and QByteArray overload above with a single one for QByteArrayView
-    return _impl::spanFromByteArray<byte_view_t<N>>(bytes);
+    return _impl::spanFromBytes<byte_view_t<N>>(buf);
 }
 
 //! Obtain a std::span<byte_t, N> looking into the passed buffer
 template <size_t N = std::dynamic_extent>
-inline auto asWritableCBytes(QByteArray& bytes)
+inline auto asWritableCBytes(auto& buf)
 {
-    return _impl::spanFromByteArray<byte_span_t<N>>(bytes);
-}
-
-// 0.9: use Ranges instead?
-template <class BufferT>
-inline auto asWritableCBytes(BufferT& buf) -> auto
-    requires(!std::is_const_v<typename BufferT::value_type>)
-{
-    return byte_span_t<BufferT::extent>(buf);
-}
-
-template <class BufferT>
-inline auto asCBytes(const BufferT& buf) -> auto
-{
-    return byte_view_t<BufferT::extent>(buf);
+    return _impl::spanFromBytes<byte_span_t<N>>(buf);
 }
 
 inline auto viewAsByteArray(const auto& aRange) -> auto
@@ -166,8 +148,8 @@ class QUOTIENT_API FixedBufferBase {
 public:
     enum InitOptions { Uninitialized, FillWithZeros, FillWithRandom };
 
-    using value_type = byte_t; // TODO, 0.9: uint8_t -> value_type below
-    using size_type = size_t; // TODO, 0.9: size_t -> size_type below
+    using value_type = byte_t;
+    using size_type = size_t;
 
     static constexpr auto TotalSecureHeapSize = 65'536;
 
@@ -215,7 +197,7 @@ public:
     FixedBufferBase& operator=(FixedBufferBase&&) = delete;
 
 protected:
-    FixedBufferBase(size_t bufferSize, InitOptions options);
+    FixedBufferBase(size_type bufferSize, InitOptions options);
     ~FixedBufferBase() { clear(); }
 
     FixedBufferBase(FixedBufferBase&& other)
@@ -224,12 +206,12 @@ protected:
 
     void fillFrom(QByteArray&& source);
 
-    uint8_t* dataForWriting() { return data_; }
-    const uint8_t* data() const { return data_; }
+    value_type* dataForWriting() { return data_; }
+    const value_type* data() const { return data_; }
 
 private:
-    uint8_t* data_ = nullptr;
-    size_t size_ = 0;
+    value_type* data_ = nullptr;
+    size_type size_ = 0;
 };
 
 template <size_t ExtentN = std::dynamic_extent, bool DataIsWriteable = true>
@@ -247,17 +229,17 @@ public:
         requires(extent != std::dynamic_extent)
         : FixedBufferBase(ExtentN, fillMode)
     {}
-    explicit FixedBuffer(size_t bufferSize)
+    explicit FixedBuffer(size_type bufferSize)
         requires(extent == std::dynamic_extent)
         : FixedBuffer(bufferSize, FillWithZeros)
     {}
-    explicit FixedBuffer(size_t bufferSize, InitOptions fillMode)
+    explicit FixedBuffer(size_type bufferSize, InitOptions fillMode)
         requires(extent == std::dynamic_extent)
         : FixedBufferBase(bufferSize, fillMode)
     {}
 
     using FixedBufferBase::data;
-    uint8_t* data() requires DataIsWriteable { return dataForWriting(); }
+    value_type* data() requires DataIsWriteable { return dataForWriting(); }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     QUO_IMPLICIT operator byte_view_t<ExtentN>() const

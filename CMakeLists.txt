@@ -138,6 +138,7 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/networksettings.h
         Quotient/converters.h
         Quotient/util.h
+        Quotient/ranges_extras.h
         Quotient/eventitem.h
         Quotient/accountregistry.h
         Quotient/mxcreply.h

@@ -9,22 +9,20 @@
 
 #include "room.h"
 
-#include "logging_categories_p.h"
-
 #include "avatar.h"
 #include "connection.h"
 #include "converters.h"
 #include "database.h"
 #include "eventstats.h"
 #include "keyverificationsession.h"
+#include "logging_categories_p.h"
 #include "qt_connection_util.h"
+#include "quotient_common.h"
+#include "ranges_extras.h"
 #include "roommember.h"
 #include "roomstateview.h"
 #include "syncdata.h"
 #include "user.h"
-
-// NB: since Qt 6, moc_room.cpp needs User fully defined
-#include "moc_room.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include "csapi/account-data.h"
 #include "csapi/banning.h"
@@ -60,7 +58,9 @@
 #include "events/typingevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include "Quotient/quotient_common.h"
+
+// NB: since Qt 6, moc_room.cpp needs User fully defined
+#include "moc_room.cpp" // NOLINT(bugprone-suspicious-include)
 
 #include <QtCore/QDir>
 #include <QtCore/QHash>
@@ -72,13 +72,10 @@
 #include <array>
 #include <cmath>
 #include <functional>
-#include <qhash.h>
 
 using namespace Quotient;
 using namespace std::placeholders;
-#if !(defined __GLIBCXX__ && __GLIBCXX__ <= 20150123)
 using std::llround;
-#endif
 
 enum EventsPlacement : int { Older = -1, Newer = 1 };
 
@@ -108,9 +105,9 @@ public:
     Timeline timeline;
     PendingEvents unsyncedEvents;
     QHash<QString, TimelineItem::index_t> eventsIndex;
-    // A map from evtId to a map of relation type to a vector of event
-    // pointers. Not using QMultiHash, because we want to quickly return
-    // a number of relations for a given event without enumerating them.
+    // A map from event id/relation type pairs to a vector of event pointers. Not using QMultiHash,
+    // because we want to quickly return a number of relations for a given event without enumerating
+    // them.
     QHash<std::pair<QString, QString>, RelatedEvents> relations;
     QString displayname;
     Avatar avatar;
@@ -312,7 +309,6 @@ public:
         //            if (event.senderId().isEmpty())
         //                event.setSender(connection->userId());
         // TODO: Queue up state events sending (see #133).
-        // TODO: Maybe addAsPending() as well, despite having no txnId
         return connection->callApi<SetRoomStateWithKeyJob>(id, evtType, stateKey,
                                                            contentJson);
     }
@@ -760,10 +756,9 @@ std::optional<QString> Room::Private::setLastReadReceipt(const QString& userId, 
     if (newMarker != historyEdge()) {
         // Try to auto-promote the read marker over the user's own messages
         // (switch to direct iterators for that).
-        const auto eagerMarker = find_if(newMarker.base(), syncEdge(),
-                                         [=](const TimelineItem& ti) {
-                                             return ti->senderId() != userId;
-                                         });
+        const auto eagerMarker =
+            find_if(newMarker.base(), syncEdge(),
+                    [userId](const TimelineItem& ti) { return ti->senderId() != userId; });
         // eagerMarker is now just after the desired event for newMarker
         if (eagerMarker != newMarker.base()) {
             newMarker = rev_iter_t(eagerMarker);
@@ -1100,19 +1095,12 @@ Room::rev_iter_t Room::findInTimeline(const QString& evtId) const
 
 Room::PendingEvents::iterator Room::findPendingEvent(const QString& txnId)
 {
-    return std::find_if(d->unsyncedEvents.begin(), d->unsyncedEvents.end(),
-                        [txnId](const auto& item) {
-                            return item->transactionId() == txnId;
-                        });
+    return findIndirect(d->unsyncedEvents, txnId, &RoomEvent::transactionId);
 }
 
-Room::PendingEvents::const_iterator
-Room::findPendingEvent(const QString& txnId) const
+Room::PendingEvents::const_iterator Room::findPendingEvent(const QString& txnId) const
 {
-    return std::find_if(d->unsyncedEvents.cbegin(), d->unsyncedEvents.cend(),
-                        [txnId](const auto& item) {
-                            return item->transactionId() == txnId;
-                        });
+    return findIndirect(d->unsyncedEvents, txnId, &RoomEvent::transactionId);
 }
 
 const Room::RelatedEvents Room::relatedEvents(
@@ -2325,7 +2313,7 @@ void Room::inviteToRoom(const QString& memberId)
     connection()->callApi<InviteUserJob>(id(), memberId);
 }
 
-LeaveRoomJob* Room::leaveRoom()
+JobHandle<LeaveRoomJob> Room::leaveRoom()
 {
     // FIXME, #63: It should be RoomManager, not Connection
     return connection()->leaveRoom(this);
@@ -2562,26 +2550,23 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
             { "m.room.history_visibility"_ls, { "history_visibility"_ls } }
         };
 
-        if (const auto contentKeysToKeep =
-                ContentKeysToKeepPerType.value(target.matrixType());
+        if (const auto contentKeysToKeep = ContentKeysToKeepPerType.value(target.matrixType());
             !contentKeysToKeep.isEmpty()) //
         {
-            auto content = originalJson.take(ContentKey).toObject();
-            for (auto it = content.begin(); it != content.end();) {
-                if (!contentKeysToKeep.contains(it.key()))
-                    it = content.erase(it);
-                else
-                    ++it;
-            }
-            originalJson.insert(ContentKey, content);
+            editSubobject(originalJson, ContentKey, [&contentKeysToKeep](QJsonObject& content) {
+                for (auto it = content.begin(); it != content.end();) {
+                    if (!contentKeysToKeep.contains(it.key()))
+                        it = content.erase(it);
+                    else
+                        ++it;
+                }
+            });
         } else {
             originalJson.remove(ContentKey);
             originalJson.remove(PrevContentKey);
         }
     }
-    auto unsignedData = originalJson.take(UnsignedKey).toObject();
-    unsignedData[RedactedCauseKey] = redaction.fullJson();
-    originalJson.insert(QStringLiteral("unsigned"), unsignedData);
+    replaceSubvalue(originalJson, UnsignedKey, RedactedCauseKey, redaction.fullJson());
 
     return loadEvent<RoomEvent>(originalJson);
 }
@@ -2649,19 +2634,13 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
 RoomEventPtr makeReplaced(const RoomEvent& target,
                           const RoomMessageEvent& replacement)
 {
-    const auto& targetReply = target.contentPart<QJsonObject>("m.relates_to"_ls);
     auto newContent = replacement.contentPart<QJsonObject>("m.new_content"_ls);
-    if (!targetReply.empty()) {
-        newContent["m.relates_to"_ls] = targetReply;
-    }
+    addParam<IfNotEmpty>(newContent, RelatesToKey, target.contentPart<QJsonObject>(RelatesToKey));
     auto originalJson = target.fullJson();
     originalJson[ContentKey] = newContent;
-
-    auto unsignedData = originalJson.take(UnsignedKey).toObject();
-    auto relations = unsignedData.take("m.relations"_ls).toObject();
-    relations["m.replace"_ls] = replacement.id();
-    unsignedData.insert("m.relations"_ls, relations);
-    originalJson.insert(UnsignedKey, unsignedData);
+    editSubobject(originalJson, UnsignedKey, [&replacement](QJsonObject& unsignedData) {
+        replaceSubvalue(unsignedData, "m.relations"_ls, "m.replace"_ls, replacement.id());
+    });
 
     return loadEvent<RoomEvent>(originalJson);
 }
@@ -2762,10 +2741,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                 // Try to find the target in the timeline, then in the batch.
                 if (processRedaction(*r))
                     continue;
-                if (auto targetIt = std::find_if(events.begin(), events.end(),
-                        [id = r->redactedEvent()](const RoomEventPtr& ep) {
-                            return ep->id() == id;
-                        }); targetIt != events.end())
+                if (auto targetIt = findIndirect(events, r->redactedEvent(), &RoomEvent::id);
+                    targetIt != events.end())
                     *targetIt = makeRedacted(**targetIt, *r);
                 else
                     qCDebug(STATE)
@@ -2777,11 +2754,9 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
                     msg && !msg->replacedEvent().isEmpty()) {
                 if (processReplacement(*msg))
                     continue;
-                auto targetIt = std::find_if(events.begin(), it,
-                        [id = msg->replacedEvent()](const RoomEventPtr& ep) {
-                            return ep->id() == id;
-                        });
-                if (targetIt != it)
+                if (auto targetIt =
+                        findIndirect(events.begin(), it, msg->replacedEvent(), &RoomEvent::id);
+                    targetIt != it)
                     *targetIt = makeReplaced(**targetIt, *msg);
                 else // FIXME: hide the replacing event when target arrives later
                     qCDebug(EVENTS)
@@ -2806,11 +2781,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     auto timelineSize = timeline.size();
     size_t totalInserted = 0;
     for (auto it = events.begin(); it != events.end();) {
-        auto nextPendingPair =
-                    findFirstOf(it, events.end(), unsyncedEvents.begin(),
-                                unsyncedEvents.end(), isEchoEvent);
-                const auto& remoteEcho = nextPendingPair.first;
-                const auto& localEcho = nextPendingPair.second;
+        const auto& [remoteEcho, localEcho] = findFirstOf(it, events.end(), unsyncedEvents.begin(),
+                                                          unsyncedEvents.end(), isEchoEvent);
 
         if (it != remoteEcho) {
             RoomEventsRange eventsSpan { it, remoteEcho };

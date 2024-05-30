@@ -42,7 +42,7 @@ private:
     void onNewRoom(Room* r);
     void doTests();
     void conclude();
-    void finalize();
+    void finalize(const QString& lastWords = {});
 
 private:
     Connection* c = nullptr;
@@ -928,22 +928,12 @@ void TestManager::conclude()
             }
 
             clog << "Leaving the room" << endl;
-            // TODO: Waiting for proper futures to come so that it could be:
-//           room->leaveRoom()
-//           .then(this, &TestManager::finalize); // Qt-style or
-//           .then([this] { finalize(); }); // STL-style
-            auto* job = room->leaveRoom();
-            connect(job, &BaseJob::result, this, [this, job,plainReport] {
-                Q_ASSERT(job->status().good());
-                finalize();
-                // Still flying, as the exit() connection in finalize() is queued
-                clog << plainReport.toStdString() << endl;
-            });
+            room->leaveRoom().then(this, std::bind_front(&TestManager::finalize, this, plainReport));
             return true;
         });
 }
 
-void TestManager::finalize()
+void TestManager::finalize(const QString& lastWords)
 {
     if (!c->isUsable() || !c->isLoggedIn()) {
         clog << "No usable connection reached" << endl;
@@ -951,17 +941,15 @@ void TestManager::finalize()
         return; // NB: QCoreApplication::exit() does return to the caller
     }
     clog << "Logging out" << endl;
-    c->logout();
-    connect(
-        c, &Connection::loggedOut, this,
-        [this] {
+    c->logout().then(
+        this, [this, lastWords] {
+            clog << lastWords.toStdString() << endl;
             QCoreApplication::exit(!testSuite ? -3
                                    : succeeded.empty() && failed.empty()
                                            && running.empty()
                                        ? -4
                                        : static_cast<int>(failed.size() + running.size()));
-        },
-        Qt::QueuedConnection);
+        });
 }
 
 int main(int argc, char* argv[])

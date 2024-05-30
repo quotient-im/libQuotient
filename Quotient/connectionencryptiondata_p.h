@@ -51,7 +51,7 @@ namespace _impl {
 
         void onSyncSuccess(SyncData &syncResponse);
         void loadOutdatedUserDevices();
-        void consumeToDeviceEvents(Events&& toDeviceEvents);
+        void consumeToDeviceEvent(EventPtr toDeviceEvent);
         void encryptionUpdate(const QList<QString>& forUsers);
 
         bool createOlmSession(const QString& targetUserId,
@@ -68,8 +68,7 @@ namespace _impl {
         std::pair<QByteArray, QByteArray> sessionDecryptMessage(
             const QJsonObject& personalCipherObject,
             const QByteArray& senderKey);
-        std::pair<EventPtr, QByteArray> sessionDecryptMessage(
-            const EncryptedEvent& encryptedEvent);
+        std::pair<EventPtr, QByteArray> sessionDecryptMessage(const EncryptedEvent& encryptedEvent);
 
         QJsonObject assembleEncryptedContent(
             QJsonObject payloadJson, const QString& targetUserId,

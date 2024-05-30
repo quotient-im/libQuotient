@@ -9,6 +9,10 @@ namespace Quotient {
 
 constexpr inline auto SasV1Method = "m.sas.v1"_ls;
 
+// Same story as with EncryptedEvent: because KeyVerificationEvent inheritors can be sent both
+// in-room and out-of-room, and RoomEvent doesn't restrict the shape of the event, rather just
+// adds accessors, KeyVerificationEvent is derived from RoomEvent but when used as a to-device
+// event room-specific attributes will be empty.
 class QUOTIENT_API KeyVerificationEvent : public RoomEvent {
 public:
     QUO_BASE_EVENT(KeyVerificationEvent, RoomEvent, "m.key.*")
@@ -21,7 +25,6 @@ public:
 };
 
 /// Requests a key verification with another user's devices.
-/// Typically sent as a to-device event.
 class QUOTIENT_API KeyVerificationRequestEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationRequestEvent, "m.key.verification.request")
@@ -143,7 +146,6 @@ public:
 };
 
 /// Accepts a previously sent m.key.verification.start message.
-/// Typically sent as a to-device event.
 class QUOTIENT_API KeyVerificationAcceptEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationAcceptEvent, "m.key.verification.accept")
@@ -210,7 +212,6 @@ public:
 };
 
 /// Sends the ephemeral public key for a device to the partner device.
-/// Typically sent as a to-device event.
 class QUOTIENT_API KeyVerificationKeyEvent : public KeyVerificationEvent {
 public:
     QUO_EVENT(KeyVerificationKeyEvent, "m.key.verification.key")
