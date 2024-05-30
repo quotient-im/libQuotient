@@ -309,30 +309,24 @@ void ConnectionEncryptionData::loadOutdatedUserDevices()
     });
 }
 
-void ConnectionEncryptionData::consumeToDeviceEvents(Events&& toDeviceEvents)
+void ConnectionEncryptionData::consumeToDeviceEvent(EventPtr toDeviceEvent)
 {
-    if (!toDeviceEvents.empty()) {
-        qCDebug(E2EE) << "Consuming" << toDeviceEvents.size()
-                      << "to-device events";
-        for (auto&& tdEvt : std::move(toDeviceEvents)) {
-            if (processIfVerificationEvent(*tdEvt, false))
-                continue;
-            if (auto&& event = eventCast<EncryptedEvent>(std::move(tdEvt))) {
-                if (event->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
-                    qCDebug(E2EE) << "Unsupported algorithm" << event->id()
-                                  << "for event" << event->algorithm();
-                    continue;
-                }
-                if (isKnownCurveKey(event->senderId(), event->senderKey())) {
-                    handleEncryptedToDeviceEvent(*event);
-                    continue;
-                }
-                trackedUsers += event->senderId();
-                outdatedUsers += event->senderId();
-                encryptionUpdateRequired = true;
-                pendingEncryptedEvents.push_back(std::move(event));
-            }
+    if (processIfVerificationEvent(*toDeviceEvent, false))
+        return;
+    if (auto&& event = eventCast<EncryptedEvent>(std::move(toDeviceEvent))) {
+        if (event->algorithm() != OlmV1Curve25519AesSha2AlgoKey) {
+            qCDebug(E2EE) << "Unsupported algorithm" << event->id()
+                          << "for event" << event->algorithm();
+            return;
         }
+        if (isKnownCurveKey(event->senderId(), event->senderKey())) {
+            handleEncryptedToDeviceEvent(*event);
+            return;
+        }
+        trackedUsers += event->senderId();
+        outdatedUsers += event->senderId();
+        encryptionUpdateRequired = true;
+        pendingEncryptedEvents.push_back(std::move(event));
     }
 }
 

@@ -614,8 +614,14 @@ void Connection::Private::consumePresenceData(Events&& presenceData)
 
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
 {
-    if (encryptionData)
-        encryptionData->consumeToDeviceEvents(std::move(toDeviceEvents));
+    if (toDeviceEvents.empty())
+        return;
+
+    qCDebug(E2EE) << "Consuming" << toDeviceEvents.size() << "to-device events";
+    for (auto&& tdEvt : std::move(toDeviceEvents)) {
+        if (encryptionData)
+            encryptionData->consumeToDeviceEvent(std::move(tdEvt));
+    }
 }
 
 void Connection::stopSync()
