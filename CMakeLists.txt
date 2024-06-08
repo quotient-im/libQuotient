@@ -167,6 +167,7 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/events/roomkeyevent.h
         Quotient/events/stickerevent.h
         Quotient/events/filesourceinfo.h
+        Quotient/events/redactionevent.h
         Quotient/jobs/requestdata.h
         Quotient/jobs/basejob.h
         Quotient/jobs/jobhandle.h
@@ -188,6 +189,7 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/e2ee/sssshandler.h
         Quotient/events/keyverificationevent.h
         Quotient/keyimport.h
+        Quotient/qt_connection_util.h
     PRIVATE
         Quotient/function_traits.cpp
         Quotient/networkaccessmanager.cpp
