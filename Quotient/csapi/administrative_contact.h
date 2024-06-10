@@ -84,7 +84,8 @@ struct QUOTIENT_API JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier
 //! has been removed, making this endpoint behave as though it was `false`.
 //! This results in this endpoint being an equivalent to `/3pid/bind` rather
 //! than dual-purpose.
-class QUOTIENT_API Post3PIDsJob : public BaseJob {
+class [[deprecated("Check the documentation for details")]] QUOTIENT_API Post3PIDsJob
+    : public BaseJob {
 public:
     // Inner data structures
 

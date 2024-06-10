@@ -1313,8 +1313,8 @@ void Room::addTag(const QString& name, const TagRecord& record)
     emit tagsAboutToChange();
     d->tags.insert(checkRes.second, record);
     emit tagsChanged();
-    connection()->callApi<SetRoomTagJob>(localMember().id(), id(),
-                                         checkRes.second, record.order);
+    connection()->callApi<SetRoomTagJob>(localMember().id(), id(), checkRes.second,
+                                         Tag { record.order });
 }
 
 void Room::addTag(const QString& name, float order)

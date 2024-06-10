@@ -17,7 +17,7 @@ UploadKeysJob::UploadKeysJob(const std::optional<DeviceKeys>& deviceKeys,
     addExpectedKey("one_time_key_counts");
 }
 
-QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, std::optional<int> timeout)
+QueryKeysJob::QueryKeysJob(const QHash<UserId, QStringList>& deviceKeys, std::optional<int> timeout)
     : BaseJob(HttpVerb::Post, QStringLiteral("QueryKeysJob"),
               makePath("/_matrix/client/v3", "/keys/query"))
 {
@@ -27,7 +27,7 @@ QueryKeysJob::QueryKeysJob(const QHash<QString, QStringList>& deviceKeys, std::o
     setRequestData({ _dataJson });
 }
 
-ClaimKeysJob::ClaimKeysJob(const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
+ClaimKeysJob::ClaimKeysJob(const QHash<UserId, QHash<QString, QString>>& oneTimeKeys,
                            std::optional<int> timeout)
     : BaseJob(HttpVerb::Post, QStringLiteral("ClaimKeysJob"),
               makePath("/_matrix/client/v3", "/keys/claim"))

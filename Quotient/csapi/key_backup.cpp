@@ -209,7 +209,7 @@ auto queryToPutRoomKeys(const QString& version)
     return _q;
 }
 
-PutRoomKeysJob::PutRoomKeysJob(const QString& version, const QHash<QString, RoomKeyBackup>& rooms)
+PutRoomKeysJob::PutRoomKeysJob(const QString& version, const QHash<RoomId, RoomKeyBackup>& rooms)
     : BaseJob(HttpVerb::Put, QStringLiteral("PutRoomKeysJob"),
               makePath("/_matrix/client/v3", "/room_keys/keys"), queryToPutRoomKeys(version))
 {

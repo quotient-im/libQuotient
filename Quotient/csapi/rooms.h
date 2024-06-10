@@ -167,9 +167,9 @@ public:
     // Result properties
 
     //! A map from user ID to a RoomMember object.
-    QHash<QString, RoomMember> joined() const
+    QHash<UserId, RoomMember> joined() const
     {
-        return loadFromJson<QHash<QString, RoomMember>>("joined"_ls);
+        return loadFromJson<QHash<UserId, RoomMember>>("joined"_ls);
     }
 };
 
