@@ -1,7 +1,10 @@
 analyzer:
   subst:
-    "%CLIENT_RELEASE_LABEL%": r0
-    "%CLIENT_MAJOR_VERSION%": r0
+    # Escaping open braces because GTAD always treats subst keys as regexes, unlike other places
+    '\{\{% boxes/note %}}': '\note'
+    '\{\{% boxes/warning %}}': '\warning'
+    '\{\{< changed-in v="([^ ]+)" >}}': '**(Changed in v$1)**'
+    '( +)\{\{% /boxes/[a-z]+ %}}\n': '' # Delete lines with the closing handlebar entirely
   identifiers:
     signed: signedData
     unsigned: unsignedData
@@ -84,13 +87,16 @@ analyzer:
       - dateTime:
           type: QDateTime
           initializer: QDateTime::fromString("{{defaultValue}}")
-      - uri:
+      - uri: &Url
           type: QUrl
           initializer: QUrl::fromEncoded("{{defaultValue}}")
+      - mx-mxc-uri: *Url
+      - mx-user-id: UserId
+      - mx-room-id: RoomId
+      - mx-event-id: EventId
       - //: &QString
           type: QString
           initializer: QStringLiteral("{{defaultValue}}")
-          isString:
   - file: *ByteStream
   - +set: { avoidCopy: }
     +on:
@@ -122,11 +128,11 @@ analyzer:
         - /(room|client)_event.yaml$/: RoomEvents
         - /event(_without_room_id)?.yaml$/: Events
       - //: "QVector<{{1}}>"
-    - map: # `additionalProperties` in OpenAPI
+    - map: # `patternProperties` and `additionalProperties` in OpenAPI
       - RoomState:
-          type: "std::unordered_map<QString, {{1}}>"
+          type: "std::unordered_map<{{1}}, {{2}}>"
           moveOnly:
-      - /.+/: "QHash<QString, {{1}}>"
+      - /.+/: "QHash<{{1}}, {{2}}>"
       - //: QVariantHash # QJsonObject?..
     - variant: # A sequence `type` or a 'oneOf' group in OpenAPI
       - /^string,null|null,string$/: *QString
@@ -182,6 +188,9 @@ mustache:
     omittedValue: '{}' # default value to initialize omitted parameters with
     initializer: '{{defaultValue}}'
     cjoin: '{{#hasMore}}, {{/hasMore}}'
+
+    maybeDeprecated:
+      '{{#deprecated?}}[[deprecated("Check the documentation for details")]] {{/deprecated?}}'
 
     openOptional:
       "{{^required?}}{{#useOptional}}\

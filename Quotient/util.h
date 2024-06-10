@@ -421,3 +421,11 @@ constexpr inline size_t mergeStruct(StructT& lhs, const StructT& rhs, const auto
 {
     return ((... + static_cast<size_t>(merge(lhs.*fields, rhs.*fields))));
 }
+
+// These are meant to eventually become separate classes derived from QString (or perhaps
+// QByteArray?), with their own construction and validation logic; for now they are just aliases
+// for QString to make numerous IDs at least semantically different in the code.
+
+using UserId = QString;
+using RoomId = QString;
+using EventId = QString;
