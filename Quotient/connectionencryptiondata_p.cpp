@@ -294,17 +294,11 @@ void ConnectionEncryptionData::loadOutdatedUserDevices()
     for(const auto &user : outdatedUsers) {
         users[user] += QStringList();
     }
-    if(currentQueryKeysJob) {
-        currentQueryKeysJob->abandon();
-        currentQueryKeysJob = nullptr;
-    }
-    auto queryKeysJob = q->callApi<QueryKeysJob>(users);
-    currentQueryKeysJob = queryKeysJob;
-    QObject::connect(queryKeysJob, &BaseJob::result, q, [this, queryKeysJob] {
-        currentQueryKeysJob = nullptr;
-        if (queryKeysJob->error() == BaseJob::Success) {
-            handleQueryKeys(queryKeysJob->jsonData());
-        }
+    currentQueryKeysJob.abandon(); // Cancel network request explicitly
+    currentQueryKeysJob = q->callApi<QueryKeysJob>(users).onResult(q, [this](QueryKeysJob* job) {
+        if (job->status().good())
+            handleQueryKeys(collectResponse(job));
+
         emit q->finishedQueryingKeys();
     });
 }
@@ -615,18 +609,14 @@ void ConnectionEncryptionData::handleDevicesList(
     }
 }
 
-void ConnectionEncryptionData::handleQueryKeys(const QJsonObject& keysJson)
+void ConnectionEncryptionData::handleQueryKeys(const QueryKeysJob::Response& keys)
 {
     database.transaction();
-    const auto masterKeys = fromJson<QHash<QString, CrossSigningKey>>(keysJson["master_keys"_ls]);
-    handleMasterKeys(masterKeys);
-    handleSelfSigningKeys(
-        fromJson<QHash<QString, CrossSigningKey>>(keysJson["self_signing_keys"_ls]));
-    handleUserSigningKeys(
-        fromJson<QHash<QString, CrossSigningKey>>(keysJson["user_signing_keys"_ls]));
-    checkVerifiedMasterKeys(masterKeys);
-    handleDevicesList(fromJson<QHash<QString, QHash<QString, QueryKeysJob::DeviceInformation>>>(
-        keysJson["device_keys"_ls]));
+    handleMasterKeys(keys.masterKeys);
+    handleSelfSigningKeys(keys.selfSigningKeys);
+    handleUserSigningKeys(keys.userSigningKeys);
+    checkVerifiedMasterKeys(keys.masterKeys);
+    handleDevicesList(keys.deviceKeys);
     database.commit();
 
     saveDevicesList();
@@ -967,7 +957,7 @@ void ConnectionEncryptionData::sendSessionKeyToDevices(
         doSendSessionKeyToDevices(roomId, sessionId, sessionKey, index, devices);
     };
     if (currentQueryKeysJob != nullptr) {
-        QObject::connect(q, &Connection::finishedQueryingKeys, q, closure, Qt::SingleShotConnection);
+        currentQueryKeysJob = currentQueryKeysJob.onResult(q, closure);
     } else
         closure();
 }

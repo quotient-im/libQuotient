@@ -29,7 +29,7 @@ namespace _impl {
         QSet<QString> trackedUsers{};
         QSet<QString> outdatedUsers{};
         QHash<QString, QHash<QString, DeviceKeys>> deviceKeys{};
-        QueryKeysJob* currentQueryKeysJob = nullptr;
+        JobHandle<QueryKeysJob> currentQueryKeysJob{};
         QSet<std::pair<QString, QString>> triedDevices{};
         //! An update of internal tracking structures (trackedUsers, e.g.) is
         //! needed
@@ -100,7 +100,7 @@ namespace _impl {
                                  PicklingKey&& picklingKey);
         bool hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId);
 
-        void handleQueryKeys(const QJsonObject& keysJson);
+        void handleQueryKeys(const QueryKeysJob::Response& keys);
 
         void handleMasterKeys(const QHash<QString, CrossSigningKey>& masterKeys);
         void handleSelfSigningKeys(const QHash<QString, CrossSigningKey>& selfSigningKeys);

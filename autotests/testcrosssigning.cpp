@@ -23,10 +23,12 @@ private Q_SLOTS:
         file.open(QIODevice::ReadOnly);
         auto data = file.readAll();
         QVERIFY(!data.isEmpty());
-        auto json = QJsonDocument::fromJson(data).object();
+        auto jobMock = Mocked<QueryKeysJob>(QHash<QString, QStringList>{});
+        jobMock.setResult(QJsonDocument::fromJson(data));
+        auto mockKeys = collectResponse(&jobMock);
 
         auto connection = Connection::makeMockConnection("@tobiasfella:kde.org"_ls, true);
-        connection->d->encryptionData->handleQueryKeys(json);
+        connection->d->encryptionData->handleQueryKeys(mockKeys);
 
         QVERIFY(!connection->isUserVerified("@tobiasfella:kde.org"_ls));
         QVERIFY(!connection->isUserVerified("@carl:kde.org"_ls));
@@ -35,7 +37,7 @@ private Q_SLOTS:
         QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_ls, "LTLVYDIVMO"_ls));
         connection->database()->setMasterKeyVerified("iiNvK2+mJtBXj6t+FVnaPBZ4e/M/n84wPJBfUVN38OE"_ls);
         QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_ls));
-        connection->d->encryptionData->handleQueryKeys(json);
+        connection->d->encryptionData->handleQueryKeys(mockKeys);
 
         QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_ls));
         QVERIFY(connection->isUserVerified("@aloy:kde.org"_ls));
