@@ -935,8 +935,7 @@ void ConnectionEncryptionData::doSendSessionKeyToDevices(
         return;
     }
 
-    auto job = q->callApi<ClaimKeysJob>(hash);
-    QObject::connect(job, &BaseJob::success, q, [job, this, sendKey] {
+    q->callApi<ClaimKeysJob>(hash).then(q, [this, sendKey](const ClaimKeysJob* job) {
         for (const auto& [userId, userDevices] : job->oneTimeKeys().asKeyValueRange())
             for (const auto& [deviceId, keys] : userDevices.asKeyValueRange())
                 createOlmSession(userId, deviceId, keys);
