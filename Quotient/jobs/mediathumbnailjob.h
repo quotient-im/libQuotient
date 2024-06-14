@@ -28,4 +28,7 @@ protected:
 private:
     QImage _thumbnail;
 };
+
+inline auto collectResponse(const MediaThumbnailJob* j) { return j->thumbnail(); }
+
 } // namespace Quotient

@@ -231,6 +231,13 @@ mustache:
       {{>docCommentShort}}
       {{>maybeOptionalType}} {{paramName}}(){{^moveOnly}} const{{/moveOnly}}
 
+    overloadCollectResponse: |-
+
+      inline auto collectResponse({{^moveOnly}}const {{/moveOnly}}{{>titleCaseOperationId}}Job* job)
+      {
+        return job->{{paramName}}();
+      }
+
     # Doc-comment blocks. Comment indent is managed by clang-format
     # (without clang-format there'd have to be a separate partial definition
     # for each indent...) but we take care of line breaks to maintain
