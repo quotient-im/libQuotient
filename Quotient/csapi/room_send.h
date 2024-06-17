@@ -37,4 +37,6 @@ public:
     QString eventId() const { return loadFromJson<QString>("event_id"_ls); }
 };
 
+inline auto collectResponse(const SendMessageJob* job) { return job->eventId(); }
+
 } // namespace Quotient

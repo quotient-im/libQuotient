@@ -32,6 +32,8 @@ public:
     PushRuleset global() const { return loadFromJson<PushRuleset>("global"_ls); }
 };
 
+inline auto collectResponse(const GetPushRulesJob* job) { return job->global(); }
+
 //! \brief Retrieve a push rule.
 //!
 //! Retrieve a single specified push rule.
@@ -60,6 +62,8 @@ public:
     //! rule itself such as the rule's `actions` and `conditions` if set.
     PushRule pushRule() const { return fromJson<PushRule>(jsonData()); }
 };
+
+inline auto collectResponse(const GetPushRuleJob* job) { return job->pushRule(); }
 
 //! \brief Delete a push rule.
 //!
@@ -170,6 +174,8 @@ public:
     bool enabled() const { return loadFromJson<bool>("enabled"_ls); }
 };
 
+inline auto collectResponse(const IsPushRuleEnabledJob* job) { return job->enabled(); }
+
 //! \brief Enable or disable a push rule.
 //!
 //! This endpoint allows clients to enable or disable the specified push rule.
@@ -218,6 +224,8 @@ public:
     //! The action(s) to perform for this rule.
     QVector<QVariant> actions() const { return loadFromJson<QVector<QVariant>>("actions"_ls); }
 };
+
+inline auto collectResponse(const GetPushRuleActionsJob* job) { return job->actions(); }
 
 //! \brief Set the actions for a push rule.
 //!

@@ -29,6 +29,8 @@ public:
     QString version() const { return loadFromJson<QString>("version"_ls); }
 };
 
+inline auto collectResponse(const PostRoomKeysVersionJob* job) { return job->version(); }
+
 //! \brief Get information about the latest backup version.
 //!
 //! Get information about the latest backup version.
@@ -63,6 +65,34 @@ public:
 
     //! The backup version.
     QString version() const { return loadFromJson<QString>("version"_ls); }
+
+    struct Response {
+        //! The algorithm used for storing backups.
+        QString algorithm{};
+
+        //! Algorithm-dependent data. See the documentation for the backup
+        //! algorithms in [Server-side key backups](/client-server-api/#server-side-key-backups) for
+        //! more information on the expected format of the data.
+        QJsonObject authData{};
+
+        //! The number of keys stored in the backup.
+        int count{};
+
+        //! An opaque string representing stored keys in the backup.
+        //! Clients can compare it with the `etag` value they received
+        //! in the request of their last key storage request.  If not
+        //! equal, another client has modified the backup.
+        QString etag{};
+
+        //! The backup version.
+        QString version{};
+    };
+};
+
+template <std::derived_from<GetRoomKeysVersionCurrentJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetRoomKeysVersionCurrentJob::Response {
+    return { j->algorithm(), j->authData(), j->count(), j->etag(), j->version() };
 };
 
 //! \brief Get information about an existing backup.
@@ -105,6 +135,33 @@ public:
 
     //! The backup version.
     QString version() const { return loadFromJson<QString>("version"_ls); }
+
+    struct Response {
+        //! The algorithm used for storing backups.
+        QString algorithm{};
+
+        //! Algorithm-dependent data. See the documentation for the backup
+        //! algorithms in [Server-side key backups](/client-server-api/#server-side-key-backups) for
+        //! more information on the expected format of the data.
+        QJsonObject authData{};
+
+        //! The number of keys stored in the backup.
+        int count{};
+
+        //! An opaque string representing stored keys in the backup.
+        //! Clients can compare it with the `etag` value they received
+        //! in the request of their last key storage request.  If not
+        //! equal, another client has modified the backup.
+        QString etag{};
+
+        //! The backup version.
+        QString version{};
+    };
+};
+
+template <std::derived_from<GetRoomKeysVersionJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetRoomKeysVersionJob::Response {
+    return { j->algorithm(), j->authData(), j->count(), j->etag(), j->version() };
 };
 
 //! \brief Update information about an existing backup.
@@ -181,7 +238,20 @@ public:
 
     //! The number of keys stored in the backup
     int count() const { return loadFromJson<int>("count"_ls); }
+
+    struct Response {
+        //! The new etag value representing stored keys in the backup.
+        //! See `GET /room_keys/version/{version}` for more details.
+        QString etag{};
+
+        //! The number of keys stored in the backup
+        int count{};
+    };
 };
+
+template <std::derived_from<PutRoomKeyBySessionIdJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> PutRoomKeyBySessionIdJob::Response { return { j->etag(), j->count() }; };
 
 //! \brief Retrieve a key from the backup.
 //!
@@ -211,6 +281,8 @@ public:
     //! The key data
     KeyBackupData data() const { return fromJson<KeyBackupData>(jsonData()); }
 };
+
+inline auto collectResponse(const GetRoomKeyBySessionIdJob* job) { return job->data(); }
 
 //! \brief Delete a key from the backup.
 //!
@@ -243,7 +315,20 @@ public:
 
     //! The number of keys stored in the backup
     int count() const { return loadFromJson<int>("count"_ls); }
+
+    struct Response {
+        //! The new etag value representing stored keys in the backup.
+        //! See `GET /room_keys/version/{version}` for more details.
+        QString etag{};
+
+        //! The number of keys stored in the backup
+        int count{};
+    };
 };
+
+template <std::derived_from<DeleteRoomKeyBySessionIdJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> DeleteRoomKeyBySessionIdJob::Response { return { j->etag(), j->count() }; };
 
 //! \brief Store several keys in the backup for a given room.
 //!
@@ -269,7 +354,20 @@ public:
 
     //! The number of keys stored in the backup
     int count() const { return loadFromJson<int>("count"_ls); }
+
+    struct Response {
+        //! The new etag value representing stored keys in the backup.
+        //! See `GET /room_keys/version/{version}` for more details.
+        QString etag{};
+
+        //! The number of keys stored in the backup
+        int count{};
+    };
 };
+
+template <std::derived_from<PutRoomKeysByRoomIdJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> PutRoomKeysByRoomIdJob::Response { return { j->etag(), j->count() }; };
 
 //! \brief Retrieve the keys from the backup for a given room.
 //!
@@ -295,6 +393,8 @@ public:
     //! `sessions` property will be returned (`{"sessions": {}}`).
     RoomKeyBackup data() const { return fromJson<RoomKeyBackup>(jsonData()); }
 };
+
+inline auto collectResponse(const GetRoomKeysByRoomIdJob* job) { return job->data(); }
 
 //! \brief Delete the keys from the backup for a given room.
 //!
@@ -322,7 +422,20 @@ public:
 
     //! The number of keys stored in the backup
     int count() const { return loadFromJson<int>("count"_ls); }
+
+    struct Response {
+        //! The new etag value representing stored keys in the backup.
+        //! See `GET /room_keys/version/{version}` for more details.
+        QString etag{};
+
+        //! The number of keys stored in the backup
+        int count{};
+    };
 };
+
+template <std::derived_from<DeleteRoomKeysByRoomIdJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> DeleteRoomKeysByRoomIdJob::Response { return { j->etag(), j->count() }; };
 
 //! \brief Store several keys in the backup.
 //!
@@ -344,7 +457,20 @@ public:
 
     //! The number of keys stored in the backup
     int count() const { return loadFromJson<int>("count"_ls); }
+
+    struct Response {
+        //! The new etag value representing stored keys in the backup.
+        //! See `GET /room_keys/version/{version}` for more details.
+        QString etag{};
+
+        //! The number of keys stored in the backup
+        int count{};
+    };
 };
+
+template <std::derived_from<PutRoomKeysJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> PutRoomKeysJob::Response { return { j->etag(), j->count() }; };
 
 //! \brief Retrieve the keys from the backup.
 //!
@@ -370,6 +496,8 @@ public:
     }
 };
 
+inline auto collectResponse(const GetRoomKeysJob* job) { return job->rooms(); }
+
 //! \brief Delete the keys from the backup.
 //!
 //! Delete the keys from the backup.
@@ -393,6 +521,19 @@ public:
 
     //! The number of keys stored in the backup
     int count() const { return loadFromJson<int>("count"_ls); }
+
+    struct Response {
+        //! The new etag value representing stored keys in the backup.
+        //! See `GET /room_keys/version/{version}` for more details.
+        QString etag{};
+
+        //! The number of keys stored in the backup
+        int count{};
+    };
 };
+
+template <std::derived_from<DeleteRoomKeysJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> DeleteRoomKeysJob::Response { return { j->etag(), j->count() }; };
 
 } // namespace Quotient

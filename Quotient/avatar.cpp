@@ -28,7 +28,6 @@ public:
     QImage get(Connection* connection, QSize size,
                get_callback_t callback) const;
     void thumbnailRequestFinished();
-    QFuture<QUrl> upload(JobHandle<UploadContentJob>&& job);
 
     bool checkUrl(const QUrl& url) const;
     QString localFile() const;
@@ -82,12 +81,14 @@ bool Avatar::upload(Connection* connection, QIODevice* source,
 
 QFuture<QUrl> Avatar::upload(Connection* connection, const QString& fileName) const
 {
-    return d->upload(connection->uploadFile(fileName));
+    d->_uploadRequest = connection->uploadFile(fileName);
+    return d->_uploadRequest.responseFuture();
 }
 
 QFuture<QUrl> Avatar::upload(Connection* connection, QIODevice* source) const
 {
-    return d->upload(connection->uploadContent(source));
+    d->_uploadRequest = connection->uploadContent(source);
+    return d->_uploadRequest.responseFuture();
 }
 
 QString Avatar::mediaId() const { return d->_url.authority() + d->_url.path(); }
@@ -169,12 +170,6 @@ void Avatar::Private::thumbnailRequestFinished()
     for (const auto& n : callbacks)
         n();
     callbacks.clear();
-}
-
-QFuture<QUrl> Avatar::Private::upload(JobHandle<UploadContentJob>&& job)
-{
-    _uploadRequest = std::move(job);
-    return _uploadRequest.then([](const auto* j) { return j->contentUri(); });
 }
 
 bool Avatar::Private::checkUrl(const QUrl& url) const

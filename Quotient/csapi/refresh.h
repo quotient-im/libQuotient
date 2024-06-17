@@ -48,6 +48,26 @@ public:
     {
         return loadFromJson<std::optional<int>>("expires_in_ms"_ls);
     }
+
+    struct Response {
+        //! The new access token to use.
+        QString accessToken{};
+
+        //! The new refresh token to use when the access token needs to
+        //! be refreshed again. If not given, the old refresh token can
+        //! be re-used.
+        QString refreshToken{};
+
+        //! The lifetime of the access token, in milliseconds. If not
+        //! given, the client can assume that the access token will not
+        //! expire.
+        std::optional<int> expiresInMs{};
+    };
+};
+
+template <std::derived_from<RefreshJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> RefreshJob::Response {
+    return { j->accessToken(), j->refreshToken(), j->expiresInMs() };
 };
 
 } // namespace Quotient

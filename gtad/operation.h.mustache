@@ -56,8 +56,8 @@ public:
         {{/headers}}{{#inlineResponse}}
 
     {{>docCommentShort}}
-    {{dataType.name}} {{paramName}}()
-    {{^moveOnly}}{{^producesNonJson?}} const{{/producesNonJson?}}{{/moveOnly}}
+    {{dataType.name}} {{paramName}}(){{^moveOnly}}{{^producesNonJson?}}
+    const{{/producesNonJson?}}{{/moveOnly}}
     {
         return {{#producesNonJson?}}reply(){{/producesNonJson?}}
             {{^producesNonJson?
@@ -65,15 +65,36 @@ public:
             }};
     }
         {{/inlineResponse}}{{#properties}}
+            {{!there's nothing in #properties if the response is inline}}
 
-    {{!there's nothing in #properties if the response is inline}}
     {{>nonInlineResponseSignature}}
     {
         return {{>takeOrLoad}}FromJson<{{>maybeOptionalType}}>("{{baseName}}"_ls);
     }
-        {{/properties}}
+        {{/properties}}{{^singleValue?}}{{#properties?}}
+
+    struct Response { {{#properties}}
+        {{>docCommentShort}}
+        {{>maybeOptionalType}} {{paramName}}{};
+
+            {{/properties}}
+    };
+        {{/properties?}}{{/singleValue?}}
     {{/allProperties?}}{{/normalResponse?}}{{/responses}}
 };
+    {{#responses}}{{#normalResponse?}}{{#allProperties?}}
+        {{#inlineResponse}}{{^producesNonJson?}}
+            {{>overloadCollectResponse}}
+        {{/producesNonJson?}}{{/inlineResponse}}{{#singleValue?}}{{#properties}}
+            {{>overloadCollectResponse}}
+        {{/properties}}{{/singleValue?}}{{^singleValue?}}{{#properties?}}
+
+template <std::derived_from<{{>titleCaseOperationId}}Job> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> {{>titleCaseOperationId}}Job::Response {
+        return { {{#properties}}j->{{paramName}}(){{>cjoin}}{{/properties}} };
+    };  {{/properties?}}{{/singleValue?}}
+    {{/allProperties?}}{{/normalResponse?}}{{/responses}}
     {{#models.model}}
 
 template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {

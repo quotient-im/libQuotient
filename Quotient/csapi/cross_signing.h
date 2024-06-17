@@ -68,4 +68,6 @@ public:
     }
 };
 
+inline auto collectResponse(const UploadCrossSigningSignaturesJob* job) { return job->failures(); }
+
 } // namespace Quotient

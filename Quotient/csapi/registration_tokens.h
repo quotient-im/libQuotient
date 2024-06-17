@@ -34,4 +34,6 @@ public:
     bool valid() const { return loadFromJson<bool>("valid"_ls); }
 };
 
+inline auto collectResponse(const RegistrationTokenValidityJob* job) { return job->valid(); }
+
 } // namespace Quotient

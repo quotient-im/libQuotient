@@ -102,6 +102,29 @@ public:
 
     //! The child events of the requested event, ordered topologically most-recent first.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+
+    struct Response {
+        //! An opaque string representing a pagination token. The absence of this token
+        //! means there are no more results to fetch and the client should stop paginating.
+        QString nextBatch{};
+
+        //! An opaque string representing a pagination token. The absence of this token
+        //! means this is the start of the result set, i.e. this is the first batch/page.
+        QString prevBatch{};
+
+        //! If the `recurse` parameter was supplied by the client, this response field is
+        //! mandatory and gives the actual depth to which the server recursed. If the client
+        //! did not specify the `recurse` parameter, this field must be absent.
+        std::optional<int> recursionDepth{};
+
+        //! The child events of the requested event, ordered topologically most-recent first.
+        RoomEvents chunk{};
+    };
+};
+
+template <std::derived_from<GetRelatingEventsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetRelatingEventsJob::Response {
+    return { j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk() };
 };
 
 //! \brief Get the child events for a given parent event, with a given `relType`.
@@ -207,6 +230,32 @@ public:
     //! most-recent first. The events returned will match the `relType`
     //! supplied in the URL.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+
+    struct Response {
+        //! An opaque string representing a pagination token. The absence of this token
+        //! means there are no more results to fetch and the client should stop paginating.
+        QString nextBatch{};
+
+        //! An opaque string representing a pagination token. The absence of this token
+        //! means this is the start of the result set, i.e. this is the first batch/page.
+        QString prevBatch{};
+
+        //! If the `recurse` parameter was supplied by the client, this response field is
+        //! mandatory and gives the actual depth to which the server recursed. If the client
+        //! did not specify the `recurse` parameter, this field must be absent.
+        std::optional<int> recursionDepth{};
+
+        //! The child events of the requested event, ordered topologically
+        //! most-recent first. The events returned will match the `relType`
+        //! supplied in the URL.
+        RoomEvents chunk{};
+    };
+};
+
+template <std::derived_from<GetRelatingEventsWithRelTypeJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetRelatingEventsWithRelTypeJob::Response {
+    return { j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk() };
 };
 
 //! \brief Get the child events for a given parent event, with a given `relType` and `eventType`.
@@ -318,6 +367,32 @@ public:
     //! first. The events returned will match the `relType` and `eventType` supplied
     //! in the URL.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+
+    struct Response {
+        //! An opaque string representing a pagination token. The absence of this token
+        //! means there are no more results to fetch and the client should stop paginating.
+        QString nextBatch{};
+
+        //! An opaque string representing a pagination token. The absence of this token
+        //! means this is the start of the result set, i.e. this is the first batch/page.
+        QString prevBatch{};
+
+        //! If the `recurse` parameter was supplied by the client, this response field is
+        //! mandatory and gives the actual depth to which the server recursed. If the client
+        //! did not specify the `recurse` parameter, this field must be absent.
+        std::optional<int> recursionDepth{};
+
+        //! The child events of the requested event, ordered topologically most-recent
+        //! first. The events returned will match the `relType` and `eventType` supplied
+        //! in the URL.
+        RoomEvents chunk{};
+    };
+};
+
+template <std::derived_from<GetRelatingEventsWithRelTypeAndEventTypeJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetRelatingEventsWithRelTypeAndEventTypeJob::Response {
+    return { j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk() };
 };
 
 } // namespace Quotient

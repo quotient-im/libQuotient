@@ -51,7 +51,19 @@ public:
 
     //! Indicates if the result list has been truncated by the limit.
     bool limited() const { return loadFromJson<bool>("limited"_ls); }
+
+    struct Response {
+        //! Ordered by rank and then whether or not profile info is available.
+        QVector<User> results{};
+
+        //! Indicates if the result list has been truncated by the limit.
+        bool limited{};
+    };
 };
+
+template <std::derived_from<SearchUserDirectoryJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> SearchUserDirectoryJob::Response { return { j->results(), j->limited() }; };
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<SearchUserDirectoryJob::User> {

@@ -60,6 +60,26 @@ public:
     //! A token to supply to `from` to keep paginating the responses. Not present when there are
     //! no further results.
     QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+
+    struct Response {
+        //! The thread roots, ordered by the `latest_event` in each event's aggregated children. All
+        //! events returned include bundled
+        //! [aggregations](/client-server-api/#aggregations-of-child-events).
+        //!
+        //! If the thread root event was sent by an [ignored
+        //! user](/client-server-api/#ignoring-users), the event is returned redacted to the caller.
+        //! This is to simulate the same behaviour of a client doing aggregation locally on the
+        //! thread.
+        RoomEvents chunk{};
+
+        //! A token to supply to `from` to keep paginating the responses. Not present when there are
+        //! no further results.
+        QString nextBatch{};
+    };
 };
+
+template <std::derived_from<GetThreadRootsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetThreadRootsJob::Response { return { j->chunk(), j->nextBatch() }; };
 
 } // namespace Quotient

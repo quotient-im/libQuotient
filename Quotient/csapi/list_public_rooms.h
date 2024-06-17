@@ -29,6 +29,11 @@ public:
     QString visibility() const { return loadFromJson<QString>("visibility"_ls); }
 };
 
+inline auto collectResponse(const GetRoomVisibilityOnDirectoryJob* job)
+{
+    return job->visibility();
+}
+
 //! \brief Sets the visibility of a room in the room directory
 //!
 //! Sets the visibility of a given room in the server's public room
@@ -102,6 +107,30 @@ public:
     {
         return loadFromJson<std::optional<int>>("total_room_count_estimate"_ls);
     }
+
+    struct Response {
+        //! A paginated chunk of public rooms.
+        QVector<PublicRoomsChunk> chunk{};
+
+        //! A pagination token for the response. The absence of this token
+        //! means there are no more results to fetch and the client should
+        //! stop paginating.
+        QString nextBatch{};
+
+        //! A pagination token that allows fetching previous results. The
+        //! absence of this token means there are no results before this
+        //! batch, i.e. this is the first batch.
+        QString prevBatch{};
+
+        //! An estimate on the total number of public rooms, if the
+        //! server has an estimate.
+        std::optional<int> totalRoomCountEstimate{};
+    };
+};
+
+template <std::derived_from<GetPublicRoomsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetPublicRoomsJob::Response {
+    return { j->chunk(), j->nextBatch(), j->prevBatch(), j->totalRoomCountEstimate() };
 };
 
 //! \brief Lists the public rooms on the server with optional filter.
@@ -182,6 +211,30 @@ public:
     {
         return loadFromJson<std::optional<int>>("total_room_count_estimate"_ls);
     }
+
+    struct Response {
+        //! A paginated chunk of public rooms.
+        QVector<PublicRoomsChunk> chunk{};
+
+        //! A pagination token for the response. The absence of this token
+        //! means there are no more results to fetch and the client should
+        //! stop paginating.
+        QString nextBatch{};
+
+        //! A pagination token that allows fetching previous results. The
+        //! absence of this token means there are no results before this
+        //! batch, i.e. this is the first batch.
+        QString prevBatch{};
+
+        //! An estimate on the total number of public rooms, if the
+        //! server has an estimate.
+        std::optional<int> totalRoomCountEstimate{};
+    };
+};
+
+template <std::derived_from<QueryPublicRoomsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> QueryPublicRoomsJob::Response {
+    return { j->chunk(), j->nextBatch(), j->prevBatch(), j->totalRoomCountEstimate() };
 };
 
 template <>

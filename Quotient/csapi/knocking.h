@@ -44,4 +44,6 @@ public:
     QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
 
+inline auto collectResponse(const KnockRoomJob* job) { return job->roomId(); }
+
 } // namespace Quotient

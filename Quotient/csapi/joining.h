@@ -44,6 +44,8 @@ public:
     QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
 
+inline auto collectResponse(const JoinRoomByIdJob* job) { return job->roomId(); }
+
 //! \brief Start the requesting user participating in a particular room.
 //!
 //! *Note that this API takes either a room ID or alias, unlike* `/rooms/{roomId}/join`.
@@ -82,5 +84,7 @@ public:
     //! The joined room ID.
     QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
+
+inline auto collectResponse(const JoinRoomJob* job) { return job->roomId(); }
 
 } // namespace Quotient

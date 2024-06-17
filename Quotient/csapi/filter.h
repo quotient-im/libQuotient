@@ -32,6 +32,8 @@ public:
     QString filterId() const { return loadFromJson<QString>("filter_id"_ls); }
 };
 
+inline auto collectResponse(const DefineFilterJob* job) { return job->filterId(); }
+
 //! \brief Download a filter
 class QUOTIENT_API GetFilterJob : public BaseJob {
 public:
@@ -53,5 +55,7 @@ public:
     //! The filter definition.
     Filter filter() const { return fromJson<Filter>(jsonData()); }
 };
+
+inline auto collectResponse(const GetFilterJob* job) { return job->filter(); }
 
 } // namespace Quotient

@@ -134,6 +134,46 @@ public:
     //! corresponding parameter in the request, if one was specified.
     //! Required if the `inhibit_login` option is false.
     QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
+
+    struct Response {
+        //! The fully-qualified Matrix user ID (MXID) that has been registered.
+        //!
+        //! Any user ID returned by this API must conform to the grammar given in the
+        //! [Matrix specification](/appendices/#user-identifiers).
+        QString userId{};
+
+        //! An access token for the account.
+        //! This access token can then be used to authorize other requests.
+        //! Required if the `inhibit_login` option is false.
+        QString accessToken{};
+
+        //! A refresh token for the account. This token can be used to
+        //! obtain a new access token when it expires by calling the
+        //! `/refresh` endpoint.
+        //!
+        //! Omitted if the `inhibit_login` option is true.
+        QString refreshToken{};
+
+        //! The lifetime of the access token, in milliseconds. Once
+        //! the access token has expired a new access token can be
+        //! obtained by using the provided refresh token. If no
+        //! refresh token is provided, the client will need to re-log in
+        //! to obtain a new access token. If not given, the client can
+        //! assume that the access token will not expire.
+        //!
+        //! Omitted if the `inhibit_login` option is true.
+        std::optional<int> expiresInMs{};
+
+        //! ID of the registered device. Will be the same as the
+        //! corresponding parameter in the request, if one was specified.
+        //! Required if the `inhibit_login` option is false.
+        QString deviceId{};
+    };
+};
+
+template <std::derived_from<RegisterJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> RegisterJob::Response {
+    return { j->userId(), j->accessToken(), j->refreshToken(), j->expiresInMs(), j->deviceId() };
 };
 
 //! \brief Begins the validation process for an email to be used during registration.
@@ -154,6 +194,8 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
+inline auto collectResponse(const RequestTokenToRegisterEmailJob* job) { return job->response(); }
+
 //! \brief Requests a validation token be sent to the given phone number for the purpose of
 //! registering an account
 //!
@@ -172,6 +214,8 @@ public:
     //! it may be informing the user of an error.
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
+
+inline auto collectResponse(const RequestTokenToRegisterMSISDNJob* job) { return job->response(); }
 
 //! \brief Changes a user's password.
 //!
@@ -234,6 +278,11 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
+inline auto collectResponse(const RequestTokenToResetPasswordEmailJob* job)
+{
+    return job->response();
+}
+
 //! \brief Requests a validation token be sent to the given phone number for the purpose of
 //! resetting a user's password.
 //!
@@ -261,6 +310,11 @@ public:
     //! An SMS message was sent to the given phone number.
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
+
+inline auto collectResponse(const RequestTokenToResetPasswordMSISDNJob* job)
+{
+    return job->response();
+}
 
 //! \brief Deactivate a user's account.
 //!
@@ -330,6 +384,8 @@ public:
     }
 };
 
+inline auto collectResponse(const DeactivateAccountJob* job) { return job->idServerUnbindResult(); }
+
 //! \brief Checks to see if a username is available on the server.
 //!
 //! Checks to see if a username is available, and valid, for the server.
@@ -365,5 +421,7 @@ public:
         return loadFromJson<std::optional<bool>>("available"_ls);
     }
 };
+
+inline auto collectResponse(const CheckUsernameAvailabilityJob* job) { return job->available(); }
 
 } // namespace Quotient

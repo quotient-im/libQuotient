@@ -422,6 +422,12 @@ protected:
     void setStatus(Status s);
     void setStatus(int code, QString message);
 
+    //! \brief Force completion of the job for sake of testing
+    //!
+    //! Normal jobs should never use; this is only meant to be used in test mocks.
+    //! \sa Mocked
+    void forceResult(QJsonDocument resultDoc, Status s = { Success });
+
     //! \brief Set the logging category for the given job instance
     //!
     //! \param lcf The logging category function to provide the category -
@@ -476,4 +482,30 @@ inline bool QUOTIENT_API isJobPending(BaseJob* job)
 {
     return job && job->error() == BaseJob::Pending;
 }
+
+template <typename JobT>
+constexpr inline auto doCollectResponse = nullptr;
+
+//! \brief Get a job response in a single structure
+//!
+//! Use this to get all parts of the job response in a single C++ type, defined by the job class.
+//! It can be either an aggregate of individual response parts returned by job accessors, or, if
+//! the response is already singular, a type of this response. The default implementation caters to
+//! generated jobs, where the code has to be generic enough to work with copyable and movable-only
+//! responses. For manually written code, simply overload collectResponse() for the respective
+//! job type, with appropriate constness.
+template <std::derived_from<BaseJob> JobT>
+inline auto collectResponse(JobT* job)
+    requires requires { doCollectResponse<JobT>(job); }
+{
+    return doCollectResponse<JobT>(job);
+}
+
+template <std::derived_from<BaseJob> JobT>
+class Mocked : public JobT {
+public:
+    using JobT::JobT;
+    void setResult(QJsonDocument d) { JobT::forceResult(std::move(d)); }
+};
+
 } // namespace Quotient

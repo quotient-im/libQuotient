@@ -69,6 +69,33 @@ public:
 
     //! The state of the room at the last event returned.
     StateEvents state() { return takeFromJson<StateEvents>("state"_ls); }
+
+    struct Response {
+        //! A token that can be used to paginate backwards with.
+        QString begin{};
+
+        //! A token that can be used to paginate forwards with.
+        QString end{};
+
+        //! A list of room events that happened just before the
+        //! requested event, in reverse-chronological order.
+        RoomEvents eventsBefore{};
+
+        //! Details of the requested event.
+        RoomEventPtr event{};
+
+        //! A list of room events that happened just after the
+        //! requested event, in chronological order.
+        RoomEvents eventsAfter{};
+
+        //! The state of the room at the last event returned.
+        StateEvents state{};
+    };
+};
+
+template <std::derived_from<GetEventContextJob> JobT>
+constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetEventContextJob::Response {
+    return { j->begin(), j->end(), j->eventsBefore(), j->event(), j->eventsAfter(), j->state() };
 };
 
 } // namespace Quotient

@@ -73,7 +73,21 @@ public:
     {
         return takeFromJson<std::vector<Notification>>("notifications"_ls);
     }
+
+    struct Response {
+        //! The token to supply in the `from` param of the next
+        //! `/notifications` request in order to request more
+        //! events. If this is absent, there are no more results.
+        QString nextToken{};
+
+        //! The list of events that triggered notifications.
+        std::vector<Notification> notifications{};
+    };
 };
+
+template <std::derived_from<GetNotificationsJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetNotificationsJob::Response { return { j->nextToken(), j->notifications() }; };
 
 template <>
 struct QUOTIENT_API JsonObjectConverter<GetNotificationsJob::Notification> {

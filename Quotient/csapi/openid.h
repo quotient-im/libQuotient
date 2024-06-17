@@ -39,4 +39,6 @@ public:
     OpenIdCredentials tokenData() const { return fromJson<OpenIdCredentials>(jsonData()); }
 };
 
+inline auto collectResponse(const RequestOpenIdTokenJob* job) { return job->tokenData(); }
+
 } // namespace Quotient

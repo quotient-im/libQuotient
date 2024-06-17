@@ -643,15 +643,15 @@ JobHandle<JoinRoomJob> Connection::joinRoom(const QString& roomAlias, const QStr
     // Upon completion, ensure a room object is created in case it hasn't come with a sync yet.
     // If the room object is not there, provideRoom() will create it in Join state. Using
     // the continuation ensures that the room is provided before any client connections.
-    return callApi<JoinRoomJob>(roomAlias, serverNames).then([this](const auto* job) {
-        provideRoom(job->roomId());
+    return callApi<JoinRoomJob>(roomAlias, serverNames).then([this](const QString& roomId) {
+        provideRoom(roomId);
     });
 }
 
 QFuture<Room*> Connection::joinAndGetRoom(const QString& roomAlias, const QStringList& serverNames)
 {
-    return joinRoom(roomAlias, serverNames).then([this](const auto* job) {
-        return provideRoom(job->roomId());
+    return callApi<JoinRoomJob>(roomAlias, serverNames).then([this](const QString& roomId) {
+        return provideRoom(roomId);
     });
 }
 
@@ -780,8 +780,8 @@ JobHandle<CreateRoomJob> Connection::createRoom(
                                                             : QStringLiteral("private"),
                                   alias, name, topic, invites, invite3pids, roomVersion,
                                   creationContent, initialState, presetName, isDirect)
-        .then(this, [this, invites, isDirect](auto* j) {
-            auto* room = provideRoom(j->roomId(), JoinState::Join);
+        .then(this, [this, invites, isDirect](const QString& roomId) {
+            auto* room = provideRoom(roomId, JoinState::Join);
             if (ALARM_X(!room, "Failed to create a room"))
                 return;
 
@@ -822,7 +822,7 @@ QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
             Q_ASSERT(ir->id() == roomId);
             qCDebug(MAIN) << "Joining the already invited direct chat with" << otherUserId << "at"
                           << roomId;
-            return joinRoom(ir->id()).then([this](auto* j) { return room(j->roomId()); });
+            return joinAndGetRoom(ir->id());
         }
         // Avoid reusing previously left chats but don't remove them
         // from direct chat maps, either.
@@ -844,8 +844,8 @@ QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
         emit directChatsListChanged({}, removals);
     }
 
-    return createDirectChat(otherUserId).then([this](const auto* j) {
-        return room(j->roomId(), JoinState::Join);
+    return createDirectChat(otherUserId).then([this](const QString& roomId) {
+        return room(roomId, JoinState::Join);
     });
 }
 
@@ -861,9 +861,8 @@ JobHandle<CreateRoomJob> Connection::createDirectChat(const QString& userId, con
 
     return createRoom(UnpublishRoom, {}, name, topic, { userId },
                       QStringLiteral("trusted_private_chat"), {}, true, initialStateEvents)
-        .then([userId](const auto* j) {
-            qCDebug(MAIN) << "Direct chat with" << userId << "has been created as"
-                          << j->roomId();
+        .then([userId](const QString& roomId) {
+            qCDebug(MAIN) << "Direct chat with" << userId << "has been created as" << roomId;
         });
 }
 
@@ -1414,7 +1413,7 @@ QFuture<QList<LoginFlow>> Connection::setHomeserver(const QUrl& baseUrl)
             d->loginFlows.clear();
         emit loginFlowsChanged();
     });
-    return d->loginFlowsJob.then([this] { return d->loginFlows; });
+    return d->loginFlowsJob.responseFuture();
 }
 
 void Connection::saveRoomState(Room* r) const

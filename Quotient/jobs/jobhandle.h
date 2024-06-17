@@ -7,68 +7,73 @@
 namespace Quotient {
 
 template <typename FnT, typename JobT>
-concept ResultHandler = std::invocable<FnT, const JobT*> || std::invocable<FnT>
-                        || std::is_member_function_pointer_v<FnT>;
+concept BoundResultHandler = std::invocable<FnT, JobT*> || std::invocable<FnT>
+                             || requires(FnT f, JobT j) { f(collectResponse(&j)); };
 
 template <typename FnT, typename JobT>
-concept BoundResultHandler = std::invocable<FnT, const JobT*> || std::invocable<FnT>;
+concept ResultHandler = BoundResultHandler<FnT, JobT> || std::is_member_function_pointer_v<FnT>;
 
 //! \brief A job pointer and a QFuture in a single package
 //!
 //! This class wraps a pointer to any job the same way QPointer does: it turns to nullptr when
-//! the job is destroyed. On top of that though, it provides you with an interface of QFuture that
-//! operates as-if obtained by calling
-//! `QtFuture::connect(job, &BaseJob::result).then([job] { return (const JobT*)job; });` before any
-//! other slot is connected to it. In the end, you get the interface of \p JobT at `handle->` and
-//! the interface of `QFuture<const JobT*>` at `handle.` - with some extensions, see below.
+//! the job is destroyed. On top of that though, it provides you with an interface of QFuture as-if
+//! obtained by calling `QtFuture::connect(job, &BaseJob::result).then([job] { return job; });`
+//! before any other slot is connected to it. In the end, you (still) get the interface of \p JobT
+//! at `handle->`, and `handle.` gives you the interface (very close to that, read below for
+//! differences) of `QFuture<JobT*>`.
 //!
-//! You can `connect()` to the job signals and attach continuations to it as a future (bearing
-//! in mind that any continuation attached via `then()` or `onCanceled()` will overtake anything
-//! connected to `BaseJob::result` but come behind anything connected to `BaseJob::finished`.
+//! You can mix usage of the two interfaces, bearing in mind that any continuation attached via
+//! the future interface will overtake anything connected to `BaseJob::result` but come behind
+//! anything connected to `BaseJob::finished` (that applies to `onCanceled()`, too).
 //!
-//! The original QFuture interface is somewhat rigid in terms of what it accepts for continuations,
-//! so this class extends it by allowing two additional kinds of functions for normal (i.e. success
-//! or failure, not abandon) job completion:
-//! - member functions of QObject-derived classes; and
-//! - for then() and onResult(), functions with no parameters (the original QFuture mandates
-//!   the continuation function to accept a single argument of the type carried by the future,
-//!   or of the future type itself; this is still allowed, although you shouldn't need to pass
-//!   the full future type since we don't need to deal with exceptions).
+//! QFuture is somewhat rigid in terms of what it accepts for (normal, i.e. not cancelled)
+//! continuations: the continuation function must accept a single argument of the type carried by
+//! the future, or of the future type itself. JobHandle allows normal continuation functions (i.e.
+//! those passed to `then()`, `onResult()` and `onFailure()`) to accept:
+//! - no parameters;
+//! - `JobT*` or any pointer it is convertible to (`const JobT*`, `BaseJob*` etc.);
+//! - the value returned by calling `collectResponse()` with the above pointer as the parameter.
 //!
-//! This helps with migration of the current code that `connect()`s to the job signals. Basically,
-//! all you need to do with the existing code (and only if you want; the existing code will mostly
-//! run fine without changes) is to replace:
+//! Aside from free functions and function objects (including lambdas), you can also pass member
+//! functions of QObject-derived classes (`connect()` slot style) to all continuations, including
+//! onCanceled().
+//!
+//! JobHandle doesn't support passing its full type to continuation functions like QFuture does,
+//! as there's no case for that (we don't need to deal with exceptions).
+//!
+//! This extended interface helps with migration of the current code that `connect()`s to the job
+//! completion signals. The existing code will (mostly) run fine without changes; the only thing
+//! that will stop working is using `auto*` for a variable initialised from  `Connection::callApi`
+//! (plain `auto` still works). If you want to migrate the existing code to the future-like
+//! interface, just replace:
 //! \code
-//! auto* j = callApi<Job>(jobParams...);
+//! auto j = callApi<Job>(jobParams...);
 //! connect(j, &BaseJob::result, object, slot);
 //! \endcode
-//! with `callApi<Job>(jobParams...).onResult(object, slot);`.
-//! If you have a connection to `BaseJob::success`, use `then` instead of `onResult`, and if you
-//! only connect to `BaseJob::failure`, `onFailure()` is at your service. And you can also combine
-//! the two using `then`, e.g.:
+//! with `callApi<Job>(jobParams...).onResult(object, slot);` - that's all. If you have a connection
+//! to `BaseJob::success`, use `then()` instead of `onResult()`, and if you only connect to
+//! `BaseJob::failure`, `onFailure()` is at your service. And you can also combine the two using
+//! `then()`, e.g.:
 //! \code
 //! callApi<Job>(jobParams...).then([this] { /* on success... */ },
 //!                                 [this] { /* on failure... */ });
 //! \endcode
 //!
-//! Yet another extension to QFuture is the way the returned value is treated:
+//! One more extension to QFuture is the way the returned value is treated:
 //! - if your function returns `void` the continuation will have type `JobHandler<JobT>` and carry
-//!   the same pointer as before;
-//! - if your function returns `const JobT*`, whichever value it has is wrapped in
-//! `JobHandler<JobT>`
-//!   (it is somewhat esoteric to create another job of the same type in the continuation but that
-//!   should work);
+//!    the same pointer as before;
+//! - if your function returns a `JobHandle` (e.g. from another call to `Connection::callApi`),
+//!   it will be automatically rewrapped into a `QFuture`, because `QFuture<JobHandle<AnotherJobT>>`
+//!   is rather unwieldy for any intents and purposes, and `JobHandle<AnotherJobT>` would have
+//!   a very weird QPointer interface as that new job doesn't even exist when continuation is
+//!   constructed;
 //! - otherwise, the return value is wrapped in a "normal" QFuture, JobHandle waves you good-bye and
-//!   further continuations will follow pristine QFuture rules; except
-//! - if your function returns `JobHandle<AnotherJobT>`, JobHandle automatically rewraps it into
-//!   `QFuture<const AnotherJobT *>`, because `QFuture<JobHandle<AnotherJobT>>` is rather unwieldy
-//!   for any intents and purposes, and `JobHandle<AnotherJobT>` would have a very weird QPointer
-//!   interface as that new job doesn't even exist when continuation is constructed.
+//!   further continuations will follow pristine QFuture rules.
 template <class JobT>
-class JobHandle : public QPointer<JobT>, public QFuture<const JobT*> {
+class JobHandle : public QPointer<JobT>, public QFuture<JobT*> {
 public:
     using pointer_type = QPointer<JobT>;
-    using future_value_type = const JobT*;
+    using future_value_type = JobT*;
     using future_type = QFuture<future_value_type>;
 
 private:
@@ -87,15 +92,19 @@ private:
 public:
     QUO_IMPLICIT JobHandle(JobT* job = nullptr) : JobHandle(job, setupFuture(job)) {}
 
-    //! \brief Attach a continuation to any completion of the future
+    //! \brief Attach a continuation to a successful or unsuccessful completion of the future
     //!
-    //! The continuation passed via \p fn should be an invokable that accepts either:
+    //! The continuation passed via \p fn should be an invokable that accepts one of the following:
     //! 1) no arguments - this is meant to simplify transition from job completion handlers
-    //!    connect()ed to BaseJob::result, BaseJob::success or BaseJob::failure; or
-    //! 2) a pointer-to-const job object - this can be either `const BaseJob*`,
-    //!    `const JobT*` (recommended), or anything in between. Unlike slot functions connected
+    //!    connect()ed to BaseJob::result, BaseJob::success or BaseJob::failure.
+    //! 2) a pointer to a (const, if you want) job object - this can be either `BaseJob*`,
+    //!    `JobT*` (recommended), or anything in between. Unlike slot functions connected
     //!    to BaseJob signals, this option allows you to access the specific job type so you don't
-    //!    need to carry the original job pointer in a lambda - JobHandle does it for you.
+    //!    need to carry the original job pointer in a lambda - JobHandle does it for you. This is
+    //!    meant to be a transitional form on the way to (3); eventually we should migrate to
+    //!    (1)+(3) entirely.
+    //! 3) the type returned by `collectResponse()` if it's well-formed (it is for all generated
+    //!    jobs, needs overloading for manual jobs).
     //!
     //! \note The continuation returned from onResult() will not be triggered if/when the future is
     //!       cancelled or the underlying job is abandoned; use onCanceled() to catch cancellations.
@@ -165,7 +174,8 @@ public:
     template <typename FnT>
     auto onCanceled(QObject* context, FnT&& fn)
     {
-        return rewrap(future_type::onCanceled(context, BoundFn{ std::forward<FnT>(fn), context }));
+        return rewrap(
+            future_type::onCanceled(context, bindToContext(std::forward<FnT>(fn), context)));
     }
 
     //! Same as QFuture::onCanceled but accepts QObject-derived member functions and rewraps
@@ -174,6 +184,12 @@ public:
     auto onCanceled(FnT&& fn)
     {
         return rewrap(future_type::onCanceled(BoundFn{ std::forward<FnT>(fn) }));
+    }
+
+    //! Get a QFuture for the value returned by `collectResponse()` called on the underlying job
+    auto responseFuture()
+    {
+        return future_type::then([](auto* j) { return collectResponse(j); });
     }
 
     //! \brief Abandon the underlying job, if there's one pending
@@ -192,7 +208,7 @@ public:
 
 private:
     //! A function object that can be passed to QFuture::then and QFuture::onCanceled
-    template <typename FnT, typename ConfigT>
+    template <typename FnT>
     struct BoundFn {
         auto operator()() { return callFn<false>(nullptr); } // For QFuture::onCanceled
         auto operator()(future_value_type job) { return callFn(job); } // For QFuture::then
@@ -200,32 +216,19 @@ private:
         template <bool AllowJobArg = true>
         auto callFn(future_value_type job)
         {
-            // Thanks to https://en.cppreference.com/w/cpp/utility/functional/invoke for the overall
-            // direction (the code below is of course quite specific to the purpose at hand)
-
-            // Even though QFuture::then() can use QObjects as context objects it cannot bind slots
-            // to these context objects, the way QObject::connect() does; so we do it here
-            if constexpr (std::derived_from<std::remove_pointer_t<ConfigT>, QObject>
-                          && std::is_member_function_pointer_v<FnT>) {
-                // QFuture::then() is meant to cancel the future if the context is gone by the
-                // moment of invocation
-                Q_ASSERT(c);
-                static_assert(
-                    requires { (c->*fn)(); } || requires { (c->fn())(job); },
-                    "To be used for a continuation, the member function must accept either no "
-                    "arguments or (except onCanceled continuations) a single const JobT* argument");
-                if constexpr (requires { (c->*fn)(); })
-                    return (c->*fn)();
-                else {
-                    static_assert(AllowJobArg,
-                                  "onCanceled continuations should not accept arguments");
-                    return (c->*fn)(job);
-                }
-            } else if constexpr (requires { fn(); }) {
-                return fn();
+            if constexpr (std::invocable<FnT>) {
+                return std::forward<FnT>(fn)();
             } else {
                 static_assert(AllowJobArg, "onCanceled continuations should not accept arguments");
-                return fn(job);
+                if constexpr (requires { fn(job); })
+                    return fn(job);
+                else if constexpr (requires { collectResponse(job); }) {
+                    static_assert(
+                        requires { fn(collectResponse(job)); },
+                        "The continuation function must accept either of: 1) no arguments; "
+                        "2) the job pointer itself; 3) the value returned by collectResponse(job)");
+                    return fn(collectResponse(job));
+                }
             }
         }
 
@@ -236,16 +239,28 @@ private:
         [[no_unique_address]]
 #endif
         FnT fn;
-        [[no_unique_address]] ConfigT c;
     };
 
+    template <typename FnT>
+    BoundFn(FnT&&) -> BoundFn<FnT>;
+
     template <typename FnT, typename ConfigT = Skip>
-    BoundFn(FnT&&, ConfigT = {}) -> BoundFn<FnT, ConfigT>;
+    static auto bindToContext(FnT&& fn, ConfigT config = {})
+    {
+        // Even though QFuture::then() and QFuture::onCanceled() can use context QObjects
+        // to determine the execution thread, they cannot bind slots to these context objects,
+        // the way QObject::connect() does; so we do it here.
+        if constexpr (std::derived_from<std::remove_pointer_t<ConfigT>, QObject>
+                      && std::is_member_function_pointer_v<FnT>) {
+            return BoundFn{ std::bind_front(std::forward<FnT>(fn), config) };
+        } else
+            return BoundFn{ std::forward<FnT>(fn) };
+    }
 
     template <ResultHandler<JobT> FnT, typename ConfigT = Skip>
     static auto continuation(FnT&& fn, ConfigT config = {})
     {
-        return [f = BoundFn{ std::forward<FnT>(fn), config }](future_value_type arg) mutable {
+        return [f = bindToContext(std::forward<FnT>(fn), config)](future_value_type arg) mutable {
             if constexpr (std::is_void_v<decltype(f(arg))>) {
                 f(arg);
                 return arg;
@@ -258,8 +273,8 @@ private:
     static auto combineContinuations(SuccessFnT&& onSuccess, FailureFnT&& onFailure,
                                      ConfigT config = {})
     {
-        return [sFn = BoundFn{ std::forward<SuccessFnT>(onSuccess), config },
-                fFn = BoundFn{ std::forward<FailureFnT>(onFailure), config }](
+        return [sFn = bindToContext(std::forward<SuccessFnT>(onSuccess), config),
+                fFn = bindToContext(std::forward<FailureFnT>(onFailure), config)](
                    future_value_type job) mutable {
             using sType = decltype(sFn(job));
             using fType = decltype(fFn(job));
@@ -279,7 +294,8 @@ private:
     }
 
     template <typename NewJobT>
-    auto rewrap(QFuture<JobHandle<NewJobT>> ft) -> QFuture<const NewJobT*>
+    auto rewrap(QFuture<JobHandle<NewJobT>> ft)
+        -> QFuture<typename JobHandle<NewJobT>::future_value_type>
     {
         // When a continuation function returns a job handle (e.g. by invoking callApi() inside of
         // it) that handle ends up being wrapped in a QFuture by QFuture::then() or
@@ -295,7 +311,8 @@ private:
         // lose that change and only store nullptr; and if it stores a JobHandle then it can just
         // use the QFuture interface instead. Therefore a pure QFuture is returned instead, that
         // settles when the underlying job finishes or gets cancelled.
-        QFutureInterface<const NewJobT*> newPromise(QFutureInterfaceBase::State::Pending);
+        QFutureInterface<typename JobHandle<NewJobT>::future_value_type> newPromise(
+            QFutureInterfaceBase::State::Pending);
         ft.then([newPromise](JobHandle<NewJobT> nestedHandle) mutable {
             Q_ASSERT(nestedHandle.isStarted());
             newPromise.reportStarted();

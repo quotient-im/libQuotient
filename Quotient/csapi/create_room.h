@@ -180,6 +180,8 @@ public:
     QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
 };
 
+inline auto collectResponse(const CreateRoomJob* job) { return job->roomId(); }
+
 template <>
 struct QUOTIENT_API JsonObjectConverter<CreateRoomJob::Invite3pid> {
     static void dumpTo(QJsonObject& jo, const CreateRoomJob::Invite3pid& pod)

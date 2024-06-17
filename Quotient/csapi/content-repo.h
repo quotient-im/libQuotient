@@ -29,6 +29,8 @@ public:
     QUrl contentUri() const { return loadFromJson<QUrl>("content_uri"_ls); }
 };
 
+inline auto collectResponse(const UploadContentJob* job) { return job->contentUri(); }
+
 //! \brief Upload content to an `mxc://` URI that was created earlier.
 //!
 //! This endpoint permits uploading content to an `mxc://` URI that was created
@@ -100,7 +102,21 @@ public:
     {
         return loadFromJson<std::optional<qint64>>("unused_expires_at"_ls);
     }
+
+    struct Response {
+        //! The [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) at
+        //! which the content will be available, once it is uploaded.
+        QUrl contentUri{};
+
+        //! The timestamp (in milliseconds since the unix epoch) when the
+        //! generated media id will expire, if media is not uploaded.
+        std::optional<qint64> unusedExpiresAt{};
+    };
 };
+
+template <std::derived_from<CreateContentJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> CreateContentJob::Response { return { j->contentUri(), j->unusedExpiresAt() }; };
 
 //! \brief Download content from the content repository.
 class QUOTIENT_API GetContentJob : public BaseJob {
@@ -318,7 +334,20 @@ public:
     //! An [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) to the image. Omitted if
     //! there is no image.
     QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_ls); }
+
+    struct Response {
+        //! The byte-size of the image. Omitted if there is no image attached.
+        std::optional<qint64> matrixImageSize{};
+
+        //! An [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) to the image. Omitted if
+        //! there is no image.
+        QUrl ogImage{};
+    };
 };
+
+template <std::derived_from<GetUrlPreviewJob> JobT>
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT* j) -> GetUrlPreviewJob::Response { return { j->matrixImageSize(), j->ogImage() }; };
 
 //! \brief Get the configuration for the content repository.
 //!
@@ -352,5 +381,7 @@ public:
         return loadFromJson<std::optional<qint64>>("m.upload.size"_ls);
     }
 };
+
+inline auto collectResponse(const GetConfigJob* job) { return job->uploadSize(); }
 
 } // namespace Quotient

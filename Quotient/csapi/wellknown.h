@@ -34,4 +34,6 @@ public:
     DiscoveryInformation data() const { return fromJson<DiscoveryInformation>(jsonData()); }
 };
 
+inline auto collectResponse(const GetWellknownJob* job) { return job->data(); }
+
 } // namespace Quotient
