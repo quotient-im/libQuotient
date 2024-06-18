@@ -901,6 +901,10 @@ Q_SIGNALS:
 
     void userVerified(const QString& userId);
 
+    //! The account does not yet have cross-signing keys. The client should ask the user
+    //! whether to create them now and then set them up, if desired.
+    void crossSigningSetupRequired();
+
     friend class ::TestCrossSigning;
 protected:
     //! Access the underlying ConnectionData class
