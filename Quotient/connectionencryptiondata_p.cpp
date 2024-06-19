@@ -268,6 +268,15 @@ void ConnectionEncryptionData::onSyncSuccess(SyncData& syncResponse)
     }
 
     consumeDevicesList(syncResponse.takeDevicesList());
+
+    auto checkQuery = database.prepareQuery("SELECT * FROM master_keys WHERE userId=:userId"_ls);
+    checkQuery.bindValue(":userId"_ls, q->userId());
+    database.execute(checkQuery);
+    const auto haveMasterKey = checkQuery.next();
+    if (trackedUsers.contains(q->userId()) && !outdatedUsers.contains(q->userId()) && !haveMasterKey) {
+        emit q->crossSigningSetupRequired();
+    }
+
 }
 
 void ConnectionEncryptionData::consumeDevicesList(const DevicesList& devicesList)
