@@ -40,6 +40,7 @@ public:
     friend class ::TestKeyImport;
 private:
     Quotient::Expected<QJsonArray, Error> decrypt(QString data, const QString& passphrase);
+    Quotient::Expected<QByteArray, Error> encrypt(QJsonArray sessions, const QString& passphrase);
 };
 
 }

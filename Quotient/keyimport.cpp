@@ -94,14 +94,8 @@ KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, 
     return Success;
 }
 
-Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QString& passphrase, Connection* connection)
+Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray sessions, const QString& passphrase)
 {
-    QJsonArray sessions;
-    for (const auto& room : connection->allRooms()) {
-        for (const auto &session : room->exportMegolmSessions()) {
-            sessions += session;
-        }
-    }
     auto plainText = QJsonDocument(sessions).toJson(QJsonDocument::Compact);
 
     auto salt = getRandom(AesBlockSize);
@@ -146,5 +140,18 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QSt
     base64.prepend("-----BEGIN MEGOLM SESSION DATA-----\n"_ls);
     base64.append("\n-----END MEGOLM SESSION DATA-----\n"_ls);
     return base64;
+}
+
+
+Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QString& passphrase, Connection* connection)
+{
+    QJsonArray sessions;
+    for (const auto& room : connection->allRooms()) {
+        for (const auto &session : room->exportMegolmSessions()) {
+            return {};
+            sessions += session;
+        }
+    }
+    return encrypt(sessions, passphrase);
 }
 

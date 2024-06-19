@@ -391,7 +391,7 @@ void Database::saveMegolmSession(const QString& roomId,
     deleteQuery.bindValue(":roomId"_ls, roomId);
     deleteQuery.bindValue(":sessionId"_ls, session.sessionId());
     auto query = prepareQuery(
-        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId, senderKey, sender_) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId, :senderKey, :senderClaimedEd25519Key);"));
+        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId, senderKey, senderClaimedEd25519Key) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId, :senderKey, :senderClaimedEd25519Key);"));
     query.bindValue(":roomId"_ls, roomId);
     query.bindValue(":sessionId"_ls, session.sessionId());
     query.bindValue(":pickle"_ls, session.pickle(m_picklingKey));
@@ -662,7 +662,7 @@ QString Database::selfSigningPublicKey()
 QString Database::edKeyForMegolmSession(const QString& sessionId)
 {
     auto query = prepareQuery(QStringLiteral("SELECT senderClaimedEd25519Key FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"));
-    query.bindValue(":sessionId"_ls, sessionId);
+    query.bindValue(":sessionId"_ls, sessionId.toLatin1());
     execute(query);
     return query.next() ? query.value("senderClaimedEd25519Key"_ls).toString() : QString();
 }
@@ -670,7 +670,7 @@ QString Database::edKeyForMegolmSession(const QString& sessionId)
 QString Database::senderKeyForMegolmSession(const QString& sessionId)
 {
     auto query = prepareQuery(QStringLiteral("SELECT senderKey FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"));
-    query.bindValue(":sessionId"_ls, sessionId);
+    query.bindValue(":sessionId"_ls, sessionId.toLatin1());
     execute(query);
     return query.next() ? query.value("senderKey"_ls).toString() : QString();
 }
