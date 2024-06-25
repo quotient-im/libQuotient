@@ -285,19 +285,13 @@ public:
 
     void getAllMembers();
 
-    QString sendEvent(RoomEventPtr&& event);
-
-    template <typename EventT, typename... ArgTs>
-    QString sendEvent(ArgTs&&... eventArgs)
-    {
-        return sendEvent(makeEvent<EventT>(std::forward<ArgTs>(eventArgs)...));
-    }
+    const PendingEventItem& sendEvent(RoomEventPtr&& event);
 
     QString doPostFile(RoomEventPtr &&msgEvent, const QUrl &localUrl);
 
-    RoomEvent* addAsPending(RoomEventPtr&& event);
+    PendingEvents::iterator addAsPending(RoomEventPtr&& event);
 
-    QString doSendEvent(const RoomEvent* pEvent);
+    const PendingEventItem& doSendEvent(PendingEvents::iterator eventItemIter);
 
     void onEventReachedServer(PendingEvents::iterator eventItemIter, const QString& eventId);
     void onEventSendingFailure(PendingEvents::iterator eventItemIter, const BaseJob* call = nullptr);
@@ -1882,7 +1876,7 @@ void Room::Private::postprocessChanges(Changes changes, bool saveState)
         connection->saveRoomState(q);
 }
 
-RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
+Room::PendingEvents::iterator Room::Private::addAsPending(RoomEventPtr&& event)
 {
     if (event->transactionId().isEmpty())
         event->setTransactionId(connection->generateTxnId());
@@ -1890,29 +1884,31 @@ RoomEvent* Room::Private::addAsPending(RoomEventPtr&& event)
         event->setRoomId(id);
     if (event->senderId().isEmpty())
         event->setSender(connection->userId());
-    auto* pEvent = std::to_address(event);
-    emit q->pendingEventAboutToAdd(pEvent);
-    unsyncedEvents.emplace_back(std::move(event));
+    emit q->pendingEventAboutToAdd(std::to_address(event));
+    auto it = unsyncedEvents.emplace(unsyncedEvents.end(), std::move(event));
     emit q->pendingEventAdded();
-    return pEvent;
+    return it;
 }
 
-QString Room::Private::sendEvent(RoomEventPtr&& event)
+const PendingEventItem& Room::Private::sendEvent(RoomEventPtr&& event)
 {
-    if (!q->successorId().isEmpty()) {
-        qCWarning(MAIN) << q << "has been upgraded, event won't be sent";
-        return {};
-    }
-
     return doSendEvent(addAsPending(std::move(event)));
 }
 
-QString Room::Private::doSendEvent(const RoomEvent* pEvent)
+const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator eventItemIter)
 {
-    const auto txnId = pEvent->transactionId();
+    Q_ASSERT(eventItemIter != unsyncedEvents.end());
+    const auto& eventItem = *eventItemIter;
+    const auto txnId = eventItem->transactionId();
     // TODO, #133: Enqueue the job rather than immediately trigger it.
-    const RoomEvent* _event = pEvent;
+    const RoomEvent* _event = eventItemIter->event();
     std::unique_ptr<EncryptedEvent> encryptedEvent;
+
+    if (!q->successorId().isEmpty()) { // TODO: replace with a proper power levels check
+        qCWarning(MAIN) << q << "has been upgraded, event won't be sent";
+        onEventSendingFailure(eventItemIter);
+        return eventItem;
+    }
 
     if (q->usesEncryption()) {
         if (!connection->encryptionEnabled()) {
@@ -1920,8 +1916,8 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                            << "uses encryption but E2EE is switched off for"
                            << connection->objectName()
                            << "- the message won't be sent";
-            onEventSendingFailure(txnId);
-            return txnId;
+            onEventSendingFailure(eventItemIter);
+            return eventItem;
         }
         if (!hasValidMegolmSession() || shouldRotateMegolmSession()) {
             createMegolmSession();
@@ -1932,7 +1928,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
                                             getDevicesWithoutKey());
 
         const auto encrypted = currentOutboundMegolmSession->encrypt(
-            QJsonDocument(pEvent->fullJson()).toJson());
+            QJsonDocument(eventItem->fullJson()).toJson());
         currentOutboundMegolmSession->setMessageCount(
             currentOutboundMegolmSession->messageCount() + 1);
         connection->database()->saveCurrentOutboundMegolmSession(
@@ -1943,19 +1939,18 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         encryptedEvent->setTransactionId(connection->generateTxnId());
         encryptedEvent->setRoomId(id);
         encryptedEvent->setSender(connection->userId());
-        if (pEvent->contentJson().contains("m.relates_to"_ls)) {
-            encryptedEvent->setRelation(
-                pEvent->contentJson()["m.relates_to"_ls].toObject());
+        if (eventItem->contentJson().contains(RelatesToKey)) {
+            encryptedEvent->setRelation(eventItem->contentJson()[RelatesToKey].toObject());
         }
         // We show the unencrypted event locally while pending. The echo
         // check will throw the encrypted version out
         _event = encryptedEvent.get();
     }
 
-    if (auto call =
-            connection->callApi<SendMessageJob>(BackgroundRequest, id,
-                                                _event->matrixType(), txnId,
-                                                _event->contentJson())) {
+    if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id, _event->matrixType(),
+                                                        txnId, _event->contentJson())) {
+        // Below - find pending events by txnIds again because PendingEventItems may move around
+        // as unsyncedEvents vector grows.
         Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
             auto it = q->findPendingEvent(txnId);
             if (it == unsyncedEvents.end()) {
@@ -1966,7 +1961,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
             it->setDeparted();
             emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
         });
-        Room::connect(call, &BaseJob::result, q, [this, txnId, call] {
+        call.onResult(q, [this, txnId, call] {
             auto it = q->findPendingEvent(txnId);
             if (!call->status().good()) {
                 onEventSendingFailure(it, call);
@@ -1982,7 +1977,7 @@ QString Room::Private::doSendEvent(const RoomEvent* pEvent)
         });
     } else
         onEventSendingFailure(eventItemIter);
-    return txnId;
+    return eventItem;
 }
 
 void Room::Private::onEventReachedServer(PendingEvents::iterator eventItemIter,
@@ -2047,7 +2042,7 @@ QString Room::retryMessage(const QString& txnId)
     }
     it->resetStatus();
     emit pendingEventChanged(int(it - d->unsyncedEvents.begin()));
-    return d->doSendEvent(it->event());
+    return d->doSendEvent(it)->transactionId();
 }
 
 // Using a function defers actual tr() invocation to the moment when
@@ -2082,7 +2077,7 @@ void Room::discardMessage(const QString& txnId)
 
 QString Room::postMessage(const QString& plainText, MessageEventType type)
 {
-    return d->sendEvent<RoomMessageEvent>(plainText, type);
+    return post<RoomMessageEvent>(plainText, type)->transactionId();
 }
 
 QString Room::postPlainText(const QString& plainText)
@@ -2093,9 +2088,9 @@ QString Room::postPlainText(const QString& plainText)
 QString Room::postHtmlMessage(const QString& plainText, const QString& html,
                               MessageEventType type)
 {
-    return d->sendEvent<RoomMessageEvent>(
-        plainText, type,
-        new EventContent::TextContent(html, QStringLiteral("text/html")));
+    return post<RoomMessageEvent>(
+               plainText, type, new EventContent::TextContent(html, QStringLiteral("text/html")))
+        ->transactionId();
 }
 
 QString Room::postHtmlText(const QString& plainText, const QString& html)
@@ -2105,12 +2100,12 @@ QString Room::postHtmlText(const QString& plainText, const QString& html)
 
 QString Room::postReaction(const QString& eventId, const QString& key)
 {
-    return d->sendEvent<ReactionEvent>(eventId, key);
+    return post<ReactionEvent>(eventId, key)->transactionId();
 }
 
 QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
 {
-    const auto txnId = addAsPending(std::move(msgEvent))->transactionId();
+    const auto txnId = addAsPending(std::move(msgEvent))->event()->transactionId();
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
     q->uploadFile(txnId, localUrl);
@@ -2126,7 +2121,7 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
             if (it != unsyncedEvents.end()) {
                 it->setFileUploaded(fileMetadata);
                 emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
-                doSendEvent(it->get());
+                doSendEvent(it);
             } else {
                 // Normally in this situation we should instruct
                 // the media server to delete the file; alas, there's no
@@ -2175,13 +2170,17 @@ QString Room::postFile(const QString& plainText,
 
 QString Room::postEvent(RoomEvent* event)
 {
-    return d->sendEvent(RoomEventPtr(event));
+    return d->sendEvent(RoomEventPtr(event))->transactionId();
 }
 
-QString Room::postJson(const QString& matrixType,
-                       const QJsonObject& eventContent)
+const PendingEventItem& Room::post(RoomEventPtr event)
 {
-    return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
+    return d->sendEvent(std::move(event));
+}
+
+QString Room::postJson(const QString& matrixType, const QJsonObject& eventContent)
+{
+    return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent))->transactionId();
 }
 
 SetRoomStateWithKeyJob* Room::setState(const StateEvent& evt)
@@ -2263,26 +2262,26 @@ void Room::inviteCall(const QString& callId, const int lifetime,
                       const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallInviteEvent>(callId, lifetime, sdp);
+    post<CallInviteEvent>(callId, lifetime, sdp);
 }
 
 void Room::sendCallCandidates(const QString& callId,
                               const QJsonArray& candidates)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallCandidatesEvent>(callId, candidates);
+    post<CallCandidatesEvent>(callId, candidates);
 }
 
 void Room::answerCall(const QString& callId, const QString& sdp)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallAnswerEvent>(callId, sdp);
+    post<CallAnswerEvent>(callId, sdp);
 }
 
 void Room::hangupCall(const QString& callId)
 {
     Q_ASSERT(supportsCalls());
-    d->sendEvent<CallHangupEvent>(callId);
+    post<CallHangupEvent>(callId);
 }
 
 JobHandle<GetRoomEventsJob> Room::getPreviousContent(int limit, const QString& filter)

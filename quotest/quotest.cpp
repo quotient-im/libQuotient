@@ -509,13 +509,13 @@ DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent, "quotest.custom", int, testValue,
 
 TEST_IMPL(sendCustomEvent)
 {
-    auto txnId = targetRoom->postEvent(new CustomEvent(42));
-    if (!validatePendingEvent<CustomEvent>(txnId)) {
+    const auto& pendingEventItem = targetRoom->post<CustomEvent>(42);
+    if (!validatePendingEvent<CustomEvent>(pendingEventItem->transactionId())) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
-    targetRoom->whenMessageMerged(txnId).then(
-        this, [this, thisTest, txnId](const RoomEvent& evt) {
+    pendingEventItem.whenMerged().then(
+        this, [this, thisTest, txnId = pendingEventItem->transactionId()](const RoomEvent& evt) {
             evt.switchOnType(
                 [this, thisTest, txnId, &evt](const CustomEvent& e) {
                     FINISH_TEST(!evt.id().isEmpty() && evt.transactionId() == txnId
