@@ -100,7 +100,7 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray s
 
     auto salt = getRandom(AesBlockSize);
     auto iv = getRandom(AesBlockSize);
-    quint32 rounds = 200000; // spec: "N should be at least 100,000";
+    quint32 rounds = 200'000; // spec: "N should be at least 100,000";
 
     auto keys = pbkdf2HmacSha512<64>(passphrase.toLatin1(), salt.viewAsByteArray(), rounds);
     if (!keys.has_value()) {
