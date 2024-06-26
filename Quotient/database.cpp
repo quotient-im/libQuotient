@@ -256,7 +256,7 @@ void Database::migrateTo10()
     }
     for (const auto& key : keys) {
         auto edKeyQuery = prepareQuery("SELECT edKey FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
-        edKeyquery.bindValue(":curveKey"_ls, key);
+        edKeyQuery.bindValue(":curveKey"_ls, key);
         execute(edKeyQuery);
         if (!edKeyQuery.next()) {
             continue;
