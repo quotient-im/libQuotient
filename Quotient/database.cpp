@@ -255,13 +255,13 @@ void Database::migrateTo10()
         keys += query.value("senderKey"_ls).toString();
     }
     for (const auto& key : keys) {
-        auto query = prepareQuery("SELECT edKey FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
-        query.bindValue(":curveKey"_ls, key);
-        execute(query);
-        if (!query.next()) {
+        auto edKeyQuery = prepareQuery("SELECT edKey FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
+        edKeyquery.bindValue(":curveKey"_ls, key);
+        execute(edKeyQuery);
+        if (!edKeyQuery.next()) {
             continue;
         }
-        const auto &edKey = query.value("edKey"_ls).toByteArray();
+        const auto &edKey = edKeyQuery.value("edKey"_ls).toByteArray();
 
         auto updateQuery = prepareQuery("UPDATE inbound_megolm_sessions SET senderClaimedEd25519Key=:senderClaimedEd25519Key WHERE senderKey=:senderKey;"_ls);
         updateQuery.bindValue(":senderKey"_ls, key.toLatin1());
