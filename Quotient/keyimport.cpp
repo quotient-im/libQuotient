@@ -3,6 +3,8 @@
 
 #include "keyimport.h"
 
+#include <ranges>
+
 #include <QtEndian>
 #include <QDebug>
 
@@ -13,6 +15,7 @@
 #include "logging_categories_p.h"
 
 using namespace Quotient;
+using namespace Qt::Literals::StringLiterals;
 
 const auto VersionLength = 1;
 const auto SaltOffset = VersionLength;
@@ -130,10 +133,10 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray s
     }
     data.append(mac.value());
 
-       return "-----BEGIN MEGOLM SESSION DATA-----\n"_ls
+       return "-----BEGIN MEGOLM SESSION DATA-----\n"_ba
            % (std::views::chunk(data.toBase64(), 96) | std::views::join_with('\n')
               | std::ranges::to<QByteArray>())
-           % "\n-----END MEGOLM SESSION DATA-----\n"_ls;
+           % "\n-----END MEGOLM SESSION DATA-----\n"_ba;
 }
 
 
