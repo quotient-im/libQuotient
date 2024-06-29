@@ -247,10 +247,10 @@ void Database::migrateTo10()
 
     execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD senderClaimedEd25519Key TEXT;"));
 
-    auto query = prepareQuery("SELECT senderKey FROM inbound_megolm_sessions;"_ls);
+    auto query = prepareQuery("SELECT DISTINCT senderKey FROM inbound_megolm_sessions;"_ls);
     execute(query);
 
-    QSet<QString> keys;
+    QStringList keys;
     while (query.next()) {
         keys += query.value("senderKey"_ls).toString();
     }
