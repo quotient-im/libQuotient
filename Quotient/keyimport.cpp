@@ -140,7 +140,7 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray s
 }
 
 
-Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QString& passphrase, Connection* connection)
+Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QString& passphrase, const Connection* connection)
 {
     QJsonArray sessions;
     for (const auto& room : connection->allRooms()) {
