@@ -130,16 +130,10 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray s
     }
     data.append(mac.value());
 
-    QByteArray base64 = data.toBase64();
-
-    // Limit base64 line length. 96 is chosen arbitrarily.
-    for (auto i = 96; i < base64.length(); i += 96) {
-        base64.insert(i, "\n");
-        i++;
-    }
-    base64.prepend("-----BEGIN MEGOLM SESSION DATA-----\n"_ls);
-    base64.append("\n-----END MEGOLM SESSION DATA-----\n"_ls);
-    return base64;
+       return "-----BEGIN MEGOLM SESSION DATA-----\n"_ls
+           % (std::views::chunk(data.toBase64(), 96) | std::views::join_with('\n')
+              | std::ranges::to<QByteArray>())
+           % "\n-----END MEGOLM SESSION DATA-----\n"_ls;
 }
 
 
