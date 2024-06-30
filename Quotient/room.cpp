@@ -3451,7 +3451,7 @@ void Room::startVerification()
 QJsonArray Room::exportMegolmSessions()
 {
     QJsonArray sessions;
-    for (const auto& [key, value] : d->groupSessions) {
+    for (auto& [key, value] : d->groupSessions) {
         auto session = value.exportSession(value.firstKnownIndex());
         if (!session.has_value()) {
             qCWarning(E2EE) << "Failed to export session" << session.error();
