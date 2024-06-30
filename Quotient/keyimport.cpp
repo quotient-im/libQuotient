@@ -133,10 +133,12 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray s
     }
     data.append(mac.value());
 
-       return "-----BEGIN MEGOLM SESSION DATA-----\n"_ba
-           % (std::views::chunk(data.toBase64(), 96) | std::views::join_with('\n')
-              | std::ranges::to<QByteArray>())
-           % "\n-----END MEGOLM SESSION DATA-----\n"_ba;
+    // TODO: use std::ranges::to() once it's available from all stdlibs Quotient builds with
+   return "-----BEGIN MEGOLM SESSION DATA-----\n"_ba
+          % std::ranges::fold_left(std::views::chunk(data.toBase64(), 96)
+                                       | std::views::join_with('\n'),
+                                   QByteArray{}, std::plus<>())
+          % "\n-----END MEGOLM SESSION DATA-----\n"_ba;
 }
 
 
