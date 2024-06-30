@@ -4,6 +4,7 @@
 #include "roommember.h"
 
 #include "events/roommemberevent.h"
+#include "events/roompowerlevelsevent.h"
 #include "room.h"
 #include "util.h"
 
@@ -131,6 +132,19 @@ QUrl RoomMember::avatarUrl() const {
         return mediaUrl;
     }
     return {};
+}
+
+int RoomMember::powerLevel() const
+{
+    if (_room == nullptr || _member == nullptr) {
+        return 0;
+    }
+
+    auto powerLevelEvent = _room->currentState().get<RoomPowerLevelsEvent>();
+    if (!powerLevelEvent) {
+        return 0;
+    }
+    return powerLevelEvent->powerLevelForUser(id());
 }
 
 namespace {
