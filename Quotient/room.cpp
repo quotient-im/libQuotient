@@ -3458,18 +3458,18 @@ QJsonArray Room::exportMegolmSessions()
             continue;
         }
 
+        const auto senderClaimedKey = connection()->database()->edKeyForMegolmSession(QString::fromLatin1(value.sessionId()));
+        const auto senderKey = connection()->database()->senderKeyForMegolmSession(QString::fromLatin1(value.sessionId()));
         const auto json = QJsonObject {
             {"algorithm"_ls, "m.megolm.v1.aes-sha2"_ls},
             {"forwarding_curve25519_key_chain"_ls, QJsonArray()},
             {"room_id"_ls, id()},
-            {"sender_claimed_keys"_ls, QJsonObject{
-                {"ed25519"_ls, connection()->database()->edKeyForMegolmSession(QString::fromLatin1(value.sessionId()))},
-            }},
-            {"sender_key"_ls, connection()->database()->senderKeyForMegolmSession(QString::fromLatin1(value.sessionId()))},
+            {"sender_claimed_keys"_ls, QJsonObject{ {"ed25519"_ls, senderClaimedKey} }},
+            {"sender_key"_ls, senderKey},
             {"session_id"_ls, QString::fromLatin1(value.sessionId())},
             {"session_key"_ls, QString::fromLatin1(session.value())},
         };
-        if (json["sender_claimed_keys"_ls]["ed25519"_ls].toString().isEmpty() || json["sender_key"_ls].toString().isEmpty()) {
+        if (senderClaimedKey.isEmpty() || senderKey.isEmpty()) {
             // These are edge-cases for some sessions that were added before libquotient started storing these fields.
             // Some clients refuse to the entire file if this is missing for one key, so we shouldn't export the session in this case.
             qCWarning(E2EE) << "Session" << value.sessionId() << "has unknown sender key.";
