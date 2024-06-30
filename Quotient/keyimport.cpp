@@ -145,7 +145,6 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QSt
     QJsonArray sessions;
     for (const auto& room : connection->allRooms()) {
         for (const auto &session : room->exportMegolmSessions()) {
-            return {};
             sessions += session;
         }
     }
