@@ -3,7 +3,7 @@ analyzer:
     # Escaping open braces because GTAD always treats subst keys as regexes, unlike other places
     '\{\{% boxes/note %}}': '\note'
     '\{\{% boxes/warning %}}': '\warning'
-    '\{\{< changed-in v="([^ ]+)" >}}': '**(Changed in v$1)**'
+    '\{\{< changed-in v="([^ ]+)" >}}': '<strong>[Changed in v$1]</strong>'
     '( +)\{\{% /boxes/[a-z]+ %}}\n': '' # Delete lines with the closing handlebar entirely
   identifiers:
     signed: signedData
@@ -179,9 +179,6 @@ mustache:
 #    _quote: '"' # Common quote for left and right
 #    _leftQuote: '"'
 #    _rightQuote: '"_ls'
-    _comment: '//'
-    copyrightName: Kitsune Ral
-    copyrightEmail: <kitsune-ral@users.sf.net>
 
   partials:
     _typeRenderer: "{{#scope}}{{#_titleCase}}{{scope}}{{/_titleCase}}Job::{{/scope}}{{>name}}"
@@ -191,6 +188,13 @@ mustache:
 
     maybeDeprecated:
       '{{#deprecated?}}[[deprecated("Check the documentation for details")]] {{/deprecated?}}'
+
+    openIgnoreDeprecations: |-
+      {{#deprecated?}}QT_WARNING_PUSH
+      QT_WARNING_DISABLE_DEPRECATED
+      {{/deprecated?}}
+
+    closeIgnoreDeprecations: '{{#deprecated?}}QT_WARNING_POP{{/deprecated?}}'
 
     openOptional:
       "{{^required?}}{{#useOptional}}\
@@ -242,10 +246,12 @@ mustache:
 
     overloadCollectResponse: |-
 
+      {{>openIgnoreDeprecations}}
       inline auto collectResponse({{^moveOnly}}const {{/moveOnly}}{{>titleCaseOperationId}}Job* job)
       {
         return job->{{paramName}}();
       }
+      {{>closeIgnoreDeprecations}}
 
     # Doc-comment blocks. Comment indent is managed by clang-format
     # (without clang-format there'd have to be a separate partial definition
