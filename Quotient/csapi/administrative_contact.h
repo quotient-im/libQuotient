@@ -129,8 +129,13 @@ public:
     QUrl submitUrl() const { return loadFromJson<QUrl>("submit_url"_ls); }
 };
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
 inline auto collectResponse(const Post3PIDsJob* job) { return job->submitUrl(); }
+QT_WARNING_POP
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
 template <>
 struct QUOTIENT_API JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
     static void dumpTo(QJsonObject& jo, const Post3PIDsJob::ThreePidCredentials& pod)
@@ -141,6 +146,7 @@ struct QUOTIENT_API JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
         addParam<>(jo, QStringLiteral("sid"), pod.sid);
     }
 };
+QT_WARNING_POP
 
 //! \brief Adds contact information to the user's account.
 //!

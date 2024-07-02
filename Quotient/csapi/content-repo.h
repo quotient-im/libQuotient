@@ -120,7 +120,7 @@ constexpr inline auto doCollectResponse<JobT> =
 //! (requires authentication).
 //!
 //! \warning
-//! **(Changed in v1.11)** This endpoint MAY return `404 M_NOT_FOUND`
+//! <strong>[Changed in v1.11]</strong> This endpoint MAY return `404 M_NOT_FOUND`
 //! for media which exists, but is after the server froze unauthenticated
 //! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
 //! information.
@@ -190,7 +190,7 @@ public:
 //! provided by the caller.
 //!
 //! \warning
-//! **(Changed in v1.11)** This endpoint MAY return `404 M_NOT_FOUND`
+//! <strong>[Changed in v1.11]</strong> This endpoint MAY return `404 M_NOT_FOUND`
 //! for media which exists, but is after the server froze unauthenticated
 //! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
 //! information.
@@ -263,7 +263,7 @@ public:
 //! See the [Thumbnails](/client-server-api/#thumbnails) section for more information.
 //!
 //! \warning
-//! **(Changed in v1.11)** This endpoint MAY return `404 M_NOT_FOUND`
+//! <strong>[Changed in v1.11]</strong> This endpoint MAY return `404 M_NOT_FOUND`
 //! for media which exists, but is after the server froze unauthenticated
 //! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
 //! information.
@@ -401,9 +401,12 @@ public:
     };
 };
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
 template <std::derived_from<GetUrlPreviewJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
     [](JobT* j) -> GetUrlPreviewJob::Response { return { j->matrixImageSize(), j->ogImage() }; };
+QT_WARNING_POP
 
 //! \brief Get the configuration for the content repository.
 //!
@@ -443,6 +446,9 @@ public:
     }
 };
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
 inline auto collectResponse(const GetConfigJob* job) { return job->uploadSize(); }
+QT_WARNING_POP
 
 } // namespace Quotient
