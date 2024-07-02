@@ -97,6 +97,21 @@ KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, 
     return Success;
 }
 
+inline QByteArray lineWrapped(QByteArray text, int wrapAt)
+{
+#if defined(__cpp_lib_ranges_chunk) && defined(__cpp_lib_ranges_join_with) \
+    && defined(__cpp_lib_ranges_to_container)
+    using namespace std::ranges;
+    return views::chunk(std::move(text), wrapAt) | views::join_with('\n') | to<QByteArray>();
+#else // Xcode 15 and older; libc++ 17 and older
+    for (auto i = 96; i < text.size(); i += 96) {
+        text.insert(i, "\n");
+        i++;
+    }
+    return text;
+#endif
+}
+
 Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray sessions, const QString& passphrase)
 {
     auto plainText = QJsonDocument(sessions).toJson(QJsonDocument::Compact);
@@ -134,11 +149,8 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::encrypt(QJsonArray s
     data.append(mac.value());
 
     // TODO: use std::ranges::to() once it's available from all stdlibs Quotient builds with
-   return "-----BEGIN MEGOLM SESSION DATA-----\n"_ba
-          % std::ranges::fold_left(std::views::chunk(data.toBase64(), 96)
-                                       | std::views::join_with('\n'),
-                                   QByteArray{}, std::plus<>())
-          % "\n-----END MEGOLM SESSION DATA-----\n"_ba;
+    return "-----BEGIN MEGOLM SESSION DATA-----\n"_ba % lineWrapped(data.toBase64(), 96)
+           % "\n-----END MEGOLM SESSION DATA-----\n"_ba;
 }
 
 
@@ -152,4 +164,3 @@ Quotient::Expected<QByteArray, KeyImport::Error> KeyImport::exportKeys(const QSt
     }
     return encrypt(sessions, passphrase);
 }
-
