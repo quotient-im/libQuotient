@@ -265,7 +265,8 @@ public:
     void handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                             const QString& senderId,
                             const QByteArray& olmSessionId,
-                            const QByteArray& senderKey);
+                            const QByteArray& senderKey,
+                            const QByteArray& senderEdKey);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
@@ -679,9 +680,11 @@ public:
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
 
-    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index, const QByteArray& senderKey);
+    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index, const QByteArray& senderKey, const QByteArray& senderEdKey);
 
     Q_INVOKABLE void startVerification();
+
+    QJsonArray exportMegolmSessions();
 
 public Q_SLOTS:
     /** Check whether the room should be upgraded */

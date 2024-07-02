@@ -340,7 +340,7 @@ public:
 
     bool addInboundGroupSession(QByteArray sessionId, QByteArray sessionKey,
                                 const QString& senderId,
-                                const QByteArray& olmSessionId, const QByteArray& senderKey)
+                                const QByteArray& olmSessionId, const QByteArray& senderKey, const QByteArray& senderEdKey)
     {
         if (groupSessions.contains(sessionId)) {
             qCWarning(E2EE) << "Inbound Megolm session" << sessionId << "already exists";
@@ -357,7 +357,7 @@ public:
         megolmSession.setSenderId(senderId);
         megolmSession.setOlmSessionId(olmSessionId);
         qCWarning(E2EE) << "Adding inbound session" << sessionId;
-        connection->saveMegolmSession(q, megolmSession, senderKey);
+        connection->saveMegolmSession(q, megolmSession, senderKey, senderEdKey);
         groupSessions.try_emplace(sessionId, std::move(megolmSession));
         return true;
     }
@@ -434,7 +434,9 @@ public:
 
         addInboundGroupSession(currentOutboundMegolmSession->sessionId(),
                                currentOutboundMegolmSession->sessionKey(),
-                               q->localMember().id(), QByteArrayLiteral("SELF"), connection->curveKeyForUserDevice(connection->userId(), connection->deviceId()).toLatin1());
+                               q->localMember().id(), QByteArrayLiteral("SELF"),
+                               connection->curveKeyForUserDevice(connection->userId(), connection->deviceId()).toLatin1(),
+                               connection->edKeyForUserDevice(connection->userId(), connection->deviceId()).toLatin1());
     }
 
     QMultiHash<QString, QString> getDevicesWithoutKey() const
@@ -1550,7 +1552,8 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                               const QString& senderId,
                               const QByteArray& olmSessionId,
-                              const QByteArray& senderKey)
+                              const QByteArray& senderKey,
+                              const QByteArray& senderEdKey)
 {
     if (roomKeyEvent.algorithm() != MegolmV1AesSha2AlgoKey) {
         qCWarning(E2EE) << "Ignoring unsupported algorithm"
@@ -1558,7 +1561,7 @@ void Room::handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
     }
     if (d->addInboundGroupSession(roomKeyEvent.sessionId().toLatin1(),
                                   roomKeyEvent.sessionKey(), senderId,
-                                  olmSessionId, senderKey)) {
+                                  olmSessionId, senderKey, senderEdKey)) {
         qCWarning(E2EE) << "added new inboundGroupSession:"
                         << d->groupSessions.size();
         const auto undecryptedEvents =
@@ -3414,7 +3417,7 @@ void Room::activateEncryption()
     setState<EncryptionEvent>(EncryptionType::MegolmV1AesSha2);
 }
 
-void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteArray& sessionKey, uint32_t index, const QByteArray& senderKey)
+void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteArray& sessionKey, uint32_t index, const QByteArray& senderKey, const QByteArray& senderEdKey)
 {
     const auto sessionIt = d->groupSessions.find(sessionId);
     if (sessionIt != d->groupSessions.end() && sessionIt->second.firstKnownIndex() <= index)
@@ -3432,7 +3435,7 @@ void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteAr
                                 ? QByteArrayLiteral("BACKUP_VERIFIED")
                                 : QByteArrayLiteral("BACKUP"));
     session.setSenderId("BACKUP"_ls);
-    d->connection->saveMegolmSession(this, session, senderKey);
+    d->connection->saveMegolmSession(this, session, senderKey, senderEdKey);
 }
 
 void Room::startVerification()
@@ -3443,3 +3446,36 @@ void Room::startVerification()
     d->pendingKeyVerificationSession = new KeyVerificationSession(this);
     emit d->connection->newKeyVerificationSession(d->pendingKeyVerificationSession);
 }
+
+QJsonArray Room::exportMegolmSessions()
+{
+    QJsonArray sessions;
+    for (auto& [key, value] : d->groupSessions) {
+        auto session = value.exportSession(value.firstKnownIndex());
+        if (!session.has_value()) {
+            qCWarning(E2EE) << "Failed to export session" << session.error();
+            continue;
+        }
+
+        const auto senderClaimedKey = connection()->database()->edKeyForMegolmSession(QString::fromLatin1(value.sessionId()));
+        const auto senderKey = connection()->database()->senderKeyForMegolmSession(QString::fromLatin1(value.sessionId()));
+        const auto json = QJsonObject {
+            {"algorithm"_ls, "m.megolm.v1.aes-sha2"_ls},
+            {"forwarding_curve25519_key_chain"_ls, QJsonArray()},
+            {"room_id"_ls, id()},
+            {"sender_claimed_keys"_ls, QJsonObject{ {"ed25519"_ls, senderClaimedKey} }},
+            {"sender_key"_ls, senderKey},
+            {"session_id"_ls, QString::fromLatin1(value.sessionId())},
+            {"session_key"_ls, QString::fromLatin1(session.value())},
+        };
+        if (senderClaimedKey.isEmpty() || senderKey.isEmpty()) {
+            // These are edge-cases for some sessions that were added before libquotient started storing these fields.
+            // Some clients refuse to the entire file if this is missing for one key, so we shouldn't export the session in this case.
+            qCWarning(E2EE) << "Session" << value.sessionId() << "has unknown sender key.";
+            continue;
+        }
+        sessions.append(json);
+    }
+    return sessions;
+}
+

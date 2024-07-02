@@ -214,7 +214,7 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
                     const auto data = QJsonDocument::fromJson(result.value()).object();
                     m_connection->room(roomId)->addMegolmSessionFromBackup(
                         sessionId.toLatin1(), data["session_key"_ls].toString().toLatin1(),
-                        static_cast<uint32_t>(backupData.firstMessageIndex), data["sender_key"_ls].toVariant().toByteArray());
+                        static_cast<uint32_t>(backupData.firstMessageIndex), data["sender_key"_ls].toVariant().toByteArray(), data["sender_claimed_keys"_ls]["ed25519"_ls].toVariant().toByteArray());
                 }
             }
             emit finished();

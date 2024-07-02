@@ -35,10 +35,12 @@ public:
 
     Q_INVOKABLE Error importKeys(QString data, const QString& passphrase,
                                  const Quotient::Connection* connection);
+    Q_INVOKABLE Quotient::Expected<QByteArray, Error> exportKeys(const QString& passphrase, const Quotient::Connection* connection);
 
     friend class ::TestKeyImport;
 private:
     Quotient::Expected<QJsonArray, Error> decrypt(QString data, const QString& passphrase);
+    Quotient::Expected<QByteArray, Error> encrypt(QJsonArray sessions, const QString& passphrase);
 };
 
 }

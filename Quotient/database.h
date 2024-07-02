@@ -42,7 +42,8 @@ public:
         const QString& roomId);
     void saveMegolmSession(const QString& roomId,
                            const QOlmInboundGroupSession& session,
-                           const QByteArray& senderKey);
+                           const QByteArray& senderKey,
+                           const QByteArray& senderClaimedEdKey);
     void addGroupSessionIndexRecord(const QString& roomId,
                                     const QString& sessionId, uint32_t index,
                                     const QString& eventId, qint64 ts);
@@ -79,6 +80,9 @@ public:
     QString userSigningPublicKey();
     QString selfSigningPublicKey();
 
+    QString edKeyForMegolmSession(const QString& sessionId);
+    QString senderKeyForMegolmSession(const QString& sessionId);
+
 private:
     void migrateTo1();
     void migrateTo2();
@@ -89,6 +93,7 @@ private:
     void migrateTo7();
     void migrateTo8();
     void migrateTo9();
+    void migrateTo10();
 
     QString m_userId;
     QString m_deviceId;

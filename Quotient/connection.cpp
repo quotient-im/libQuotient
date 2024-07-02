@@ -1743,9 +1743,9 @@ std::unordered_map<QByteArray, QOlmInboundGroupSession> Connection::loadRoomMego
 }
 
 void Connection::saveMegolmSession(const Room* room,
-                                   const QOlmInboundGroupSession& session, const QByteArray& senderKey) const
+                                   const QOlmInboundGroupSession& session, const QByteArray& senderKey, const QByteArray& senderEdKey) const
 {
-    database()->saveMegolmSession(room->id(), session, senderKey);
+    database()->saveMegolmSession(room->id(), session, senderKey, senderEdKey);
 }
 
 QStringList Connection::devicesForUser(const QString& userId) const
