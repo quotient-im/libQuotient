@@ -7,7 +7,7 @@
 namespace Quotient {
 
 struct QUOTIENT_API PushCondition {
-    //! The kind of condition to apply. See [conditions](/client-server-api/#conditions) for
+    //! The kind of condition to apply. See [conditions](/client-server-api/#conditions-1) for
     //! more information on the allowed kinds and how they work.
     QString kind;
 

@@ -99,9 +99,9 @@ public:
         //! The historic profile information of the
         //! users that sent the events returned.
         //!
-        //! The `string` key is the user ID for which
+        //! The key is the user ID for which
         //! the profile belongs to.
-        QHash<QString, UserProfile> profileInfo{};
+        QHash<UserId, UserProfile> profileInfo{};
 
         //! Events just before the result.
         RoomEvents eventsBefore{};
@@ -155,9 +155,9 @@ public:
         //! This is included if the request had the
         //! `include_state` key set with a value of `true`.
         //!
-        //! The `string` key is the room ID for which the `State
+        //! The key is the room ID for which the `State
         //! Event` array belongs to.
-        std::unordered_map<QString, StateEvents> state{};
+        std::unordered_map<RoomId, StateEvents> state{};
 
         //! Any groups that were requested.
         //!

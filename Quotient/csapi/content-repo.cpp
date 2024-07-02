@@ -33,7 +33,7 @@ UploadContentToMXCJob::UploadContentToMXCJob(const QString& serverName, const QS
                                              const QString& contentType)
     : BaseJob(HttpVerb::Put, QStringLiteral("UploadContentToMXCJob"),
               makePath("/_matrix", "/media/v3/upload/", serverName, "/", mediaId),
-              queryToUploadContentToMXC(filename), {}, false)
+              queryToUploadContentToMXC(filename))
 {
     setRequestHeader("Content-Type", contentType.toLatin1());
     setRequestData({ content });
@@ -73,7 +73,7 @@ GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId, 
                              qint64 timeoutMs, bool allowRedirect)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetContentJob"),
               makePath("/_matrix", "/media/v3/download/", serverName, "/", mediaId),
-              queryToGetContent(allowRemote, timeoutMs, allowRedirect))
+              queryToGetContent(allowRemote, timeoutMs, allowRedirect), {}, false)
 {
     setExpectedContentTypes({ "application/octet-stream" });
 }
@@ -104,13 +104,13 @@ GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName,
                                                      qint64 timeoutMs, bool allowRedirect)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetContentOverrideNameJob"),
               makePath("/_matrix", "/media/v3/download/", serverName, "/", mediaId, "/", fileName),
-              queryToGetContentOverrideName(allowRemote, timeoutMs, allowRedirect))
+              queryToGetContentOverrideName(allowRemote, timeoutMs, allowRedirect), {}, false)
 {
     setExpectedContentTypes({ "application/octet-stream" });
 }
 
 auto queryToGetContentThumbnail(int width, int height, const QString& method, bool allowRemote,
-                                qint64 timeoutMs, bool allowRedirect)
+                                qint64 timeoutMs, bool allowRedirect, std::optional<bool> animated)
 {
     QUrlQuery _q;
     addParam<>(_q, QStringLiteral("width"), width);
@@ -119,29 +119,34 @@ auto queryToGetContentThumbnail(int width, int height, const QString& method, bo
     addParam<IfNotEmpty>(_q, QStringLiteral("allow_remote"), allowRemote);
     addParam<IfNotEmpty>(_q, QStringLiteral("timeout_ms"), timeoutMs);
     addParam<IfNotEmpty>(_q, QStringLiteral("allow_redirect"), allowRedirect);
+    addParam<IfNotEmpty>(_q, QStringLiteral("animated"), animated);
     return _q;
 }
 
 QUrl GetContentThumbnailJob::makeRequestUrl(QUrl baseUrl, const QString& serverName,
                                             const QString& mediaId, int width, int height,
                                             const QString& method, bool allowRemote,
-                                            qint64 timeoutMs, bool allowRedirect)
+                                            qint64 timeoutMs, bool allowRedirect,
+                                            std::optional<bool> animated)
 {
-    return BaseJob::makeRequestUrl(
-        std::move(baseUrl), makePath("/_matrix", "/media/v3/thumbnail/", serverName, "/", mediaId),
-        queryToGetContentThumbnail(width, height, method, allowRemote, timeoutMs, allowRedirect));
+    return BaseJob::makeRequestUrl(std::move(baseUrl),
+                                   makePath("/_matrix", "/media/v3/thumbnail/", serverName, "/",
+                                            mediaId),
+                                   queryToGetContentThumbnail(width, height, method, allowRemote,
+                                                              timeoutMs, allowRedirect, animated));
 }
 
 GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const QString& mediaId,
                                                int width, int height, const QString& method,
                                                bool allowRemote, qint64 timeoutMs,
-                                               bool allowRedirect)
+                                               bool allowRedirect, std::optional<bool> animated)
     : BaseJob(HttpVerb::Get, QStringLiteral("GetContentThumbnailJob"),
               makePath("/_matrix", "/media/v3/thumbnail/", serverName, "/", mediaId),
               queryToGetContentThumbnail(width, height, method, allowRemote, timeoutMs,
-                                         allowRedirect))
+                                         allowRedirect, animated),
+              {}, false)
 {
-    setExpectedContentTypes({ "image/jpeg", "image/png" });
+    setExpectedContentTypes({ "image/jpeg", "image/png", "image/apng", "image/gif", "image/webp" });
 }
 
 auto queryToGetUrlPreview(const QUrl& url, std::optional<qint64> ts)

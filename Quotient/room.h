@@ -554,7 +554,7 @@ public:
 
     QStringList tagNames() const;
     TagsMap tags() const;
-    TagRecord tag(const QString& name) const;
+    Tag tag(const QString& name) const;
 
     /** Add a new tag to this room
      * If this room already has this tag, nothing happens. If it's a new
@@ -562,7 +562,7 @@ public:
      * of tags and the new set is sent to the server to update other
      * clients.
      */
-    void addTag(const QString& name, const TagRecord& record = {});
+    void addTag(const QString& name, const Tag& tagData = {});
     Q_INVOKABLE void addTag(const QString& name, float order);
 
     /// Remove a tag from the room

@@ -5,45 +5,23 @@
 
 #include "event.h"
 
+#include "../csapi/definitions/tag.h"
+
 namespace Quotient {
 constexpr inline auto FavouriteTag = "m.favourite"_ls;
 constexpr inline auto LowPriorityTag = "m.lowpriority"_ls;
 constexpr inline auto ServerNoticeTag = "m.server_notice"_ls;
 
-struct TagRecord {
-    std::optional<float> order = std::nullopt;
-};
+using TagRecord [[deprecated("Use Tag from csapi/definitions/tag.h instead")]] = Tag;
 
-inline bool operator<(TagRecord lhs, TagRecord rhs)
+inline bool operator<(Tag lhs, Tag rhs)
 {
     // Per The Spec, rooms with no order should be after those with order,
     // against std::optional<>::operator<() convention.
     return lhs.order && (!rhs.order || *lhs.order < *rhs.order);
 }
 
-template <>
-struct JsonObjectConverter<TagRecord> {
-    static void fillFrom(const QJsonObject& jo, TagRecord& rec)
-    {
-        // Parse a float both from JSON double and JSON string because
-        // the library previously used to use strings to store order.
-        const auto orderJv = jo.value("order"_ls);
-        if (orderJv.isDouble())
-            rec.order = fromJson<float>(orderJv);
-        if (orderJv.isString()) {
-            bool ok = false;
-            rec.order = orderJv.toString().toFloat(&ok);
-            if (!ok)
-                rec.order = std::nullopt;
-        }
-    }
-    static void dumpTo(QJsonObject& jo, TagRecord rec)
-    {
-        addParam<IfNotEmpty>(jo, QStringLiteral("order"), rec.order);
-    }
-};
-
-using TagsMap = QHash<QString, TagRecord>;
+using TagsMap = QHash<QString, Tag>;
 
 DEFINE_SIMPLE_EVENT(TagEvent, Event, "m.tag", TagsMap, tags, "tags")
 DEFINE_SIMPLE_EVENT(ReadMarkerEvent, Event, "m.fully_read", QString,

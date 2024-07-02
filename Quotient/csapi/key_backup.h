@@ -447,7 +447,7 @@ public:
     //!
     //! \param rooms
     //!   A map of room IDs to room key backup data.
-    explicit PutRoomKeysJob(const QString& version, const QHash<QString, RoomKeyBackup>& rooms);
+    explicit PutRoomKeysJob(const QString& version, const QHash<RoomId, RoomKeyBackup>& rooms);
 
     // Result properties
 
@@ -490,9 +490,9 @@ public:
     // Result properties
 
     //! A map of room IDs to room key backup data.
-    QHash<QString, RoomKeyBackup> rooms() const
+    QHash<RoomId, RoomKeyBackup> rooms() const
     {
-        return loadFromJson<QHash<QString, RoomKeyBackup>>("rooms"_ls);
+        return loadFromJson<QHash<RoomId, RoomKeyBackup>>("rooms"_ls);
     }
 };
 

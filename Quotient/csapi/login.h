@@ -76,6 +76,10 @@ public:
     //! \param type
     //!   The login type being used.
     //!
+    //!   This must be a type returned in one of the flows of the
+    //!   response of the [`GET /login`](/client-server-api/#get_matrixclientv3login)
+    //!   endpoint, like `m.login.password` or `m.login.token`.
+    //!
     //!
     //! \param password
     //!   Required when `type` is `m.login.password`. The user's

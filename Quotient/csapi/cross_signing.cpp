@@ -21,7 +21,7 @@ UploadCrossSigningKeysJob::UploadCrossSigningKeysJob(
 }
 
 UploadCrossSigningSignaturesJob::UploadCrossSigningSignaturesJob(
-    const QHash<QString, QHash<QString, QJsonObject>>& signatures)
+    const QHash<UserId, QHash<QString, QJsonObject>>& signatures)
     : BaseJob(HttpVerb::Post, QStringLiteral("UploadCrossSigningSignaturesJob"),
               makePath("/_matrix/client/v3", "/keys/signatures/upload"))
 {

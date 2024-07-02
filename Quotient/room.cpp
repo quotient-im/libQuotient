@@ -1288,7 +1288,7 @@ QStringList Room::tagNames() const { return d->tags.keys(); }
 
 TagsMap Room::tags() const { return d->tags; }
 
-TagRecord Room::tag(const QString& name) const { return d->tags.value(name); }
+Tag Room::tag(const QString& name) const { return d->tags.value(name); }
 
 std::pair<bool, QString> validatedTag(QString name)
 {
@@ -1303,7 +1303,7 @@ std::pair<bool, QString> validatedTag(QString name)
     return { true, name };
 }
 
-void Room::addTag(const QString& name, const TagRecord& record)
+void Room::addTag(const QString& name, const Tag& tagData)
 {
     const auto& checkRes = validatedTag(name);
     if (d->tags.contains(name)
@@ -1311,15 +1311,14 @@ void Room::addTag(const QString& name, const TagRecord& record)
         return;
 
     emit tagsAboutToChange();
-    d->tags.insert(checkRes.second, record);
+    d->tags.insert(checkRes.second, tagData);
     emit tagsChanged();
-    connection()->callApi<SetRoomTagJob>(localMember().id(), id(),
-                                         checkRes.second, record.order);
+    connection()->callApi<SetRoomTagJob>(localMember().id(), id(), checkRes.second, tagData);
 }
 
 void Room::addTag(const QString& name, float order)
 {
-    addTag(name, TagRecord { order });
+    addTag(name, Tag { order });
 }
 
 void Room::removeTag(const QString& name)

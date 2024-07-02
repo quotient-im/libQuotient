@@ -92,7 +92,7 @@ public:
     //! \param timeout
     //!   The time (in milliseconds) to wait when downloading keys from
     //!   remote servers. 10 seconds is the recommended default.
-    explicit QueryKeysJob(const QHash<QString, QStringList>& deviceKeys,
+    explicit QueryKeysJob(const QHash<UserId, QStringList>& deviceKeys,
                           std::optional<int> timeout = std::nullopt);
 
     // Result properties
@@ -114,9 +114,9 @@ public:
     //! the information returned will be the same as uploaded via
     //! `/keys/upload`, with the addition of an `unsigned`
     //! property.
-    QHash<QString, QHash<QString, DeviceInformation>> deviceKeys() const
+    QHash<UserId, QHash<QString, DeviceInformation>> deviceKeys() const
     {
-        return loadFromJson<QHash<QString, QHash<QString, DeviceInformation>>>("device_keys"_ls);
+        return loadFromJson<QHash<UserId, QHash<QString, DeviceInformation>>>("device_keys"_ls);
     }
 
     //! Information on the master cross-signing keys of the queried users.
@@ -125,18 +125,18 @@ public:
     //! `/keys/device_signing/upload`, along with the signatures
     //! uploaded via `/keys/signatures/upload` that the requesting user
     //! is allowed to see.
-    QHash<QString, CrossSigningKey> masterKeys() const
+    QHash<UserId, CrossSigningKey> masterKeys() const
     {
-        return loadFromJson<QHash<QString, CrossSigningKey>>("master_keys"_ls);
+        return loadFromJson<QHash<UserId, CrossSigningKey>>("master_keys"_ls);
     }
 
     //! Information on the self-signing keys of the queried users. A map
     //! from user ID, to self-signing key information.  For each key, the
     //! information returned will be the same as uploaded via
     //! `/keys/device_signing/upload`.
-    QHash<QString, CrossSigningKey> selfSigningKeys() const
+    QHash<UserId, CrossSigningKey> selfSigningKeys() const
     {
-        return loadFromJson<QHash<QString, CrossSigningKey>>("self_signing_keys"_ls);
+        return loadFromJson<QHash<UserId, CrossSigningKey>>("self_signing_keys"_ls);
     }
 
     //! Information on the user-signing key of the user making the
@@ -144,9 +144,9 @@ public:
     //! from user ID, to user-signing key information.  The
     //! information returned will be the same as uploaded via
     //! `/keys/device_signing/upload`.
-    QHash<QString, CrossSigningKey> userSigningKeys() const
+    QHash<UserId, CrossSigningKey> userSigningKeys() const
     {
-        return loadFromJson<QHash<QString, CrossSigningKey>>("user_signing_keys"_ls);
+        return loadFromJson<QHash<UserId, CrossSigningKey>>("user_signing_keys"_ls);
     }
 
     struct Response {
@@ -164,7 +164,7 @@ public:
         //! the information returned will be the same as uploaded via
         //! `/keys/upload`, with the addition of an `unsigned`
         //! property.
-        QHash<QString, QHash<QString, DeviceInformation>> deviceKeys{};
+        QHash<UserId, QHash<QString, DeviceInformation>> deviceKeys{};
 
         //! Information on the master cross-signing keys of the queried users.
         //! A map from user ID, to master key information.  For each key, the
@@ -172,20 +172,20 @@ public:
         //! `/keys/device_signing/upload`, along with the signatures
         //! uploaded via `/keys/signatures/upload` that the requesting user
         //! is allowed to see.
-        QHash<QString, CrossSigningKey> masterKeys{};
+        QHash<UserId, CrossSigningKey> masterKeys{};
 
         //! Information on the self-signing keys of the queried users. A map
         //! from user ID, to self-signing key information.  For each key, the
         //! information returned will be the same as uploaded via
         //! `/keys/device_signing/upload`.
-        QHash<QString, CrossSigningKey> selfSigningKeys{};
+        QHash<UserId, CrossSigningKey> selfSigningKeys{};
 
         //! Information on the user-signing key of the user making the
         //! request, if they queried their own device information. A map
         //! from user ID, to user-signing key information.  The
         //! information returned will be the same as uploaded via
         //! `/keys/device_signing/upload`.
-        QHash<QString, CrossSigningKey> userSigningKeys{};
+        QHash<UserId, CrossSigningKey> userSigningKeys{};
     };
 };
 
@@ -224,7 +224,7 @@ public:
     //! \param timeout
     //!   The time (in milliseconds) to wait when downloading keys from
     //!   remote servers. 10 seconds is the recommended default.
-    explicit ClaimKeysJob(const QHash<QString, QHash<QString, QString>>& oneTimeKeys,
+    explicit ClaimKeysJob(const QHash<UserId, QHash<QString, QString>>& oneTimeKeys,
                           std::optional<int> timeout = std::nullopt);
 
     // Result properties
@@ -249,9 +249,9 @@ public:
     //!
     //! If necessary, the claimed key might be a fallback key. Fallback
     //! keys are re-used by the server until replaced by the device.
-    QHash<QString, QHash<QString, OneTimeKeys>> oneTimeKeys() const
+    QHash<UserId, QHash<QString, OneTimeKeys>> oneTimeKeys() const
     {
-        return loadFromJson<QHash<QString, QHash<QString, OneTimeKeys>>>("one_time_keys"_ls);
+        return loadFromJson<QHash<UserId, QHash<QString, OneTimeKeys>>>("one_time_keys"_ls);
     }
 
     struct Response {
@@ -272,7 +272,7 @@ public:
         //!
         //! If necessary, the claimed key might be a fallback key. Fallback
         //! keys are re-used by the server until replaced by the device.
-        QHash<QString, QHash<QString, OneTimeKeys>> oneTimeKeys{};
+        QHash<UserId, QHash<QString, OneTimeKeys>> oneTimeKeys{};
     };
 };
 
