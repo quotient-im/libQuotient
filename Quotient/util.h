@@ -355,10 +355,7 @@ constexpr qint64 ProfilerMinNsecs =
 //! \param dbg to output the json to
 //! \param manipFn a QDebug manipulator
 //! \return a copy of dbg that has its mode altered by manipFn
-template <typename FnT>
-inline QDebug operator<<(QDebug dbg, FnT manipFn)
-    requires std::is_invocable_v<FnT, QDebug>
-// TODO: move over to std::invocable once on Apple Clang 14 (lib 0.9, i.e.)
+inline QDebug operator<<(QDebug dbg, std::invocable<QDebug> auto manipFn)
 {
     return std::invoke(manipFn, dbg);
 }
