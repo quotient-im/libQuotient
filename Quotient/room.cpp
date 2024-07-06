@@ -1522,6 +1522,22 @@ RoomStateView Room::currentState() const
     return d->currentState;
 }
 
+int Room::memberEffectivePowerLevel(const QString& memberId) const
+{
+    if (!successorId().isEmpty()) {
+        return 0; // No one can upgrade a room that's already upgraded
+    }
+
+    const auto& mId = memberId.isEmpty() ? connection()->userId() :memberId;
+    if (const auto* plEvent = currentState().get<RoomPowerLevelsEvent>()) {
+        return plEvent->powerLevelForUser(mId);
+    }
+    if (const auto* createEvent = creation()) {
+        return createEvent->senderId() == mId ? 100 : 0;
+    }
+    return 0; // That's rather weird but may happen, according to rvdh
+}
+
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 {
     if (const auto algorithm = encryptedEvent.algorithm();

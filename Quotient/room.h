@@ -142,6 +142,7 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
     Q_PROPERTY(QList<RoomMember> membersTyping READ membersTyping NOTIFY typingChanged)
     Q_PROPERTY(QList<RoomMember> otherMembersTyping READ otherMembersTyping NOTIFY typingChanged)
+    Q_PROPERTY(int localMemberEffectivePowerLevel READ memberEffectivePowerLevel NOTIFY changed)
 
     Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY
                    displayedChanged)
@@ -656,6 +657,20 @@ public:
 
     /// \brief Get the current room state
     RoomStateView currentState() const;
+
+    //! \brief The effective power level of the given member in the room.
+    //!
+    //! Since a RoomPowerLevels state event may not always be available the following
+    //! is taken into account in line with the Matrix spec
+    //! https://spec.matrix.org/v1.8/client-server-api/#mroompower_levels:
+    //!     - The users_default is assumed to be 0.
+    //!     - The room creator is assumed to be 100.
+    //!
+    //! If \p memberId is empty the power level of the local user will be returned.
+    //! If the room has been upgraded 0 will be returned to prevent further upgrade attempts.
+    //!
+    //! \sa RoomPowerLevelsEvent
+    Q_INVOKABLE int memberEffectivePowerLevel(const QString& memberId) const;
 
     //! Send a request to update the room state with the given event
     SetRoomStateWithKeyJob* setState(const StateEvent& evt);
