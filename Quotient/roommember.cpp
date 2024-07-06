@@ -133,6 +133,14 @@ QUrl RoomMember::avatarUrl() const {
     return {};
 }
 
+int RoomMember::powerLevel() const
+{
+    if (_room == nullptr || _member == nullptr) {
+        return std::numeric_limits<int>::min();
+    }
+    return _room->memberEffectivePowerLevel(id());
+}
+
 namespace {
 inline QStringView removeLeadingAt(QStringView sv) { return sv.mid(sv.startsWith(u'@') ? 1 : 0); }
 }

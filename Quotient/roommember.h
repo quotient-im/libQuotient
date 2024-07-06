@@ -42,6 +42,7 @@ class QUOTIENT_API RoomMember {
     Q_PROPERTY(qreal hueF READ hueF CONSTANT)
     Q_PROPERTY(QColor color READ color CONSTANT)
     Q_PROPERTY(QUrl avatarUrl READ avatarUrl CONSTANT)
+    Q_PROPERTY(int powerLevel READ powerLevel CONSTANT)
 
 public:
     RoomMember() = default;
@@ -194,6 +195,12 @@ public:
     //!
     //!This can be empty if none set.
     QUrl avatarUrl() const;
+
+    //! \brief The power level of the member.
+    //!
+    //! This is in the context of the current room. Will return the default power
+    //! level for the room if not specifically set.
+    int powerLevel() const;
 
 private:
     const Room* _room = nullptr;
