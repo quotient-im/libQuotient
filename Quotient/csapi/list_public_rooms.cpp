@@ -4,9 +4,10 @@
 
 using namespace Quotient;
 
-QUrl GetRoomVisibilityOnDirectoryJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+QUrl GetRoomVisibilityOnDirectoryJob::makeRequestUrl(const HomeserverData& hsData,
+                                                     const QString& roomId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/directory/list/room/", roomId));
 }
 
@@ -34,11 +35,10 @@ auto queryToGetPublicRooms(std::optional<int> limit, const QString& since, const
     return _q;
 }
 
-QUrl GetPublicRoomsJob::makeRequestUrl(QUrl baseUrl, std::optional<int> limit, const QString& since,
-                                       const QString& server)
+QUrl GetPublicRoomsJob::makeRequestUrl(const HomeserverData& hsData, std::optional<int> limit,
+                                       const QString& since, const QString& server)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/publicRooms"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/publicRooms"),
                                    queryToGetPublicRooms(limit, since, server));
 }
 

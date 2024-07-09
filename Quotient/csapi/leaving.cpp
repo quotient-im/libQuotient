@@ -13,9 +13,9 @@ LeaveRoomJob::LeaveRoomJob(const QString& roomId, const QString& reason)
     setRequestData({ _dataJson });
 }
 
-QUrl ForgetRoomJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+QUrl ForgetRoomJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/rooms/", roomId, "/forget"));
 }
 

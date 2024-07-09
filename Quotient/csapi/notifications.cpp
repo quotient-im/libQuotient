@@ -13,11 +13,10 @@ auto queryToGetNotifications(const QString& from, std::optional<int> limit, cons
     return _q;
 }
 
-QUrl GetNotificationsJob::makeRequestUrl(QUrl baseUrl, const QString& from,
+QUrl GetNotificationsJob::makeRequestUrl(const HomeserverData& hsData, const QString& from,
                                          std::optional<int> limit, const QString& only)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/notifications"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/notifications"),
                                    queryToGetNotifications(from, limit, only));
 }
 

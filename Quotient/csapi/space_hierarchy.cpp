@@ -15,12 +15,12 @@ auto queryToGetSpaceHierarchy(std::optional<bool> suggestedOnly, std::optional<i
     return _q;
 }
 
-QUrl GetSpaceHierarchyJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
+QUrl GetSpaceHierarchyJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
                                           std::optional<bool> suggestedOnly,
                                           std::optional<int> limit, std::optional<int> maxDepth,
                                           const QString& from)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/hierarchy"),
                                    queryToGetSpaceHierarchy(suggestedOnly, limit, maxDepth, from));
 }

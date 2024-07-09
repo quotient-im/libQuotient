@@ -12,10 +12,11 @@ auto queryToGetEventContext(std::optional<int> limit, const QString& filter)
     return _q;
 }
 
-QUrl GetEventContextJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
-                                        std::optional<int> limit, const QString& filter)
+QUrl GetEventContextJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                                        const QString& eventId, std::optional<int> limit,
+                                        const QString& filter)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/rooms/", roomId, "/context/",
                                             eventId),
                                    queryToGetEventContext(limit, filter));

@@ -12,10 +12,11 @@ SetAccountDataJob::SetAccountDataJob(const QString& userId, const QString& type,
     setRequestData({ toJson(content) });
 }
 
-QUrl GetAccountDataJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& type)
+QUrl GetAccountDataJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                                       const QString& type)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/user/",
-                                                                userId, "/account_data/", type));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/user/", userId,
+                                                    "/account_data/", type));
 }
 
 GetAccountDataJob::GetAccountDataJob(const QString& userId, const QString& type)
@@ -32,12 +33,11 @@ SetAccountDataPerRoomJob::SetAccountDataPerRoomJob(const QString& userId, const 
     setRequestData({ toJson(content) });
 }
 
-QUrl GetAccountDataPerRoomJob::makeRequestUrl(QUrl baseUrl, const QString& userId,
+QUrl GetAccountDataPerRoomJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId,
                                               const QString& roomId, const QString& type)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/user/", userId, "/rooms/",
-                                            roomId, "/account_data/", type));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/user/", userId,
+                                                    "/rooms/", roomId, "/account_data/", type));
 }
 
 GetAccountDataPerRoomJob::GetAccountDataPerRoomJob(const QString& userId, const QString& roomId,

@@ -19,7 +19,7 @@ public:
     //!
     //! This function can be used when a URL for LogoutJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 };
 
 //! \brief Invalidates all access tokens for a user
@@ -43,7 +43,7 @@ public:
     //!
     //! This function can be used when a URL for LogoutAllJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 };
 
 } // namespace Quotient

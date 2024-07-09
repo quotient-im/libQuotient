@@ -36,7 +36,7 @@ public:
     //!
     //! This function can be used when a URL for GetRoomIdByAliasJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomAlias);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomAlias);
 
     // Result properties
 
@@ -83,7 +83,7 @@ public:
     //!
     //! This function can be used when a URL for DeleteRoomAliasJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomAlias);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomAlias);
 };
 
 //! \brief Get a list of local aliases on a given room.
@@ -114,7 +114,7 @@ public:
     //!
     //! This function can be used when a URL for GetLocalAliasesJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
 
     // Result properties
 

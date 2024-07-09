@@ -43,8 +43,9 @@ public:
     //!
     //! This function can be used when a URL for GetThreadRootsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& include = {},
-                               std::optional<int> limit = std::nullopt, const QString& from = {});
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& include = {}, std::optional<int> limit = std::nullopt,
+                               const QString& from = {});
 
     // Result properties
 

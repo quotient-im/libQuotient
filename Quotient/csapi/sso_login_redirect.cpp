@@ -11,10 +11,9 @@ auto queryToRedirectToSSO(const QString& redirectUrl)
     return _q;
 }
 
-QUrl RedirectToSSOJob::makeRequestUrl(QUrl baseUrl, const QString& redirectUrl)
+QUrl RedirectToSSOJob::makeRequestUrl(const HomeserverData& hsData, const QString& redirectUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/login/sso/redirect"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/login/sso/redirect"),
                                    queryToRedirectToSSO(redirectUrl));
 }
 
@@ -31,9 +30,10 @@ auto queryToRedirectToIdP(const QString& redirectUrl)
     return _q;
 }
 
-QUrl RedirectToIdPJob::makeRequestUrl(QUrl baseUrl, const QString& idpId, const QString& redirectUrl)
+QUrl RedirectToIdPJob::makeRequestUrl(const HomeserverData& hsData, const QString& idpId,
+                                      const QString& redirectUrl)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/login/sso/redirect/", idpId),
                                    queryToRedirectToIdP(redirectUrl));
 }

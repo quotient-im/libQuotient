@@ -4,10 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetPushRulesJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetPushRulesJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/pushrules"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules"));
 }
 
 GetPushRulesJob::GetPushRulesJob()
@@ -17,11 +16,11 @@ GetPushRulesJob::GetPushRulesJob()
     addExpectedKey("global");
 }
 
-QUrl GetPushRuleJob::makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                                    const QString& ruleId)
+QUrl GetPushRuleJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                                    const QString& kind, const QString& ruleId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/pushrules/",
-                                                                scope, "/", kind, "/", ruleId));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
+                                                    kind, "/", ruleId));
 }
 
 GetPushRuleJob::GetPushRuleJob(const QString& scope, const QString& kind, const QString& ruleId)
@@ -29,11 +28,11 @@ GetPushRuleJob::GetPushRuleJob(const QString& scope, const QString& kind, const 
               makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId))
 {}
 
-QUrl DeletePushRuleJob::makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                                       const QString& ruleId)
+QUrl DeletePushRuleJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                                       const QString& kind, const QString& ruleId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/pushrules/",
-                                                                scope, "/", kind, "/", ruleId));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
+                                                    kind, "/", ruleId));
 }
 
 DeletePushRuleJob::DeletePushRuleJob(const QString& scope, const QString& kind,
@@ -65,12 +64,11 @@ SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind, const 
     setRequestData({ _dataJson });
 }
 
-QUrl IsPushRuleEnabledJob::makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                                          const QString& ruleId)
+QUrl IsPushRuleEnabledJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                                          const QString& kind, const QString& ruleId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind,
-                                            "/", ruleId, "/enabled"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
+                                                    kind, "/", ruleId, "/enabled"));
 }
 
 IsPushRuleEnabledJob::IsPushRuleEnabledJob(const QString& scope, const QString& kind,
@@ -93,12 +91,11 @@ SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& scope, const QString
     setRequestData({ _dataJson });
 }
 
-QUrl GetPushRuleActionsJob::makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                                           const QString& ruleId)
+QUrl GetPushRuleActionsJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                                           const QString& kind, const QString& ruleId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind,
-                                            "/", ruleId, "/actions"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
+                                                    kind, "/", ruleId, "/actions"));
 }
 
 GetPushRuleActionsJob::GetPushRuleActionsJob(const QString& scope, const QString& kind,

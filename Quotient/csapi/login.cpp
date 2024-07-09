@@ -4,9 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetLoginFlowsJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetLoginFlowsJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/login"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/login"));
 }
 
 GetLoginFlowsJob::GetLoginFlowsJob()

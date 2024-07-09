@@ -4,10 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetTokenOwnerJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetTokenOwnerJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/account/whoami"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/account/whoami"));
 }
 
 GetTokenOwnerJob::GetTokenOwnerJob()

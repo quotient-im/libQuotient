@@ -4,9 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetWellknownJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetWellknownJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/.well-known", "/matrix/client"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/.well-known", "/matrix/client"));
 }
 
 GetWellknownJob::GetWellknownJob()

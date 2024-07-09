@@ -82,7 +82,7 @@ public:
     //!
     //! This function can be used when a URL for CreateContentJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 
@@ -159,9 +159,9 @@ public:
     //!
     //! This function can be used when a URL for GetContentJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId,
-                               bool allowRemote = true, qint64 timeoutMs = 20000,
-                               bool allowRedirect = false);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                               const QString& mediaId, bool allowRemote = true,
+                               qint64 timeoutMs = 20000, bool allowRedirect = false);
 
     // Result properties
 
@@ -232,9 +232,10 @@ public:
     //!
     //! This function can be used when a URL for GetContentOverrideNameJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId,
-                               const QString& fileName, bool allowRemote = true,
-                               qint64 timeoutMs = 20000, bool allowRedirect = false);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                               const QString& mediaId, const QString& fileName,
+                               bool allowRemote = true, qint64 timeoutMs = 20000,
+                               bool allowRedirect = false);
 
     // Result properties
 
@@ -331,10 +332,10 @@ public:
     //!
     //! This function can be used when a URL for GetContentThumbnailJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId,
-                               int width, int height, const QString& method = {},
-                               bool allowRemote = true, qint64 timeoutMs = 20000,
-                               bool allowRedirect = false,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                               const QString& mediaId, int width, int height,
+                               const QString& method = {}, bool allowRemote = true,
+                               qint64 timeoutMs = 20000, bool allowRedirect = false,
                                std::optional<bool> animated = std::nullopt);
 
     // Result properties
@@ -376,7 +377,7 @@ public:
     //!
     //! This function can be used when a URL for GetUrlPreviewJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& url,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QUrl& url,
                                std::optional<qint64> ts = std::nullopt);
 
     // Result properties
@@ -433,7 +434,7 @@ public:
     //!
     //! This function can be used when a URL for GetConfigJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 

@@ -23,7 +23,7 @@ public:
     //!
     //! This function can be used when a URL for GetProtocolsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 
@@ -49,7 +49,7 @@ public:
     //!
     //! This function can be used when a URL for GetProtocolMetadataJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& protocol);
 
     // Result properties
 
@@ -83,7 +83,7 @@ public:
     //!
     //! This function can be used when a URL for QueryLocationByProtocolJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& protocol,
                                const QString& searchFields = {});
 
     // Result properties
@@ -115,7 +115,7 @@ public:
     //!
     //! This function can be used when a URL for QueryUserByProtocolJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& protocol,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& protocol,
                                const QHash<QString, QString>& fields = {});
 
     // Result properties
@@ -140,7 +140,7 @@ public:
     //!
     //! This function can be used when a URL for QueryLocationByAliasJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& alias);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& alias);
 
     // Result properties
 
@@ -166,7 +166,7 @@ public:
     //!
     //! This function can be used when a URL for QueryUserByIDJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userid);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userid);
 
     // Result properties
 

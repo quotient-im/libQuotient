@@ -48,7 +48,7 @@ public:
     //!
     //! This function can be used when a URL for GetWhoIsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId);
 
     // Result properties
 

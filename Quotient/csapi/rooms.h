@@ -25,7 +25,8 @@ public:
     //!
     //! This function can be used when a URL for GetOneRoomEventJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& eventId);
 
     // Result properties
 
@@ -59,8 +60,8 @@ public:
     //!
     //! This function can be used when a URL for GetRoomStateWithKeyJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventType,
-                               const QString& stateKey);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& eventType, const QString& stateKey);
 
     // Result properties
 
@@ -83,7 +84,7 @@ public:
     //!
     //! This function can be used when a URL for GetRoomStateJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
 
     // Result properties
 
@@ -123,8 +124,9 @@ public:
     //!
     //! This function can be used when a URL for GetMembersByRoomJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& at = {},
-                               const QString& membership = {}, const QString& notMembership = {});
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& at = {}, const QString& membership = {},
+                               const QString& notMembership = {});
 
     // Result properties
 
@@ -162,7 +164,7 @@ public:
     //!
     //! This function can be used when a URL for GetJoinedMembersByRoomJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
 
     // Result properties
 

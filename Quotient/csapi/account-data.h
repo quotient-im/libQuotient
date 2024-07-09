@@ -47,7 +47,8 @@ public:
     //!
     //! This function can be used when a URL for GetAccountDataJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& type);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                               const QString& type);
 
     // Result properties
 
@@ -104,8 +105,8 @@ public:
     //!
     //! This function can be used when a URL for GetAccountDataPerRoomJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId,
-                               const QString& type);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                               const QString& roomId, const QString& type);
 
     // Result properties
 

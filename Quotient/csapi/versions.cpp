@@ -4,9 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetVersionsJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client", "/versions"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client", "/versions"));
 }
 
 GetVersionsJob::GetVersionsJob()

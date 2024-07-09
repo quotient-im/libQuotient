@@ -24,7 +24,7 @@ public:
     //!
     //! This function can be used when a URL for GetTokenOwnerJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 

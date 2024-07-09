@@ -25,7 +25,7 @@ public:
     //!
     //! This function can be used when a URL for RedirectToSSOJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& redirectUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& redirectUrl);
 };
 
 //! \brief Redirect the user's browser to the SSO interface for an IdP.
@@ -51,7 +51,8 @@ public:
     //!
     //! This function can be used when a URL for RedirectToIdPJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& idpId, const QString& redirectUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& idpId,
+                               const QString& redirectUrl);
 };
 
 } // namespace Quotient

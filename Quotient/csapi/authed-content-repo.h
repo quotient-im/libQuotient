@@ -40,8 +40,8 @@ public:
     //!
     //! This function can be used when a URL for GetContentAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId,
-                               qint64 timeoutMs = 20000);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                               const QString& mediaId, qint64 timeoutMs = 20000);
 
     // Result properties
 
@@ -96,8 +96,9 @@ public:
     //!
     //! This function can be used when a URL for GetContentOverrideNameAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId,
-                               const QString& fileName, qint64 timeoutMs = 20000);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                               const QString& mediaId, const QString& fileName,
+                               qint64 timeoutMs = 20000);
 
     // Result properties
 
@@ -179,9 +180,9 @@ public:
     //!
     //! This function can be used when a URL for GetContentThumbnailAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId,
-                               int width, int height, const QString& method = {},
-                               qint64 timeoutMs = 20000,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                               const QString& mediaId, int width, int height,
+                               const QString& method = {}, qint64 timeoutMs = 20000,
                                std::optional<bool> animated = std::nullopt);
 
     // Result properties
@@ -218,7 +219,7 @@ public:
     //!
     //! This function can be used when a URL for GetUrlPreviewAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& url,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QUrl& url,
                                std::optional<qint64> ts = std::nullopt);
 
     // Result properties
@@ -269,7 +270,7 @@ public:
     //!
     //! This function can be used when a URL for GetConfigAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 

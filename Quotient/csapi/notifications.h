@@ -58,7 +58,7 @@ public:
     //!
     //! This function can be used when a URL for GetNotificationsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& from = {},
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& from = {},
                                std::optional<int> limit = std::nullopt, const QString& only = {});
 
     // Result properties

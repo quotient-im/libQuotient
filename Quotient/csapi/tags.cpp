@@ -4,10 +4,11 @@
 
 using namespace Quotient;
 
-QUrl GetRoomTagsJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId)
+QUrl GetRoomTagsJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                                    const QString& roomId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/user/",
-                                                                userId, "/rooms/", roomId, "/tags"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/user/", userId,
+                                                    "/rooms/", roomId, "/tags"));
 }
 
 GetRoomTagsJob::GetRoomTagsJob(const QString& userId, const QString& roomId)
@@ -23,12 +24,11 @@ SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const
     setRequestData({ toJson(data) });
 }
 
-QUrl DeleteRoomTagJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId,
-                                      const QString& tag)
+QUrl DeleteRoomTagJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                                      const QString& roomId, const QString& tag)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/user/", userId, "/rooms/",
-                                            roomId, "/tags/", tag));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/user/", userId,
+                                                    "/rooms/", roomId, "/tags/", tag));
 }
 
 DeleteRoomTagJob::DeleteRoomTagJob(const QString& userId, const QString& roomId, const QString& tag)

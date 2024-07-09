@@ -4,10 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetAccount3PIDsJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetAccount3PIDsJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/account/3pid"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/account/3pid"));
 }
 
 GetAccount3PIDsJob::GetAccount3PIDsJob()

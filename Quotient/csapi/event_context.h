@@ -45,8 +45,9 @@ public:
     //!
     //! This function can be used when a URL for GetEventContextJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
-                               std::optional<int> limit = std::nullopt, const QString& filter = {});
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& eventId, std::optional<int> limit = std::nullopt,
+                               const QString& filter = {});
 
     // Result properties
 

@@ -4,10 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetJoinedRoomsJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetJoinedRoomsJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/joined_rooms"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/joined_rooms"));
 }
 
 GetJoinedRoomsJob::GetJoinedRoomsJob()

@@ -20,7 +20,7 @@ public:
     //!
     //! This function can be used when a URL for GetDevicesJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 
@@ -43,7 +43,7 @@ public:
     //!
     //! This function can be used when a URL for GetDeviceJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& deviceId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& deviceId);
 
     // Result properties
 

@@ -13,9 +13,9 @@ SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId
     setRequestData({ _dataJson });
 }
 
-QUrl GetRoomIdByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
+QUrl GetRoomIdByAliasJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomAlias)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/directory/room/", roomAlias));
 }
 
@@ -24,9 +24,9 @@ GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
               makePath("/_matrix/client/v3", "/directory/room/", roomAlias), false)
 {}
 
-QUrl DeleteRoomAliasJob::makeRequestUrl(QUrl baseUrl, const QString& roomAlias)
+QUrl DeleteRoomAliasJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomAlias)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/directory/room/", roomAlias));
 }
 
@@ -35,9 +35,9 @@ DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
               makePath("/_matrix/client/v3", "/directory/room/", roomAlias))
 {}
 
-QUrl GetLocalAliasesJob::makeRequestUrl(QUrl baseUrl, const QString& roomId)
+QUrl GetLocalAliasesJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/rooms/", roomId, "/aliases"));
 }
 
