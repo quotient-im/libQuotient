@@ -29,6 +29,6 @@ private Q_SLOTS:
 
 private:
     QNetworkReply* createRequest(Operation op, const QNetworkRequest& request,
-                                 QIODevice* outgoingData = Q_NULLPTR) override;
+                                 QIODevice* outgoingData = nullptr) override;
 };
 } // namespace Quotient

@@ -1279,7 +1279,7 @@ const EventPtr& Room::accountData(const QString& type) const
 QStringList Room::accountDataEventTypes() const
 {
     QStringList events;
-    events.reserve(d->accountData.size());
+    events.reserve(ssize(d->accountData));
     for (const auto& [key, value] : std::as_const(d->accountData)) {
         events += key;
     }
