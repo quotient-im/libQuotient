@@ -671,7 +671,7 @@ public:
     //! If the room has been upgraded 0 will be returned to prevent further upgrade attempts.
     //!
     //! \sa RoomPowerLevelsEvent
-    Q_INVOKABLE int memberEffectivePowerLevel(const QString& memberId) const;
+    Q_INVOKABLE int memberEffectivePowerLevel(const QString& memberId = {}) const;
 
     //! Send a request to update the room state with the given event
     SetRoomStateWithKeyJob* setState(const StateEvent& evt);
