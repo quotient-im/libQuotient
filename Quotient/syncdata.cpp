@@ -8,6 +8,8 @@
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 
+#include <private/qjson_p.h>
+
 using namespace Quotient;
 
 bool RoomSummary::isEmpty() const
@@ -136,7 +138,7 @@ QJsonObject loadJson(const QString& fileName)
 
     const auto json = data.startsWith('{')
                           ? QJsonDocument::fromJson(data).object()
-                          : QCborValue::fromCbor(data).toJsonValue().toObject();
+                          : QJsonPrivate::Value::fromTrustedCbor(QCborValue::fromCbor(data)).toObject();
     if (json.isEmpty()) {
         qCWarning(MAIN) << "State cache in" << fileName
                         << "is broken or empty, discarding";
