@@ -364,7 +364,7 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
 
 target_link_libraries(${QUOTIENT_LIB_NAME}
     PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain Olm::Olm ${Qt}::Sql
-    PRIVATE OpenSSL::Crypto)
+    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate)
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
