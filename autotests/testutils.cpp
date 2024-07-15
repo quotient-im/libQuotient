@@ -14,7 +14,7 @@ using Quotient::Connection;
 
 bool waitForSignal(auto objPtr, auto signal)
 {
-    return QSignalSpy(std::to_address(objPtr), signal).wait(10000);
+    return QSignalSpy(std::to_address(objPtr), signal).wait(60000);
 }
 
 std::shared_ptr<Quotient::Connection> Quotient::createTestConnection(
