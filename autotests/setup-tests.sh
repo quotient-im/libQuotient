@@ -1,4 +1,9 @@
-SYNAPSE_IMAGE='matrixdotorg/synapse:v1.61.1'
+#!/bin/bash
+
+# 1.95.1 is the latest release that allows user registration over HTTPS with self-signed certs
+# The setup has to be changed to support newer versions
+SYNAPSE_REF=${SYNAPSE_REF:-v1.95.1}
+SYNAPSE_IMAGE="matrixdotorg/synapse:$SYNAPSE_REF"
 SCRIPT_DIR="$PWD/autotests"
 
 if [ ! -f $SCRIPT_DIR/adjust-config.sh ]; then
@@ -21,7 +26,7 @@ echo "Generating the configuration"
 docker run -v $DATA_PATH:/data:z --rm \
     -e SYNAPSE_SERVER_NAME=localhost -e SYNAPSE_REPORT_STATS=no $SYNAPSE_IMAGE generate
 
-echo "Adjusting the configuration"
+echo "Adjusting the configuration and preparing the data directory"
 (cd "$DATA_PATH" && . "$SCRIPT_DIR/adjust-config.sh")
 
 echo "Starting Synapse"
@@ -40,21 +45,14 @@ if [ -z "$KEEP_SYNAPSE" ]; then
     trap "$TRAP_CMD; trap - EXIT" EXIT
 fi
 
-echo Waiting for synapse to start...
-until curl -s -f -k https://localhost:1234/_matrix/client/versions; do echo "Checking ..."; sleep 2; done
-echo Register alice
-for i in 1 2 3 4 5 6 7 8 9; do
-    docker exec synapse /bin/sh -c "register_new_matrix_user --admin -u alice$i -p secret -c /data/homeserver.yaml https://localhost:8008"
-done
-echo Register bob
-for i in 1 2 3; do
-    docker exec synapse /bin/sh -c "register_new_matrix_user --admin -u bob$i -p secret -c /data/homeserver.yaml https://localhost:8008"
-done
-echo Register carl
-docker exec synapse /bin/sh -c "register_new_matrix_user --admin -u carl -p secret -c /data/homeserver.yaml https://localhost:8008"
+printf "Waiting for synapse to start "
+until curl -s -f -k https://localhost:1234/_matrix/client/versions; do printf "."; sleep 2; done
+echo
 
-echo "You can run ctest with a full set of tests now!"
-echo "If you don't find the synapse container running, make sure to source"
-echo "this script instead of running it in a subshell (the container will be"
-echo "deleted when you exit the shell then), or run it with KEEP_SYNAPSE"
-echo "environment variable set to any value"
+if docker exec synapse /bin/sh /data/register-users.sh; then
+    echo "You can run ctest with a full set of tests now!"
+    echo "If you don't find the synapse container running, make sure to source"
+    echo "this script instead of running it in a subshell (the container will be"
+    echo "deleted when you exit the shell then), or run it with KEEP_SYNAPSE"
+    echo "environment variable set to any value"
+fi
