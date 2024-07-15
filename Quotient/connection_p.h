@@ -11,11 +11,11 @@
 #include "settings.h"
 #include "syncdata.h"
 
+#include "csapi/account-data.h"
 #include "csapi/capabilities.h"
 #include "csapi/logout.h"
+#include "csapi/versions.h"
 #include "csapi/wellknown.h"
-
-#include "csapi/account-data.h"
 
 #include <QtCore/QCoreApplication>
 
@@ -51,8 +51,8 @@ public:
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
 
-    GetCapabilitiesJob* capabilitiesJob = nullptr;
-    GetCapabilitiesJob::Capabilities capabilities;
+    GetVersionsJob::Response apiVersions{};
+    GetCapabilitiesJob::Capabilities capabilities{};
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 

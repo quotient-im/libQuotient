@@ -29,6 +29,7 @@ public:
     QString lastEvent;
     QString userId;
     QString deviceId;
+    QStringList supportedSpecVersions;
     std::vector<QString> needToken;
 
     mutable unsigned int txnCounter = 0;
@@ -102,6 +103,11 @@ QByteArray ConnectionData::accessToken() const { return d->accessToken; }
 
 QUrl ConnectionData::baseUrl() const { return d->baseUrl; }
 
+HomeserverData ConnectionData::homeserverData() const
+{
+    return { d->baseUrl, d->supportedSpecVersions };
+}
+
 NetworkAccessManager* ConnectionData::nam() const
 {
     return NetworkAccessManager::instance();
@@ -111,8 +117,12 @@ void ConnectionData::setBaseUrl(QUrl baseUrl)
 {
     d->baseUrl = std::move(baseUrl);
     qCDebug(MAIN) << "updated baseUrl to" << d->baseUrl;
-    if (!d->userId.isEmpty() && d->baseUrl.isValid())
-        NetworkAccessManager::addBaseUrl(d->userId, d->baseUrl);
+    if (!d->userId.isEmpty()) {
+        if (d->baseUrl.isValid())
+            NetworkAccessManager::addAccount(d->userId, d->baseUrl);
+        else
+            NetworkAccessManager::dropAccount(d->userId);
+    }
 }
 
 void ConnectionData::setToken(QByteArray token)
@@ -139,9 +149,9 @@ void ConnectionData::setUserId(const QString& userId)
 {
     if (d->baseUrl.isValid()) {
         if (d->userId != userId)
-            NetworkAccessManager::dropBaseUrl(d->userId);
+            NetworkAccessManager::dropAccount(d->userId);
         if (!userId.isEmpty())
-            NetworkAccessManager::addBaseUrl(userId, d->baseUrl);
+            NetworkAccessManager::addAccount(userId, d->baseUrl);
     }
     d->userId = userId;
 }
@@ -149,6 +159,14 @@ void ConnectionData::setUserId(const QString& userId)
 void ConnectionData::setNeedsToken(const QString& requestName)
 {
     d->needToken.push_back(requestName);
+}
+
+void ConnectionData::setSupportedSpecVersions(QStringList versions)
+{
+    qCInfo(MAIN).noquote() << "CS API versions:" << versions.join(u' ');
+    d->supportedSpecVersions = std::move(versions);
+    if (!ALARM(d->userId.isEmpty()) && !ALARM(!d->baseUrl.isValid()))
+        NetworkAccessManager::updateAccountSpecVersions(d->userId, d->supportedSpecVersions);
 }
 
 QString ConnectionData::lastEvent() const { return d->lastEvent; }

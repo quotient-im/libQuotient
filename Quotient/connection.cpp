@@ -17,7 +17,6 @@
 #include "user.h"
 
 #include "csapi/account-data.h"
-#include "csapi/capabilities.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 #include "csapi/logout.h"
@@ -194,36 +193,48 @@ void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
     });
 }
 
-void Connection::reloadCapabilities()
+JobHandle<GetVersionsJob> Connection::loadVersions()
 {
-    d->capabilitiesJob = callApi<GetCapabilitiesJob>(BackgroundRequest);
-    connect(d->capabilitiesJob, &BaseJob::success, this, [this] {
-        d->capabilities = d->capabilitiesJob->capabilities();
-
-        if (d->capabilities.roomVersions) {
-            qCDebug(MAIN) << "Room versions:" << defaultRoomVersion()
-                          << "is default, full list:" << availableRoomVersions();
-            emit capabilitiesLoaded();
-            for (auto* r: std::as_const(d->roomMap))
-                r->checkVersion();
-        } else
-            qCWarning(MAIN)
-                << "The server returned an empty set of supported versions;"
-                   " disabling version upgrade recommendations to reduce noise";
-    });
-    connect(d->capabilitiesJob, &BaseJob::failure, this, [this] {
-        if (d->capabilitiesJob->error() == BaseJob::IncorrectRequest)
-            qCDebug(MAIN) << "Server doesn't support /capabilities;"
-                             " version upgrade recommendations won't be issued";
+    return callApi<GetVersionsJob>(BackgroundRequest).then([this](GetVersionsJob::Response r) {
+        d->data->setSupportedSpecVersions(std::move(r.versions));
     });
 }
 
-bool Connection::loadingCapabilities() const
+JobHandle<GetCapabilitiesJob> Connection::loadCapabilities()
+{
+    return callApi<GetCapabilitiesJob>(BackgroundRequest)
+        .then(
+            [this](GetCapabilitiesJob::Capabilities response) {
+                d->capabilities = std::move(response);
+                if (d->capabilities.roomVersions) {
+                    qCInfo(MAIN) << "Room versions:" << defaultRoomVersion()
+                                 << "is default, full list:" << availableRoomVersions();
+                    emit capabilitiesLoaded();
+                    for (auto* r : std::as_const(d->roomMap))
+                        r->checkVersion();
+                } else
+                    qCWarning(MAIN) << "The server hasn't reported room versions it supports;"
+                                       " version upgrade recommendations won't be issued";
+            },
+            [](const GetCapabilitiesJob* job) {
+                if (job->error() == BaseJob::IncorrectRequest)
+                    qCDebug(MAIN) << "The server doesn't support /capabilities;"
+                                     " version upgrade recommendations won't be issued";
+            });
+}
+
+void Connection::reloadCapabilities() { loadCapabilities(); }
+
+bool Connection::loadingCapabilities() const { return !capabilitiesReady(); }
+
+bool Connection::capabilitiesReady() const
 {
     // (Ab)use the fact that room versions cannot be omitted after
     // the capabilities have been loaded (see reloadCapabilities() above).
-    return !d->capabilities.roomVersions;
+    return d->capabilities.roomVersions.has_value();
 }
+
+QStringList Connection::supportedMatrixSpecVersions() const { return d->apiVersions.versions; }
 
 void Connection::Private::saveAccessTokenToKeychain() const
 {
@@ -296,13 +307,17 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 void Connection::Private::completeSetup(const QString& mxId, bool mock)
 {
     data->setUserId(mxId);
-    if (!mock)
-        q->user()->load(); // Load the local user's profile
     q->setObjectName(data->userId() % u'/' % data->deviceId());
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
+
+    if (!mock) {
+        q->loadVersions();
+        q->loadCapabilities();
+        q->user()->load(); // Load the local user's profile
+    }
 
     if (useEncryption) {
         if (auto&& maybeEncryptionData =
@@ -318,8 +333,6 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
 
     emit q->stateChanged();
     emit q->connected();
-    if (!mock)
-        q->reloadCapabilities();
 }
 
 QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
@@ -1293,6 +1306,8 @@ const ConnectionData* Connection::connectionData() const
 {
     return d->data.get();
 }
+
+HomeserverData Connection::homeserverData() const { return d->data->homeserverData(); }
 
 Room* Connection::provideRoom(const QString& id, std::optional<JoinState> joinState)
 {
