@@ -12,6 +12,7 @@
 
 #include "csapi/create_room.h"
 #include "csapi/login.h"
+#include "csapi/content-repo.h"
 
 #include "e2ee/qolmoutboundsession.h"
 
@@ -46,8 +47,6 @@ class PostReceiptJob;
 class ForgetRoomJob;
 class MediaThumbnailJob;
 class JoinRoomJob;
-class UploadContentJob;
-class GetContentJob;
 class DownloadFileJob;
 class SendToDeviceJob;
 class SendMessageJob;
@@ -529,7 +528,7 @@ public:
     template <typename JobT, typename... JobArgTs>
     QUrl getUrlForApi(JobArgTs&&... jobArgs) const
     {
-        return JobT::makeRequestUrl(homeserver(), std::forward<JobArgTs>(jobArgs)...);
+        return JobT::makeRequestUrl(homeserverData(), std::forward<JobArgTs>(jobArgs)...);
     }
 
     //! \brief Start a local HTTP server and generate a single sign-on URL

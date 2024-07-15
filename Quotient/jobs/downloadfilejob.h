@@ -3,21 +3,20 @@
 
 #pragma once
 
-#include <Quotient/csapi/content-repo.h>
+#include "basejob.h"
 
 namespace Quotient {
 struct EncryptedFileMetadata;
 
-class QUOTIENT_API DownloadFileJob : public GetContentJob {
+class QUOTIENT_API DownloadFileJob : public BaseJob {
 public:
-    using GetContentJob::makeRequestUrl;
-    static QUrl makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QUrl& mxcUri);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                               const QString& mediaId);
 
-    DownloadFileJob(const QString& serverName, const QString& mediaId,
-                    const QString& localFilename = {});
+    DownloadFileJob(QString serverName, QString mediaId, const QString& localFilename = {});
 
-    DownloadFileJob(const QString& serverName, const QString& mediaId,
-                    const EncryptedFileMetadata& file,
+    DownloadFileJob(QString serverName, QString mediaId, const EncryptedFileMetadata& file,
                     const QString& localFilename = {});
     QString targetFileName() const;
 
@@ -25,7 +24,7 @@ private:
     class Private;
     ImplPtr<Private> d;
 
-    void doPrepare() override;
+    void doPrepare(const ConnectionData* connectionData) override;
     void onSentRequest(QNetworkReply* reply) override;
     void beforeAbandon() override;
     Status prepareResult() override;

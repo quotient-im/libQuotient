@@ -428,8 +428,9 @@ using UserId = QString;
 using RoomId = QString;
 using EventId = QString;
 
-struct HomeserverData {
+struct QUOTIENT_API HomeserverData {
     QUrl baseUrl;
     QStringList supportedSpecVersions;
-};
 
+    bool checkMatrixSpecVersion(QStringView targetVersion) const;
+};

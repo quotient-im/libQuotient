@@ -160,8 +160,8 @@ QNetworkReply* NetworkAccessManager::createRequest(
             << "No connection specified, cannot convert mxc request";
         return new MxcReply();
     }
-    const auto& baseUrl = d.getConnection(accountId).baseUrl;
-    if (!baseUrl.isValid()) {
+    const auto& hsData = d.getConnection(accountId);
+    if (!hsData.baseUrl.isValid()) {
         // Strictly speaking, it should be an assert...
         qCCritical(NETWORK) << "Homeserver for" << accountId
                             << "not found, cannot convert mxc request";
@@ -170,7 +170,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
 
     // Convert mxc:// URL into normal http(s) for the given homeserver
     QNetworkRequest rewrittenRequest(request);
-    rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(baseUrl, url));
+    rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(hsData, url));
 
     auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
     implReply->ignoreSslErrors(d.getIgnoredSslErrors());

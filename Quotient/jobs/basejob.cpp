@@ -162,8 +162,7 @@ public:
         const auto verbWord = verbs.at(size_t(verb));
         return verbWord % u' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
-                        : makeRequestUrl(connection->baseUrl(), apiEndpoint)
-                              .toString());
+                        : makeRequestUrl(connection->homeserverData(), apiEndpoint).toString());
     }
 };
 
@@ -216,6 +215,10 @@ BaseJob::~BaseJob()
 QUrl BaseJob::requestUrl() const { return d->reply ? d->reply->url() : QUrl(); }
 
 bool BaseJob::isBackground() const { return d->inBackground; }
+
+QByteArray BaseJob::apiEndpoint() const { return d->apiEndpoint; }
+
+void BaseJob::setApiEndpoint(QByteArray apiEndpoint) { d->apiEndpoint = std::move(apiEndpoint); }
 
 const BaseJob::headers_t& BaseJob::requestHeaders() const
 {
@@ -275,7 +278,7 @@ const QNetworkReply* BaseJob::reply() const { return d->reply.data(); }
 
 QNetworkReply* BaseJob::reply() { return d->reply.data(); }
 
-QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QByteArray& encodedPath,
+QUrl BaseJob::makeRequestUrl(const HomeserverData& hsData, const QByteArray& encodedPath,
                              const QUrlQuery& query)
 {
     // Make sure the added path is relative even if it's not (the official
@@ -285,15 +288,14 @@ QUrl BaseJob::makeRequestUrl(QUrl baseUrl, const QByteArray& encodedPath,
                           QUrl::StrictMode);
     Q_ASSERT_X(pathUrl.isValid(), __FUNCTION__,
                qPrintable(pathUrl.errorString()));
-    baseUrl = baseUrl.resolved(pathUrl);
+    auto baseUrl = hsData.baseUrl.resolved(pathUrl);
     baseUrl.setQuery(query);
     return baseUrl;
 }
 
 QNetworkRequest BaseJob::Private::prepareRequest() const
 {
-    QNetworkRequest req{ makeRequestUrl(connection->baseUrl(), apiEndpoint,
-                                        requestQuery) };
+    QNetworkRequest req{ makeRequestUrl(connection->homeserverData(), apiEndpoint, requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_ls);
     if (needsToken)
@@ -332,7 +334,7 @@ void BaseJob::Private::sendRequest(const QNetworkRequest& req)
     }
 }
 
-void BaseJob::doPrepare() { }
+void BaseJob::doPrepare(const ConnectionData* connectionData) { }
 
 void BaseJob::onSentRequest(QNetworkReply*) { }
 
@@ -343,7 +345,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
     if (Q_LIKELY(connData && connData->baseUrl().isValid())) {
         d->inBackground = inBackground;
         d->connection = connData;
-        doPrepare();
+        doPrepare(connData);
 
         if (d->needsToken && d->connection->accessToken().isEmpty())
             setStatus(Unauthorised);

@@ -3,6 +3,13 @@
 
 #include "downloadfilejob.h"
 
+#include "Quotient/connectiondata.h"
+
+#include "../csapi/authed-content-repo.h"
+#include "../csapi/content-repo.h"
+
+#include <Quotient/events/filesourceinfo.h>
+
 #include "../logging_categories_p.h"
 
 #include <QtCore/QCryptographicHash>
@@ -10,50 +17,48 @@
 #include <QtCore/QTemporaryFile>
 #include <QtNetwork/QNetworkReply>
 
-#include <Quotient/events/filesourceinfo.h>
-
-
 using namespace Quotient;
 class Q_DECL_HIDDEN DownloadFileJob::Private {
 public:
-    Private() : tempFile(new QTemporaryFile()) {}
-
-    explicit Private(const QString& localFilename)
-        : targetFile(new QFile(localFilename))
-        , tempFile(new QFile(targetFile->fileName() + ".qtntdownload"_ls))
+    explicit Private(QString serverName, QString mediaId, const QString& localFilename)
+        : serverName(std::move(serverName))
+        , mediaId(std::move(mediaId))
+        , targetFile(!localFilename.isEmpty() ? new QFile(localFilename) : nullptr)
+        , tempFile(!localFilename.isEmpty() ? new QFile(targetFile->fileName() + ".qtntdownload"_ls)
+                                            : new QTemporaryFile())
     {}
 
+    QString serverName;
+    QString mediaId;
     QScopedPointer<QFile> targetFile;
     QScopedPointer<QFile> tempFile;
 
     std::optional<EncryptedFileMetadata> encryptedFileMetadata;
 };
 
-QUrl DownloadFileJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri)
+QUrl DownloadFileJob::makeRequestUrl(const HomeserverData& hsData, const QUrl& mxcUri)
 {
-    return makeRequestUrl(std::move(baseUrl), mxcUri.authority(),
-                          mxcUri.path().mid(1));
+    return makeRequestUrl(hsData, mxcUri.authority(), mxcUri.path().mid(1));
 }
 
-DownloadFileJob::DownloadFileJob(const QString& serverName,
-                                 const QString& mediaId,
-                                 const QString& localFilename)
-    : GetContentJob(serverName, mediaId)
-    , d(localFilename.isEmpty() ? makeImpl<Private>()
-                                : makeImpl<Private>(localFilename))
+QUrl DownloadFileJob::makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                                     const QString& mediaId)
 {
-    setObjectName(QStringLiteral("DownloadFileJob"));
+    QT_IGNORE_DEPRECATIONS( // For GetContentJob
+        return hsData.checkMatrixSpecVersion(u"1.11")
+                   ? GetContentAuthedJob::makeRequestUrl(hsData, serverName, mediaId)
+                   : GetContentJob::makeRequestUrl(hsData, serverName, mediaId);)
 }
 
-DownloadFileJob::DownloadFileJob(const QString& serverName,
-                                 const QString& mediaId,
-                                 const EncryptedFileMetadata& file,
-                                 const QString& localFilename)
-    : GetContentJob(serverName, mediaId)
-    , d(localFilename.isEmpty() ? makeImpl<Private>()
-                                : makeImpl<Private>(localFilename))
+DownloadFileJob::DownloadFileJob(QString serverName, QString mediaId, const QString& localFilename)
+    : BaseJob(HttpVerb::Get, QStringLiteral("DownloadFileJob"), {})
+    , d(makeImpl<Private>(std::move(serverName), std::move(mediaId), localFilename))
+{}
+
+DownloadFileJob::DownloadFileJob(QString serverName, QString mediaId,
+                                 const EncryptedFileMetadata& file, const QString& localFilename)
+    : DownloadFileJob(std::move(serverName), std::move(mediaId), localFilename)
 {
-    setObjectName(QStringLiteral("DownloadFileJob"));
     d->encryptedFileMetadata = file;
 }
 
@@ -62,8 +67,12 @@ QString DownloadFileJob::targetFileName() const
     return (d->targetFile ? d->targetFile : d->tempFile)->fileName();
 }
 
-void DownloadFileJob::doPrepare()
+void DownloadFileJob::doPrepare(const ConnectionData* connectionData)
 {
+    const auto url = makeRequestUrl(connectionData->homeserverData(), d->serverName, d->mediaId);
+    setApiEndpoint(url.toEncoded(QUrl::RemoveQuery | QUrl::RemoveFragment | QUrl::FullyEncoded));
+    setRequestQuery(QUrlQuery{ url.query() });
+
     if (d->targetFile && !d->targetFile->isReadable()
         && !d->targetFile->open(QIODevice::WriteOnly)) {
         qCWarning(JOBS) << "Couldn't open the file" << d->targetFile->fileName()
