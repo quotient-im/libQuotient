@@ -342,18 +342,15 @@ TEST_IMPL(sendMessage)
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
-    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
-        [this, thisTest, txnId](const RoomEvent* evt, int pendingIdx) {
-            const auto& pendingEvents = targetRoom->pendingEvents();
-            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
-
-            if (evt->transactionId() != txnId)
-                return false;
-
-            FINISH_TEST(is<RoomMessageEvent>(*evt) && !evt->id().isEmpty()
-                        && pendingEvents[size_t(pendingIdx)]->transactionId()
-                               == evt->transactionId());
-        });
+    targetRoom->whenMessageMerged(txnId).then(this, [this, thisTest, txnId](const RoomEvent& evt) {
+        const auto pendingIt = targetRoom->findPendingEvent(txnId);
+        if (pendingIt == targetRoom->pendingEvents().end()) {
+            clog << "Pending event not found at the moment of local echo merging\n";
+            FAIL_TEST();
+        }
+        FINISH_TEST(evt.is<RoomMessageEvent>() && !evt.id().isEmpty()
+                    && txnId == (*pendingIt)->transactionId() && txnId == evt.transactionId());
+    });
     return false;
 }
 
@@ -490,28 +487,17 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
         FAIL_TEST();
     }
 
-    connectUntil(targetRoom, &Room::pendingEventAboutToMerge, this,
-        [this, thisTest, txnId, fileName](const RoomEvent* evt, int pendingIdx) {
-            const auto& pendingEvents = targetRoom->pendingEvents();
-            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
-
-            if (evt->transactionId() != txnId)
-                return false;
-
-            clog << "File event " << txnId.toStdString()
-                 << " arrived in the timeline" << endl;
-            return switchOnType(
-                *evt,
+    targetRoom->whenMessageMerged(txnId).then(
+        this, [this, thisTest, txnId, fileName](const RoomEvent& evt) {
+            clog << "File event " << txnId.toStdString() << " arrived in the timeline" << endl;
+            evt.switchOnType(
                 [&](const RoomMessageEvent& e) {
                     // TODO: check #366 once #368 is implemented
-                    FINISH_TEST(
-                        !e.id().isEmpty()
-                        && pendingEvents[size_t(pendingIdx)]->transactionId()
-                               == txnId
-                        && e.hasFileContent()
-                        && e.content()->fileInfo()->originalName == fileName
-                        && testDownload(targetRoom->connection()->makeMediaUrl(
-                            e.content()->fileInfo()->url())));
+                    FINISH_TEST(!e.id().isEmpty() && evt.transactionId() == txnId
+                                && e.hasFileContent()
+                                && e.content()->fileInfo()->originalName == fileName
+                                && testDownload(targetRoom->connection()->makeMediaUrl(
+                                    e.content()->fileInfo()->url())));
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });
@@ -523,25 +509,19 @@ DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent, "quotest.custom", int, testValue,
 
 TEST_IMPL(sendCustomEvent)
 {
-    auto txnId = targetRoom->postEvent(new CustomEvent(42));
-    if (!validatePendingEvent<CustomEvent>(txnId)) {
+    const auto& pendingEventItem = targetRoom->post<CustomEvent>(42);
+    if (!validatePendingEvent<CustomEvent>(pendingEventItem->transactionId())) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
-    connectUntil(
-        targetRoom, &Room::pendingEventAboutToMerge, this,
-        [this, thisTest, txnId](const RoomEvent* evt, int pendingIdx) {
-            const auto& pendingEvents = targetRoom->pendingEvents();
-            Q_ASSERT(pendingIdx >= 0 && pendingIdx < int(pendingEvents.size()));
-
-            if (evt->transactionId() != txnId)
-                return false;
-
-            return switchOnType(*evt,
-                [this, thisTest, &evt](const CustomEvent& e) {
-                    FINISH_TEST(!evt->id().isEmpty() && e.testValue() == 42);
+    pendingEventItem.whenMerged().then(
+        this, [this, thisTest, txnId = pendingEventItem->transactionId()](const RoomEvent& evt) {
+            evt.switchOnType(
+                [this, thisTest, txnId, &evt](const CustomEvent& e) {
+                    FINISH_TEST(!evt.id().isEmpty() && evt.transactionId() == txnId
+                                && e.testValue() == 42);
                 },
-                [this, thisTest] (const RoomEvent&) { FAIL_TEST(); });
+                [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });
     return false;
 

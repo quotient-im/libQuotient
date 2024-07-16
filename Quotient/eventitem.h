@@ -6,6 +6,9 @@
 #include "events/roomevent.h"
 #include "events/filesourceinfo.h"
 
+#include <QtCore/QPromise>
+#include <QtCore/QFuture>
+
 #include <any>
 #include <utility>
 
@@ -95,7 +98,12 @@ private:
 
 class QUOTIENT_API PendingEventItem : public EventItemBase {
 public:
-    using EventItemBase::EventItemBase;
+    using future_type = QFuture<std::reference_wrapper<const RoomEvent>>;
+
+    explicit PendingEventItem(RoomEventPtr&& e) : EventItemBase(std::move(e))
+    {
+        _promise.setProgressRange(0, 5);
+    }
 
     EventStatus::Code deliveryStatus() const { return _status; }
     QDateTime lastUpdated() const { return _lastUpdated; }
@@ -108,6 +116,11 @@ public:
         setStatus(EventStatus::ReachedServer);
         (*this)->addId(eventId);
     }
+    void setMerged(const RoomEvent& intoEvent)
+    {
+        _promise.addResult(intoEvent);
+        _promise.finish();
+    }
     void setSendingFailed(QString errorText)
     {
         setStatus(EventStatus::SendingFailed);
@@ -115,16 +128,28 @@ public:
     }
     void resetStatus() { setStatus(EventStatus::Submitted); }
 
+    //! \brief Get a future for the moment when the item gets merged in the timeline
+    //!
+    //! The future will get finished just before this pending item is merged into its remote
+    //! counterpart that comes with /sync. The pending item will always be in ReachedServer state.
+    //! The future result has type implicitly convertible to `const RoomEvent&`.
+    future_type whenMerged() const { return _promise.future(); }
+
 private:
+    // Unlike TimelineItems, it's reasonable to assume PendingEventItems are not many; so we can
+    // add extra fields without breaking the memory bill
     EventStatus::Code _status = EventStatus::Submitted;
     QDateTime _lastUpdated = QDateTime::currentDateTimeUtc();
     QString _annotation;
+    QPromise<std::reference_wrapper<const RoomEvent>> _promise;
 
     void setStatus(EventStatus::Code status)
     {
         _status = status;
         _lastUpdated = QDateTime::currentDateTimeUtc();
         _annotation.clear();
+        _promise.start();
+        _promise.setProgressValue(_status);
     }
 };
 

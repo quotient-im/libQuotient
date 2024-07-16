@@ -673,6 +673,23 @@ public:
     //! \sa RoomPowerLevelsEvent
     Q_INVOKABLE int memberEffectivePowerLevel(const QString& memberId = {}) const;
 
+    //! \brief Post a pre-created room message event
+    //!
+    //! Takes ownership of the event, deleting it once the matching one arrives with the sync.
+    //! \note Do not assume that the event is already on the road to the homeserver when this (or
+    //!       any other `post*`) method returns; it can be queued internally.
+    //! \sa PendingEventItem::deliveryStatus()
+    //! \return a reference to the pending event item
+    const PendingEventItem& post(RoomEventPtr event);
+
+    template <typename EvT, typename... ArgTs>
+    const PendingEventItem& post(ArgTs&&... args)
+    {
+        return post(makeEvent<EvT>(std::forward<ArgTs>(args)...));
+    }
+
+    PendingEventItem::future_type whenMessageMerged(QString txnId) const;
+
     //! Send a request to update the room state with the given event
     SetRoomStateWithKeyJob* setState(const StateEvent& evt);
 
@@ -721,6 +738,7 @@ public Q_SLOTS:
      * arrives with the sync
      * \return transaction id associated with the event.
      */
+    [[deprecated("Use post() instead")]]
     QString postEvent(RoomEvent* event);
     QString postJson(const QString& matrixType, const QJsonObject& eventContent);
     QString retryMessage(const QString& txnId);
