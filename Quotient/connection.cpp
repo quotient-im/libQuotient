@@ -754,15 +754,15 @@ JobHandle<UploadContentJob> Connection::uploadFile(const QString& fileName,
                          overrideContentType);
 }
 
-GetContentJob* Connection::getContent(const QString& mediaId)
+BaseJob* Connection::getContent(const QString& mediaId)
 {
     auto idParts = splitMediaId(mediaId);
-    return callApi<GetContentJob>(idParts.front(), idParts.back());
+    return callApi<DownloadFileJob>(idParts.front(), idParts.back());
 }
 
-GetContentJob* Connection::getContent(const QUrl& url)
+BaseJob* Connection::getContent(const QUrl& url)
 {
-    return getContent(url.authority() + url.path());
+    QT_IGNORE_DEPRECATIONS(return getContent(url.authority() + url.path());)
 }
 
 DownloadFileJob* Connection::downloadFile(const QUrl& url, const QString& localFilename)

@@ -687,8 +687,9 @@ public Q_SLOTS:
                                               const QString& overrideContentType = {});
     JobHandle<UploadContentJob> uploadFile(const QString& fileName,
                                            const QString& overrideContentType = {});
-    GetContentJob* getContent(const QString& mediaId);
-    GetContentJob* getContent(const QUrl& url);
+    [[deprecated("Use downloadFile() instead")]] BaseJob* getContent(const QString& mediaId);
+    [[deprecated("Use downloadFile() instead")]] BaseJob* getContent(const QUrl& url);
+
     // If localFilename is empty, a temporary file will be created
     DownloadFileJob* downloadFile(const QUrl& url, const QString& localFilename = {});
 
