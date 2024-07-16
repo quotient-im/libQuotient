@@ -44,11 +44,11 @@ public:
     MsgType msgtype() const;
     QString rawMsgtype() const;
     QString plainBody() const;
-    const EventContent::TypedBase* content() const { return _content.data(); }
+    const EventContent::TypedBase* content() const { return _content.get(); }
     void editContent(auto visitor)
     {
         visitor(*_content);
-        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), _content.data());
+        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), _content.get());
     }
     QMimeType mimeType() const;
     //! \brief Determine whether the message has text content
@@ -88,7 +88,7 @@ public:
     static QString rawMsgTypeForFile(const QFileInfo& fi);
 
 private:
-    QScopedPointer<EventContent::TypedBase> _content;
+    std::unique_ptr<EventContent::TypedBase> _content;
 
     // FIXME: should it really be static?
     static QJsonObject assembleContentJson(const QString& plainBody,
