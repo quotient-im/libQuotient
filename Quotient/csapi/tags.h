@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <Quotient/csapi/definitions/tag.h>
+
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -11,18 +13,6 @@ namespace Quotient {
 //! List the tags set by a user on a room.
 class QUOTIENT_API GetRoomTagsJob : public BaseJob {
 public:
-    // Inner data structures
-
-    struct QUOTIENT_API Tag {
-        //! A number in a range `[0,1]` describing a relative
-        //! position of the room under the given tag.
-        std::optional<float> order{};
-
-        QVariantHash additionalProperties{};
-    };
-
-    // Construction/destruction
-
     //! \param userId
     //!   The id of the user to get tags for. The access token must be
     //!   authorized to make requests for this user ID.
@@ -44,15 +34,6 @@ public:
 
 inline auto collectResponse(const GetRoomTagsJob* job) { return job->tags(); }
 
-template <>
-struct QUOTIENT_API JsonObjectConverter<GetRoomTagsJob::Tag> {
-    static void fillFrom(QJsonObject jo, GetRoomTagsJob::Tag& result)
-    {
-        fillFromJson(jo.take("order"_ls), result.order);
-        fromJson(jo, result.additionalProperties);
-    }
-};
-
 //! \brief Add a tag to a room.
 //!
 //! Add a tag to the room.
@@ -68,13 +49,10 @@ public:
     //! \param tag
     //!   The tag to add.
     //!
-    //! \param order
-    //!   A number in a range `[0,1]` describing a relative
-    //!   position of the room under the given tag.
-    //!
+    //! \param data
+    //!   Extra data for the tag, e.g. ordering.
     explicit SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag,
-                           std::optional<float> order = std::nullopt,
-                           const QVariantHash& additionalProperties = {});
+                           const Tag& data);
 };
 
 //! \brief Remove a tag from the room.

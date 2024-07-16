@@ -355,10 +355,7 @@ constexpr qint64 ProfilerMinNsecs =
 //! \param dbg to output the json to
 //! \param manipFn a QDebug manipulator
 //! \return a copy of dbg that has its mode altered by manipFn
-template <typename FnT>
-inline QDebug operator<<(QDebug dbg, FnT manipFn)
-    requires std::is_invocable_v<FnT, QDebug>
-// TODO: move over to std::invocable once on Apple Clang 14 (lib 0.9, i.e.)
+inline QDebug operator<<(QDebug dbg, std::invocable<QDebug> auto manipFn)
 {
     return std::invoke(manipFn, dbg);
 }
@@ -421,3 +418,11 @@ constexpr inline size_t mergeStruct(StructT& lhs, const StructT& rhs, const auto
 {
     return ((... + static_cast<size_t>(merge(lhs.*fields, rhs.*fields))));
 }
+
+// These are meant to eventually become separate classes derived from QString (or perhaps
+// QByteArray?), with their own construction and validation logic; for now they are just aliases
+// for QString to make numerous IDs at least semantically different in the code.
+
+using UserId = QString;
+using RoomId = QString;
+using EventId = QString;

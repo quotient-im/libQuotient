@@ -333,7 +333,7 @@ public:
     std::unordered_map<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
         const Room* room) const;
     void saveMegolmSession(const Room* room,
-                           const QOlmInboundGroupSession& session, const QByteArray &senderKey) const;
+                           const QOlmInboundGroupSession& session, const QByteArray &senderKey, const QByteArray& senderEdKey) const;
 
     QString edKeyForUserDevice(const QString& userId,
                                const QString& deviceId) const;
@@ -900,6 +900,10 @@ Q_SIGNALS:
     void secretReceived(const QString& requestId, const QString& secret);
 
     void userVerified(const QString& userId);
+
+    //! The account does not yet have cross-signing keys. The client should ask the user
+    //! whether to create them now and then set them up, if desired.
+    void crossSigningSetupRequired();
 
     friend class ::TestCrossSigning;
 protected:

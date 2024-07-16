@@ -5,7 +5,7 @@
 using namespace Quotient;
 
 SendToDeviceJob::SendToDeviceJob(const QString& eventType, const QString& txnId,
-                                 const QHash<QString, QHash<QString, QJsonObject>>& messages)
+                                 const QHash<UserId, QHash<QString, QJsonObject>>& messages)
     : BaseJob(HttpVerb::Put, QStringLiteral("SendToDeviceJob"),
               makePath("/_matrix/client/v3", "/sendToDevice/", eventType, "/", txnId))
 {

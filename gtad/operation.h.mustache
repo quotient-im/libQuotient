@@ -18,7 +18,7 @@ namespace Quotient {
 //! \brief {{summary}}{{#description?}}
 //!{{#description}}
 //! {{_}}{{/description}}{{/description?}}
-class QUOTIENT_API {{>titleCaseOperationId}}Job : public BaseJob {
+class {{>maybeDeprecated}} QUOTIENT_API {{>titleCaseOperationId}}Job : public BaseJob {
 public:
     {{#models}}{{#model?}}
     // Inner data structures
@@ -89,14 +89,17 @@ public:
             {{>overloadCollectResponse}}
         {{/properties}}{{/singleValue?}}{{^singleValue?}}{{#properties?}}
 
+        {{>openIgnoreDeprecations}}
 template <std::derived_from<{{>titleCaseOperationId}}Job> JobT>
 constexpr inline auto doCollectResponse<JobT> =
     [](JobT* j) -> {{>titleCaseOperationId}}Job::Response {
         return { {{#properties}}j->{{paramName}}(){{>cjoin}}{{/properties}} };
-    };  {{/properties?}}{{/singleValue?}}
+    };
+    {{>closeIgnoreDeprecations}}{{/properties?}}{{/singleValue?}}
     {{/allProperties?}}{{/normalResponse?}}{{/responses}}
     {{#models.model}}
 
+        {{>openIgnoreDeprecations}}
 template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {
         {{#in?}}
     static void dumpTo(QJsonObject& jo, const {{qualifiedName}}& pod)
@@ -123,6 +126,7 @@ template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {
     }
         {{/out?}}
 };
+        {{>closeIgnoreDeprecations}}
     {{/models.model}}
 {{/operations.operation}}
 

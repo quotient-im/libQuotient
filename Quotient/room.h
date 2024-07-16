@@ -142,6 +142,7 @@ class QUOTIENT_API Room : public QObject {
     Q_PROPERTY(int totalMemberCount READ totalMemberCount NOTIFY memberListChanged)
     Q_PROPERTY(QList<RoomMember> membersTyping READ membersTyping NOTIFY typingChanged)
     Q_PROPERTY(QList<RoomMember> otherMembersTyping READ otherMembersTyping NOTIFY typingChanged)
+    Q_PROPERTY(int localMemberEffectivePowerLevel READ memberEffectivePowerLevel NOTIFY changed)
 
     Q_PROPERTY(bool displayed READ displayed WRITE setDisplayed NOTIFY
                    displayedChanged)
@@ -265,7 +266,8 @@ public:
     void handleRoomKeyEvent(const RoomKeyEvent& roomKeyEvent,
                             const QString& senderId,
                             const QByteArray& olmSessionId,
-                            const QByteArray& senderKey);
+                            const QByteArray& senderKey,
+                            const QByteArray& senderEdKey);
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
@@ -554,7 +556,7 @@ public:
 
     QStringList tagNames() const;
     TagsMap tags() const;
-    TagRecord tag(const QString& name) const;
+    Tag tag(const QString& name) const;
 
     /** Add a new tag to this room
      * If this room already has this tag, nothing happens. If it's a new
@@ -562,7 +564,7 @@ public:
      * of tags and the new set is sent to the server to update other
      * clients.
      */
-    void addTag(const QString& name, const TagRecord& record = {});
+    void addTag(const QString& name, const Tag& tagData = {});
     Q_INVOKABLE void addTag(const QString& name, float order);
 
     /// Remove a tag from the room
@@ -657,6 +659,20 @@ public:
     /// \brief Get the current room state
     RoomStateView currentState() const;
 
+    //! \brief The effective power level of the given member in the room.
+    //!
+    //! Since a RoomPowerLevels state event may not always be available the following
+    //! is taken into account in line with the Matrix spec
+    //! https://spec.matrix.org/v1.8/client-server-api/#mroompower_levels:
+    //!     - The users_default is assumed to be 0.
+    //!     - The room creator is assumed to be 100.
+    //!
+    //! If \p memberId is empty the power level of the local user will be returned.
+    //! If the room has been upgraded 0 will be returned to prevent further upgrade attempts.
+    //!
+    //! \sa RoomPowerLevelsEvent
+    Q_INVOKABLE int memberEffectivePowerLevel(const QString& memberId = {}) const;
+
     //! \brief Post a pre-created room message event
     //!
     //! Takes ownership of the event, deleting it once the matching one arrives with the sync.
@@ -696,9 +712,11 @@ public:
         return setState(EvT(std::forward<ArgTs>(args)...));
     }
 
-    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index, const QByteArray& senderKey);
+    void addMegolmSessionFromBackup(const QByteArray &sessionId, const QByteArray &sessionKey, uint32_t index, const QByteArray& senderKey, const QByteArray& senderEdKey);
 
     Q_INVOKABLE void startVerification();
+
+    QJsonArray exportMegolmSessions();
 
 public Q_SLOTS:
     /** Check whether the room should be upgraded */

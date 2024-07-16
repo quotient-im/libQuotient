@@ -58,14 +58,13 @@ public:
     //!   Whether to additionally include events which only relate indirectly to the
     //!   given event, i.e. events related to the given event via two or more direct relationships.
     //!
-    //!   If set to `false`, only events which have direct a relation with the given
+    //!   If set to `false`, only events which have a direct relation with the given
     //!   event will be included.
     //!
-    //!   If set to `true`, all events which relate to the given event, or relate to
-    //!   events that relate to the given event, will be included.
-    //!
-    //!   It is recommended that homeservers traverse at least 3 levels of relationships.
-    //!   Implementations may perform more but should be careful to not infinitely recurse.
+    //!   If set to `true`, events which have an indirect relation with the given event
+    //!   will be included additionally up to a certain depth level. Homeservers SHOULD traverse
+    //!   at least 3 levels of relationships. Implementations MAY perform more but MUST be careful
+    //!   to not infinitely recurse.
     //!
     //!   The default value is `false`.
     explicit GetRelatingEventsJob(const QString& roomId, const QString& eventId,
@@ -182,14 +181,13 @@ public:
     //!   Whether to additionally include events which only relate indirectly to the
     //!   given event, i.e. events related to the given event via two or more direct relationships.
     //!
-    //!   If set to `false`, only events which have direct a relation with the given
+    //!   If set to `false`, only events which have a direct relation with the given
     //!   event will be included.
     //!
-    //!   If set to `true`, all events which relate to the given event, or relate to
-    //!   events that relate to the given event, will be included.
-    //!
-    //!   It is recommended that homeservers traverse at least 3 levels of relationships.
-    //!   Implementations may perform more but should be careful to not infinitely recurse.
+    //!   If set to `true`, events which have an indirect relation with the given event
+    //!   will be included additionally up to a certain depth level. Homeservers SHOULD traverse
+    //!   at least 3 levels of relationships. Implementations MAY perform more but MUST be careful
+    //!   to not infinitely recurse.
     //!
     //!   The default value is `false`.
     explicit GetRelatingEventsWithRelTypeJob(const QString& roomId, const QString& eventId,
@@ -319,14 +317,13 @@ public:
     //!   Whether to additionally include events which only relate indirectly to the
     //!   given event, i.e. events related to the given event via two or more direct relationships.
     //!
-    //!   If set to `false`, only events which have direct a relation with the given
+    //!   If set to `false`, only events which have a direct relation with the given
     //!   event will be included.
     //!
-    //!   If set to `true`, all events which relate to the given event, or relate to
-    //!   events that relate to the given event, will be included.
-    //!
-    //!   It is recommended that homeservers traverse at least 3 levels of relationships.
-    //!   Implementations may perform more but should be careful to not infinitely recurse.
+    //!   If set to `true`, events which have an indirect relation with the given event
+    //!   will be included additionally up to a certain depth level. Homeservers SHOULD traverse
+    //!   at least 3 levels of relationships. Implementations MAY perform more but MUST be careful
+    //!   to not infinitely recurse.
     //!
     //!   The default value is `false`.
     explicit GetRelatingEventsWithRelTypeAndEventTypeJob(

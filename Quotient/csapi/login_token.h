@@ -37,7 +37,7 @@ namespace Quotient {
 //! intend to log in multiple devices must generate a token for each.
 //!
 //! With other User-Interactive Authentication (UIA)-supporting endpoints, servers sometimes do not
-//! re-prompt for verification if the session recently passed UIA. For this endpoint, servers should
+//! re-prompt for verification if the session recently passed UIA. For this endpoint, servers MUST
 //! always re-prompt the user for verification to ensure explicit consent is gained for each
 //! additional client.
 //!

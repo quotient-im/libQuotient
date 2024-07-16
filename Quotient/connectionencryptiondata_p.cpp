@@ -268,6 +268,15 @@ void ConnectionEncryptionData::onSyncSuccess(SyncData& syncResponse)
     }
 
     consumeDevicesList(syncResponse.takeDevicesList());
+
+    auto checkQuery = database.prepareQuery("SELECT * FROM master_keys WHERE userId=:userId"_ls);
+    checkQuery.bindValue(":userId"_ls, q->userId());
+    database.execute(checkQuery);
+    const auto haveMasterKey = checkQuery.next();
+    if (trackedUsers.contains(q->userId()) && !outdatedUsers.contains(q->userId()) && !haveMasterKey) {
+        emit q->crossSigningSetupRequired();
+    }
+
 }
 
 void ConnectionEncryptionData::consumeDevicesList(const DevicesList& devicesList)
@@ -372,8 +381,8 @@ void ConnectionEncryptionData::handleEncryptedToDeviceEvent(const EncryptedEvent
     decryptedEvent->switchOnType(
         [this, &event, olmSessionId](const RoomKeyEvent& roomKeyEvent) {
             if (auto* detectedRoom = q->room(roomKeyEvent.roomId())) {
-                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(), olmSessionId,
-                                                 event.senderKey().toLatin1());
+                detectedRoom->handleRoomKeyEvent(roomKeyEvent, event.senderId(),
+                                                 olmSessionId, event.senderKey().toLatin1(), q->edKeyForUserDevice(event.senderId(), event.deviceId()).toLatin1());
             } else {
                 qCDebug(E2EE)
                     << "Encrypted event room id" << roomKeyEvent.roomId()

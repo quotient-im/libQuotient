@@ -48,9 +48,8 @@ ConnectionData::ConnectionData(QUrl baseUrl)
     // queues (first foreground, then background) and resumes it; then
     // restarts the rate limiter timer with duration 0, effectively yielding
     // to the event loop and then resuming until both queues are empty.
-    QObject::connect(&d->rateLimiter, &QTimer::timeout, [this] {
-        // TODO: Consider moving out all job->sendRequest() invocations to
-        // a dedicated thread
+    d->rateLimiter.callOnTimeout([this] {
+        // TODO: Consider moving out all job->sendRequest() invocations to a dedicated thread
         d->rateLimiter.setInterval(0);
         for (auto& q : d->jobs)
             while (!q.empty()) {

@@ -12,8 +12,6 @@ namespace Quotient {
 //! \brief Upload some content to the content repository.
 class QUOTIENT_API UploadContentJob : public BaseJob {
 public:
-    //! \param content
-    //!   The content to be uploaded.
     //!
     //! \param filename
     //!   The name of the file being uploaded
@@ -38,15 +36,11 @@ inline auto collectResponse(const UploadContentJob* job) { return job->contentUr
 class QUOTIENT_API UploadContentToMXCJob : public BaseJob {
 public:
     //! \param serverName
-    //!   The server name from the `mxc://` URI returned by `POST /_matrix/media/v1/create` (the
-    //!   authoritory component).
+    //!   The server name from the `mxc://` URI (the authority component).
     //!
     //! \param mediaId
-    //!   The media ID from the `mxc://` URI returned by `POST /_matrix/media/v1/create` (the path
-    //!   component).
+    //!   The media ID from the `mxc://` URI (the path component).
     //!
-    //! \param content
-    //!   The content to be uploaded.
     //!
     //! \param filename
     //!   The name of the file being uploaded
@@ -119,31 +113,44 @@ constexpr inline auto doCollectResponse<JobT> =
     [](JobT* j) -> CreateContentJob::Response { return { j->contentUri(), j->unusedExpiresAt() }; };
 
 //! \brief Download content from the content repository.
-class QUOTIENT_API GetContentJob : public BaseJob {
+//!
+//! \note
+//! Replaced by [`GET
+//! /_matrix/client/v1/media/download/{serverName}/{mediaId}`](/client-server-api/#get_matrixclientv1mediadownloadservernamemediaid)
+//! (requires authentication).
+//!
+//! \warning
+//! <strong>[Changed in v1.11]</strong> This endpoint MAY return `404 M_NOT_FOUND`
+//! for media which exists, but is after the server froze unauthenticated
+//! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
+//! information.
+class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetContentJob
+    : public BaseJob {
 public:
     //! \param serverName
-    //!   The server name from the `mxc://` URI (the authoritory component)
+    //!   The server name from the `mxc://` URI (the authority component).
     //!
     //! \param mediaId
-    //!   The media ID from the `mxc://` URI (the path component)
+    //!   The media ID from the `mxc://` URI (the path component).
     //!
     //! \param allowRemote
-    //!   Indicates to the server that it should not attempt to fetch the media if it is deemed
-    //!   remote. This is to prevent routing loops where the server contacts itself. Defaults to
-    //!   true if not provided.
+    //!   Indicates to the server that it should not attempt to fetch the media if
+    //!   it is deemed remote. This is to prevent routing loops where the server
+    //!   contacts itself.
+    //!
+    //!   Defaults to `true` if not provided.
     //!
     //! \param timeoutMs
-    //!   The maximum number of milliseconds that the client is willing to
-    //!   wait to start receiving data, in the case that the content has not
-    //!   yet been uploaded. The default value is 20000 (20 seconds). The
-    //!   content repository can and should impose a maximum value for this
-    //!   parameter. The content repository may also choose to respond before
-    //!   the timeout.
+    //!   The maximum number of milliseconds that the client is willing to wait to
+    //!   start receiving data, in the case that the content has not yet been
+    //!   uploaded. The default value is 20000 (20 seconds). The content
+    //!   repository SHOULD impose a maximum value for this parameter. The
+    //!   content repository MAY respond before the timeout.
     //!
     //! \param allowRedirect
-    //!   Indicates to the server that it may return a 307 or 308 redirect response that points
-    //!   at the relevant media content. When not explicitly set to true the server must return
-    //!   the media content itself.
+    //!   Indicates to the server that it may return a 307 or 308 redirect
+    //!   response that points at the relevant media content. When not explicitly
+    //!   set to `true` the server must return the media content itself.
     explicit GetContentJob(const QString& serverName, const QString& mediaId,
                            bool allowRemote = true, qint64 timeoutMs = 20000,
                            bool allowRedirect = false);
@@ -173,37 +180,50 @@ public:
 
 //! \brief Download content from the content repository overriding the file name
 //!
+//! \note
+//! Replaced by [`GET
+//! /_matrix/client/v1/media/download/{serverName}/{mediaId}/{fileName}`](/client-server-api/#get_matrixclientv1mediadownloadservernamemediaidfilename)
+//! (requires authentication).
+//!
 //! This will download content from the content repository (same as
 //! the previous endpoint) but replace the target file name with the one
 //! provided by the caller.
-class QUOTIENT_API GetContentOverrideNameJob : public BaseJob {
+//!
+//! \warning
+//! <strong>[Changed in v1.11]</strong> This endpoint MAY return `404 M_NOT_FOUND`
+//! for media which exists, but is after the server froze unauthenticated
+//! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
+//! information.
+class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetContentOverrideNameJob
+    : public BaseJob {
 public:
     //! \param serverName
-    //!   The server name from the `mxc://` URI (the authoritory component)
+    //!   The server name from the `mxc://` URI (the authority component).
     //!
     //! \param mediaId
-    //!   The media ID from the `mxc://` URI (the path component)
+    //!   The media ID from the `mxc://` URI (the path component).
     //!
     //! \param fileName
     //!   A filename to give in the `Content-Disposition` header.
     //!
     //! \param allowRemote
-    //!   Indicates to the server that it should not attempt to fetch the media if it is deemed
-    //!   remote. This is to prevent routing loops where the server contacts itself. Defaults to
-    //!   true if not provided.
+    //!   Indicates to the server that it should not attempt to fetch the media if
+    //!   it is deemed remote. This is to prevent routing loops where the server
+    //!   contacts itself.
+    //!
+    //!   Defaults to `true` if not provided.
     //!
     //! \param timeoutMs
-    //!   The maximum number of milliseconds that the client is willing to
-    //!   wait to start receiving data, in the case that the content has not
-    //!   yet been uploaded. The default value is 20000 (20 seconds). The
-    //!   content repository can and should impose a maximum value for this
-    //!   parameter. The content repository may also choose to respond before
-    //!   the timeout.
+    //!   The maximum number of milliseconds that the client is willing to wait to
+    //!   start receiving data, in the case that the content has not yet been
+    //!   uploaded. The default value is 20000 (20 seconds). The content
+    //!   repository SHOULD impose a maximum value for this parameter. The
+    //!   content repository MAY respond before the timeout.
     //!
     //! \param allowRedirect
-    //!   Indicates to the server that it may return a 307 or 308 redirect response that points
-    //!   at the relevant media content. When not explicitly set to true the server must return
-    //!   the media content itself.
+    //!   Indicates to the server that it may return a 307 or 308 redirect
+    //!   response that points at the relevant media content. When not explicitly
+    //!   set to `true` the server must return the media content itself.
     explicit GetContentOverrideNameJob(const QString& serverName, const QString& mediaId,
                                        const QString& fileName, bool allowRemote = true,
                                        qint64 timeoutMs = 20000, bool allowRedirect = false);
@@ -234,15 +254,27 @@ public:
 
 //! \brief Download a thumbnail of content from the content repository
 //!
+//! \note
+//! Replaced by [`GET
+//! /_matrix/client/v1/media/thumbnail/{serverName}/{mediaId}`](/client-server-api/#get_matrixclientv1mediathumbnailservernamemediaid)
+//! (requires authentication).
+//!
 //! Download a thumbnail of content from the content repository.
 //! See the [Thumbnails](/client-server-api/#thumbnails) section for more information.
-class QUOTIENT_API GetContentThumbnailJob : public BaseJob {
+//!
+//! \warning
+//! <strong>[Changed in v1.11]</strong> This endpoint MAY return `404 M_NOT_FOUND`
+//! for media which exists, but is after the server froze unauthenticated
+//! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
+//! information.
+class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetContentThumbnailJob
+    : public BaseJob {
 public:
     //! \param serverName
-    //!   The server name from the `mxc://` URI (the authoritory component)
+    //!   The server name from the `mxc://` URI (the authority component).
     //!
     //! \param mediaId
-    //!   The media ID from the `mxc://` URI (the path component)
+    //!   The media ID from the `mxc://` URI (the path component).
     //!
     //! \param width
     //!   The *desired* width of the thumbnail. The actual thumbnail may be
@@ -257,25 +289,43 @@ public:
     //!   section for more information.
     //!
     //! \param allowRemote
-    //!   Indicates to the server that it should not attempt to fetch
-    //!   the media if it is deemed remote. This is to prevent routing loops
-    //!   where the server contacts itself. Defaults to true if not provided.
+    //!   Indicates to the server that it should not attempt to fetch the media if
+    //!   it is deemed remote. This is to prevent routing loops where the server
+    //!   contacts itself.
+    //!
+    //!   Defaults to `true` if not provided.
     //!
     //! \param timeoutMs
-    //!   The maximum number of milliseconds that the client is willing to
-    //!   wait to start receiving data, in the case that the content has not
-    //!   yet been uploaded. The default value is 20000 (20 seconds). The
-    //!   content repository can and should impose a maximum value for this
-    //!   parameter. The content repository may also choose to respond before
-    //!   the timeout.
+    //!   The maximum number of milliseconds that the client is willing to wait to
+    //!   start receiving data, in the case that the content has not yet been
+    //!   uploaded. The default value is 20000 (20 seconds). The content
+    //!   repository SHOULD impose a maximum value for this parameter. The
+    //!   content repository MAY respond before the timeout.
     //!
     //! \param allowRedirect
-    //!   Indicates to the server that it may return a 307 or 308 redirect response that points
-    //!   at the relevant media content. When not explicitly set to true the server must return
-    //!   the media content itself.
+    //!   Indicates to the server that it may return a 307 or 308 redirect
+    //!   response that points at the relevant media content. When not explicitly
+    //!   set to `true` the server must return the media content itself.
+    //!
+    //! \param animated
+    //!   Indicates preference for an animated thumbnail from the server, if possible. Animated
+    //!   thumbnails typically use the content types `image/gif`, `image/png` (with APNG format),
+    //!   `image/apng`, and `image/webp` instead of the common static `image/png` or `image/jpeg`
+    //!   content types.
+    //!
+    //!   When `true`, the server SHOULD return an animated thumbnail if possible and supported.
+    //!   When `false`, the server MUST NOT return an animated thumbnail. For example, returning a
+    //!   static `image/png` or `image/jpeg` thumbnail. When not provided, the server SHOULD NOT
+    //!   return an animated thumbnail.
+    //!
+    //!   Servers SHOULD prefer to return `image/webp` thumbnails when supporting animation.
+    //!
+    //!   When `true` and the media cannot be animated, such as in the case of a JPEG or PDF, the
+    //!   server SHOULD behave as though `animated` is `false`.
     explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width,
                                     int height, const QString& method = {}, bool allowRemote = true,
-                                    qint64 timeoutMs = 20000, bool allowRedirect = false);
+                                    qint64 timeoutMs = 20000, bool allowRedirect = false,
+                                    std::optional<bool> animated = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
@@ -284,7 +334,8 @@ public:
     static QUrl makeRequestUrl(QUrl baseUrl, const QString& serverName, const QString& mediaId,
                                int width, int height, const QString& method = {},
                                bool allowRemote = true, qint64 timeoutMs = 20000,
-                               bool allowRedirect = false);
+                               bool allowRedirect = false,
+                               std::optional<bool> animated = std::nullopt);
 
     // Result properties
 
@@ -297,6 +348,10 @@ public:
 
 //! \brief Get information about a URL for a client
 //!
+//! \note
+//! Replaced by [`GET
+//! /_matrix/client/v1/media/preview_url`](/client-server-api/#get_matrixclientv1mediapreview_url).
+//!
 //! Get information about a URL for the client. Typically this is called when a
 //! client sees a URL in a message and wants to render a preview for the user.
 //!
@@ -305,7 +360,8 @@ public:
 //! rooms. Encrypted rooms often contain more sensitive information the users
 //! do not want to share with the homeserver, and this can mean that the URLs
 //! being shared should also not be shared with the homeserver.
-class QUOTIENT_API GetUrlPreviewJob : public BaseJob {
+class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetUrlPreviewJob
+    : public BaseJob {
 public:
     //! \param url
     //!   The URL to get a preview of.
@@ -345,11 +401,18 @@ public:
     };
 };
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
 template <std::derived_from<GetUrlPreviewJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
     [](JobT* j) -> GetUrlPreviewJob::Response { return { j->matrixImageSize(), j->ogImage() }; };
+QT_WARNING_POP
 
 //! \brief Get the configuration for the content repository.
+//!
+//! \note
+//! Replaced by [`GET
+//! /_matrix/client/v1/media/config`](/client-server-api/#get_matrixclientv1mediaconfig).
 //!
 //! This endpoint allows clients to retrieve the configuration of the content
 //! repository, such as upload limitations.
@@ -361,7 +424,8 @@ constexpr inline auto doCollectResponse<JobT> =
 //! between the client and the server may affect the apparent behaviour of content
 //! repository APIs, for example, proxies may enforce a lower upload size limit
 //! than is advertised by the server on this endpoint.
-class QUOTIENT_API GetConfigJob : public BaseJob {
+class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetConfigJob
+    : public BaseJob {
 public:
     explicit GetConfigJob();
 
@@ -382,6 +446,9 @@ public:
     }
 };
 
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
 inline auto collectResponse(const GetConfigJob* job) { return job->uploadSize(); }
+QT_WARNING_POP
 
 } // namespace Quotient

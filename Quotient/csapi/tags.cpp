@@ -16,14 +16,11 @@ GetRoomTagsJob::GetRoomTagsJob(const QString& userId, const QString& roomId)
 {}
 
 SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag,
-                             std::optional<float> order, const QVariantHash& additionalProperties)
+                             const Tag& data)
     : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomTagJob"),
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/", roomId, "/tags/", tag))
 {
-    QJsonObject _dataJson;
-    fillJson(_dataJson, additionalProperties);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("order"), order);
-    setRequestData({ _dataJson });
+    setRequestData({ toJson(data) });
 }
 
 QUrl DeleteRoomTagJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId,

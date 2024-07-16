@@ -46,7 +46,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 5: migrateTo6(); [[fallthrough]];
     case 6: migrateTo7(); [[fallthrough]];
     case 7: migrateTo8(); [[fallthrough]];
-    case 8: migrateTo9();
+    case 8: migrateTo9(); [[fallthrough]];
+    case 9: migrateTo10();
     }
 }
 
@@ -238,6 +239,41 @@ void Database::migrateTo9()
     commit();
 }
 
+void Database::migrateTo10()
+{
+    qCDebug(DATABASE) << "Migrating database to version 10";
+
+    transaction();
+
+    execute(QStringLiteral("ALTER TABLE inbound_megolm_sessions ADD senderClaimedEd25519Key TEXT;"));
+
+    auto query = prepareQuery("SELECT DISTINCT senderKey FROM inbound_megolm_sessions;"_ls);
+    execute(query);
+
+    QStringList keys;
+    while (query.next()) {
+        keys += query.value("senderKey"_ls).toString();
+    }
+    for (const auto& key : keys) {
+        auto edKeyQuery = prepareQuery("SELECT edKey FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
+        edKeyQuery.bindValue(":curveKey"_ls, key);
+        execute(edKeyQuery);
+        if (!edKeyQuery.next()) {
+            continue;
+        }
+        const auto &edKey = edKeyQuery.value("edKey"_ls).toByteArray();
+
+        auto updateQuery = prepareQuery("UPDATE inbound_megolm_sessions SET senderClaimedEd25519Key=:senderClaimedEd25519Key WHERE senderKey=:senderKey;"_ls);
+        updateQuery.bindValue(":senderKey"_ls, key.toLatin1());
+        updateQuery.bindValue(":senderClaimedEd25519Key"_ls, edKey);
+        execute(updateQuery);
+    }
+
+    execute(QStringLiteral("pragma user_version = 10"));
+    commit();
+
+}
+
 void Database::storeOlmAccount(const QOlmAccount& olmAccount)
 {
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM accounts;"));
@@ -349,19 +385,20 @@ std::unordered_map<QByteArray, QOlmInboundGroupSession> Database::loadMegolmSess
 }
 
 void Database::saveMegolmSession(const QString& roomId,
-                                 const QOlmInboundGroupSession& session, const QByteArray &senderKey)
+                                 const QOlmInboundGroupSession& session, const QByteArray &senderKey, const QByteArray& senderClaimedEdKey)
 {
     auto deleteQuery = prepareQuery(QStringLiteral("DELETE FROM inbound_megolm_sessions WHERE roomId=:roomId AND sessionId=:sessionId;"));
     deleteQuery.bindValue(":roomId"_ls, roomId);
     deleteQuery.bindValue(":sessionId"_ls, session.sessionId());
     auto query = prepareQuery(
-        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId, senderKey) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId, :senderKey);"));
+        QStringLiteral("INSERT INTO inbound_megolm_sessions(roomId, sessionId, pickle, senderId, olmSessionId, senderKey, senderClaimedEd25519Key) VALUES(:roomId, :sessionId, :pickle, :senderId, :olmSessionId, :senderKey, :senderClaimedEd25519Key);"));
     query.bindValue(":roomId"_ls, roomId);
     query.bindValue(":sessionId"_ls, session.sessionId());
     query.bindValue(":pickle"_ls, session.pickle(m_picklingKey));
     query.bindValue(":senderId"_ls, session.senderId());
     query.bindValue(":olmSessionId"_ls, session.olmSessionId());
     query.bindValue(":senderKey"_ls, senderKey);
+    query.bindValue(":senderClaimedEd25519Key"_ls, senderClaimedEdKey);
     transaction();
     execute(deleteQuery);
     execute(query);
@@ -620,4 +657,20 @@ QString Database::selfSigningPublicKey()
     query.bindValue(":userId"_ls, m_userId);
     execute(query);
     return query.next() ? query.value("key"_ls).toString() : QString();
+}
+
+QString Database::edKeyForMegolmSession(const QString& sessionId)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT senderClaimedEd25519Key FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"));
+    query.bindValue(":sessionId"_ls, sessionId.toLatin1());
+    execute(query);
+    return query.next() ? query.value("senderClaimedEd25519Key"_ls).toString() : QString();
+}
+
+QString Database::senderKeyForMegolmSession(const QString& sessionId)
+{
+    auto query = prepareQuery(QStringLiteral("SELECT senderKey FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"));
+    query.bindValue(":sessionId"_ls, sessionId.toLatin1());
+    execute(query);
+    return query.next() ? query.value("senderKey"_ls).toString() : QString();
 }

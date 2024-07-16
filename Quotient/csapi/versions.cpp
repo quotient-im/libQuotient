@@ -11,7 +11,7 @@ QUrl GetVersionsJob::makeRequestUrl(QUrl baseUrl)
 
 GetVersionsJob::GetVersionsJob()
     : BaseJob(HttpVerb::Get, QStringLiteral("GetVersionsJob"),
-              makePath("/_matrix/client", "/versions"), false)
+              makePath("/_matrix/client", "/versions"))
 {
     addExpectedKey("versions");
 }

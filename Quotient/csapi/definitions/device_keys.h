@@ -28,7 +28,7 @@ struct QUOTIENT_API DeviceKeys {
     //!
     //! The signature is calculated using the process described at [Signing
     //! JSON](/appendices/#signing-json).
-    QHash<QString, QHash<QString, QString>> signatures;
+    QHash<UserId, QHash<QString, QString>> signatures;
 };
 
 template <>

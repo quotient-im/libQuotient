@@ -25,7 +25,7 @@ public:
     //!   device ID to message body. The device ID may also be `*`,
     //!   meaning all known devices for the user.
     explicit SendToDeviceJob(const QString& eventType, const QString& txnId,
-                             const QHash<QString, QHash<QString, QJsonObject>>& messages);
+                             const QHash<UserId, QHash<QString, QJsonObject>>& messages);
 };
 
 } // namespace Quotient
