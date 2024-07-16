@@ -47,7 +47,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 6: migrateTo7(); [[fallthrough]];
     case 7: migrateTo8(); [[fallthrough]];
     case 8: migrateTo9(); [[fallthrough]];
-    case 9: migrateTo10();
+    case 9: migrateTo10(); [[fallthrough]];
+    case 10: migrateTo11();
     }
 }
 
@@ -269,9 +270,17 @@ void Database::migrateTo10()
         execute(updateQuery);
     }
 
-    execute(QStringLiteral("pragma user_version = 10"));
+    execute(QStringLiteral("pragma user_version = 10;"));
     commit();
+}
 
+void Database::migrateTo11()
+{
+    qCDebug(DATABASE) << "Migrating database to version 11";
+    transaction();
+    execute(QStringLiteral("CREATE TABLE events (roomId TEXT, ts INTEGER, json TEXT);"));
+    execute(QStringLiteral("pragma user_version = 11;"));
+    commit();
 }
 
 void Database::storeOlmAccount(const QOlmAccount& olmAccount)
