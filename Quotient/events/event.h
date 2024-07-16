@@ -284,7 +284,7 @@ public:
     template <typename... VisitorTs>
     auto switchOnType(VisitorTs&&... visitors) const;
 
-        const QJsonObject& fullJson() const { return _json; }
+    const QJsonObject& fullJson() const { return _json; }
 
     // According to the CS API spec, every event also has
     // a "content" object; but since its structure is different for
