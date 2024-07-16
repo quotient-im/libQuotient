@@ -14,11 +14,14 @@ constexpr inline auto ServerNoticeTag = "m.server_notice"_ls;
 
 using TagRecord [[deprecated("Use Tag from csapi/definitions/tag.h instead")]] = Tag;
 
-inline bool operator<(Tag lhs, Tag rhs)
+inline std::partial_ordering operator<=>( //
+    const Tag& lhs, const Tag& rhs) // clazy:exclude=function-args-by-value
 {
     // Per The Spec, rooms with no order should be after those with order,
-    // against std::optional<>::operator<() convention.
-    return lhs.order && (!rhs.order || *lhs.order < *rhs.order);
+    // against std::optional<>::operator<=>() convention.
+    return (lhs.order && !rhs.order)   ? std::partial_ordering::less
+           : (!lhs.order && rhs.order) ? std::partial_ordering::greater
+                                       : *lhs.order <=> *rhs.order;
 }
 
 using TagsMap = QHash<QString, Tag>;
