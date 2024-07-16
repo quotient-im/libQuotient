@@ -72,8 +72,7 @@ void Quotient::fillFromSecureRng(std::span<byte_t> bytes)
     // and FixedBuffer happens to deal with sizes that are multiples
     // of those (16, 32, etc.)
     const qsizetype wordsCount = bytes.size() / 4;
-    QRandomGenerator::system()->fillRange(
-        reinterpret_cast<uint32_t*>(bytes.data()), wordsCount);
+    QRandomGenerator::system()->fillRange(std::bit_cast<uint32_t*>(bytes.data()), wordsCount);
     if (const int remainder = bytes.size() % 4; Q_UNLIKELY(remainder != 0)) {
         // Not normal; but if it happens, apply best effort
         QRandomGenerator::system()->generate(bytes.end() - remainder,
@@ -157,7 +156,7 @@ void FixedBufferBase::fillFrom(QByteArray&& source)
     }
 
     data_ = allocate(size_);
-    std::copy(source.cbegin(), source.cend(), reinterpret_cast<char*>(data_));
+    std::copy(source.cbegin(), source.cend(), std::bit_cast<char*>(data_));
     if (source.isDetached())
         source.clear();
     else

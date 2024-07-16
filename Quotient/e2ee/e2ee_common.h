@@ -108,7 +108,7 @@ namespace _impl {
             static_assert(std::in_range<int>(SpanT::extent));
             checkForSpanShortfall(std::size(byteArray), static_cast<int>(SpanT::extent));
         }
-        return SpanT(reinterpret_cast<typename SpanT::pointer>(std::data(byteArray)),
+        return SpanT(std::bit_cast<typename SpanT::pointer>(std::data(byteArray)),
                      std::min(SpanT::extent, unsignedSize(byteArray)));
     }
 } // namespace _impl
@@ -117,7 +117,7 @@ namespace _impl {
 //!
 //! This function returns an adaptor object that is suitable for OpenSSL/Olm
 //! invocations (via std::span<>::data() accessor) so that you don't have
-//! to wrap your containers into ugly reinterpret_casts on every OpenSSL call.
+//! to wrap your containers into reinterpret/bit_casts on every OpenSSL call.
 //! \note The caller is responsible for making sure that bytes.size() is small
 //!       enough to fit into an int (OpenSSL only handles int sizes atm) but
 //!       also large enough to have at least N bytes if N is not `std::dynamic_extent`
@@ -138,8 +138,7 @@ inline auto asWritableCBytes(auto& buf)
 inline auto viewAsByteArray(const auto& aRange) -> auto
     requires (sizeof(*aRange.data()) == sizeof(char))
 { // -> auto to activate SFINAE, it's always QByteArray when well-formed
-    return QByteArray::fromRawData(reinterpret_cast<const char*>(
-                                       std::data(aRange)),
+    return QByteArray::fromRawData(std::bit_cast<const char*>(std::data(aRange)),
                                    static_cast<int>(std::size(aRange)));
 }
 
@@ -170,7 +169,7 @@ public:
     QByteArray viewAsByteArray() const
     {
         static_assert(std::in_range<QByteArray::size_type>(TotalSecureHeapSize));
-        return QByteArray::fromRawData(reinterpret_cast<const char*>(data_),
+        return QByteArray::fromRawData(std::bit_cast<const char*>(data_),
                                        static_cast<QByteArray::size_type>(size_));
     }
 
@@ -182,7 +181,7 @@ public:
     {
         if (untilPos < 0 || static_cast<size_type>(untilPos) > size_)
             untilPos = static_cast<QByteArray::size_type>(size_);
-        return { reinterpret_cast<const char*>(data_), untilPos };
+        return { std::bit_cast<const char*>(data_), untilPos };
     }
 
     // TODO, 0.9: merge the overloads

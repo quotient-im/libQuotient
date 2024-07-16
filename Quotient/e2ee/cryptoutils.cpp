@@ -117,8 +117,7 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
                          Qt::Uninitialized);
     int encryptedLength = 0;
     {
-        // Working with `encrypted` the span adaptor in this scope, avoiding
-        // reinterpret_casts
+        // Working with `encrypted` the span adaptor in this scope, avoiding reinterpret_casts
         auto encryptedSpan = asWritableCBytes(encrypted);
         fillFromSecureRng(encryptedSpan); // Now `encrypted` is initialised
         constexpr auto mask = static_cast<uint8_t>(~(1U << (63 / 8)));
