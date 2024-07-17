@@ -6,8 +6,6 @@
 #include "connection.h"
 #include "logging_categories_p.h"
 
-#include "csapi/content-repo.h"
-
 #include "jobs/mediathumbnailjob.h"
 
 #include <QtCore/QDir>

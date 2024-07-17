@@ -26,7 +26,6 @@
 
 #include "csapi/account-data.h"
 #include "csapi/banning.h"
-#include "csapi/content-repo.h"
 #include "csapi/inviting.h"
 #include "csapi/kicking.h"
 #include "csapi/leaving.h"
