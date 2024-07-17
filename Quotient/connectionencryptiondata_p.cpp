@@ -18,102 +18,109 @@
 using namespace Quotient;
 using namespace Quotient::_impl;
 
-Expected<PicklingKey, QKeychain::Error> setupPicklingKey(const QString& id,
-                                                         bool mock)
+void setupPicklingKey(const QString& id, bool mock, std::function<void(Expected<PicklingKey, QKeychain::Error>)> then)
 {
     if (mock) {
         qInfo(E2EE) << "Using a mock pickling key";
-        return PicklingKey::generate();
+        then(PicklingKey::generate());
+        return;
     }
 
     // TODO: Rewrite the whole thing in an async way to get rid of nested event
     // loops
     using namespace QKeychain;
     const auto keychainId = id + "-Pickle"_ls;
-    ReadPasswordJob readJob(qAppName());
-    readJob.setAutoDelete(false);
-    readJob.setKey(keychainId);
-    QEventLoop readLoop;
-    QObject::connect(&readJob, &Job::finished, &readLoop, &QEventLoop::quit);
-    readJob.start();
-    readLoop.exec();
-
-    if (readJob.error() == Error::NoError) {
-        auto&& data = readJob.binaryData();
-        if (data.size() == PicklingKey::extent) {
-            qDebug(E2EE) << "Successfully loaded pickling key from keychain";
-            return PicklingKey::fromByteArray(std::move(data));
+    auto readJob = new ReadPasswordJob(qAppName());
+    readJob->setAutoDelete(true);
+    qWarning() << "app" << qAppName() << "id" << keychainId;
+    readJob->setKey(keychainId);
+    QObject::connect(readJob, &Job::finished, readJob, [readJob, then, id, keychainId](){
+        if (readJob->error() == Error::NoError) {
+            auto&& data = readJob->binaryData();
+            if (data.size() == PicklingKey::extent) {
+                qDebug(E2EE) << "Successfully loaded pickling key from keychain";
+                then(PicklingKey::fromByteArray(std::move(data)));
+                return;
+            }
+            qCritical(E2EE) << "The loaded pickling key for" << id
+                            << "has length" << data.size()
+                            << "but the library expected" << PicklingKey::extent;
+            then(Error::OtherError);
+            return;
         }
-        qCritical(E2EE) << "The loaded pickling key for" << id
-                        << "has length" << data.size()
-                        << "but the library expected" << PicklingKey::extent;
-        return Error::OtherError;
-    }
-    if (readJob.error() == Error::EntryNotFound) {
-        auto&& picklingKey = PicklingKey::generate();
-        WritePasswordJob writeJob(qAppName());
-        writeJob.setAutoDelete(false);
-        writeJob.setKey(keychainId);
-        writeJob.setBinaryData(picklingKey.viewAsByteArray());
-        QEventLoop writeLoop;
-        QObject::connect(&writeJob, &Job::finished, &writeLoop,
-                         &QEventLoop::quit);
-        writeJob.start();
-        writeLoop.exec();
+        if (readJob->error() == Error::EntryNotFound) {
+            auto&& picklingKey = PicklingKey::generate();
+            auto writeJob = new WritePasswordJob(qAppName());
+            writeJob->setAutoDelete(true);
+            writeJob->setKey(keychainId);
+            writeJob->setBinaryData(picklingKey.viewAsByteArray());
+            QObject::connect(writeJob, &Job::finished, writeJob, [writeJob, then, &picklingKey](){
+                writeJob->start();
 
-        if (writeJob.error() == Error::NoError)
-            return std::move(picklingKey);
+                if (writeJob->error() == Error::NoError) {
+                    then(std::move(picklingKey));
+                    return;
+                }
 
-        qCritical(E2EE) << "Could not save pickling key to keychain: "
-                        << writeJob.errorString();
-        return writeJob.error();
-    }
-    qWarning(E2EE) << "Error loading pickling key - please fix your keychain:"
-                   << readJob.errorString();
-    return readJob.error();
+                qCritical(E2EE) << "Could not save pickling key to keychain: "
+                                << writeJob->errorString();
+                then(writeJob->error());
+            });
+        }
+        qWarning(E2EE) << "Error loading pickling key - please fix your keychain:"
+                    << readJob->errorString();
+        then(readJob->error());
+        return;
+    });
+    readJob->start();
 }
 
-std::optional<std::unique_ptr<ConnectionEncryptionData>>
-ConnectionEncryptionData::setup(Connection* connection, bool mock)
+void ConnectionEncryptionData::setup(Connection* connection, std::function<void(std::optional<std::unique_ptr<ConnectionEncryptionData>>)> then, bool mock)
 {
-    if (auto&& maybePicklingKey = setupPicklingKey(connection->userId(), mock)) {
-        auto&& encryptionData = std::make_unique<ConnectionEncryptionData>(
-            connection, std::move(*maybePicklingKey));
-        if (mock) {
-            encryptionData->database.clear();
-            encryptionData->olmAccount.setupNewAccount();
-            return std::move(encryptionData);
-        }
-        if (const auto outcome = encryptionData->database.setupOlmAccount(
-                encryptionData->olmAccount)) {
-            // account already existing or there's an error unpickling it
-            if (outcome == OLM_SUCCESS)
-                return std::move(encryptionData);
+    setupPicklingKey(connection->userId(), mock, [connection, then, mock](Expected<PicklingKey, QKeychain::Error> maybePicklingKey){
+        if(maybePicklingKey) {
+            auto&& encryptionData = std::make_unique<ConnectionEncryptionData>(
+                connection, std::move(*maybePicklingKey));
+            if (mock) {
+                encryptionData->database.clear();
+                encryptionData->olmAccount.setupNewAccount();
+                then(std::move(encryptionData));
+                return;
+            }
+            if (const auto outcome = encryptionData->database.setupOlmAccount(
+                    encryptionData->olmAccount)) {
+                // account already existing or there's an error unpickling it
+                if (outcome == OLM_SUCCESS) {
+                    then(std::move(encryptionData));
+                    return;
+                }
 
-            qCritical(E2EE) << "Could not unpickle Olm account for"
-                            << connection->objectName();
-            return {};
+                qCritical(E2EE) << "Could not unpickle Olm account for"
+                                << connection->objectName();
+                then(std::nullopt);
+                return;
+            }
+            // A new account has been created
+            auto job = connection->callApi<UploadKeysJob>(
+                encryptionData->olmAccount.deviceKeys());
+            // eData is meant to have the same scope as connection so it's safe
+            // to pass an unguarded pointer to encryption data here
+            QObject::connect(job, &BaseJob::success, connection,
+                            [connection, eData = encryptionData.get()] {
+                                eData->trackedUsers += connection->userId();
+                                eData->outdatedUsers += connection->userId();
+                                eData->encryptionUpdateRequired = true;
+                            });
+            QObject::connect(job, &BaseJob::failure, connection, [job] {
+                qCWarning(E2EE)
+                    << "Failed to upload device keys:" << job->errorString();
+            });
+            then(std::move(encryptionData));
+            return;
         }
-        // A new account has been created
-        auto job = connection->callApi<UploadKeysJob>(
-            encryptionData->olmAccount.deviceKeys());
-        // eData is meant to have the same scope as connection so it's safe
-        // to pass an unguarded pointer to encryption data here
-        QObject::connect(job, &BaseJob::success, connection,
-                         [connection, eData = encryptionData.get()] {
-                             eData->trackedUsers += connection->userId();
-                             eData->outdatedUsers += connection->userId();
-                             eData->encryptionUpdateRequired = true;
-                         });
-        QObject::connect(job, &BaseJob::failure, connection, [job] {
-            qCWarning(E2EE)
-                << "Failed to upload device keys:" << job->errorString();
-        });
-        return std::move(encryptionData);
-    }
-    qCritical(E2EE) << "Could not load or initialise a pickling key for"
-                    << connection->objectName();
-    return {};
+        qCritical(E2EE) << "Could not load or initialise a pickling key for"
+                        << connection->objectName();
+    });
 }
 
 void ConnectionEncryptionData::saveDevicesList()

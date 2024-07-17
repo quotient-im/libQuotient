@@ -16,8 +16,7 @@ struct DevicesList;
 namespace _impl {
     class ConnectionEncryptionData {
     public:
-        static std::optional<std::unique_ptr<ConnectionEncryptionData>> setup(Connection* connection,
-                                                                              bool mock = false);
+        static void setup(Connection* connection, std::function<void(std::optional<std::unique_ptr<ConnectionEncryptionData>>)> then, bool mock = false);
 
         Connection* q;
         QOlmAccount olmAccount;

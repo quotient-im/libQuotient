@@ -320,13 +320,14 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
     }
 
     if (useEncryption) {
-        if (auto&& maybeEncryptionData =
-                _impl::ConnectionEncryptionData::setup(q, mock)) {
-            encryptionData = std::move(*maybeEncryptionData);
-        } else {
-            useEncryption = false;
-            emit q->encryptionChanged(false);
-        }
+        _impl::ConnectionEncryptionData::setup(q, [this](auto&& maybeEncryptionData){
+            if (maybeEncryptionData) {
+                encryptionData = std::move(*maybeEncryptionData);
+            } else {
+                useEncryption = false;
+                emit q->encryptionChanged(false);
+            }
+        }, mock);
     } else
         qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for"
                      << q->objectName();
