@@ -145,7 +145,7 @@ public:
     QTimer retryTimer;
 
     static constexpr auto errorStrategy = std::to_array<const JobTimeoutConfig>(
-        { { 90s, 5s }, { 90s, 10s }, { 120s, 30s } });
+        { { 30s, 2s }, { 60s, 5s }, { 150s, 30s } });
     int maxRetries = int(errorStrategy.size());
     int retriesTaken = 0;
 

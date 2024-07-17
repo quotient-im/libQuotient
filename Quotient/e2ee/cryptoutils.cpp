@@ -65,28 +65,27 @@ inline std::pair<int, bool> checkedSize(
 
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 // TODO: remove NOLINT brackets once we're on clang-tidy 18
-#define CLAMP_SIZE(SizeVar_, ByteArray_, ...)                              \
-    const auto [SizeVar_, ByteArray_##Clamped] =                           \
-        checkedSize((ByteArray_).size() __VA_OPT__(, ) __VA_ARGS__);       \
-    if (ByteArray_##Clamped) {                                             \
-        qCCritical(E2EE).nospace()                                         \
-            << __func__ << ": " #ByteArray_ " is " << (ByteArray_).size()  \
-            << " bytes long, too much for OpenSSL and overall suspicious"; \
-        Q_ASSERT(!ByteArray_##Clamped); /* Always false */                 \
-        return SslPayloadTooLong;                                          \
-    }                                                                      \
-    do {} while (false)                                                    \
+#define CLAMP_SIZE(SizeVar_, ByteArray_, ...)                                                   \
+    const auto [SizeVar_, ByteArray_##Clamped] =                                                \
+        checkedSize((ByteArray_).size() __VA_OPT__(, ) __VA_ARGS__);                            \
+    if (ALARM_X(ByteArray_##Clamped,                                                            \
+                qPrintable(QStringLiteral(#ByteArray_ " is %1 bytes long, too much for OpenSSL" \
+                                                      " and overall suspicious")                \
+                               .arg((ByteArray_).size()))))                                     \
+        return SslPayloadTooLong;                                                               \
+    do {} while (false)                                                                         \
     // End of macro
 
-#define CALL_OPENSSL(Call_)                                                \
-    do {                                                                   \
-        if ((Call_) <= 0) {                                                \
-            qCWarning(E2EE) << __func__ << "failed to call OpenSSL API:"   \
-                            << ERR_error_string(ERR_get_error(), nullptr); \
-            return ERR_get_error();                                        \
-        }                                                                  \
-    } while (false)                                                        \
-// End of macro
+#define CALL_OPENSSL(Call_)                                                    \
+    do {                                                                       \
+        if ((Call_) <= 0) {                                                    \
+            qCWarning(E2EE) << std::source_location::current().function_name() \
+                            << "failed to call OpenSSL API:"                   \
+                            << ERR_error_string(ERR_get_error(), nullptr);     \
+            return ERR_get_error();                                            \
+        }                                                                      \
+    } while (false)                                                            \
+    // End of macro
 // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 SslErrorCode Quotient::_impl::pbkdf2HmacSha512(const QByteArray& passphrase, const QByteArray& salt,
@@ -94,9 +93,9 @@ SslErrorCode Quotient::_impl::pbkdf2HmacSha512(const QByteArray& passphrase, con
 {
     CLAMP_SIZE(passphraseSize, passphrase);
     CLAMP_SIZE(saltSize, salt);
+    CLAMP_SIZE(outputSize, output);
     CALL_OPENSSL(PKCS5_PBKDF2_HMAC(passphrase.data(), passphraseSize, asCBytes(salt).data(),
-                                   saltSize, iterations, EVP_sha512(), output.size(),
-                                   output.data()));
+                                   saltSize, iterations, EVP_sha512(), outputSize, output.data()));
     return 0; // OpenSSL doesn't have a special constant for success code :/
 }
 
@@ -107,18 +106,15 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
     CLAMP_SIZE(plaintextSize, plaintext);
 
     const ContextHolder ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
-    if (!ctx) {
-        qCCritical(E2EE) << __func__ << "failed to create SSL context:"
-                         << ERR_error_string(ERR_get_error(), nullptr);
+    if (ALARM_X(!ctx, QByteArrayLiteral("failed to create SSL context: ")
+                          + ERR_error_string(ERR_get_error(), nullptr)))
         return ERR_get_error();
-    }
 
     QByteArray encrypted(plaintextSize + static_cast<int>(iv.size()),
                          Qt::Uninitialized);
     int encryptedLength = 0;
     {
-        // Working with `encrypted` the span adaptor in this scope, avoiding
-        // reinterpret_casts
+        // Working with `encrypted` the span adaptor in this scope, avoiding reinterpret_casts
         auto encryptedSpan = asWritableCBytes(encrypted);
         fillFromSecureRng(encryptedSpan); // Now `encrypted` is initialised
         constexpr auto mask = static_cast<uint8_t>(~(1U << (63 / 8)));

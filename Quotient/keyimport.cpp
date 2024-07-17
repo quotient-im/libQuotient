@@ -104,8 +104,8 @@ inline QByteArray lineWrapped(QByteArray text, int wrapAt)
     using namespace std::ranges;
     return views::chunk(std::move(text), wrapAt) | views::join_with('\n') | to<QByteArray>();
 #else // Xcode 15 and older; libc++ 17 and older
-    for (auto i = 96; i < text.size(); i += 96) {
-        text.insert(i, "\n");
+    for (auto i = wrapAt; i < text.size(); i += wrapAt) {
+        text.insert(i, '\n');
         i++;
     }
     return text;

@@ -28,23 +28,23 @@ constexpr auto NoticeTypeKey = "m.notice"_ls;
 constexpr auto HtmlContentTypeId = "org.matrix.custom.html"_ls;
 
 template <typename ContentT>
-TypedBase* make(const QJsonObject& json)
+std::unique_ptr<TypedBase> make(const QJsonObject& json)
 {
-    return new ContentT(json);
+    return std::make_unique<ContentT>(json);
 }
 
 template <>
-TypedBase* make<TextContent>(const QJsonObject& json)
+std::unique_ptr<TypedBase> make<TextContent>(const QJsonObject& json)
 {
     return json.contains(FormattedBodyKey) || json.contains(RelatesToKey)
-               ? new TextContent(json)
+               ? std::make_unique<TextContent>(json)
                : nullptr;
 }
 
 struct MsgTypeDesc {
     QLatin1String matrixType;
     MsgType enumType;
-    TypedBase* (*maker)(const QJsonObject&);
+    std::unique_ptr<TypedBase> (*maker)(const QJsonObject&);
 };
 
 constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
@@ -142,7 +142,7 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
         bool msgTypeFound = false;
         for (const auto& mt : msgTypes)
             if (mt.matrixType == msgtype) {
-                _content.reset(mt.maker(content));
+                _content = mt.maker(content);
                 msgTypeFound = true;
             }
 

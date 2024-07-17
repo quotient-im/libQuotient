@@ -67,10 +67,8 @@ QByteArray QOlmOutboundGroupSession::encrypt(const QByteArray& plaintext) const
     const auto messageMaxLength =
         olm_group_encrypt_message_length(olmData, unsignedSize(plaintext));
     auto messageBuf = byteArrayForOlm(messageMaxLength);
-    if (olm_group_encrypt(olmData,
-                          reinterpret_cast<const uint8_t*>(plaintext.data()),
-                          unsignedSize(plaintext),
-                          reinterpret_cast<uint8_t*>(messageBuf.data()),
+    if (olm_group_encrypt(olmData, std::bit_cast<const uint8_t*>(plaintext.data()),
+                          unsignedSize(plaintext), std::bit_cast<uint8_t*>(messageBuf.data()),
                           messageMaxLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to encrypt a message");
@@ -87,8 +85,7 @@ QByteArray QOlmOutboundGroupSession::sessionId() const
 {
     const auto idMaxLength = olm_outbound_group_session_id_length(olmData);
     auto idBuffer = byteArrayForOlm(idMaxLength);
-    if (olm_outbound_group_session_id(
-            olmData, reinterpret_cast<uint8_t*>(idBuffer.data()), idMaxLength)
+    if (olm_outbound_group_session_id(olmData, std::bit_cast<uint8_t*>(idBuffer.data()), idMaxLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to obtain group session id");
 
@@ -99,8 +96,8 @@ QByteArray QOlmOutboundGroupSession::sessionKey() const
 {
     const auto keyMaxLength = olm_outbound_group_session_key_length(olmData);
     auto keyBuffer = byteArrayForOlm(keyMaxLength);
-    if (olm_outbound_group_session_key(
-            olmData, reinterpret_cast<uint8_t*>(keyBuffer.data()), keyMaxLength)
+    if (olm_outbound_group_session_key(olmData, std::bit_cast<uint8_t*>(keyBuffer.data()),
+                                       keyMaxLength)
         == olm_error())
         QOLM_INTERNAL_ERROR("Failed to obtain group session key");
 
