@@ -37,8 +37,8 @@ public:
             it != connectionData.end()) {
             it->hsData.baseUrl = std::move(baseUrl);
         } else
-            connectionData.emplace_back(std::move(accountId),
-                                        HomeserverData{ std::move(baseUrl), {} });
+            connectionData.push_back(
+                { std::move(accountId), HomeserverData{ std::move(baseUrl), {} } });
     }
     void addSpecVersions(QStringView accountId, QStringList versions)
     {
