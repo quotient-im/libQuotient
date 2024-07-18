@@ -369,6 +369,7 @@ inline QDebug operator<<(QDebug dbg, QElapsedTimer et)
     return dbg;
 }
 
+namespace Quotient {
 //! \brief Lift an operation into dereferenceable types (std::optional or pointers)
 //!
 //! This is a more generic version of std::optional::and_then() that accepts an arbitrary number of
@@ -434,3 +435,4 @@ struct QUOTIENT_API HomeserverData {
 
     bool checkMatrixSpecVersion(QStringView targetVersion) const;
 };
+} // namespace Quotient
