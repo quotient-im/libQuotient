@@ -327,6 +327,7 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
                 useEncryption = false;
                 emit q->encryptionChanged(false);
             }
+            emit q->ready();
         }, mock);
     } else
         qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for"

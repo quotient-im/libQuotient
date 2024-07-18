@@ -922,6 +922,10 @@ Q_SIGNALS:
     //! whether to create them now and then set them up, if desired.
     void crossSigningSetupRequired();
 
+    //! The connection is ready to be used. Most notably, the fundamental e2ee data is loaded.
+    //! This does not mean that the server was reached, a sync was performed, or the state cache was loaded.
+    void ready();
+
     friend class ::TestCrossSigning;
 protected:
     //! Access the underlying ConnectionData class
