@@ -45,22 +45,20 @@ inline bool isSupportedAlgorithm(const QString& algorithm)
 }
 
 #define QOLM_INTERNAL_ERROR_X(Message_, LastError_) \
-    qFatal("%s, internal error: %s", Message_, LastError_)
+    qFatal("%s, internal error: %s", QUO_CSTR(Message_), LastError_)
 
 #define QOLM_INTERNAL_ERROR(Message_) \
-    QOLM_INTERNAL_ERROR_X(Message_, lastError())
+    QOLM_INTERNAL_ERROR_X((Message_), lastError())
 
-#define QOLM_FAIL_OR_LOG_X(InternalCondition_, Message_, LastErrorText_)   \
-    do {                                                                   \
-        const QString errorMsg{ (Message_) };                              \
-        if (InternalCondition_)                                            \
-            QOLM_INTERNAL_ERROR_X(qPrintable(errorMsg), (LastErrorText_)); \
-        qWarning(E2EE).nospace() << errorMsg << ": " << (LastErrorText_);  \
+#define QOLM_FAIL_OR_LOG_X(InternalCondition_, Message_, LastErrorText_)    \
+    do {                                                                    \
+        if (InternalCondition_)                                             \
+            QOLM_INTERNAL_ERROR_X((Message_), (LastErrorText_));   \
+        qWarning(E2EE).nospace() << (Message_) << ": " << (LastErrorText_); \
     } while (false) /* End of macro */
 
 #define QOLM_FAIL_OR_LOG(InternalFailureValue_, Message_)                      \
-    QOLM_FAIL_OR_LOG_X(lastErrorCode() == (InternalFailureValue_), (Message_), \
-                       lastError())
+    QOLM_FAIL_OR_LOG_X(lastErrorCode() == (InternalFailureValue_), (Message_), lastError())
 
 template <typename T>
 using QOlmExpected = Expected<T, OlmErrorCode>;

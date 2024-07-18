@@ -101,8 +101,7 @@ QByteArray QOlmAccount::pickle(const PicklingKey& key) const
     if (olm_pickle_account(olmData, key.data(), key.size(),
                            pickleBuffer.data(), pickleLength)
         == olm_error())
-        QOLM_INTERNAL_ERROR(qPrintable("Failed to pickle Olm account "_ls
-                                       + accountId()));
+        QOLM_INTERNAL_ERROR("Failed to pickle Olm account "_ls + accountId());
 
     return pickleBuffer;
 }
@@ -113,8 +112,7 @@ IdentityKeys QOlmAccount::identityKeys() const
     auto keyBuffer = byteArrayForOlm(keyLength);
     if (olm_account_identity_keys(olmData, keyBuffer.data(), keyLength)
         == olm_error()) {
-        QOLM_INTERNAL_ERROR(
-            qPrintable("Failed to get "_ls % accountId() % " identity keys"_ls));
+        QOLM_INTERNAL_ERROR("Failed to get "_ls % accountId() % " identity keys"_ls);
     }
     const auto key = QJsonDocument::fromJson(keyBuffer).object();
     return { key.value(QStringLiteral("curve25519")).toString(),
@@ -166,8 +164,7 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
         olmData, numberOfKeys, getRandom(randomLength).data(), randomLength);
 
     if (result == olm_error())
-        QOLM_INTERNAL_ERROR(qPrintable(
-            "Failed to generate one-time keys for account "_ls + accountId()));
+        QOLM_INTERNAL_ERROR("Failed to generate one-time keys for account "_ls + accountId());
 
     emit needsSave();
     return result;
@@ -181,8 +178,7 @@ UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
     if (olm_account_one_time_keys(olmData, oneTimeKeysBuffer.data(),
                                   oneTimeKeyLength)
         == olm_error())
-        QOLM_INTERNAL_ERROR(qPrintable(
-            "Failed to obtain one-time keys for account"_ls % accountId()));
+        QOLM_INTERNAL_ERROR("Failed to obtain one-time keys for account"_ls % accountId());
 
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     UnsignedOneTimeKeys oneTimeKeys;
@@ -265,7 +261,7 @@ QOlmExpected<QOlmSession> QOlmAccount::createOutboundSession(
         == olm_error()) {
         const auto errorCode = olmOutboundSession.lastErrorCode();
         QOLM_FAIL_OR_LOG_X(errorCode == OLM_NOT_ENOUGH_RANDOM,
-                         "Failed to create an outbound Olm session"_ls,
+                           "Failed to create an outbound Olm session"_ls,
                            olmOutboundSession.lastError());
         return errorCode;
     }
