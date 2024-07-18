@@ -170,8 +170,10 @@ void Connection::loginWithToken(const QString& loginToken,
                      QString() /*password*/, loginToken, deviceId, initialDeviceName);
 }
 
-void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
+void Connection::assumeIdentity(const QString& mxId, const QString& deviceId, const QString& accessToken)
 {
+    d->data->setDeviceId(deviceId);
+    d->completeSetup(mxId);
     d->ensureHomeserver(mxId).then([this, mxId, accessToken] {
         d->data->setToken(accessToken.toLatin1());
         callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
@@ -181,8 +183,6 @@ void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
                     qCWarning(MAIN).nospace()
                         << "The access_token owner (" << job->userId()
                         << ") is different from passed MXID (" << mxId << ")!";
-                d->data->setDeviceId(job->deviceId());
-                d->completeSetup(job->userId());
                 return;
             case BaseJob::NetworkError:
                 emit networkError(job->errorString(), job->rawDataSample(), job->maxRetries(), -1);

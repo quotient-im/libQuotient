@@ -659,7 +659,7 @@ public Q_SLOTS:
     //! Similar to loginWithPassword(), this method checks that the homeserver
     //! URL is valid and tries to resolve it from the MXID in case it is not.
     //! \since 0.7.2
-    void assumeIdentity(const QString& mxId, const QString& accessToken);
+    void assumeIdentity(const QString& mxId, const QString& deviceId, const QString& accessToken);
 
     //! \brief Request supported spec versions from the homeserver
     //!
