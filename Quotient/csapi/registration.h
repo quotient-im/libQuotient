@@ -410,7 +410,7 @@ public:
     //!
     //! This function can be used when a URL for CheckUsernameAvailabilityJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& username);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& username);
 
     // Result properties
 

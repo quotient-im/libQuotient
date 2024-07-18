@@ -42,7 +42,7 @@ public:
     //!
     //! This function can be used when a URL for GetRoomKeysVersionCurrentJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 
@@ -112,7 +112,7 @@ public:
     //!
     //! This function can be used when a URL for GetRoomKeysVersionJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& version);
 
     // Result properties
 
@@ -208,7 +208,7 @@ public:
     //!
     //! This function can be used when a URL for DeleteRoomKeysVersionJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& version);
 };
 
 //! \brief Store a key in the backup.
@@ -273,8 +273,8 @@ public:
     //!
     //! This function can be used when a URL for GetRoomKeyBySessionIdJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& sessionId,
-                               const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& sessionId, const QString& version);
 
     // Result properties
 
@@ -304,8 +304,8 @@ public:
     //!
     //! This function can be used when a URL for DeleteRoomKeyBySessionIdJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& sessionId,
-                               const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& sessionId, const QString& version);
 
     // Result properties
 
@@ -385,7 +385,8 @@ public:
     //!
     //! This function can be used when a URL for GetRoomKeysByRoomIdJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& version);
 
     // Result properties
 
@@ -412,7 +413,8 @@ public:
     //!
     //! This function can be used when a URL for DeleteRoomKeysByRoomIdJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& version);
 
     // Result properties
 
@@ -485,7 +487,7 @@ public:
     //!
     //! This function can be used when a URL for GetRoomKeysJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& version);
 
     // Result properties
 
@@ -511,7 +513,7 @@ public:
     //!
     //! This function can be used when a URL for DeleteRoomKeysJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& version);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& version);
 
     // Result properties
 

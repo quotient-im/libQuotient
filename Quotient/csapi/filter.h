@@ -48,7 +48,8 @@ public:
     //!
     //! This function can be used when a URL for GetFilterJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& filterId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                               const QString& filterId);
 
     // Result properties
 

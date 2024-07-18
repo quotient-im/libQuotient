@@ -3,45 +3,71 @@
 
 #include "mediathumbnailjob.h"
 
+#include "../csapi/authed-content-repo.h"
+#include "../csapi/content-repo.h"
+
+#include "../connectiondata.h"
 #include "../logging_categories_p.h"
 
 using namespace Quotient;
 
-QUrl MediaThumbnailJob::makeRequestUrl(QUrl baseUrl, const QUrl& mxcUri,
-                                       QSize requestedSize)
+QUrl MediaThumbnailJob::makeRequestUrl(const HomeserverData& hsData, const QUrl& mxcUri,
+                                       QSize requestedSize, std::optional<bool> animated)
 {
-    return makeRequestUrl(std::move(baseUrl), mxcUri.authority(),
-                          mxcUri.path().mid(1), requestedSize.width(),
-                          requestedSize.height());
+    return makeRequestUrl(hsData, mxcUri.authority(), mxcUri.path().mid(1), requestedSize, animated);
 }
 
-MediaThumbnailJob::MediaThumbnailJob(const QString& serverName,
-                                     const QString& mediaId, QSize requestedSize)
-    : GetContentThumbnailJob(serverName, mediaId, requestedSize.width(),
-                             requestedSize.height(), "scale"_ls)
+QUrl MediaThumbnailJob::makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
+                                       const QString& mediaId, QSize requestedSize,
+                                       std::optional<bool> animated)
+{
+    QT_IGNORE_DEPRECATIONS( // For GetContentThumbnailJob
+        return hsData.checkMatrixSpecVersion(u"1.11")
+                   ? GetContentThumbnailAuthedJob::makeRequestUrl(hsData, serverName, mediaId,
+                                                                  requestedSize.width(),
+                                                                  requestedSize.height(),
+                                                                  "scale"_ls, 20'000, animated)
+                   : GetContentThumbnailJob::makeRequestUrl(hsData, serverName, mediaId,
+                                                            requestedSize.width(),
+                                                            requestedSize.height(), "scale"_ls,
+                                                            true, 20'000, false, animated);)
+}
+
+MediaThumbnailJob::MediaThumbnailJob(QString serverName, QString mediaId, QSize requestedSize,
+                                     std::optional<bool> animated)
+    : BaseJob(HttpVerb::Get, QStringLiteral("MediaThumbnailJob"), {})
+    , serverName(std::move(serverName))
+    , mediaId(std::move(mediaId))
+    , requestedSize(std::move(requestedSize))
+    , animated(animated)
 {
     setLoggingCategory(THUMBNAILJOB);
 }
 
-MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize)
-    : MediaThumbnailJob(mxcUri.authority(),
-                        mxcUri.path().mid(1), // sans leading '/'
-                        requestedSize)
-{
-    setLoggingCategory(THUMBNAILJOB);
-}
+MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize,
+                                     std::optional<bool> animated)
+    : MediaThumbnailJob(mxcUri.authority(), mxcUri.path().mid(1) /* sans leading '/' */,
+                        requestedSize, animated)
+{}
 
 QImage MediaThumbnailJob::thumbnail() const { return _thumbnail; }
 
 QImage MediaThumbnailJob::scaledThumbnail(QSize toSize) const
 {
-    return _thumbnail.scaled(toSize, Qt::KeepAspectRatio,
-                             Qt::SmoothTransformation);
+    return _thumbnail.scaled(toSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+}
+
+void MediaThumbnailJob::doPrepare(const ConnectionData* connectionData)
+{
+    const auto url = makeRequestUrl(connectionData->homeserverData(), serverName, mediaId,
+                                    requestedSize, animated);
+    setApiEndpoint(url.toEncoded(QUrl::RemoveQuery | QUrl::RemoveFragment | QUrl::FullyEncoded));
+    setRequestQuery(QUrlQuery{ url.query() });
 }
 
 BaseJob::Status MediaThumbnailJob::prepareResult()
 {
-    if (_thumbnail.loadFromData(data()->readAll()))
+    if (_thumbnail.loadFromData(reply()->readAll()))
         return Success;
 
     return { IncorrectResponse, QStringLiteral("Could not read image data") };

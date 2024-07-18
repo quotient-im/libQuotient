@@ -12,10 +12,10 @@ auto queryToGetEventByTimestamp(int ts, const QString& dir)
     return _q;
 }
 
-QUrl GetEventByTimestampJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, int ts,
-                                            const QString& dir)
+QUrl GetEventByTimestampJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                                            int ts, const QString& dir)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/rooms/", roomId,
                                             "/timestamp_to_event"),
                                    queryToGetEventByTimestamp(ts, dir));

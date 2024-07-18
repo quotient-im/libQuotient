@@ -93,10 +93,10 @@ auto queryToCheckUsernameAvailability(const QString& username)
     return _q;
 }
 
-QUrl CheckUsernameAvailabilityJob::makeRequestUrl(QUrl baseUrl, const QString& username)
+QUrl CheckUsernameAvailabilityJob::makeRequestUrl(const HomeserverData& hsData,
+                                                  const QString& username)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/register/available"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/register/available"),
                                    queryToCheckUsernameAvailability(username));
 }
 

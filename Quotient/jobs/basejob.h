@@ -339,6 +339,8 @@ Q_SIGNALS:
 protected:
     using headers_t = QHash<QByteArray, QByteArray>;
 
+    QByteArray apiEndpoint() const;
+    void setApiEndpoint(QByteArray apiEndpoint);
     const headers_t& requestHeaders() const;
     void setRequestHeader(const headers_t::key_type& headerName,
                           const headers_t::mapped_type& headerValue);
@@ -362,7 +364,7 @@ protected:
      * The function ensures exactly one '/' between the path component of
      * \p baseUrl and \p path. The query component of \p baseUrl is ignored.
      */
-    static QUrl makeRequestUrl(QUrl baseUrl, const QByteArray &encodedPath,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QByteArray& encodedPath,
                                const QUrlQuery& query = {});
 
     /*! Prepares the job for execution
@@ -371,7 +373,7 @@ protected:
      * when it's first scheduled for execution; in particular, it is not called
      * on retries.
      */
-    virtual void doPrepare();
+    virtual void doPrepare(const ConnectionData* connectionData);
 
     /*! Postprocessing after the network request has been sent
      *

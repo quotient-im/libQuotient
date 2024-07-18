@@ -12,10 +12,11 @@ DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
     addExpectedKey("filter_id");
 }
 
-QUrl GetFilterJob::makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& filterId)
+QUrl GetFilterJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                                  const QString& filterId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/user/",
-                                                                userId, "/filter/", filterId));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/user/", userId,
+                                                    "/filter/", filterId));
 }
 
 GetFilterJob::GetFilterJob(const QString& userId, const QString& filterId)

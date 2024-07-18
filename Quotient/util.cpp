@@ -126,7 +126,13 @@ int Quotient::minorVersion()
     return Quotient_VERSION_MINOR;
 }
 
-int Quotient::patchVersion()
+int Quotient::patchVersion() { return Quotient_VERSION_PATCH; }
+
+bool HomeserverData::checkMatrixSpecVersion(QStringView targetVersion) const
 {
-    return Quotient_VERSION_PATCH;
+    // TODO: Replace this naïve implementation with something smarter that can check things like
+    //   1.12 > 1.11 and maybe even 1.10 > 1.9
+    return std::ranges::any_of(supportedSpecVersions, [targetVersion](const QString& v) {
+        return v.startsWith(targetVersion);
+    });
 }

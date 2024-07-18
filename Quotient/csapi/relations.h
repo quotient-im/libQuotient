@@ -76,10 +76,10 @@ public:
     //!
     //! This function can be used when a URL for GetRelatingEventsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
-                               const QString& from = {}, const QString& to = {},
-                               std::optional<int> limit = std::nullopt, const QString& dir = {},
-                               std::optional<bool> recurse = std::nullopt);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& eventId, const QString& from = {},
+                               const QString& to = {}, std::optional<int> limit = std::nullopt,
+                               const QString& dir = {}, std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 
@@ -201,10 +201,11 @@ public:
     //!
     //! This function can be used when a URL for GetRelatingEventsWithRelTypeJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
-                               const QString& relType, const QString& from = {},
-                               const QString& to = {}, std::optional<int> limit = std::nullopt,
-                               const QString& dir = {}, std::optional<bool> recurse = std::nullopt);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& eventId, const QString& relType,
+                               const QString& from = {}, const QString& to = {},
+                               std::optional<int> limit = std::nullopt, const QString& dir = {},
+                               std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 
@@ -336,11 +337,11 @@ public:
     //!
     //! This function can be used when a URL for GetRelatingEventsWithRelTypeAndEventTypeJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& eventId,
-                               const QString& relType, const QString& eventType,
-                               const QString& from = {}, const QString& to = {},
-                               std::optional<int> limit = std::nullopt, const QString& dir = {},
-                               std::optional<bool> recurse = std::nullopt);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                               const QString& eventId, const QString& relType,
+                               const QString& eventType, const QString& from = {},
+                               const QString& to = {}, std::optional<int> limit = std::nullopt,
+                               const QString& dir = {}, std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 

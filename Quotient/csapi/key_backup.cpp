@@ -15,10 +15,9 @@ PostRoomKeysVersionJob::PostRoomKeysVersionJob(const QString& algorithm, const Q
     addExpectedKey("version");
 }
 
-QUrl GetRoomKeysVersionCurrentJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetRoomKeysVersionCurrentJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/room_keys/version"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/room_keys/version"));
 }
 
 GetRoomKeysVersionCurrentJob::GetRoomKeysVersionCurrentJob()
@@ -32,9 +31,9 @@ GetRoomKeysVersionCurrentJob::GetRoomKeysVersionCurrentJob()
     addExpectedKey("version");
 }
 
-QUrl GetRoomKeysVersionJob::makeRequestUrl(QUrl baseUrl, const QString& version)
+QUrl GetRoomKeysVersionJob::makeRequestUrl(const HomeserverData& hsData, const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/room_keys/version/", version));
 }
 
@@ -60,9 +59,9 @@ PutRoomKeysVersionJob::PutRoomKeysVersionJob(const QString& version, const QStri
     setRequestData({ _dataJson });
 }
 
-QUrl DeleteRoomKeysVersionJob::makeRequestUrl(QUrl baseUrl, const QString& version)
+QUrl DeleteRoomKeysVersionJob::makeRequestUrl(const HomeserverData& hsData, const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/room_keys/version/", version));
 }
 
@@ -96,10 +95,10 @@ auto queryToGetRoomKeyBySessionId(const QString& version)
     return _q;
 }
 
-QUrl GetRoomKeyBySessionIdJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
+QUrl GetRoomKeyBySessionIdJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
                                               const QString& sessionId, const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/room_keys/keys/", roomId, "/",
                                             sessionId),
                                    queryToGetRoomKeyBySessionId(version));
@@ -119,10 +118,10 @@ auto queryToDeleteRoomKeyBySessionId(const QString& version)
     return _q;
 }
 
-QUrl DeleteRoomKeyBySessionIdJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
+QUrl DeleteRoomKeyBySessionIdJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
                                                  const QString& sessionId, const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/room_keys/keys/", roomId, "/",
                                             sessionId),
                                    queryToDeleteRoomKeyBySessionId(version));
@@ -164,10 +163,10 @@ auto queryToGetRoomKeysByRoomId(const QString& version)
     return _q;
 }
 
-QUrl GetRoomKeysByRoomIdJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
+QUrl GetRoomKeysByRoomIdJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
                                             const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/room_keys/keys/", roomId),
                                    queryToGetRoomKeysByRoomId(version));
 }
@@ -185,10 +184,10 @@ auto queryToDeleteRoomKeysByRoomId(const QString& version)
     return _q;
 }
 
-QUrl DeleteRoomKeysByRoomIdJob::makeRequestUrl(QUrl baseUrl, const QString& roomId,
+QUrl DeleteRoomKeysByRoomIdJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
                                                const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/room_keys/keys/", roomId),
                                    queryToDeleteRoomKeysByRoomId(version));
 }
@@ -227,10 +226,9 @@ auto queryToGetRoomKeys(const QString& version)
     return _q;
 }
 
-QUrl GetRoomKeysJob::makeRequestUrl(QUrl baseUrl, const QString& version)
+QUrl GetRoomKeysJob::makeRequestUrl(const HomeserverData& hsData, const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/room_keys/keys"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/room_keys/keys"),
                                    queryToGetRoomKeys(version));
 }
 
@@ -248,10 +246,9 @@ auto queryToDeleteRoomKeys(const QString& version)
     return _q;
 }
 
-QUrl DeleteRoomKeysJob::makeRequestUrl(QUrl baseUrl, const QString& version)
+QUrl DeleteRoomKeysJob::makeRequestUrl(const HomeserverData& hsData, const QString& version)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/room_keys/keys"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/room_keys/keys"),
                                    queryToDeleteRoomKeys(version));
 }
 

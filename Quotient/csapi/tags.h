@@ -25,7 +25,8 @@ public:
     //!
     //! This function can be used when a URL for GetRoomTagsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                               const QString& roomId);
 
     // Result properties
 
@@ -75,8 +76,8 @@ public:
     //!
     //! This function can be used when a URL for DeleteRoomTagJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId, const QString& roomId,
-                               const QString& tag);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
+                               const QString& roomId, const QString& tag);
 };
 
 } // namespace Quotient

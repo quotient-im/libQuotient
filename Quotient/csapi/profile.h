@@ -35,7 +35,7 @@ public:
     //!
     //! This function can be used when a URL for GetDisplayNameJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId);
 
     // Result properties
 
@@ -74,7 +74,7 @@ public:
     //!
     //! This function can be used when a URL for GetAvatarUrlJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId);
 
     // Result properties
 
@@ -100,7 +100,7 @@ public:
     //!
     //! This function can be used when a URL for GetUserProfileJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& userId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId);
 
     // Result properties
 

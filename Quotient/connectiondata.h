@@ -29,6 +29,7 @@ public:
     const QString& deviceId() const;
     const QString& userId() const;
     bool needsToken(const QString& requestName) const;
+    HomeserverData homeserverData() const;
     Quotient::NetworkAccessManager *nam() const;
 
     void setBaseUrl(QUrl baseUrl);
@@ -36,6 +37,7 @@ public:
     void setDeviceId(const QString& deviceId);
     void setUserId(const QString& userId);
     void setNeedsToken(const QString& requestName);
+    void setSupportedSpecVersions(QStringList versions);
 
     QString lastEvent() const;
     void setLastEvent(QString identifier);

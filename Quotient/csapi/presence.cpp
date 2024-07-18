@@ -15,9 +15,9 @@ SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
     setRequestData({ _dataJson });
 }
 
-QUrl GetPresenceJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
+QUrl GetPresenceJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/presence/", userId, "/status"));
 }
 

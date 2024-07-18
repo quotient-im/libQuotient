@@ -99,7 +99,7 @@ public:
     //!
     //! This function can be used when a URL for GetSpaceHierarchyJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
                                std::optional<bool> suggestedOnly = std::nullopt,
                                std::optional<int> limit = std::nullopt,
                                std::optional<int> maxDepth = std::nullopt, const QString& from = {});

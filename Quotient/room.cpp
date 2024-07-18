@@ -504,7 +504,7 @@ QString Room::version() const
 
 bool Room::isUnstable() const
 {
-    return !connection()->loadingCapabilities()
+    return connection()->capabilitiesReady()
            && !connection()->stableRoomVersions().contains(version());
 }
 

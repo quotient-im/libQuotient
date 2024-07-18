@@ -4,10 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetProtocolsJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetProtocolsJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/thirdparty/protocols"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/thirdparty/protocols"));
 }
 
 GetProtocolsJob::GetProtocolsJob()
@@ -15,10 +14,10 @@ GetProtocolsJob::GetProtocolsJob()
               makePath("/_matrix/client/v3", "/thirdparty/protocols"))
 {}
 
-QUrl GetProtocolMetadataJob::makeRequestUrl(QUrl baseUrl, const QString& protocol)
+QUrl GetProtocolMetadataJob::makeRequestUrl(const HomeserverData& hsData, const QString& protocol)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3",
-                                                                "/thirdparty/protocol/", protocol));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/thirdparty/protocol/",
+                                                    protocol));
 }
 
 GetProtocolMetadataJob::GetProtocolMetadataJob(const QString& protocol)
@@ -33,10 +32,10 @@ auto queryToQueryLocationByProtocol(const QString& searchFields)
     return _q;
 }
 
-QUrl QueryLocationByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol,
-                                                const QString& searchFields)
+QUrl QueryLocationByProtocolJob::makeRequestUrl(const HomeserverData& hsData,
+                                                const QString& protocol, const QString& searchFields)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/thirdparty/location/", protocol),
                                    queryToQueryLocationByProtocol(searchFields));
 }
@@ -55,10 +54,10 @@ auto queryToQueryUserByProtocol(const QHash<QString, QString>& fields)
     return _q;
 }
 
-QUrl QueryUserByProtocolJob::makeRequestUrl(QUrl baseUrl, const QString& protocol,
+QUrl QueryUserByProtocolJob::makeRequestUrl(const HomeserverData& hsData, const QString& protocol,
                                             const QHash<QString, QString>& fields)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/thirdparty/user/", protocol),
                                    queryToQueryUserByProtocol(fields));
 }
@@ -77,10 +76,9 @@ auto queryToQueryLocationByAlias(const QString& alias)
     return _q;
 }
 
-QUrl QueryLocationByAliasJob::makeRequestUrl(QUrl baseUrl, const QString& alias)
+QUrl QueryLocationByAliasJob::makeRequestUrl(const HomeserverData& hsData, const QString& alias)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/thirdparty/location"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/thirdparty/location"),
                                    queryToQueryLocationByAlias(alias));
 }
 
@@ -97,10 +95,9 @@ auto queryToQueryUserByID(const QString& userid)
     return _q;
 }
 
-QUrl QueryUserByIDJob::makeRequestUrl(QUrl baseUrl, const QString& userid)
+QUrl QueryUserByIDJob::makeRequestUrl(const HomeserverData& hsData, const QString& userid)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/thirdparty/user"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/thirdparty/user"),
                                    queryToQueryUserByID(userid));
 }
 

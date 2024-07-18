@@ -14,8 +14,9 @@ class QUOTIENT_API NetworkAccessManager : public QNetworkAccessManager {
 public:
     using QNetworkAccessManager::QNetworkAccessManager;
 
-    static void addBaseUrl(const QString& accountId, const QUrl& homeserver);
-    static void dropBaseUrl(const QString& accountId);
+    static void addAccount(QString accountId, QUrl homeserver);
+    static void updateAccountSpecVersions(QStringView accountId, QStringList versions);
+    static void dropAccount(QStringView accountId);
 
     static QList<QSslError> ignoredSslErrors();
     static void addIgnoredSslError(const QSslError& error);

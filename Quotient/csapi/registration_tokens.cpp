@@ -11,9 +11,9 @@ auto queryToRegistrationTokenValidity(const QString& token)
     return _q;
 }
 
-QUrl RegistrationTokenValidityJob::makeRequestUrl(QUrl baseUrl, const QString& token)
+QUrl RegistrationTokenValidityJob::makeRequestUrl(const HomeserverData& hsData, const QString& token)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1",
                                             "/register/m.login.registration_token/validity"),
                                    queryToRegistrationTokenValidity(token));

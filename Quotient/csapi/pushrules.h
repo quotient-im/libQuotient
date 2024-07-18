@@ -24,7 +24,7 @@ public:
     //!
     //! This function can be used when a URL for GetPushRulesJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl);
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
 
     // Result properties
 
@@ -53,8 +53,8 @@ public:
     //!
     //! This function can be used when a URL for GetPushRuleJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                               const QString& kind, const QString& ruleId);
 
     // Result properties
 
@@ -84,8 +84,8 @@ public:
     //!
     //! This function can be used when a URL for DeletePushRuleJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                               const QString& kind, const QString& ruleId);
 };
 
 //! \brief Add or change a push rule.
@@ -165,8 +165,8 @@ public:
     //!
     //! This function can be used when a URL for IsPushRuleEnabledJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                               const QString& kind, const QString& ruleId);
 
     // Result properties
 
@@ -216,8 +216,8 @@ public:
     //!
     //! This function can be used when a URL for GetPushRuleActionsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& scope, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
+                               const QString& kind, const QString& ruleId);
 
     // Result properties
 

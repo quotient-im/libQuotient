@@ -4,19 +4,18 @@
 
 using namespace Quotient;
 
-QUrl LogoutJob::makeRequestUrl(QUrl baseUrl)
+QUrl LogoutJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/logout"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/logout"));
 }
 
 LogoutJob::LogoutJob()
     : BaseJob(HttpVerb::Post, QStringLiteral("LogoutJob"), makePath("/_matrix/client/v3", "/logout"))
 {}
 
-QUrl LogoutAllJob::makeRequestUrl(QUrl baseUrl)
+QUrl LogoutAllJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/logout/all"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/logout/all"));
 }
 
 LogoutAllJob::LogoutAllJob()

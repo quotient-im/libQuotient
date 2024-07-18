@@ -13,10 +13,10 @@ SetDisplayNameJob::SetDisplayNameJob(const QString& userId, const QString& displ
     setRequestData({ _dataJson });
 }
 
-QUrl GetDisplayNameJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
+QUrl GetDisplayNameJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/profile/",
-                                                                userId, "/displayname"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/profile/", userId,
+                                                    "/displayname"));
 }
 
 GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
@@ -33,10 +33,10 @@ SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QUrl& avatarUrl)
     setRequestData({ _dataJson });
 }
 
-QUrl GetAvatarUrlJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
+QUrl GetAvatarUrlJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/profile/",
-                                                                userId, "/avatar_url"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/profile/", userId,
+                                                    "/avatar_url"));
 }
 
 GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
@@ -44,10 +44,9 @@ GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
               makePath("/_matrix/client/v3", "/profile/", userId, "/avatar_url"), false)
 {}
 
-QUrl GetUserProfileJob::makeRequestUrl(QUrl baseUrl, const QString& userId)
+QUrl GetUserProfileJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/profile/", userId));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/profile/", userId));
 }
 
 GetUserProfileJob::GetUserProfileJob(const QString& userId)

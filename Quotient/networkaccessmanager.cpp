@@ -3,6 +3,7 @@
 
 #include "networkaccessmanager.h"
 
+#include "connectiondata.h"
 #include "logging_categories_p.h"
 #include "mxcreply.h"
 
@@ -21,20 +22,48 @@ using namespace Quotient;
 namespace {
 class {
 public:
-    void addBaseUrl(const QString& accountId, const QUrl& baseUrl)
+    struct ConnectionData {
+        QString accountId;
+        HomeserverData hsData;
+    };
+
+    void addConnection(QString accountId, QUrl baseUrl)
+    {
+        if (baseUrl.isEmpty())
+            return;
+
+        const QWriteLocker _(&namLock);
+        if (auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
+            it != connectionData.end()) {
+            it->hsData.baseUrl = std::move(baseUrl);
+        } else
+            connectionData.push_back(
+                { std::move(accountId), HomeserverData{ std::move(baseUrl), {} } });
+    }
+    void addSpecVersions(QStringView accountId, QStringList versions)
+    {
+        if (versions.isEmpty())
+            return;
+
+        const QWriteLocker _(&namLock);
+        auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
+        if (ALARM_X(it == connectionData.end(), "Quotient::NAM: Trying to save supported spec "
+                                                "versions on an inexistent account"))
+            return;
+
+        it->hsData.supportedSpecVersions = std::move(versions);
+    }
+    void dropConnection(QStringView accountId)
     {
         const QWriteLocker _(&namLock);
-        baseUrls.insert(accountId, baseUrl);
+        std::erase_if(connectionData,
+                      [&accountId](const ConnectionData& cd) { return cd.accountId == accountId; });
     }
-    void dropBaseUrl(const QString& accountId)
-    {
-        const QWriteLocker _(&namLock);
-        baseUrls.remove(accountId);
-    }
-    QUrl getBaseUrl(const QString& accountId) const
+    HomeserverData getConnection(const QString& accountId) const
     {
         const QReadLocker _(&namLock);
-        return baseUrls.value(accountId);
+        auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
+        return it == connectionData.cend() ? HomeserverData{ } : it->hsData;
     }
     void addIgnoredSslError(const QSslError& error)
     {
@@ -54,22 +83,27 @@ public:
 
 private:
     mutable QReadWriteLock namLock{};
-    QHash<QString, QUrl> baseUrls{};
+    std::vector<ConnectionData> connectionData{};
     QList<QSslError> ignoredSslErrors{};
 } d;
 
 } // anonymous namespace
 
-void NetworkAccessManager::addBaseUrl(const QString& accountId,
-                                      const QUrl& homeserver)
+void NetworkAccessManager::addAccount(QString accountId, QUrl homeserver)
 {
-    Q_ASSERT(!accountId.isEmpty() && homeserver.isValid());
-    d.addBaseUrl(accountId, homeserver);
+    Q_ASSERT(!accountId.isEmpty());
+    d.addConnection( accountId, std::move(homeserver));
 }
 
-void NetworkAccessManager::dropBaseUrl(const QString& accountId)
+void NetworkAccessManager::updateAccountSpecVersions(QStringView accountId, QStringList versions)
 {
-    d.dropBaseUrl(accountId);
+    Q_ASSERT(!accountId.isEmpty());
+    d.addSpecVersions(accountId, std::move(versions));
+}
+
+void NetworkAccessManager::dropAccount(QStringView accountId)
+{
+    d.dropConnection(accountId);
 }
 
 QList<QSslError> NetworkAccessManager::ignoredSslErrors()
@@ -126,8 +160,8 @@ QNetworkReply* NetworkAccessManager::createRequest(
             << "No connection specified, cannot convert mxc request";
         return new MxcReply();
     }
-    const auto& baseUrl = d.getBaseUrl(accountId);
-    if (!baseUrl.isValid()) {
+    const auto& hsData = d.getConnection(accountId);
+    if (!hsData.baseUrl.isValid()) {
         // Strictly speaking, it should be an assert...
         qCCritical(NETWORK) << "Homeserver for" << accountId
                             << "not found, cannot convert mxc request";
@@ -136,7 +170,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
 
     // Convert mxc:// URL into normal http(s) for the given homeserver
     QNetworkRequest rewrittenRequest(request);
-    rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(baseUrl, url));
+    rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(hsData, url));
 
     auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
     implReply->ignoreSslErrors(d.getIgnoredSslErrors());

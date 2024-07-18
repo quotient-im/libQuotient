@@ -24,7 +24,7 @@ public:
     //!
     //! This function can be used when a URL for RegistrationTokenValidityJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& token);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& token);
 
     // Result properties
 

@@ -47,10 +47,10 @@ auto queryToGetKeysChanges(const QString& from, const QString& to)
     return _q;
 }
 
-QUrl GetKeysChangesJob::makeRequestUrl(QUrl baseUrl, const QString& from, const QString& to)
+QUrl GetKeysChangesJob::makeRequestUrl(const HomeserverData& hsData, const QString& from,
+                                       const QString& to)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/keys/changes"),
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/keys/changes"),
                                    queryToGetKeysChanges(from, to));
 }
 

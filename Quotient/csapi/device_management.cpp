@@ -4,9 +4,9 @@
 
 using namespace Quotient;
 
-QUrl GetDevicesJob::makeRequestUrl(QUrl baseUrl)
+QUrl GetDevicesJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), makePath("/_matrix/client/v3", "/devices"));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/devices"));
 }
 
 GetDevicesJob::GetDevicesJob()
@@ -14,10 +14,9 @@ GetDevicesJob::GetDevicesJob()
               makePath("/_matrix/client/v3", "/devices"))
 {}
 
-QUrl GetDeviceJob::makeRequestUrl(QUrl baseUrl, const QString& deviceId)
+QUrl GetDeviceJob::makeRequestUrl(const HomeserverData& hsData, const QString& deviceId)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
-                                   makePath("/_matrix/client/v3", "/devices/", deviceId));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/devices/", deviceId));
 }
 
 GetDeviceJob::GetDeviceJob(const QString& deviceId)

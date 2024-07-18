@@ -13,10 +13,11 @@ auto queryToGetThreadRoots(const QString& include, std::optional<int> limit, con
     return _q;
 }
 
-QUrl GetThreadRootsJob::makeRequestUrl(QUrl baseUrl, const QString& roomId, const QString& include,
-                                       std::optional<int> limit, const QString& from)
+QUrl GetThreadRootsJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+                                       const QString& include, std::optional<int> limit,
+                                       const QString& from)
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl),
+    return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/threads"),
                                    queryToGetThreadRoots(include, limit, from));
 }

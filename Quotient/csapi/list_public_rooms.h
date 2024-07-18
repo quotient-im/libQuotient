@@ -21,7 +21,7 @@ public:
     //!
     //! This function can be used when a URL for GetRoomVisibilityOnDirectoryJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
 
     // Result properties
 
@@ -80,7 +80,7 @@ public:
     //!
     //! This function can be used when a URL for GetPublicRoomsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl, std::optional<int> limit = std::nullopt,
+    static QUrl makeRequestUrl(const HomeserverData& hsData, std::optional<int> limit = std::nullopt,
                                const QString& since = {}, const QString& server = {});
 
     // Result properties

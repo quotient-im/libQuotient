@@ -6,15 +6,16 @@
 
 #include "quotient_export.h"
 
-#include <QtCore/QLatin1String>
-#include <QtCore/QHashFunctions>
 #include <QtCore/QDebug>
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QHashFunctions>
+#include <QtCore/QLatin1String>
+#include <QtCore/QUrl>
 
 #include <memory>
-#include <unordered_map>
 #include <optional>
 #include <source_location>
+#include <unordered_map>
 
 #define QUO_IMPLICIT explicit(false)
 
@@ -426,3 +427,10 @@ constexpr inline size_t mergeStruct(StructT& lhs, const StructT& rhs, const auto
 using UserId = QString;
 using RoomId = QString;
 using EventId = QString;
+
+struct QUOTIENT_API HomeserverData {
+    QUrl baseUrl;
+    QStringList supportedSpecVersions;
+
+    bool checkMatrixSpecVersion(QStringView targetVersion) const;
+};

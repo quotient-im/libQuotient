@@ -41,7 +41,7 @@ public:
     //!
     //! This function can be used when a URL for {{>titleCaseOperationId}}Job
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(QUrl baseUrl{{#allParams?}},
+    static QUrl makeRequestUrl(const HomeserverData& hsData{{#allParams?}},
                     {{#allParams}}{{>joinedParamDecl}}{{/allParams}}{{/allParams?}});
     {{/hasBody?}}
     {{#responses}}{{#normalResponse?}}{{#allProperties?}}

@@ -19,10 +19,10 @@ auto queryTo{{>titleCaseOperationId}}(
     {{/queryParams?}}
     {{^hasBody?}}
 
-QUrl {{>titleCaseOperationId}}Job::makeRequestUrl(QUrl baseUrl{{#allParams?}},
+QUrl {{>titleCaseOperationId}}Job::makeRequestUrl(const HomeserverData& hsData{{#allParams?}},
         {{#allParams}}{{>joinedParamDef}}{{/allParams}}{{/allParams?}})
 {
-    return BaseJob::makeRequestUrl(std::move(baseUrl), {{>passPathAndMaybeQuery}});
+    return BaseJob::makeRequestUrl(hsData, {{>passPathAndMaybeQuery}});
 }   {{/hasBody?}}
 
 {{>titleCaseOperationId}}Job::{{>titleCaseOperationId}}Job(

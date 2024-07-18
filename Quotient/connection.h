@@ -12,18 +12,17 @@
 
 #include "csapi/create_room.h"
 #include "csapi/login.h"
+#include "csapi/content-repo.h"
 
 #include "e2ee/qolmoutboundsession.h"
 
 #include "events/accountdataevents.h"
-
 #include "jobs/jobhandle.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QObject>
 #include <QtCore/QSize>
 #include <QtCore/QUrl>
-#include <QtCore/QFuture>
 
 #include <functional>
 
@@ -39,6 +38,8 @@ class User;
 class ConnectionData;
 class RoomEvent;
 
+class GetVersionsJob;
+class GetCapabilitiesJob;
 class SyncJob;
 class SyncData;
 class RoomMessagesJob;
@@ -46,8 +47,6 @@ class PostReceiptJob;
 class ForgetRoomJob;
 class MediaThumbnailJob;
 class JoinRoomJob;
-class UploadContentJob;
-class GetContentJob;
 class DownloadFileJob;
 class SendToDeviceJob;
 class SendMessageJob;
@@ -395,8 +394,14 @@ public:
         }
     };
 
-    //! Find out if capabilites are still loading from the server
+    //! Find out if homeserver capabilites have been loaded
+    Q_INVOKABLE bool capabilitiesReady() const;
+
+    [[deprecated("Use capabilitiesReady() instead; don't forget to negate the returned value")]]
     Q_INVOKABLE bool loadingCapabilities() const;
+
+    //! Get the list of Matrix CS API spec versions supported by the homeserver
+    QStringList supportedMatrixSpecVersions() const;
 
     //! \brief Get the room version recommended by the server
     //!
@@ -523,8 +528,7 @@ public:
     template <typename JobT, typename... JobArgTs>
     QUrl getUrlForApi(JobArgTs&&... jobArgs) const
     {
-        return JobT::makeRequestUrl(homeserver(),
-                                    std::forward<JobArgTs>(jobArgs)...);
+        return JobT::makeRequestUrl(homeserverData(), std::forward<JobArgTs>(jobArgs)...);
     }
 
     //! \brief Start a local HTTP server and generate a single sign-on URL
@@ -652,8 +656,15 @@ public Q_SLOTS:
     //! \since 0.7.2
     void assumeIdentity(const QString& mxId, const QString& accessToken);
 
-    //! Explicitly request capabilities from the server
-    void reloadCapabilities();
+    //! \brief Request supported spec versions from the homeserver
+    //!
+    //! This call does not obtain room versions - use loadCapabilities() for that.
+    JobHandle<GetVersionsJob> loadVersions();
+
+    //! Request capabilities and room versions from the server
+    JobHandle<GetCapabilitiesJob> loadCapabilities();
+
+    [[deprecated("Use loadCapabilities() instead")]] void reloadCapabilities();
 
     QFuture<void> logout();
 
@@ -676,8 +687,9 @@ public Q_SLOTS:
                                               const QString& overrideContentType = {});
     JobHandle<UploadContentJob> uploadFile(const QString& fileName,
                                            const QString& overrideContentType = {});
-    GetContentJob* getContent(const QString& mediaId);
-    GetContentJob* getContent(const QUrl& url);
+    [[deprecated("Use downloadFile() instead")]] BaseJob* getContent(const QString& mediaId);
+    [[deprecated("Use downloadFile() instead")]] BaseJob* getContent(const QUrl& url);
+
     // If localFilename is empty, a temporary file will be created
     DownloadFileJob* downloadFile(const QUrl& url, const QString& localFilename = {});
 
@@ -909,6 +921,9 @@ Q_SIGNALS:
 protected:
     //! Access the underlying ConnectionData class
     const ConnectionData* connectionData() const;
+
+    //! Get the homeserver data necessary to construct network requests
+    HomeserverData homeserverData() const;
 
     //! \brief Get a Room object for the given id in the given state
     //!
