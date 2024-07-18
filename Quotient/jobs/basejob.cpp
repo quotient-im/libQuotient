@@ -381,7 +381,6 @@ void BaseJob::sendRequest()
         return;
     }
     Q_ASSERT(d->connection && status().code == Pending);
-    d->needsToken |= d->connection->needsToken(objectName());
     auto req = d->prepareRequest();
     emit aboutToSendRequest(&req);
     d->sendRequest(req);
@@ -601,17 +600,6 @@ void BaseJob::finishJob()
         emit rateLimited();
         d->connection->submit(this);
         return;
-    case Unauthorised:
-        if (!d->needsToken && !d->connection->accessToken().isEmpty()) {
-            // Rerun with access token (extension of the spec while
-            // https://github.com/matrix-org/matrix-doc/issues/701 is pending)
-            d->connection->setNeedsToken(objectName());
-            qCWarning(d->logCat) << this << "re-running with authentication";
-            emit retryScheduled(d->retriesTaken, 0);
-            d->connection->submit(this);
-            return;
-        }
-        break;
     case NetworkError:
     case IncorrectResponse:
     case Timeout:

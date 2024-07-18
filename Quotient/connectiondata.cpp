@@ -30,7 +30,6 @@ public:
     QString userId;
     QString deviceId;
     QStringList supportedSpecVersions;
-    std::vector<QString> needToken;
 
     mutable unsigned int txnCounter = 0;
     const qint64 txnBase = QDateTime::currentMSecsSinceEpoch();
@@ -134,12 +133,6 @@ const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
 const QString& ConnectionData::userId() const { return d->userId; }
 
-bool ConnectionData::needsToken(const QString& requestName) const
-{
-    return std::find(d->needToken.cbegin(), d->needToken.cend(), requestName)
-           != d->needToken.cend();
-}
-
 void ConnectionData::setDeviceId(const QString& deviceId)
 {
     d->deviceId = deviceId;
@@ -154,11 +147,6 @@ void ConnectionData::setUserId(const QString& userId)
             NetworkAccessManager::addAccount(userId, d->baseUrl);
     }
     d->userId = userId;
-}
-
-void ConnectionData::setNeedsToken(const QString& requestName)
-{
-    d->needToken.push_back(requestName);
 }
 
 void ConnectionData::setSupportedSpecVersions(QStringList versions)
