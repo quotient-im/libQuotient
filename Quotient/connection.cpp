@@ -1302,6 +1302,8 @@ void Connection::removeFromIgnoredUsers(const QString& userId)
     }
 }
 
+QStringList Connection::userIds() const { return d->userMap.keys(); }
+
 const ConnectionData* Connection::connectionData() const
 {
     return d->data.get();

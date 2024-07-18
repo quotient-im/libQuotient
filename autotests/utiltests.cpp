@@ -25,6 +25,7 @@ class TestUtils : public QObject {
     Q_OBJECT
 private Q_SLOTS:
     void testLinkifyUrl();
+    void testIsGuestUserId();
 
 private:
     void testLinkified(QString original, const QString& expected, const int sourceLine) const
@@ -67,6 +68,12 @@ void TestUtils::testLinkifyUrl()
       "<a href='https://matrix.to/#/#room_alias:example.org'>#room_alias:example.org</a>"_ls);
 
 #undef T
+}
+
+void TestUtils::testIsGuestUserId()
+{
+    QVERIFY(isGuestUserId("@123:example.org"_ls));
+    QVERIFY(!isGuestUserId("@normal:example.org"_ls));
 }
 
 QTEST_APPLESS_MAIN(TestUtils)

@@ -429,6 +429,8 @@ using UserId = QString;
 using RoomId = QString;
 using EventId = QString;
 
+QUOTIENT_API bool isGuestUserId(const UserId& uId);
+
 struct QUOTIENT_API HomeserverData {
     QUrl baseUrl;
     QStringList supportedSpecVersions;

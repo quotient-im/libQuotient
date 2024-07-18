@@ -128,6 +128,12 @@ int Quotient::minorVersion()
 
 int Quotient::patchVersion() { return Quotient_VERSION_PATCH; }
 
+bool Quotient::isGuestUserId(const UserId& uId)
+{
+    static const QRegularExpression guestMxIdRe{ QStringLiteral("^@\\d+:") };
+    return guestMxIdRe.match(uId).hasMatch();
+}
+
 bool Quotient::HomeserverData::checkMatrixSpecVersion(QStringView targetVersion) const
 {
     // TODO: Replace this naïve implementation with something smarter that can check things like
