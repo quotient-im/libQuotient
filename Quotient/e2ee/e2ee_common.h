@@ -238,14 +238,12 @@ public:
     using FixedBufferBase::data;
     value_type* data() requires DataIsWriteable { return dataForWriting(); }
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    QUO_IMPLICIT operator byte_view_t<ExtentN>() const
+    Q_IMPLICIT operator byte_view_t<ExtentN>() const
     {
         return byte_view_t<ExtentN>(data(), size());
     }
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    QUO_IMPLICIT operator byte_span_t<ExtentN>()
+    Q_IMPLICIT operator byte_span_t<ExtentN>()
         requires DataIsWriteable
     {
         return byte_span_t<ExtentN>(dataForWriting(), size());

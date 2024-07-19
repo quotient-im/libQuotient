@@ -28,8 +28,7 @@ public:
 
     template <typename X>
         requires is_constructible_v<X>
-    QUO_IMPLICIT Expected(X&& x) // NOLINT(google-explicit-constructor)
-        : data(std::forward<X>(x))
+    Q_IMPLICIT Expected(X&& x) : data(std::forward<X>(x))
     {}
 
     Expected& operator=(const Expected&) = default;

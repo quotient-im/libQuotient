@@ -17,8 +17,6 @@
 #include <source_location>
 #include <unordered_map>
 
-#define QUO_IMPLICIT explicit(false)
-
 #define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
     Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
 
