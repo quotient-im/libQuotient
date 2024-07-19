@@ -373,7 +373,7 @@ protected:
      * when it's first scheduled for execution; in particular, it is not called
      * on retries.
      */
-    virtual void doPrepare(const ConnectionData* connectionData);
+    virtual void doPrepare(const ConnectionData*);
 
     /*! Postprocessing after the network request has been sent
      *

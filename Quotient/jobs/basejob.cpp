@@ -334,7 +334,7 @@ void BaseJob::Private::sendRequest(const QNetworkRequest& req)
     }
 }
 
-void BaseJob::doPrepare(const ConnectionData* connectionData) { }
+void BaseJob::doPrepare(const ConnectionData*) { }
 
 void BaseJob::onSentRequest(QNetworkReply*) { }
 
