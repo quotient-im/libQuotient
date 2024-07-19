@@ -87,7 +87,9 @@ void TestUtils::testQuoCStr()
     T(QStringLiteral);
     T(QByteArrayLiteral);
     T(QLatin1StringView); // clazy:exclude=qt6-qlatin1stringchar-to-u
+#if QT_VERSION_MINOR > 7 // Qt 6.7 brought implicit QUtf8StringView -> std::string_view conversion
     T(QUtf8StringView);
+#endif
 #undef T
     QVERIFY("Test QStringBuilder<QString>"sv
             == QUO_CSTR(QStringLiteral("Test ") % u"QStringBuilder<QString>"));
