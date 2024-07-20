@@ -463,7 +463,9 @@ void Database::clearRoomData(const QString& roomId)
            QStringLiteral(
                "DELETE FROM outbound_megolm_sessions WHERE roomId=:roomId;"),
            QStringLiteral("DELETE FROM group_session_record_index WHERE "
-                          "roomId=:roomId;") }) {
+                          "roomId=:roomId;"),
+             QStringLiteral("DELETE FROM events WHERE roomID=:roomId;")
+        }) {
         auto q = prepareQuery(queryText);
         q.bindValue(QStringLiteral(":roomId"), roomId);
         execute(q);

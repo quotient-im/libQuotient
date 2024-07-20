@@ -147,7 +147,9 @@ public:
     //! Map from event id of the request event to the session object
     QHash<QString, KeyVerificationSession *> keyVerificationSessions;
     QPointer<KeyVerificationSession> pendingKeyVerificationSession;
-    int loadedFromDatabase = 0;
+    // The timestamp of the last message loaded from the database;
+    qlonglong lastTs = LONG_LONG_MAX;
+    bool isLoadingMessages = false;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -491,13 +493,7 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         connect(this, &Room::beforeDestruction, this, [id, connection] {
             connection->database()->clearRoomData(id);
         });
-        //TODO: delete from database when leaving
     }
-
-    //TODO how do we deal with encrypted events? store encrypted or unencrypted? if unencrypted, we need to also store encrypted to allow clients to view the encrypted event
-    QMetaObject::invokeMethod(this, [=, this](){
-        d->loadFromDb(50);
-    }, Qt::QueuedConnection);
 
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
@@ -2314,10 +2310,16 @@ void Room::hangupCall(const QString& callId)
 
 JobHandle<GetRoomEventsJob> Room::getPreviousContent(int limit, const QString& filter)
 {
-    if (d->loadFromDb(limit) > 0) {
-        return {};
+    if (!d->isLoadingMessages) {
+        d->isLoadingMessages = true;
+        auto count = d->loadFromDb(limit);
+        d->isLoadingMessages = false;
+        if (count > 0) {
+            return {};
+        }
+        return d->getPreviousContent(limit, filter);
     }
-    return d->getPreviousContent(limit, filter);
+    return {};
 }
 
 JobHandle<GetRoomEventsJob> Room::Private::getPreviousContent(int limit, const QString& filter)
@@ -2801,6 +2803,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (events.empty())
         return Change::None;
 
+    storeInDb(events);
+
     decryptIncomingEvents(events);
 
     QElapsedTimer et;
@@ -2845,11 +2849,6 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
         }
     }
-
-    storeInDb(events);
-    // To load historic messages from the database from the correct point, we need to adjust for the database size increasing here
-    // This looks like it breaks easily; be warned.
-    loadedFromDatabase -= events.size();
 
     // State changes arrive as a part of timeline; the current room state gets
     // updated before merging events to the timeline because that's what
@@ -2972,17 +2971,18 @@ void Room::Private::storeInDb(const RoomEvents &events)
 
 int Room::Private::loadFromDb(int limit)
 {
-    auto query = connection->database()->prepareQuery(QStringLiteral("SELECT json FROM events WHERE roomId=:roomId ORDER BY ts DESC LIMIT :limit OFFSET :offset;"));
+    auto query = connection->database()->prepareQuery(QStringLiteral("SELECT json, ts FROM events WHERE roomId=:roomId AND ts <= :lastTs ORDER BY ts DESC LIMIT :limit"));
     query.bindValue(QStringLiteral(":roomId"), id);
-    query.bindValue(QStringLiteral(":offset"), loadedFromDatabase);
+    query.bindValue(QStringLiteral(":lastTs"), lastTs);
     query.bindValue(QStringLiteral(":limit"), limit);
     connection->database()->execute(query);
 
     RoomEvents events;
     while(query.next()) {
-        events.push_back(loadEvent<RoomEvent>(QJsonDocument::fromJson(query.value(0).toString().toUtf8()).object()));
+        events.push_back(loadEvent<RoomEvent>(QJsonDocument::fromJson(query.value("json"_ls).toString().toUtf8()).object()));
+        lastTs = query.value("ts"_ls).toLongLong();
+
     }
-    loadedFromDatabase += events.size();
     addHistoricalMessageEvents(std::move(events), true);
     return events.size();
 }
@@ -2992,6 +2992,10 @@ std::pair<Room::Changes, Room::rev_iter_t> Room::Private::addHistoricalMessageEv
     dropExtraneousEvents(events);
     if (events.empty())
         return { Change::None, historyEdge() };
+
+    if (!fromDb) {
+        storeInDb(events);
+    }
 
     const auto timelineSize = timeline.size();
     decryptIncomingEvents(events);
@@ -3009,10 +3013,6 @@ std::pair<Room::Changes, Room::rev_iter_t> Room::Private::addHistoricalMessageEv
             && !currentState.contains(e.matrixType(), e.stateKey())) {
             changes |= q->processStateEvent(e);
         }
-    }
-
-    if (!fromDb) {
-        storeInDb(events);
     }
 
     emit q->aboutToAddHistoricalMessages(events);
