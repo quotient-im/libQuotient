@@ -279,6 +279,7 @@ void Database::migrateTo11()
     qCDebug(DATABASE) << "Migrating database to version 11";
     transaction();
     execute(QStringLiteral("CREATE TABLE events (roomId TEXT, ts INTEGER, json TEXT);"));
+    execute(QStringLiteral("CREATE TABLE event_batch_tokens (roomId TEXT, token TEXT);"));
     execute(QStringLiteral("pragma user_version = 11;"));
     commit();
 }

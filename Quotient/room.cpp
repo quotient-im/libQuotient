@@ -495,6 +495,13 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
         });
     }
 
+    auto query = connection->database()->prepareQuery("SELECT token FROM event_batch_tokens WHERE roomId=:roomId;"_ls);
+    query.bindValue(":roomId"_ls, id);
+    connection->database()->execute(query);
+    if (query.next()) {
+        d->prevBatch = query.value("token"_ls).toString();
+    };
+
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
 
@@ -2339,6 +2346,13 @@ JobHandle<GetRoomEventsJob> Room::Private::getPreviousContent(int limit, const Q
             !newPrevBatch.isEmpty() && *prevBatch != newPrevBatch) //
         {
             *prevBatch = newPrevBatch;
+            auto query = connection->database()->prepareQuery("DELETE FROM event_batch_tokens WHERE roomId=:roomId;"_ls);
+            query.bindValue(":roomId"_ls, q->id());
+            connection->database()->execute(query);
+            query = connection->database()->prepareQuery("INSERT INTO event_batch_tokens(roomId, token) VALUES(:roomId, :token);"_ls);
+            query.bindValue(":roomId"_ls, q->id());
+            query.bindValue(":token"_ls, newPrevBatch);
+            connection->database()->execute(query);
         } else {
             qCDebug(MESSAGES)
                 << "Room" << q->objectName() << "has loaded all history";
