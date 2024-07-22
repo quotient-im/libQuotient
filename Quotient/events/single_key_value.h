@@ -7,10 +7,8 @@ namespace Quotient {
 namespace EventContent {
     template <typename T, const QLatin1String& KeyStr>
     struct SingleKeyValue {
-        // NOLINTBEGIN(google-explicit-constructor): that check should learn about explicit(false)
-        QUO_IMPLICIT SingleKeyValue(const T& v = {}) : value(v) {}
-        QUO_IMPLICIT SingleKeyValue(T&& v) : value(std::move(v)) {}
-        // NOLINTEND(google-explicit-constructor)
+        Q_IMPLICIT SingleKeyValue(const T& v = {}) : value(v) {}
+        Q_IMPLICIT SingleKeyValue(T&& v) : value(std::move(v)) {}
         T value;
     };
 } // namespace EventContent

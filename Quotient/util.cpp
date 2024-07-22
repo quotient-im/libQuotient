@@ -128,7 +128,13 @@ int Quotient::minorVersion()
 
 int Quotient::patchVersion() { return Quotient_VERSION_PATCH; }
 
-bool HomeserverData::checkMatrixSpecVersion(QStringView targetVersion) const
+bool Quotient::isGuestUserId(const UserId& uId)
+{
+    static const QRegularExpression guestMxIdRe{ QStringLiteral("^@\\d+:") };
+    return guestMxIdRe.match(uId).hasMatch();
+}
+
+bool Quotient::HomeserverData::checkMatrixSpecVersion(QStringView targetVersion) const
 {
     // TODO: Replace this naïve implementation with something smarter that can check things like
     //   1.12 > 1.11 and maybe even 1.10 > 1.9

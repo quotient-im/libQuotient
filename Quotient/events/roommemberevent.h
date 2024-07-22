@@ -11,8 +11,7 @@
 namespace Quotient {
 class QUOTIENT_API MemberEventContent {
 public:
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    QUO_IMPLICIT MemberEventContent(Membership ms) : membership(ms) {}
+    Q_IMPLICIT MemberEventContent(Membership ms) : membership(ms) {}
     explicit MemberEventContent(const QJsonObject& json);
     QJsonObject toJson() const;
 

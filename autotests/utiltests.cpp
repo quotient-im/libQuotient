@@ -3,6 +3,7 @@
 
 #include <Quotient/util.h>
 
+#include <QtCore/QStringBuilder>
 #include <QtTest/QtTest>
 
 using namespace Quotient;
@@ -25,6 +26,8 @@ class TestUtils : public QObject {
     Q_OBJECT
 private Q_SLOTS:
     void testLinkifyUrl();
+    void testIsGuestUserId();
+    void testQuoCStr();
 
 private:
     void testLinkified(QString original, const QString& expected, const int sourceLine) const
@@ -67,6 +70,31 @@ void TestUtils::testLinkifyUrl()
       "<a href='https://matrix.to/#/#room_alias:example.org'>#room_alias:example.org</a>"_ls);
 
 #undef T
+}
+
+void TestUtils::testIsGuestUserId()
+{
+    QVERIFY(isGuestUserId("@123:example.org"_ls));
+    QVERIFY(!isGuestUserId("@normal:example.org"_ls));
+}
+
+void TestUtils::testQuoCStr()
+{
+    using namespace std::string_view_literals; // strncmp() is clumsy
+    QVERIFY("Test const char[]"sv == QUO_CSTR("Test const char[]"));
+#define T(Wrapper_) QVERIFY("Test " #Wrapper_##sv == QUO_CSTR(Wrapper_("Test " #Wrapper_)))
+    T(std::string);
+    T(QStringLiteral);
+    T(QByteArrayLiteral);
+    T(QLatin1StringView); // clazy:exclude=qt6-qlatin1stringchar-to-u
+#if QT_VERSION_MINOR > 7 // Qt 6.7 brought implicit QUtf8StringView -> std::string_view conversion
+    T(QUtf8StringView);
+#endif
+#undef T
+    QVERIFY("Test QStringBuilder<QString>"sv
+            == QUO_CSTR(QStringLiteral("Test ") % u"QStringBuilder<QString>"));
+    QVERIFY("Test QStringBuilder<QByteArray>"sv
+            == QUO_CSTR(QByteArrayLiteral("Test ") % "QStringBuilder<QByteArray>"));
 }
 
 QTEST_APPLESS_MAIN(TestUtils)

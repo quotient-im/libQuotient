@@ -283,6 +283,11 @@ public:
     //! \sa ignoredUsersListChanged
     Q_INVOKABLE void removeFromIgnoredUsers(const QString& userId);
 
+    //! \brief Get the entire list of users known to the current user on this homeserver
+    //! \note Be mindful that this can easily count thousands or tens of thousands, and use
+    //!       sparingly; when in a room context, always use Room::members() instead
+    Q_INVOKABLE QStringList userIds() const;
+
     //! Get the base URL of the homeserver to connect to
     QUrl homeserver() const;
     //! Get the domain name used for ids/aliases on the server

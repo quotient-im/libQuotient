@@ -90,7 +90,7 @@ private:
     }
 
 public:
-    QUO_IMPLICIT JobHandle(JobT* job = nullptr) : JobHandle(job, setupFuture(job)) {}
+    Q_IMPLICIT JobHandle(JobT* job = nullptr) : JobHandle(job, setupFuture(job)) {}
 
     //! \brief Attach a continuation to a successful or unsuccessful completion of the future
     //!

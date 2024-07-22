@@ -89,8 +89,7 @@ QOlmExpected<QByteArray> QOlmSession::decrypt(const QOlmMessage& message) const
                                           unsignedSize(ciphertext),
                                           plaintextBuf.data(), plaintextMaxLen);
     if (actualLength == olm_error()) {
-        QOLM_FAIL_OR_LOG(OLM_OUTPUT_BUFFER_TOO_SMALL,
-                         "Failed to decrypt the message"_ls);
+        QOLM_FAIL_OR_LOG(OLM_OUTPUT_BUFFER_TOO_SMALL, "Failed to decrypt the message"_ls);
         return lastErrorCode();
     }
     // actualLength cannot be more than plainTextLength because the resulting

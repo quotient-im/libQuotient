@@ -17,8 +17,6 @@
 #include <source_location>
 #include <unordered_map>
 
-#define QUO_IMPLICIT explicit(false)
-
 #define DECL_DEPRECATED_ENUMERATOR(Deprecated, Recommended) \
     Deprecated Q_DECL_ENUMERATOR_DEPRECATED_X("Use " #Recommended) = Recommended
 
@@ -40,18 +38,33 @@
 
 namespace Quotient {
 
-inline const char* printable(std::convertible_to<QString> auto s)
-{
-    return QString(s).toUtf8().constData();
+namespace _impl {
+    template <typename S>
+    constexpr inline auto toUtf8(S&& s)
+    {
+        if constexpr (std::convertible_to<S, std::string_view>)
+            return std::string_view(std::forward<S>(s));
+        else if constexpr (std::convertible_to<S, QByteArray>)
+            return QByteArray(std::forward<S>(s));
+        else //if constexpr (std::convertible_to<S, QString>)
+            return QString(std::forward<S>(s)).toUtf8();
+    }
 }
-inline const char* printable(const char* s) { return s; }
-inline const char* printable(QUtf8StringView s) { return s.data(); }
+
+//! \brief q(Utf8)Printable that can handle more than just QStrings
+//!
+//! This macro accepts all kinds of string-like input, from const char* all the way to raw
+//! QStringBuilder constructs. It returns a `const char*` pointer to a UTF-8 string; if the original
+//! input was QChar/u16-based, it creates a temporary buffer to store the UTF-8 representation that
+//! is destroyed once the statement containing QUO_CSTR() is done (therefore, ALWAYS copy the result
+//! based on QUO_CSTR() contents if you need to store it).
+#define QUO_CSTR(StringConvertible_) std::data(_impl::toUtf8(StringConvertible_))
 
 inline bool alarmX(bool alarmCondition, const auto& msg,
                    [[maybe_unused]] std::source_location loc = std::source_location::current())
 {
     if (alarmCondition) [[unlikely]] {
-        Q_ASSERT_X(false, loc.function_name(), printable(msg));
+        Q_ASSERT_X(false, loc.function_name(), QUO_CSTR(msg));
         qCritical() << msg;
     }
     return alarmCondition;
@@ -67,9 +80,9 @@ inline bool alarmX(bool alarmCondition, const auto& msg,
 //! if \p AlarmCondition holds, not the other way around.
 //!
 //! This macro is a trivial wrapper around alarmX(), provided for API uniformity with ALARM()
-#define ALARM_X(AlarmCondition, Message) alarmX(AlarmCondition, Message)
+#define ALARM_X(AlarmCondition, Message) alarmX((AlarmCondition), (Message))
 
-#define ALARM(AlarmCondition) alarmX(AlarmCondition, "Alarm: " #AlarmCondition)
+#define ALARM(AlarmCondition) alarmX((AlarmCondition), "Alarm: " #AlarmCondition)
 
 #if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR < 10
 /// This is only to make UnorderedMap alias work until we get rid of it
@@ -369,6 +382,7 @@ inline QDebug operator<<(QDebug dbg, QElapsedTimer et)
     return dbg;
 }
 
+namespace Quotient {
 //! \brief Lift an operation into dereferenceable types (std::optional or pointers)
 //!
 //! This is a more generic version of std::optional::and_then() that accepts an arbitrary number of
@@ -428,9 +442,12 @@ using UserId = QString;
 using RoomId = QString;
 using EventId = QString;
 
+QUOTIENT_API bool isGuestUserId(const UserId& uId);
+
 struct QUOTIENT_API HomeserverData {
     QUrl baseUrl;
     QStringList supportedSpecVersions;
 
     bool checkMatrixSpecVersion(QStringView targetVersion) const;
 };
+} // namespace Quotient

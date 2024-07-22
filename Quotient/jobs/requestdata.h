@@ -19,13 +19,10 @@ namespace Quotient {
  */
 class QUOTIENT_API RequestData {
 public:
-    // NOLINTBEGIN(google-explicit-constructor): that check should learn about
-    //                                           explicit(false)
-    QUO_IMPLICIT RequestData(const QByteArray& a = {});
-    QUO_IMPLICIT RequestData(const QJsonObject& jo);
-    QUO_IMPLICIT RequestData(const QJsonArray& ja);
-    QUO_IMPLICIT RequestData(QIODevice* source);
-    // NOLINTEND(google-explicit-constructor)
+    Q_IMPLICIT RequestData(const QByteArray& a = {});
+    Q_IMPLICIT RequestData(const QJsonObject& jo);
+    Q_IMPLICIT RequestData(const QJsonArray& ja);
+    Q_IMPLICIT RequestData(QIODevice* source);
 
     QIODevice* source() const { return _source.get(); }
 

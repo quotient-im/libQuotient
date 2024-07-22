@@ -10,8 +10,7 @@
 namespace Quotient {
 class QUOTIENT_API EncryptionEventContent {
 public:
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    QUO_IMPLICIT EncryptionEventContent(Quotient::EncryptionType et);
+    Q_IMPLICIT EncryptionEventContent(Quotient::EncryptionType et);
     explicit EncryptionEventContent(const QJsonObject& json);
 
     QJsonObject toJson() const;

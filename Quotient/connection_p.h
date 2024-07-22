@@ -39,6 +39,7 @@ public:
     QHash<QString, QString> roomAliasMap;
     QVector<QString> roomIdsToForget;
     QVector<QString> pendingStateRoomIds;
+    // It's an ordered map to make Connection::userIds() return an already sorted list
     QMap<QString, User*> userMap;
     std::unordered_map<QString, Avatar> userAvatarMap;
     DirectChatsMap directChats;
