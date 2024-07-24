@@ -319,22 +319,28 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
         q->user()->load(); // Load the local user's profile
     }
 
-    if (useEncryption) {
-        _impl::ConnectionEncryptionData::setup(q, [this](auto&& maybeEncryptionData){
-            if (maybeEncryptionData) {
-                encryptionData = std::move(*maybeEncryptionData);
-            } else {
-                useEncryption = false;
-                emit q->encryptionChanged(false);
-            }
-            emit q->ready();
-        }, mock);
-    } else
-        qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for"
-                     << q->objectName();
+    emit q->stateChanged(); // Technically connected to the homeserver but no E2EE yet
 
-    emit q->stateChanged();
-    emit q->connected();
+    if (useEncryption) {
+        using _impl::ConnectionEncryptionData;
+        ConnectionEncryptionData::setup(q, mock).then(
+            [this](std::unique_ptr<ConnectionEncryptionData>&& encData) {
+                if (encData) {
+                    encryptionData = std::move(encData);
+                } else {
+                    useEncryption = false;
+                    emit q->encryptionChanged(false);
+                }
+                emit q->ready();
+                emit q->stateChanged();
+                emit q->connected();
+            });
+    } else {
+        qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
+        emit q->ready();
+        emit q->connected();
+    }
+
 }
 
 QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
