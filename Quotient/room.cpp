@@ -569,7 +569,10 @@ int Room::requestedHistorySize() const
 
 bool Room::allHistoryLoaded() const
 {
-    return !d->prevBatch;
+    if (timelineSize() == 0) {
+        return false;
+    }
+    return messageEvents().front()->is<const RoomCreateEvent>();
 }
 
 QString Room::name() const
