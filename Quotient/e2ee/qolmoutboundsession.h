@@ -6,7 +6,7 @@
 
 #include <Quotient/e2ee/e2ee_common.h>
 
-struct OlmOutboundGroupSession;
+#include <vodozemac/vodozemac.h>
 
 namespace Quotient {
 
@@ -15,16 +15,16 @@ namespace Quotient {
 class QUOTIENT_API QOlmOutboundGroupSession
 {
 public:
-    QOlmOutboundGroupSession();
-
     //! Serialises a `QOlmOutboundGroupSession` to encrypted Base64.
     QByteArray pickle(const PicklingKey &key) const;
     //! Deserialises from encrypted Base64 that was previously obtained by
     //! pickling a `QOlmOutboundGroupSession`.
     static QOlmExpected<QOlmOutboundGroupSession> unpickle(QByteArray&& pickled, const PicklingKey& key);
 
+    static QOlmExpected<QOlmOutboundGroupSession> create();
+
     //! Encrypts a plaintext message using the session.
-    QByteArray encrypt(const QByteArray& plaintext) const;
+    QByteArray encrypt(const QByteArray& plaintext);
 
     //! Get the current message index for this session.
     //!
@@ -51,10 +51,10 @@ public:
     const char* lastError() const;
 
 private:
-    CStructPtr<OlmOutboundGroupSession> m_groupSession;
     int m_messageCount = 0;
     QDateTime m_creationTime = QDateTime::currentDateTime();
-    OlmOutboundGroupSession* olmData = m_groupSession.get();
+    rust::Box<megolm::GroupSession> olmData;
+    QOlmOutboundGroupSession(rust::Box<megolm::GroupSession> session);
 };
 
 } // namespace Quotient

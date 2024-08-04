@@ -7,6 +7,8 @@
 #include <Quotient/e2ee/e2ee_common.h>
 #include <Quotient/e2ee/qolmmessage.h>
 
+#include <vodozemac/vodozemac.h>
+
 struct OlmSession;
 
 namespace Quotient {
@@ -25,25 +27,15 @@ public:
                                               const PicklingKey& key);
 
     //! Encrypts a plaintext message using the session.
-    QOlmMessage encrypt(const QByteArray& plaintext) const;
+    QOlmMessage encrypt(const QByteArray& plaintext);
 
     //! Decrypts a message using this session. Decoding is lossy, meaning if
     //! the decrypted plaintext contains invalid UTF-8 symbols, they will
     //! be returned as `U+FFFD`.
-    QOlmExpected<QByteArray> decrypt(const QOlmMessage &message) const;
+    QOlmExpected<QByteArray> tryDecrypt(const QOlmMessage &message);
 
     //! Get a base64-encoded identifier for this session.
     QByteArray sessionId() const;
-
-    //! Checker for any received messages for this session.
-    bool hasReceivedMessage() const;
-
-    //! Checks if the 'prekey' message is for this in-bound session.
-    bool matchesInboundSession(const QOlmMessage& preKeyMessage) const;
-
-    //! Checks if the 'prekey' message is for this in-bound session.
-    bool matchesInboundSessionFrom(QByteArray theirIdentityKey,
-                                   const QOlmMessage& preKeyMessage) const;
 
     friend bool operator<(const QOlmSession& lhs, const QOlmSession& rhs)
     {
@@ -53,10 +45,10 @@ public:
     OlmErrorCode lastErrorCode() const;
     const char* lastError() const;
 
+    explicit QOlmSession(rust::Box<olm::Session> session);
 private:
     QOlmSession();
-    CStructPtr<OlmSession> olmDataHolder;
-    OlmSession* olmData = olmDataHolder.get();
+    rust::Box<olm::Session> m_session;
 
     friend class QOlmAccount;
 };

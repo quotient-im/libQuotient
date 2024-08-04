@@ -19,8 +19,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
-#include <olm/sas.h>
-
 #include <chrono>
 
 using namespace Quotient;
@@ -41,11 +39,13 @@ QStringList commonSupportedMethods(const QStringList& remoteMethods)
 
 CStructPtr<OlmSAS> KeyVerificationSession::makeOlmData()
 {
-    auto data = makeCStruct(olm_sas, olm_sas_size, olm_clear_sas);
-
-    const auto randomLength = olm_create_sas_random_length(data.get());
-    olm_create_sas(data.get(), getRandom(randomLength).data(), randomLength);
-    return data;
+    //TODO
+    // auto data = makeCStruct(olm_sas, olm_sas_size, olm_clear_sas);
+    //
+    // const auto randomLength = olm_create_sas_random_length(data.get());
+    // olm_create_sas(data.get(), getRandom(randomLength).data(), randomLength);
+    // return data;
+    return {};
 }
 
 KeyVerificationSession::KeyVerificationSession(QString remoteUserId,
@@ -225,7 +225,7 @@ EmojiEntry emojiForCode(int code, const QString& language)
 void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
 {
     auto eventKey = event.key().toLatin1();
-    olm_sas_set_their_key(olmData, eventKey.data(), unsignedSize(eventKey));
+    //TODO olm_sas_set_their_key(olmData, eventKey.data(), unsignedSize(eventKey));
 
     if (startSentByUs) {
         const auto paddedCommitment =
@@ -243,8 +243,8 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
         sendKey();
     }
 
-    std::string key(olm_sas_pubkey_length(olmData), '\0');
-    olm_sas_get_pubkey(olmData, key.data(), key.size());
+    std::string key;//TODO(olm_sas_pubkey_length(olmData), '\0');
+    //olm_sas_get_pubkey(olmData, key.data(), key.size());
 
     std::array<std::byte, 6> output{};
     const auto infoTemplate =
@@ -256,9 +256,9 @@ void KeyVerificationSession::handleKey(const KeyVerificationKeyEvent& event)
                                QString::fromLatin1(key.data()), m_remoteUserId, m_remoteDeviceId,
                                event.key(), m_room ? m_requestEventId : m_transactionId)
                           .toLatin1();
-
+/*
     olm_sas_generate_bytes(olmData, info.data(), unsignedSize(info),
-                           output.data(), output.size());
+                           output.data(), output.size());*/
 
     static constexpr auto x3f = std::byte{ 0x3f };
     const std::array<std::byte, 7> code{
@@ -288,24 +288,25 @@ QString KeyVerificationSession::calculateMac(const QString& input,
                                              const QString& keyId)
 {
     const auto inputBytes = input.toLatin1();
-    const auto macLength = olm_sas_mac_length(olmData);
-    auto macChars = byteArrayForOlm(macLength);
-    const auto macInfo = (verifying ? "MATRIX_KEY_VERIFICATION_MAC%3%4%1%2%5%6"_L1
-                                    : "MATRIX_KEY_VERIFICATION_MAC%1%2%3%4%5%6"_L1)
-                             .arg(m_connection->userId(), m_connection->deviceId(), m_remoteUserId,
-                                  m_remoteDeviceId, m_room ? m_requestEventId : m_transactionId,
-                                  input.contains(u',') ? u"KEY_IDS"_s : keyId)
-                             .toLatin1();
-    if (m_commonMacCodes.contains(HmacSha256V2Code))
-        olm_sas_calculate_mac_fixed_base64(olmData, inputBytes.data(),
-                                           unsignedSize(inputBytes),
-                                           macInfo.data(), unsignedSize(macInfo),
-                                           macChars.data(), macLength);
-    else
-        olm_sas_calculate_mac(olmData, inputBytes.data(),
-                              unsignedSize(inputBytes), macInfo.data(),
-                              unsignedSize(macInfo), macChars.data(), macLength);
-    return QString::fromLatin1(macChars.data(), macChars.indexOf('='));
+    //TODO const auto macLength = olm_sas_mac_length(olmData);
+    // auto macChars = byteArrayForOlm(macLength);
+    // const auto macInfo =
+    //     (verifying ? "MATRIX_KEY_VERIFICATION_MAC%3%4%1%2%5%6"_ls
+    //                : "MATRIX_KEY_VERIFICATION_MAC%1%2%3%4%5%6"_ls)
+    //         .arg(m_connection->userId(), m_connection->deviceId(),
+    //              m_remoteUserId, m_remoteDeviceId, m_room ? m_requestEventId : m_transactionId, input.contains(u',') ? QStringLiteral("KEY_IDS") : keyId)
+    //         .toLatin1();
+    // if (m_commonMacCodes.contains(HmacSha256V2Code))
+    //     olm_sas_calculate_mac_fixed_base64(olmData, inputBytes.data(),
+    //                                        unsignedSize(inputBytes),
+    //                                        macInfo.data(), unsignedSize(macInfo),
+    //                                        macChars.data(), macLength);
+    // else
+    //     olm_sas_calculate_mac(olmData, inputBytes.data(),
+    //                           unsignedSize(inputBytes), macInfo.data(),
+    //                           unsignedSize(macInfo), macChars.data(), macLength);
+    // return QString::fromLatin1(macChars.data(), macChars.indexOf('='));
+    return {};
 }
 
 void KeyVerificationSession::sendMac()
@@ -349,13 +350,14 @@ void KeyVerificationSession::sendDone()
 
 void KeyVerificationSession::sendKey()
 {
-    const auto pubkeyLength = olm_sas_pubkey_length(olmData);
-    auto keyBytes = byteArrayForOlm(pubkeyLength);
-    olm_sas_get_pubkey(olmData, keyBytes.data(), pubkeyLength);
-    sendEvent(m_remoteUserId, m_remoteDeviceId,
-                               KeyVerificationKeyEvent(m_transactionId,
-                                                       QString::fromLatin1(keyBytes)),
-                               m_encrypted);
+    //TODO
+    // const auto pubkeyLength = olm_sas_pubkey_length(olmData);
+    // auto keyBytes = byteArrayForOlm(pubkeyLength);
+    // olm_sas_get_pubkey(olmData, keyBytes.data(), pubkeyLength);
+    // sendEvent(m_remoteUserId, m_remoteDeviceId,
+    //                            KeyVerificationKeyEvent(m_transactionId,
+    //                                                    QString::fromLatin1(keyBytes)),
+    //                            m_encrypted);
 }
 
 
@@ -444,19 +446,20 @@ void KeyVerificationSession::handleStart(const KeyVerificationStartEvent& event)
         cancelVerification(UNKNOWN_METHOD);
         return;
     }
-    const auto pubkeyLength = olm_sas_pubkey_length(olmData);
-    auto publicKey = byteArrayForOlm(pubkeyLength);
-    olm_sas_get_pubkey(olmData, publicKey.data(), pubkeyLength);
-    const auto canonicalEvent = QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact);
-    const auto commitment =
-        QString::fromLatin1(QCryptographicHash::hash(publicKey + canonicalEvent,
-                                                     QCryptographicHash::Sha256)
-                                .toBase64(QByteArray::OmitTrailingEquals));
-
-    sendEvent(m_remoteUserId, m_remoteDeviceId,
-                               KeyVerificationAcceptEvent(m_transactionId,
-                                                          commitment),
-                               m_encrypted);
+    //TODO
+    // const auto pubkeyLength = olm_sas_pubkey_length(olmData);
+    // auto publicKey = byteArrayForOlm(pubkeyLength);
+    // olm_sas_get_pubkey(olmData, publicKey.data(), pubkeyLength);
+    // const auto canonicalEvent = QJsonDocument(event.contentJson()).toJson(QJsonDocument::Compact);
+    // const auto commitment =
+    //     QString::fromLatin1(QCryptographicHash::hash(publicKey + canonicalEvent,
+    //                                                  QCryptographicHash::Sha256)
+    //                             .toBase64(QByteArray::OmitTrailingEquals));
+    //
+    // sendEvent(m_remoteUserId, m_remoteDeviceId,
+    //                            KeyVerificationAcceptEvent(m_transactionId,
+    //                                                       commitment),
+    //                            m_encrypted);
     setState(ACCEPTED);
 }
 

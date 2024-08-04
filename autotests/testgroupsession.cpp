@@ -10,7 +10,7 @@ using namespace Quotient;
 
 void TestGroupSession::groupSessionPicklingValid()
 {
-    QOlmOutboundGroupSession ogs{};
+    auto ogs = QOlmOutboundGroupSession::create().value();
     const auto ogsId = ogs.sessionId();
     QVERIFY(QByteArray::fromBase64(ogsId).size() > 0);
     QCOMPARE(0, ogs.sessionMessageIndex());
@@ -39,7 +39,7 @@ void TestGroupSession::groupSessionPicklingValid()
 
 void TestGroupSession::groupSessionCryptoValid()
 {
-    QOlmOutboundGroupSession ogs{};
+    auto ogs = QOlmOutboundGroupSession::create().value();
     auto igs = QOlmInboundGroupSession::create(ogs.sessionKey());
     QVERIFY(igs.has_value());
     QCOMPARE(ogs.sessionId(), igs->sessionId());

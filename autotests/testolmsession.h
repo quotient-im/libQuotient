@@ -8,7 +8,6 @@ class TestOlmSession : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
-    void olmOutboundSessionCreation();
     void olmEncryptDecrypt();
     void correctSessionOrdering();
 };

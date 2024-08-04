@@ -20,7 +20,7 @@ namespace _impl {
                                    std::unique_ptr<ConnectionEncryptionData>& result);
 
         Connection* q;
-        QOlmAccount olmAccount;
+        QOlmAccount* olmAccount;
         // No easy way in C++ to discern between SQL SELECT from UPDATE, too bad
         mutable Database database;
         std::unordered_map<QByteArray, std::vector<QOlmSession>> olmSessions;
@@ -72,7 +72,7 @@ namespace _impl {
 
         QJsonObject assembleEncryptedContent(
             QJsonObject payloadJson, const QString& targetUserId,
-            const QString& targetDeviceId) const;
+            const QString& targetDeviceId);
         void sendSessionKeyToDevices(
             const QString& roomId,
             const QOlmOutboundGroupSession& outboundSession,
@@ -115,9 +115,9 @@ namespace _impl {
         void handleEncryptedToDeviceEvent(const EncryptedEvent& event);
 
         // This function assumes that an olm session with (user, device) exists
-        std::pair<QOlmMessage::Type, QByteArray> olmEncryptMessage(
+        std::pair<size_t, QByteArray> olmEncryptMessage(
             const QString& userId, const QString& device,
-            const QByteArray& message) const;
+            const QByteArray& message);
 
         void doSendSessionKeyToDevices(const QString& roomId, const QByteArray& sessionId,
             const QByteArray &sessionKey, uint32_t messageIndex,

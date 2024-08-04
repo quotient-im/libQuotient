@@ -424,7 +424,8 @@ public:
     void createMegolmSession() {
         qCDebug(E2EE) << "Creating new outbound megolm session for room "
                       << q->objectName();
-        currentOutboundMegolmSession.emplace();
+        //TODO error?
+        currentOutboundMegolmSession = QOlmOutboundGroupSession::create().value();
         connection->database()->saveCurrentOutboundMegolmSession(
             id, *currentOutboundMegolmSession);
 

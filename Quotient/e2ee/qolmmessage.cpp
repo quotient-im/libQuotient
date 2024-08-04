@@ -8,14 +8,14 @@
 
 using namespace Quotient;
 
-QOlmMessage::QOlmMessage(QByteArray ciphertext, QOlmMessage::Type type)
+QOlmMessage::QOlmMessage(QByteArray ciphertext, size_t type)
     : QByteArray(std::move(ciphertext))
     , m_messageType(type)
 {
     Q_ASSERT_X(!isEmpty(), "olm message", "Ciphertext is empty");
 }
 
-QOlmMessage::Type QOlmMessage::type() const
+size_t QOlmMessage::type() const
 {
     return m_messageType;
 }
@@ -27,5 +27,5 @@ QByteArray QOlmMessage::toCiphertext() const
 
 QOlmMessage QOlmMessage::fromCiphertext(const QByteArray &ciphertext)
 {
-    return QOlmMessage(ciphertext, QOlmMessage::General);
+    return QOlmMessage(ciphertext, 0 /* TODO correct?*/);
 }

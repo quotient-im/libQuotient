@@ -6,7 +6,7 @@
 
 #include <Quotient/e2ee/e2ee_common.h>
 
-struct OlmInboundGroupSession;
+#include <vodozemac/vodozemac.h>
 
 namespace Quotient {
 
@@ -35,7 +35,7 @@ public:
     uint32_t firstKnownIndex() const;
     //! Get a base64-encoded identifier for this session.
     QByteArray sessionId() const;
-    bool isVerified() const;
+    // bool isVerified() const;
 
     //! The olm session that this session was received from.
     //! Required to get the device this session is from.
@@ -46,15 +46,11 @@ public:
     QString senderId() const;
     void setSenderId(const QString& senderId);
 
-    OlmErrorCode lastErrorCode() const;
-    const char* lastError() const;
-
 private:
-    QOlmInboundGroupSession();
-    CStructPtr<OlmInboundGroupSession> m_groupSession;
+    QOlmInboundGroupSession(rust::Box<megolm::InboundGroupSession> session);
     QByteArray m_olmSessionId;
     QString m_senderId;
-    OlmInboundGroupSession* olmData = m_groupSession.get();
+    rust::Box<megolm::InboundGroupSession> olmData;
 };
 
 using QOlmInboundGroupSessionPtr = std::unique_ptr<QOlmInboundGroupSession>;

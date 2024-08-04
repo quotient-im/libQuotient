@@ -19,13 +19,6 @@ class QUOTIENT_API QOlmUtility
 public:
     QOlmUtility();
 
-    //! Returns a sha256 of the supplied byte slice.
-    QString sha256Bytes(const QByteArray& inputBuf) const;
-
-    //! Convenience function that converts the UTF-8 message
-    //! to bytes and then calls `sha256Bytes()`, returning its output.
-    QString sha256Utf8Msg(const QString& message) const;
-
     //! Verify a ed25519 signature.
     //! \param key QByteArray The public part of the ed25519 key that signed the message.
     //! \param message QByteArray The message that was signed.

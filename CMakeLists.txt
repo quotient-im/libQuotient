@@ -3,6 +3,8 @@ if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
 
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 set(API_VERSION "0.9")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 set(PRE_STAGE "beta")
@@ -45,7 +47,7 @@ else()
         endif()
     endforeach ()
     # disable exceptions by default, not used in most parts here and saves about 10% binary size
-    add_compile_options(-fno-exceptions)
+    #add_compile_options(-fno-exceptions)
 endif()
 
 add_compile_definitions(
@@ -95,13 +97,7 @@ find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
 find_package(${Qt}Keychain REQUIRED)
-
-find_package(Olm 3.2.5 REQUIRED)
-set_package_properties(Olm PROPERTIES
-    DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
-    URL "https://gitlab.matrix.org/matrix-org/olm"
-    TYPE REQUIRED
-)
+find_package(Vodozemac REQUIRED)
 
 find_package(OpenSSL 1.1.0 REQUIRED)
 set_package_properties(OpenSSL PROPERTIES
@@ -363,8 +359,8 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
 )
 
 target_link_libraries(${QUOTIENT_LIB_NAME}
-    PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain Olm::Olm ${Qt}::Sql
-    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate)
+    PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain ${Qt}::Sql
+    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate Vodozemac)
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
@@ -432,7 +428,6 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "  Header files install prefix: ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}")
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 message(STATUS "Using QtKeychain ${${Qt}Keychain_VERSION} at ${${Qt}Keychain_DIR}")
-message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
 message(STATUS "Using OpenSSL libcrypto ${OPENSSL_VERSION} at ${OPENSSL_CRYPTO_LIBRARY}")
 message(STATUS)
 feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES

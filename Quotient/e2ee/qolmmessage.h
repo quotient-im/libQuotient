@@ -7,8 +7,9 @@
 #include <Quotient/quotient_export.h>
 
 #include <QtCore/QByteArray>
-#include <qobjectdefs.h>
-#include <olm/olm.h>
+#include <QtCore/QObject>
+
+#include <vodozemac/vodozemac.h>
 
 namespace Quotient {
 
@@ -23,20 +24,21 @@ class QUOTIENT_API QOlmMessage : public QByteArray {
     Q_GADGET
 public:
     enum Type {
-        PreKey = OLM_MESSAGE_TYPE_PRE_KEY,
-        General = OLM_MESSAGE_TYPE_MESSAGE,
+        PreKey = 0,
+        General = 1,
     };
     Q_ENUM(Type)
 
-    explicit QOlmMessage(QByteArray ciphertext, Type type = General);
+    explicit QOlmMessage(QByteArray ciphertext, size_t type);
 
     static QOlmMessage fromCiphertext(const QByteArray &ciphertext);
 
-    Q_INVOKABLE Type type() const;
+    Q_INVOKABLE size_t type() const;
     Q_INVOKABLE QByteArray toCiphertext() const;
+    olm::OlmMessage message() const;
 
 private:
-    Type m_messageType = General;
+    size_t m_messageType;
 };
 
 } //namespace Quotient

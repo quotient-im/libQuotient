@@ -296,10 +296,7 @@ struct IdentityKeys
 //! Struct representing the one-time keys.
 struct UnsignedOneTimeKeys
 {
-    QHash<QString, QHash<QString, QString>> keys;
-
-    //! Get the HashMap containing the curve25519 one-time keys.
-    QHash<QString, QString> curve25519() const { return keys[Curve25519Key]; }
+    QHash<QString, QString> keys;
 };
 
 class QUOTIENT_API SignedOneTimeKey {
