@@ -18,6 +18,10 @@
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
 
+#include <vodozemac/vodozemac.h>
+
+using namespace Qt::Literals::StringLiterals;
+
 using namespace Quotient;
 
 Database::Database(const QString& userId, const QString& deviceId,
@@ -45,7 +49,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 6: migrateTo7(); [[fallthrough]];
     case 7: migrateTo8(); [[fallthrough]];
     case 8: migrateTo9(); [[fallthrough]];
-    case 9: migrateTo10();
+    case 9: migrateTo10(); [[fallthrough]];
+    case 10: migrateTo11();
     }
 }
 
@@ -271,6 +276,65 @@ void Database::migrateTo10()
     commit();
 
 }
+
+void Database::migrateTo11()
+{
+    //TODO: This is terrible :(
+    std::array<std::uint8_t, 32> _key;
+    std::copy(m_picklingKey.data(), m_picklingKey.data() + 32, _key.begin());
+
+    transaction();
+    auto query = prepareQuery(u"SELECT FROM accounts;"_s);
+    execute(query);
+    if (query.next()) {
+        auto olmAccountPickle = query.value(u"pickle"_s).toString();
+        auto account = olm::account_from_olm_pickle(rust::String((const char *) olmAccountPickle.data(), olmAccountPickle.size()), _key);
+        auto pickle = account->pickle(_key);
+        execute(u"DELETE FROM accounts;"_s);
+        query = prepareQuery(u"INSERT INTO accounts(pickle) VALUES(:pickle);"_s);
+        query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
+        execute(query);
+    }
+
+    query = prepareQuery(u"SELECT pickle FROM inbound_megolm_sessions;"_s);
+    execute(query);
+    while(query.next()) {
+        auto olmPickle = query.value(0).toString();
+        auto session = megolm::inbound_group_session_from_olm_pickle((rust::String((const char *) olmPickle.data(), olmPickle.size())), _key);
+        auto pickle = session->pickle(_key);
+        auto replaceQuery = prepareQuery(u"UPDATE inbound_megolm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
+        query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
+        query.bindValue(u":olmPickle"_s, olmPickle);
+        execute(query);
+    }
+
+    query = prepareQuery(u"SELECT pickle FROM outbound_megolm_sessions;"_s);
+    execute(query);
+    while(query.next()) {
+        auto olmPickle = query.value(0).toString();
+        auto session = megolm::group_session_from_olm_pickle((rust::String((const char *) olmPickle.data(), olmPickle.size())), _key);
+        auto pickle = session->pickle(_key);
+        auto replaceQuery = prepareQuery(u"UPDATE outbound_megolm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
+        query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
+        query.bindValue(u":olmPickle"_s, olmPickle);
+        execute(query);
+    }
+
+    query = prepareQuery(u"SELECT pickle FROM olm_sessions;"_s);
+    execute(query);
+    while(query.next()) {
+        auto olmPickle = query.value(0).toString();
+        auto session = olm::session_from_olm_pickle((rust::String((const char *) olmPickle.data(), olmPickle.size())), _key);
+        auto pickle = session->pickle(_key);
+        auto replaceQuery = prepareQuery(u"UPDATE olm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
+        query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
+        query.bindValue(u":olmPickle"_s, olmPickle);
+        execute(query);
+    }
+    execute(QStringLiteral("pragma user_version = 11;"));
+    commit();
+}
+
 
 void Database::storeOlmAccount(const QOlmAccount& olmAccount)
 {
