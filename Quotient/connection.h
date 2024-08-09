@@ -631,6 +631,10 @@ public:
     Q_INVOKABLE QFuture<Room*> joinAndGetRoom(const QString& roomAlias,
                                               const QStringList& serverNames = {});
 
+    void startOidcLogin();
+
+    void refreshToken();
+
 public Q_SLOTS:
     //! \brief Log in using a username and password pair
     //!
@@ -660,6 +664,9 @@ public Q_SLOTS:
     //! URL is valid and tries to resolve it from the MXID in case it is not.
     //! \since 0.7.2
     void assumeIdentity(const QString& mxId, const QString& accessToken);
+    void assumeOidcIdentity(const QString& mxId, const QString& refreshToken, const QString& clientId, const QString& tokenEndpoint);
+
+    void assumeUnknownIdentity(const QString& accessToken, const QString& refreshToken);
 
     //! \brief Request supported spec versions from the homeserver
     //!
@@ -921,6 +928,9 @@ Q_SIGNALS:
     //! The account does not yet have cross-signing keys. The client should ask the user
     //! whether to create them now and then set them up, if desired.
     void crossSigningSetupRequired();
+
+    void openOidcUrl(const QString &url);
+    void refreshTokenChanged();
 
     friend class ::TestCrossSigning;
 protected:

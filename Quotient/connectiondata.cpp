@@ -26,10 +26,13 @@ public:
 
     QUrl baseUrl;
     QByteArray accessToken;
+    QString refreshToken;
     QString lastEvent;
     QString userId;
     QString deviceId;
     QStringList supportedSpecVersions;
+    QString tokenEndpoint;
+    QString clientId;
 
     mutable unsigned int txnCounter = 0;
     const qint64 txnBase = QDateTime::currentMSecsSinceEpoch();
@@ -124,6 +127,17 @@ void ConnectionData::setBaseUrl(QUrl baseUrl)
     }
 }
 
+QString ConnectionData::refreshToken() const
+{
+    return d->refreshToken;
+}
+
+void ConnectionData::setRefreshToken(const QString& refreshToken)
+{
+    qWarning() << "setting refres toke" << refreshToken;
+    d->refreshToken = refreshToken;
+}
+
 void ConnectionData::setToken(QByteArray token)
 {
     d->accessToken = std::move(token);
@@ -168,4 +182,24 @@ QString ConnectionData::generateTxnId() const
 {
     return d->deviceId + QString::number(d->txnBase)
            + QString::number(++d->txnCounter);
+}
+
+QString ConnectionData::clientId() const
+{
+    return d->clientId;
+}
+
+QString ConnectionData::tokenEndpoint() const
+{
+    return d->tokenEndpoint;
+}
+
+void ConnectionData::setClientId(const QString& clientId)
+{
+    d->clientId = clientId;
+}
+
+void ConnectionData::setTokenEndpoint(const QString& tokenEndpoint)
+{
+    d->tokenEndpoint = tokenEndpoint;
 }

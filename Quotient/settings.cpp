@@ -99,12 +99,11 @@ void SettingsGroup::remove(const QString& key)
     Settings::remove(fullKey);
 }
 
-QUO_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {},
-                   setDeviceId)
-QUO_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {},
-                   setDeviceName)
-QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
-                   setKeepLoggedIn)
+QUO_DEFINE_SETTING(AccountSettings, QString, deviceId, "device_id", {}, setDeviceId)
+QUO_DEFINE_SETTING(AccountSettings, QString, deviceName, "device_name", {}, setDeviceName)
+QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false, setKeepLoggedIn)
+QUO_DEFINE_SETTING(AccountSettings, QString, clientId, "client_id", {}, setClientId)
+QUO_DEFINE_SETTING(AccountSettings, QString, tokenEndpoint, "token_endpoint", {}, setTokenEndpoint)
 
 namespace {
 constexpr auto HomeserverKey = "homeserver"_ls;

@@ -25,17 +25,23 @@ public:
     void limitRate(std::chrono::milliseconds nextCallAfter);
 
     QByteArray accessToken() const;
+    QString refreshToken() const;
     QUrl baseUrl() const;
     const QString& deviceId() const;
     const QString& userId() const;
     HomeserverData homeserverData() const;
     Quotient::NetworkAccessManager *nam() const;
+    QString clientId() const;
+    QString tokenEndpoint() const;
 
     void setBaseUrl(QUrl baseUrl);
     void setToken(QByteArray accessToken);
+    void setRefreshToken(const QString& refreshToken);
     void setDeviceId(const QString& deviceId);
     void setUserId(const QString& userId);
     void setSupportedSpecVersions(QStringList versions);
+    void setClientId(const QString& clientId);
+    void setTokenEndpoint(const QString& tokenEndpoint);
 
     QString lastEvent() const;
     void setLastEvent(QString identifier);

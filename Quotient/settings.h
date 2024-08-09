@@ -133,6 +133,8 @@ class QUOTIENT_API AccountSettings : public SettingsGroup {
     QUO_DECLARE_SETTING(QString, deviceId, setDeviceId)
     QUO_DECLARE_SETTING(QString, deviceName, setDeviceName)
     QUO_DECLARE_SETTING(bool, keepLoggedIn, setKeepLoggedIn)
+    QUO_DECLARE_SETTING(QString, clientId, setClientId)
+    QUO_DECLARE_SETTING(QString, tokenEndpoint, setTokenEndpoint)
     Q_PROPERTY(QByteArray encryptionAccountPickle READ encryptionAccountPickle
                    WRITE setEncryptionAccountPickle)
 public:

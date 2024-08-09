@@ -91,6 +91,8 @@ public:
     //!         apparent
     //! \sa resolveServer, resolveError, loginError
     QFuture<void> ensureHomeserver(const QString& userId, const std::optional<LoginFlow>& flow = {});
+    QFuture<void> ensureHomeserverFromUrl(const QString& url, const std::optional<LoginFlow>& flow = {});
+
     template <typename... LoginArgTs>
     void loginToServer(LoginArgTs&&... loginArgs);
     void completeSetup(const QString &mxId, bool mock = false);

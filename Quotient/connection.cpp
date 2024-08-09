@@ -15,6 +15,7 @@
 #include "room.h"
 #include "settings.h"
 #include "user.h"
+#include "networkaccessmanager.h"
 
 #include "csapi/account-data.h"
 #include "csapi/joining.h"
@@ -45,10 +46,14 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QStringBuilder>
+#include <QtCore/QRandomGenerator>
+#include <QtCore/QTimer>
 #include <QtNetwork/QDnsLookup>
+#include <QtNetwork/QTcpServer>
 #include <qt6keychain/keychain.h>
 
 using namespace Quotient;
+using namespace Qt::Literals::StringLiterals;
 
 // This is very much Qt-specific; STL iterators don't have key() and value()
 template <typename HashT, typename Pred>
@@ -86,7 +91,7 @@ void Connection::resolveServer(const QString& mxid)
 {
     d->resolverJob.abandon(); // The previous network request is no more relevant
 
-    auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
+    auto maybeBaseUrl = QUrl::fromUserInput(mxid.startsWith(u'@') ? serverPart(mxid) : mxid);
     maybeBaseUrl.setScheme("https"_ls); // Instead of the Qt-default "http"
     if (maybeBaseUrl.isEmpty() || !maybeBaseUrl.isValid()) {
         emit resolveError(tr("%1 is not a valid homeserver address")
@@ -181,6 +186,60 @@ void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
                     qCWarning(MAIN).nospace()
                         << "The access_token owner (" << job->userId()
                         << ") is different from passed MXID (" << mxId << ")!";
+                d->data->setDeviceId(job->deviceId());
+                d->completeSetup(job->userId());
+                return;
+            case BaseJob::NetworkError:
+                emit networkError(job->errorString(), job->rawDataSample(), job->maxRetries(), -1);
+                return;
+            default: emit loginError(job->errorString(), job->rawDataSample());
+            }
+        });
+    });
+}
+
+void Connection::assumeOidcIdentity(const QString& mxId, const QString& refreshToken, const QString& clientId, const QString& tokenEndpoint)
+{
+    qWarning() << mxId << refreshToken << clientId << tokenEndpoint;
+    d->ensureHomeserver(mxId).then([this, mxId, refreshToken, clientId, tokenEndpoint] {
+        d->data->setRefreshToken(refreshToken);
+        d->data->setClientId(clientId);
+        d->data->setTokenEndpoint(tokenEndpoint);
+        this->refreshToken();
+        connect(this, &Connection::refreshTokenChanged, this, [this, mxId](){
+            qWarning() << d->data->refreshToken() << d->data->accessToken();
+            callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
+                switch (job->error()) {
+                case BaseJob::Success:
+                    if (mxId != job->userId())
+                        qCWarning(MAIN).nospace()
+                            << "The access_token owner (" << job->userId()
+                            << ") is different from passed MXID (" << mxId << ")!";
+                    d->data->setDeviceId(job->deviceId());
+                    d->completeSetup(job->userId());
+                    return;
+                case BaseJob::NetworkError:
+                    emit networkError(job->errorString(), job->rawDataSample(), job->maxRetries(), -1);
+                    return;
+                default: emit loginError(job->errorString(), job->rawDataSample());
+                }
+            });
+        });
+    });
+}
+
+void Connection::assumeUnknownIdentity(const QString& accessToken, const QString& refreshToken)
+{
+    d->ensureHomeserverFromUrl(d->data->baseUrl().toString()).then([this, accessToken, refreshToken] {
+        d->data->setToken(accessToken.toLatin1());
+        d->data->setRefreshToken(refreshToken);
+
+        this->refreshToken();
+        emit refreshTokenChanged();
+
+        callApi<GetTokenOwnerJob>().onResult([this](const GetTokenOwnerJob* job) {
+            switch (job->error()) {
+            case BaseJob::Success:
                 d->data->setDeviceId(job->deviceId());
                 d->completeSetup(job->userId());
                 return;
@@ -313,6 +372,15 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
                   << "from device" << data->deviceId();
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
 
+    AccountSettings account(mxId);
+    account.setKeepLoggedIn(true);
+    account.setHomeserver(q->homeserver());
+    account.setDeviceId(q->deviceId());
+    account.setDeviceName({});
+    account.setClientId(data->clientId());
+    account.setTokenEndpoint(data->tokenEndpoint());
+    account.sync();
+
     if (!mock) {
         q->loadVersions();
         q->loadCapabilities();
@@ -333,6 +401,37 @@ void Connection::Private::completeSetup(const QString& mxId, bool mock)
 
     emit q->stateChanged();
     emit q->connected();
+}
+
+QFuture<void> Connection::Private::ensureHomeserverFromUrl(const QString& url,
+                                                    const std::optional<LoginFlow>& flow)
+{
+    QPromise<void> promise;
+    auto result = promise.future();
+    promise.start();
+    if (data->baseUrl().isValid() && (!flow || loginFlows.contains(*flow))) {
+        //q->setObjectName(userId % u"(?)");
+        promise.finish(); // Perfect, we're already good to go
+    } else {
+        // Try to ascertain the homeserver URL and flows
+        //q->setObjectName(userId % u"(?)");
+        q->resolveServer(url);
+        qWarning() << "homeserver" << q->homeserver();
+        if (flow)
+            QtFuture::connect(q, &Connection::loginFlowsChanged)
+                .then([this, flow, p = std::move(promise)]() mutable {
+                    if (loginFlows.contains(*flow))
+                        p.finish();
+                    else // Leave the promise unfinished and emit the error
+                        emit q->loginError(tr("Unsupported login flow"),
+                                           tr("The homeserver at %1 does not support"
+                                              " the login flow '%2'")
+                                               .arg(data->baseUrl().toDisplayString(), flow->type));
+                });
+        else // Any flow is fine, just wait until the homeserver is resolved
+            return QFuture<void>(QtFuture::connect(q, &Connection::homeserverChanged));
+    }
+    return result;
 }
 
 QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
@@ -1967,4 +2066,151 @@ bool Connection::allSessionsSelfVerified(const QString& userId) const
     query.bindValue(":matrixId"_ls, userId);
     database()->execute(query);
     return !query.next();
+}
+
+void Connection::startOidcLogin()
+{
+    auto nam = new QNetworkAccessManager(this); //TODO replace with global nam
+    auto url = QUrl::fromUserInput(d->data->baseUrl().toString());
+    url.setPath(u"/.well-known/matrix/client"_s);
+
+    qWarning() << url << d->data->baseUrl();
+
+    auto reply = nam->get(QNetworkRequest(url));
+
+    connect(reply, &QNetworkReply::finished, this, [reply, nam, this] {
+        if (reply->error() != QNetworkReply::NoError) {
+            qWarning() << 1 << reply->readAll() << reply->error() << reply->errorString();
+            return;
+        }
+        auto wellKnownJson = QJsonDocument::fromJson(reply->readAll()).object(); //TODO replace with wellknown job
+        auto configurationUrl = QUrl(u"%1/.well-known/openid-configuration"_s.arg(wellKnownJson[u"org.matrix.msc2965.authentication"_s][u"issuer"_s].toString()));
+
+        auto configurationReply = nam->get(QNetworkRequest(configurationUrl));
+        connect(configurationReply, &QNetworkReply::finished, this, [configurationReply, this, nam] {
+            if (configurationReply->error() != QNetworkReply::NoError) {
+                qWarning() << 2 << configurationReply->readAll() << configurationReply->error() << configurationReply->errorString();
+                return;
+            }
+            auto configuration = QJsonDocument::fromJson(configurationReply->readAll()).object();
+            auto registrationEndpoint = configuration[u"registration_endpoint"_s].toString();
+            auto authorizationEndpoint = configuration[u"authorization_endpoint"_s].toString();
+            auto tokenEndpoint = configuration[u"token_endpoint"_s].toString();
+            d->data->setTokenEndpoint(tokenEndpoint);
+
+            QJsonObject clientData = {
+                {u"client_name"_s, u"NeoChat"_s},
+                {u"client_uri"_s, u"https://apps.kde.org/neochat"_s},
+                {u"logo_uri"_s, u"https://apps.kde.org/app-icons/org.kde.neochat.svg"_s},
+                {u"contacts"_s, QJsonArray {u"#neochat:kde.org"_s}},
+                {u"tos_uri"_s, u"https://apps.kde.org/neochat"_s},
+                {u"policy_uri"_s, u"https://apps.kde.org/neochat"_s},
+                {u"redirect_uris"_s, QJsonArray {u"http://localhost:8634"_s}},
+                {u"application_type"_s, u"native"_s},
+                {u"grant_types"_s, QJsonArray {u"authorization_code"_s, u"refresh_token"_s}},
+                {u"response_types"_s, QJsonArray {u"code"_s}},
+                {u"token_endpoint_auth_method"_s, u"none"_s}
+            };
+            auto registrationUrl = QUrl(registrationEndpoint);
+
+            QNetworkRequest request(registrationUrl);
+            request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
+
+            auto registrationReply = nam->post(request, QJsonDocument(clientData).toJson(QJsonDocument::Compact));
+
+            connect(registrationReply, &QNetworkReply::finished, this, [registrationReply, authorizationEndpoint, tokenEndpoint, nam, this] {
+                if (registrationReply->error() != QNetworkReply::NoError) {
+                    qWarning() << 3 << registrationReply->readAll() << registrationReply->error() << registrationReply->errorString();
+                    return;
+                }
+                auto registrationResponseJson = QJsonDocument::fromJson(registrationReply->readAll()).object();
+                auto clientId = registrationResponseJson[u"client_id"_s].toString();
+                d->data->setClientId(clientId);
+
+                QUrl authUrl(authorizationEndpoint);
+                QUrlQuery query;
+
+                auto state = QString::number(QRandomGenerator::securelySeeded().generate64());
+                auto verifier = QCryptographicHash::hash(QStringLiteral("Random %1").arg(QRandomGenerator::securelySeeded().generate64()).toLatin1(), QCryptographicHash::Sha256).toHex();
+                auto challenge = QString::fromLatin1(QCryptographicHash::hash(verifier, QCryptographicHash::Sha256).toBase64());
+                auto challengeString = challenge.replace(QLatin1Char('+'), QLatin1Char('-')).replace(QLatin1Char('/'), QLatin1Char('_')).left(challenge.indexOf(QLatin1Char('=')));
+                auto nonce = QString::fromLatin1(QString::number(QRandomGenerator::securelySeeded().generate64()).toLatin1().toHex());
+
+                query.addQueryItem(u"response_mode"_s, u"query"_s);
+                query.addQueryItem(u"response_type"_s, u"code"_s);
+                query.addQueryItem(u"redirect_uri"_s, u"http://localhost:8634"_s);
+                query.addQueryItem(u"client_id"_s, clientId);
+                query.addQueryItem(u"state"_s, state);
+                query.addQueryItem(u"scope"_s, u"openid+urn:matrix:org.matrix.msc2967.client:api:*+urn:matrix:org.matrix.msc2967.client:device:ABCDEFGHIJKP"_s);
+                query.addQueryItem(u"nonce"_s, nonce);
+                query.addQueryItem(u"code_challenge_method"_s, u"S256"_s);
+                query.addQueryItem(u"code_challenge"_s, challengeString);
+
+                authUrl.setQuery(query);
+
+                emit openOidcUrl(authUrl.toString());
+
+                auto server = new QTcpServer(this);
+                server->listen(QHostAddress(QStringLiteral("127.0.0.1")), 8634);
+                connect(server, &QTcpServer::newConnection, this, [this, server, state, verifier, tokenEndpoint, nam, clientId](){
+                    auto connection = server->nextPendingConnection();
+                    connection->waitForReadyRead();
+                    auto data = QString::fromLatin1(connection->readAll());
+                    connection->write("HTTP/1.0 200 OK\r\n\r\nYou can return to NeoChat now.");
+                    connection->close();
+                    QRegularExpression codeRegex(QStringLiteral("code=([a-zA-Z0-9]+) "));
+                    auto code = codeRegex.match(data).captured(1);
+                    QRegularExpression stateRegex(QStringLiteral("state=([0-9]+)"));
+                    if (stateRegex.match(data).captured(1) != state) {
+                        return;
+                    }
+                    QUrlQuery query;
+                    query.addQueryItem(QLatin1String("grant_type"), QStringLiteral("authorization_code"));
+                    query.addQueryItem(QLatin1String("code"), QString::fromLatin1(QUrl::toPercentEncoding(code)));
+                    query.addQueryItem(QLatin1String("redirect_uri"), QString::fromLatin1(QUrl::toPercentEncoding(QStringLiteral("http://localhost:8634"))));
+                    query.addQueryItem(QLatin1String("code_verifier"), QString::fromLatin1(verifier));
+                    query.addQueryItem(QLatin1String("client_id"), clientId);
+
+                    QNetworkRequest request((QUrl(tokenEndpoint)));
+                    request.setHeader(QNetworkRequest::UserAgentHeader, u"NeoChat"_s);
+                    request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/x-www-form-urlencoded"_s);
+                    auto reply = nam->post(request, query.toString(QUrl::FullyEncoded).toUtf8());
+                    connect(reply, &QNetworkReply::finished, this, [reply, clientId, tokenEndpoint, this] {
+                        auto json = QJsonDocument::fromJson(reply->readAll()).object();
+                        auto accessToken = json[u"access_token"_s].toString();
+                        auto refreshToken = json[u"refresh_token"_s].toString();
+
+                        assumeUnknownIdentity(accessToken, refreshToken);
+                    });
+                });
+            });
+        });
+    });
+}
+
+void Connection::refreshToken()
+{
+    QUrlQuery query;
+    query.addQueryItem(u"grant_type"_s, u"refresh_token"_s);
+    query.addQueryItem(u"refresh_token"_s, QString::fromLatin1(QUrl::toPercentEncoding(d->data->refreshToken())));
+    query.addQueryItem(u"client_id"_s, d->data->clientId());
+
+    qWarning() << d->data->refreshToken();
+
+    QNetworkRequest request((QUrl(d->data->tokenEndpoint())));
+    request.setHeader(QNetworkRequest::UserAgentHeader, u"NeoChat"_s);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/x-www-form-urlencoded"_s);
+    auto reply = d->data->nam()->post(request, query.toString(QUrl::FullyEncoded).toUtf8());
+    connect(reply, &QNetworkReply::finished, this, [reply, this](){
+        auto json = QJsonDocument::fromJson(reply->readAll()).object();
+        qWarning() << json;
+        auto accessToken = json[u"access_token"_s].toString();
+        auto refreshToken = json[u"refresh_token"_s].toString();
+        auto expires = json[u"expires_in"].toInt();
+        d->data->setToken(accessToken.toLatin1());
+        qWarning() << "???" << refreshToken;
+        d->data->setRefreshToken(refreshToken);
+        QTimer::singleShot(expires * 900, this, &Connection::refreshToken);
+        emit refreshTokenChanged();
+    });
 }
