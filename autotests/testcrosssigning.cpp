@@ -5,6 +5,9 @@
 
 #include <QTest>
 #include <Quotient/connection_p.h>
+#include <Quotient/accountregistry.h>
+#include <Quotient/pendingconnection.h>
+
 #include "testutils.h"
 
 using namespace Quotient;
@@ -27,7 +30,7 @@ private Q_SLOTS:
         jobMock.setResult(QJsonDocument::fromJson(data));
         auto mockKeys = collectResponse(&jobMock);
 
-        auto connection = Connection::makeMockConnection("@tobiasfella:kde.org"_ls, true);
+        auto connection = (new AccountRegistry())->mockConnection("@tobiasfella:kde.org"_ls)->connection();
         connection->d->encryptionData->handleQueryKeys(mockKeys);
 
         QVERIFY(!connection->isUserVerified("@tobiasfella:kde.org"_ls));

@@ -99,20 +99,23 @@ void SsoSession::Private::processCallback()
         return;
     }
     qCDebug(MAIN) << "Found the token in SSO callback, logging in";
-    connection->loginWithToken(query.queryItemValue(QueryItemName),
-                               initialDeviceName, deviceId);
-    connect(connection, &Connection::connected, socket, [this] {
-        const auto msg =
-            tr("The application '%1' has successfully logged in as a user %2 "
-               "with device id %3. This window can be closed. Thank you.\r\n")
-                .arg(QCoreApplication::applicationName(), connection->userId(),
-                     connection->deviceId());
-        sendHttpResponse("200 OK", msg.toHtmlEscaped().toUtf8());
-        socket->disconnectFromHost();
-    });
-    connect(connection, &Connection::loginError, socket, [this] {
-        onError("401 Unauthorised", tr("Login failed"));
-    });
+    // connection->loginWithToken(query.queryItemValue(QueryItemName),
+    //                            initialDeviceName, deviceId);
+    //TODO
+    // connect(connection, &Connection::connected, socket, [this] {
+    //     const auto msg =
+    //         tr("The application '%1' has successfully logged in as a user %2 "
+    //            "with device id %3. This window can be closed. Thank you.\r\n")
+    //             .arg(QCoreApplication::applicationName(), connection->userId(),
+    //                  connection->deviceId());
+    //     sendHttpResponse("200 OK", msg.toHtmlEscaped().toUtf8());
+    //     socket->disconnectFromHost();
+    // });
+
+    //TODO
+    // connect(connection, &Connection::loginError, socket, [this] {
+    //     onError("401 Unauthorised", tr("Login failed"));
+    // });
 }
 
 void SsoSession::Private::sendHttpResponse(const QByteArray& code,
@@ -134,6 +137,6 @@ void SsoSession::Private::onError(const QByteArray& code,
     sendHttpResponse(code, "<h3>" + errorMsg.toUtf8() + "</h3>");
     // [kitsune] Yeah, I know, dirty. Maybe the "right" way would be to have
     // an intermediate signal but that seems just a fight for purity.
-    emit connection->loginError(errorMsg, QString::fromUtf8(requestData));
+    //TODO emit connection->loginError(errorMsg, QString::fromUtf8(requestData));
     socket->disconnectFromHost();
 }

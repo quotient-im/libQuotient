@@ -6,7 +6,8 @@
 #include <Quotient/database.h>
 #include <Quotient/e2ee/cryptoutils.h>
 #include <Quotient/e2ee/e2ee_common.h>
-
+#include <Quotient/accountregistry.h>
+#include <Quotient/pendingconnection.h>
 #include <Quotient/events/filesourceinfo.h>
 
 #include <QTest>
@@ -102,7 +103,7 @@ void TestCryptoUtils::testEncrypted()
 {
     QByteArray key(32, '\0');
     auto text = QByteArrayLiteral("This is a message");
-    auto connection = Connection::makeMockConnection("@foo:bar.com"_ls, true);
+    auto connection = (new AccountRegistry())->mockConnection("@foo:bar.com"_ls)->connection();
     connection->database()->storeEncrypted("testKey"_ls, text);
     auto decrypted = connection->database()->loadEncrypted("testKey"_ls);
     QCOMPARE(text, decrypted);

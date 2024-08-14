@@ -23,8 +23,6 @@
 #include "csapi/room_send.h"
 #include "csapi/to_device.h"
 #include "csapi/voip.h"
-#include "csapi/wellknown.h"
-#include "csapi/whoami.h"
 
 #include "e2ee/qolminboundsession.h"
 
@@ -65,75 +63,24 @@ HashT remove_if(HashT& hashMap, Pred pred)
     return removals;
 }
 
-Connection::Connection(const QUrl& server, QObject* parent)
+Connection::Connection(ConnectionData* connectionData, QObject* parent)
     : QObject(parent)
-    , d(makeImpl<Private>(std::make_unique<ConnectionData>(server)))
+    , d(makeImpl<Private>(connectionData))
 {
     //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
     d->q = this; // All d initialization should occur before this line
-    setObjectName(server.toString());
-}
+    setObjectName(d->data->baseUrl().toString());
+    connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveState);
 
-Connection::Connection(QObject* parent) : Connection({}, parent) {}
+    loadVersions();
+    loadCapabilities();
+    user()->load(); // Load the local user's profile
+}
 
 Connection::~Connection()
 {
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
-}
-
-void Connection::resolveServer(const QString& mxid)
-{
-    d->resolverJob.abandon(); // The previous network request is no more relevant
-
-    auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
-    maybeBaseUrl.setScheme("https"_ls); // Instead of the Qt-default "http"
-    if (maybeBaseUrl.isEmpty() || !maybeBaseUrl.isValid()) {
-        emit resolveError(tr("%1 is not a valid homeserver address")
-                              .arg(maybeBaseUrl.toString()));
-        return;
-    }
-
-    qCDebug(MAIN) << "Finding the server" << maybeBaseUrl.host();
-
-    const auto& oldBaseUrl = d->data->baseUrl();
-    d->data->setBaseUrl(maybeBaseUrl); // Temporarily set it for this one call
-    d->resolverJob = callApi<GetWellknownJob>();
-    // Make sure baseUrl is restored in any case, even an abandon, and before any further processing
-    connect(d->resolverJob.get(), &BaseJob::finished, this,
-            [this, oldBaseUrl] { d->data->setBaseUrl(oldBaseUrl); });
-    d->resolverJob.onResult(this, [this, maybeBaseUrl]() mutable {
-        if (d->resolverJob->error() != BaseJob::NotFound) {
-            if (!d->resolverJob->status().good()) {
-                qCWarning(MAIN) << "Fetching .well-known file failed, FAIL_PROMPT";
-                emit resolveError(tr("Failed resolving the homeserver"));
-                return;
-            }
-            const QUrl baseUrl{ d->resolverJob->data().homeserver.baseUrl };
-            if (baseUrl.isEmpty()) {
-                qCWarning(MAIN) << "base_url not provided, FAIL_PROMPT";
-                emit resolveError(tr("The homeserver base URL is not provided"));
-                return;
-            }
-            if (!baseUrl.isValid()) {
-                qCWarning(MAIN) << "base_url invalid, FAIL_ERROR";
-                emit resolveError(tr("The homeserver base URL is invalid"));
-                return;
-            }
-            qCInfo(MAIN) << ".well-known URL for" << maybeBaseUrl.host() << "is"
-                         << baseUrl.toString();
-            setHomeserver(baseUrl);
-        } else {
-            qCInfo(MAIN) << "No .well-known file, using" << maybeBaseUrl << "for base URL";
-            setHomeserver(maybeBaseUrl);
-        }
-        Q_ASSERT(d->loginFlowsJob != nullptr); // Ensured by setHomeserver()
-    });
-}
-
-inline UserIdentifier makeUserIdentifier(const QString& id)
-{
-    return { QStringLiteral("m.id.user"), { { QStringLiteral("user"), id } } };
 }
 
 inline UserIdentifier make3rdPartyIdentifier(const QString& medium,
@@ -142,55 +89,6 @@ inline UserIdentifier make3rdPartyIdentifier(const QString& medium,
     return { QStringLiteral("m.id.thirdparty"),
              { { QStringLiteral("medium"), medium },
                { QStringLiteral("address"), address } } };
-}
-
-void Connection::loginWithPassword(const QString& userId,
-                                   const QString& password,
-                                   const QString& initialDeviceName,
-                                   const QString& deviceId)
-{
-    d->ensureHomeserver(userId, LoginFlows::Password).then([=, this] {
-        d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
-                         password, /*token*/ QString(), deviceId, initialDeviceName);
-    });
-}
-
-SsoSession* Connection::prepareForSso(const QString& initialDeviceName,
-                                      const QString& deviceId)
-{
-    return new SsoSession(this, initialDeviceName, deviceId);
-}
-
-void Connection::loginWithToken(const QString& loginToken,
-                                const QString& initialDeviceName,
-                                const QString& deviceId)
-{
-    Q_ASSERT(d->data->baseUrl().isValid() && d->loginFlows.contains(LoginFlows::Token));
-    d->loginToServer(LoginFlows::Token.type, std::nullopt /*user is encoded in loginToken*/,
-                     QString() /*password*/, loginToken, deviceId, initialDeviceName);
-}
-
-void Connection::assumeIdentity(const QString& mxId, const QString& accessToken)
-{
-    d->ensureHomeserver(mxId).then([this, mxId, accessToken] {
-        d->data->setToken(accessToken.toLatin1());
-        callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
-            switch (job->error()) {
-            case BaseJob::Success:
-                if (mxId != job->userId())
-                    qCWarning(MAIN).nospace()
-                        << "The access_token owner (" << job->userId()
-                        << ") is different from passed MXID (" << mxId << ")!";
-                d->data->setDeviceId(job->deviceId());
-                d->completeSetup(job->userId());
-                return;
-            case BaseJob::NetworkError:
-                emit networkError(job->errorString(), job->rawDataSample(), job->maxRetries(), -1);
-                return;
-            default: emit loginError(job->errorString(), job->rawDataSample());
-            }
-        });
-    });
 }
 
 JobHandle<GetVersionsJob> Connection::loadVersions()
@@ -236,24 +134,6 @@ bool Connection::capabilitiesReady() const
 
 QStringList Connection::supportedMatrixSpecVersions() const { return d->apiVersions.versions; }
 
-void Connection::Private::saveAccessTokenToKeychain() const
-{
-    qCDebug(MAIN) << "Saving access token to keychain for" << q->userId();
-    auto job = new QKeychain::WritePasswordJob(qAppName());
-    job->setKey(q->userId());
-    job->setBinaryData(data->accessToken());
-    job->start();
-    QObject::connect(job, &QKeychain::Job::finished, q, [job] {
-        if (job->error() == QKeychain::Error::NoError)
-            return;
-        qWarning(MAIN).noquote()
-            << "Could not save access token to the keychain:"
-            << qUtf8Printable(job->errorString());
-        // TODO: emit a signal
-    });
-
-}
-
 void Connection::Private::dropAccessToken()
 {
     // TODO: emit a signal on important (i.e. access denied) keychain errors
@@ -284,90 +164,6 @@ void Connection::Private::dropAccessToken()
     });
 
     data->setToken({});
-}
-
-template <typename... LoginArgTs>
-void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
-{
-    auto loginJob =
-            q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...);
-    connect(loginJob, &BaseJob::success, q, [this, loginJob] {
-        data->setToken(loginJob->accessToken().toLatin1());
-        data->setDeviceId(loginJob->deviceId());
-        completeSetup(loginJob->userId());
-        saveAccessTokenToKeychain();
-        if (encryptionData)
-            encryptionData->database.clear();
-    });
-    connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
-        emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
-    });
-}
-
-void Connection::Private::completeSetup(const QString& mxId, bool mock)
-{
-    data->setUserId(mxId);
-    q->setObjectName(data->userId() % u'/' % data->deviceId());
-    qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
-                  << "by user" << data->userId()
-                  << "from device" << data->deviceId();
-    connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
-
-    if (!mock) {
-        q->loadVersions();
-        q->loadCapabilities();
-        q->user()->load(); // Load the local user's profile
-    }
-
-    if (useEncryption) {
-        if (auto&& maybeEncryptionData =
-                _impl::ConnectionEncryptionData::setup(q, mock)) {
-            encryptionData = std::move(*maybeEncryptionData);
-        } else {
-            useEncryption = false;
-            emit q->encryptionChanged(false);
-        }
-    } else
-        qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for"
-                     << q->objectName();
-
-    emit q->stateChanged();
-    emit q->connected();
-}
-
-QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
-                                                    const std::optional<LoginFlow>& flow)
-{
-    QPromise<void> promise;
-    auto result = promise.future();
-    promise.start();
-    if (data->baseUrl().isValid() && (!flow || loginFlows.contains(*flow))) {
-        q->setObjectName(userId % u"(?)");
-        promise.finish(); // Perfect, we're already good to go
-    } else if (userId.startsWith(u'@') && userId.indexOf(u':') != -1) {
-        // Try to ascertain the homeserver URL and flows
-        q->setObjectName(userId % u"(?)");
-        q->resolveServer(userId);
-        if (flow)
-            QtFuture::connect(q, &Connection::loginFlowsChanged)
-                .then([this, flow, p = std::move(promise)]() mutable {
-                    if (loginFlows.contains(*flow))
-                        p.finish();
-                    else // Leave the promise unfinished and emit the error
-                        emit q->loginError(tr("Unsupported login flow"),
-                                           tr("The homeserver at %1 does not support"
-                                              " the login flow '%2'")
-                                               .arg(data->baseUrl().toDisplayString(), flow->type));
-                });
-        else // Any flow is fine, just wait until the homeserver is resolved
-            return QFuture<void>(QtFuture::connect(q, &Connection::homeserverChanged));
-    } else // Leave the promise unfinished and emit the error
-        emit q->resolveError(tr("Please provide the fully-qualified user id"
-                                " (such as @user:example.org) so that the"
-                                " homeserver could be resolved; the current"
-                                " homeserver URL(%1) is not good")
-                                 .arg(data->baseUrl().toDisplayString()));
-    return result;
 }
 
 QFuture<void> Connection::logout()
@@ -442,7 +238,7 @@ void Connection::sync(int timeout)
         if (job->error() == BaseJob::Unauthorised) {
             qCWarning(SYNCJOB)
                 << "Sync job failed with Unauthorised - login expired?";
-            emit loginError(job->errorString(), job->rawDataSample());
+            //TODO emit loginError(job->errorString(), job->rawDataSample());
         } else
             emit syncError(job->errorString(), job->rawDataSample());
     });
@@ -944,23 +740,6 @@ QUrl Connection::homeserver() const { return d->data->baseUrl(); }
 
 QString Connection::domain() const { return userId().section(u':', 1); }
 
-bool Connection::isUsable() const { return !loginFlows().isEmpty(); }
-
-QVector<GetLoginFlowsJob::LoginFlow> Connection::loginFlows() const
-{
-    return d->loginFlows;
-}
-
-bool Connection::supportsPasswordAuth() const
-{
-    return d->loginFlows.contains(LoginFlows::Password);
-}
-
-bool Connection::supportsSso() const
-{
-    return d->loginFlows.contains(LoginFlows::SSO);
-}
-
 Room* Connection::room(const QString& roomId, JoinStates states) const
 {
     Room* room = d->roomMap.value({ roomId, false }, nullptr);
@@ -1306,7 +1085,7 @@ QStringList Connection::userIds() const { return d->userMap.keys(); }
 
 const ConnectionData* Connection::connectionData() const
 {
-    return d->data.get();
+    return d->data;
 }
 
 HomeserverData Connection::homeserverData() const { return d->data->homeserverData(); }
@@ -1410,27 +1189,6 @@ user_factory_t Connection::_userFactory = defaultUserFactory<>;
 QString Connection::generateTxnId() const
 {
     return d->data->generateTxnId();
-}
-
-QFuture<QList<LoginFlow>> Connection::setHomeserver(const QUrl& baseUrl)
-{
-    d->resolverJob.abandon();
-    d->loginFlowsJob.abandon();
-    d->loginFlows.clear();
-
-    if (homeserver() != baseUrl) {
-        d->data->setBaseUrl(baseUrl);
-        emit homeserverChanged(homeserver());
-    }
-
-    d->loginFlowsJob = callApi<GetLoginFlowsJob>(BackgroundRequest).onResult([this] {
-        if (d->loginFlowsJob->status().good())
-            d->loginFlows = d->loginFlowsJob->flows();
-        else
-            d->loginFlows.clear();
-        emit loginFlowsChanged();
-    });
-    return d->loginFlowsJob.responseFuture();
 }
 
 void Connection::saveRoomState(Room* r) const
@@ -1586,7 +1344,7 @@ BaseJob* Connection::run(BaseJob* job, RunningPolicy runningPolicy)
     // garbage-collected if made by or returned to QML/JavaScript.
     job->setParent(this);
     connect(job, &BaseJob::failure, this, &Connection::requestFailed);
-    job->initiate(d->data.get(), runningPolicy & BackgroundRequest);
+    job->initiate(d->data, runningPolicy & BackgroundRequest);
     return job;
 }
 
@@ -1912,15 +1670,6 @@ void Connection::reloadDevices()
     if (d->encryptionData) {
         d->encryptionData->reloadDevices();
     }
-}
-
-Connection* Connection::makeMockConnection(const QString& mxId,
-                                           bool enableEncryption)
-{
-    auto* c = new Connection;
-    c->enableEncryption(enableEncryption);
-    c->d->completeSetup(mxId, true);
-    return c;
 }
 
 QStringList Connection::accountDataEventTypes() const

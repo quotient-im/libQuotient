@@ -4,9 +4,11 @@
 
 #include "accountregistry.h"
 
+#include "pendingconnection.h"
 #include "connection.h"
 #include "logging_categories_p.h"
 #include "settings.h"
+#include "config.h"
 
 #include <QtCore/QCoreApplication>
 
@@ -89,69 +91,24 @@ Connection* AccountRegistry::get(const QString& userId) const
     return nullptr;
 }
 
-void AccountRegistry::invokeLogin()
-{
-    const auto accounts = SettingsGroup("Accounts"_ls).childGroups();
-    for (const auto& accountId : accounts) {
-        AccountSettings account { accountId };
-
-        if (account.homeserver().isEmpty())
-            continue;
-
-        d->m_accountsLoading += accountId;
-        emit accountsLoadingChanged();
-
-        qCDebug(MAIN) << "Reading access token from keychain for" << accountId;
-        auto accessTokenLoadingJob =
-            new QKeychain::ReadPasswordJob(qAppName(), this);
-        accessTokenLoadingJob->setKey(accountId);
-        connect(accessTokenLoadingJob, &QKeychain::Job::finished, this,
-                [accountId, this, accessTokenLoadingJob]() {
-                    if (accessTokenLoadingJob->error()
-                        != QKeychain::Error::NoError) {
-                        emit keychainError(accessTokenLoadingJob->error());
-                        d->m_accountsLoading.removeAll(accountId);
-                        emit accountsLoadingChanged();
-                        return;
-                    }
-
-                    AccountSettings account { accountId };
-                    auto connection = new Connection(account.homeserver());
-                    connect(connection, &Connection::connected, this,
-                            [connection, this, accountId] {
-                                connection->loadState();
-                                connection->setLazyLoading(true);
-
-                                connection->syncLoop();
-
-                                d->m_accountsLoading.removeAll(accountId);
-                                emit accountsLoadingChanged();
-                            });
-                    connect(connection, &Connection::loginError, this,
-                            [this, connection, accountId](const QString& error,
-                                               const QString& details) {
-                                emit loginError(connection, error, details);
-
-                                d->m_accountsLoading.removeAll(accountId);
-                                emit accountsLoadingChanged();
-                            });
-                    connect(connection, &Connection::resolveError, this,
-                            [this, connection, accountId](const QString& error) {
-                                emit resolveError(connection, error);
-
-                                d->m_accountsLoading.removeAll(accountId);
-                                emit accountsLoadingChanged();
-                            });
-                    connection->assumeIdentity(
-                        account.userId(),
-                        QString::fromUtf8(accessTokenLoadingJob->binaryData()));
-                    add(connection);
-                });
-        accessTokenLoadingJob->start();
-    }
-}
-
 QStringList AccountRegistry::accountsLoading() const
 {
     return d->m_accountsLoading;
+}
+
+PendingConnection* AccountRegistry::loginWithPassword(const QString& matrixId, const QString& password, const ConnectionSettings& settings)
+{
+    return PendingConnection::loginWithPassword(matrixId, password, settings, this);
+}
+
+PendingConnection* AccountRegistry::restoreConnection(const QString& matrixId, const ConnectionSettings& settings)
+{
+    return PendingConnection::restoreConnection(matrixId, settings, this);
+}
+
+QStringList AccountRegistry::availableConnections() const
+{
+    //TODO change accounts -> QuotientAccounts?
+    return Config::instance()->childGroups("Accounts"_ls, Config::Data);
+    //TODO check whether we have plausible data?
 }

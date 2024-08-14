@@ -9,6 +9,8 @@
 
 #include <Quotient/connection.h>
 #include <Quotient/e2ee/qolmaccount.h>
+#include <Quotient/accountregistry.h>
+#include <Quotient/pendingconnection.h>
 
 using namespace Quotient;
 
@@ -21,7 +23,8 @@ private Q_SLOTS:
     {
         auto userId = QStringLiteral("@bob:localhost");
         auto deviceId = QStringLiteral("DEFABC");
-        auto connection = Connection::makeMockConnection("@carl:localhost"_ls);
+
+        auto connection = (new AccountRegistry())->mockConnection("@carl:localhost"_ls)->connection();
         const auto transactionId = "other_transaction_id"_ls;
         auto session = connection->startKeyVerificationSession("@alice:localhost"_ls, "ABCDEF"_ls);
         session->sendRequest();
@@ -40,7 +43,7 @@ private Q_SLOTS:
         auto userId = QStringLiteral("@bob:localhost");
         auto deviceId = QStringLiteral("DEFABC");
         const auto transactionId = "trans123action123id"_ls;
-        auto connection = Connection::makeMockConnection("@carl:localhost"_ls);
+        auto connection = (new AccountRegistry())->mockConnection("@carl:localhost"_ls)->connection();
         auto session = new KeyVerificationSession(userId, KeyVerificationRequestEvent(transactionId, deviceId, {SasV1Method}, QDateTime::currentDateTime()), connection, false);
         QVERIFY(session->state() == KeyVerificationSession::INCOMING);
         session->sendReady();

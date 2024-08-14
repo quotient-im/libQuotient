@@ -26,22 +26,22 @@ std::shared_ptr<Quotient::Connection> Quotient::createTestConnection(
     QObject::connect(nam, &QNetworkAccessManager::sslErrors, nam,
                      [](QNetworkReply* reply) { reply->ignoreSslErrors(); });
 
-    auto c = std::make_shared<Connection>();
-    c->enableEncryption(true);
-    const QString userId{ u'@' % localUserName % u':' % homeserverAddr };
-    c->setHomeserver(QUrl(u"https://" % homeserverAddr));
-    if (!waitForSignal(c, &Connection::loginFlowsChanged)
-        || !c->supportsPasswordAuth()) {
-        qCritical().noquote() << "Can't use password login at" << homeserverAddr
-                              << "- check that the homeserver is running";
-        return nullptr;
-    }
-    c->loginWithPassword(localUserName, secret, deviceName);
-    if (!waitForSignal(c, &Connection::connected)) {
-        qCritical().noquote()
-            << "Could not achieve the logged in state for" << userId
-            << "- check the credentials in the test code and at the homeserver";
-        return nullptr;
-    }
-    return c;
+    // auto c = std::make_shared<Connection>();
+    // c->enableEncryption(true);
+    // const QString userId{ u'@' % localUserName % u':' % homeserverAddr };
+    // // c->setHomeserver(QUrl(u"https://" % homeserverAddr));
+    // // if (!waitForSignal(c, &Connection::loginFlowsChanged)
+    // //     || !c->supportsPasswordAuth()) {
+    // //     qCritical().noquote() << "Can't use password login at" << homeserverAddr
+    // //                           << "- check that the homeserver is running";
+    // //     return nullptr;
+    // // }
+    // //c->loginWithPassword(localUserName, secret, deviceName);
+    // if (!waitForSignal(c, &Connection::connected)) {
+    //     qCritical().noquote()
+    //         << "Could not achieve the logged in state for" << userId
+    //         << "- check the credentials in the test code and at the homeserver";
+    //     return nullptr;
+    // }
+    return nullptr;//c;
 }

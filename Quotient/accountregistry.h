@@ -12,6 +12,19 @@
 
 namespace Quotient {
 class Connection;
+class PendingConnection;
+
+struct ConnectionSettings
+{
+    // Only relevant when logging in or registering. This can be left empty to get a random device id
+    QString deviceId;
+    // Only relevant when logging in or registering. Otherwise leave empty
+    QString initialDeviceName;
+    bool useEncryption = true;
+    bool cacheState = true;
+    bool rememberConnection = true;
+    bool sync = true;
+};
 
 class QUOTIENT_API AccountRegistry : public QAbstractListModel,
                                      private QVector<Connection*> {
@@ -63,9 +76,15 @@ public:
 
     QStringList accountsLoading() const;
 
-    [[deprecated("This may leak Connection objects when failing and cannot be"
-                 "fixed without breaking the API; do not use it")]] //
-    void invokeLogin();
+    Quotient::PendingConnection *loginWithPassword(const QString& matrixId, const QString& password, const ConnectionSettings& settings = {});
+    Quotient::PendingConnection *restoreConnection(const QString& matrixId, const ConnectionSettings& settings = {});
+
+    Quotient::PendingConnection *mockConnection(const QString& userId) {
+        //TODO
+        return nullptr;
+    }
+
+    QStringList availableConnections() const;
 
 Q_SIGNALS:
     void accountCountChanged();
