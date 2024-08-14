@@ -15,7 +15,6 @@
 #include "csapi/capabilities.h"
 #include "csapi/logout.h"
 #include "csapi/versions.h"
-#include "csapi/wellknown.h"
 
 #include <QtCore/QCoreApplication>
 
@@ -23,12 +22,12 @@ namespace Quotient {
 
 class Q_DECL_HIDDEN Quotient::Connection::Private {
 public:
-    explicit Private(std::unique_ptr<ConnectionData>&& connection)
-        : data(std::move(connection))
+    explicit Private(ConnectionData* data)
+        : data(data)
     {}
 
     Connection* q = nullptr;
-    std::unique_ptr<ConnectionData> data;
+    ConnectionData* data = nullptr;
     // A complex key below is a pair of room name and whether its
     // state is Invited. The spec mandates to keep Invited room state
     // separately; specifically, we should keep objects for Invite and
@@ -55,16 +54,11 @@ public:
     GetVersionsJob::Response apiVersions{};
     GetCapabilitiesJob::Capabilities capabilities{};
 
-    QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
-
     static inline bool encryptionDefault = false;
     bool useEncryption = encryptionDefault;
     static inline bool directChatEncryptionDefault = false;
     bool encryptDirectChats = directChatEncryptionDefault;
     std::unique_ptr<_impl::ConnectionEncryptionData> encryptionData;
-
-    JobHandle<GetWellknownJob> resolverJob = nullptr;
-    JobHandle<GetLoginFlowsJob> loginFlowsJob = nullptr;
 
     SyncJob* syncJob = nullptr;
     JobHandle<LogoutJob> logoutJob = nullptr;
@@ -76,24 +70,6 @@ public:
         != "json"_ls;
     bool lazyLoading = false;
 
-    //! \brief Check the homeserver and resolve it if needed, before connecting
-    //!
-    //! A single entry for functions that need to check whether the homeserver is valid before
-    //! running. Emits resolveError() if the homeserver URL is not valid and cannot be resolved
-    //! from \p userId; loginError() if the homeserver is accessible but doesn't support \p flow.
-    //!
-    //! \param userId    fully-qualified MXID to resolve HS from
-    //! \param flow      optionally, a login flow that should be supported;
-    //!                  `std::nullopt`, if there are no login flow requirements
-    //! \return a future that becomes ready once the homeserver is available; if the homeserver
-    //!         URL is incorrect or other problems occur, the future is never resolved and is
-    //!         deleted (along with associated continuations) as soon as the problem becomes
-    //!         apparent
-    //! \sa resolveServer, resolveError, loginError
-    QFuture<void> ensureHomeserver(const QString& userId, const std::optional<LoginFlow>& flow = {});
-    template <typename... LoginArgTs>
-    void loginToServer(LoginArgTs&&... loginArgs);
-    void completeSetup(const QString &mxId, bool mock = false);
     void removeRoom(const QString& roomId);
 
     void consumeRoomData(SyncDataList&& roomDataList, bool fromCache);
@@ -121,7 +97,6 @@ public:
         return q->stateCacheDir().filePath("state.json"_ls);
     }
 
-    void saveAccessTokenToKeychain() const;
     void dropAccessToken();
 };
 } // namespace Quotient

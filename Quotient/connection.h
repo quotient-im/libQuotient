@@ -57,27 +57,6 @@ struct EncryptedFileMetadata;
 class QOlmAccount;
 class QOlmInboundGroupSession;
 
-using LoginFlow = GetLoginFlowsJob::LoginFlow;
-
-//! Predefined login flows
-namespace LoginFlows {
-    inline const LoginFlow Password { "m.login.password"_ls };
-    inline const LoginFlow SSO { "m.login.sso"_ls };
-    inline const LoginFlow Token { "m.login.token"_ls };
-}
-
-// To simplify comparisons of LoginFlows
-
-inline bool operator==(const LoginFlow& lhs, const LoginFlow& rhs)
-{
-    return lhs.type == rhs.type;
-}
-
-inline bool operator!=(const LoginFlow& lhs, const LoginFlow& rhs)
-{
-    return !(lhs == rhs);
-}
-
 class Connection;
 
 using room_factory_t =
@@ -121,11 +100,11 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(QByteArray accessToken READ accessToken NOTIFY stateChanged)
     Q_PROPERTY(bool isLoggedIn READ isLoggedIn NOTIFY stateChanged STORED false)
     Q_PROPERTY(QString defaultRoomVersion READ defaultRoomVersion NOTIFY capabilitiesLoaded)
-    Q_PROPERTY(QUrl homeserver READ homeserver WRITE setHomeserver NOTIFY homeserverChanged)
-    Q_PROPERTY(QVector<GetLoginFlowsJob::LoginFlow> loginFlows READ loginFlows NOTIFY loginFlowsChanged)
-    Q_PROPERTY(bool isUsable READ isUsable NOTIFY loginFlowsChanged STORED false)
-    Q_PROPERTY(bool supportsSso READ supportsSso NOTIFY loginFlowsChanged STORED false)
-    Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged STORED false)
+    Q_PROPERTY(QUrl homeserver READ homeserver CONSTANT)
+    //Q_PROPERTY(QVector<GetLoginFlowsJob::LoginFlow> loginFlows READ loginFlows NOTIFY loginFlowsChanged)
+    //Q_PROPERTY(bool isUsable READ isUsable NOTIFY loginFlowsChanged STORED false)
+    // Q_PROPERTY(bool supportsSso READ supportsSso NOTIFY loginFlowsChanged STORED false)
+    // Q_PROPERTY(bool supportsPasswordAuth READ supportsPasswordAuth NOTIFY loginFlowsChanged STORED false)
     Q_PROPERTY(bool cacheState READ cacheState WRITE setCacheState NOTIFY cacheStateChanged)
     Q_PROPERTY(bool lazyLoading READ lazyLoading WRITE setLazyLoading NOTIFY lazyLoadingChanged)
     Q_PROPERTY(bool canChangePassword READ canChangePassword NOTIFY capabilitiesLoaded)
@@ -141,8 +120,6 @@ public:
         UnpublishRoom
     }; // FIXME: Should go inside CreateRoomJob
 
-    explicit Connection(QObject* parent = nullptr);
-    explicit Connection(const QUrl& server, QObject* parent = nullptr);
     ~Connection() override;
 
     //! \brief Get all rooms known within this Connection
@@ -293,13 +270,13 @@ public:
     //! Get the domain name used for ids/aliases on the server
     QString domain() const;
     //! Check if the homeserver is known to be reachable and working
-    bool isUsable() const;
+    // TODO remove bool isUsable() const;
     //! Get the list of supported login flows
-    QVector<GetLoginFlowsJob::LoginFlow> loginFlows() const;
-    //! Check whether the current homeserver supports password auth
-    bool supportsPasswordAuth() const;
-    //! Check whether the current homeserver supports SSO
-    bool supportsSso() const;
+    // QVector<GetLoginFlowsJob::LoginFlow> loginFlows() const;
+    // //! Check whether the current homeserver supports password auth
+    // bool supportsPasswordAuth() const;
+    // //! Check whether the current homeserver supports SSO
+    // bool supportsSso() const;
     //! Find a room by its id and a mask of applicable states
     Q_INVOKABLE Quotient::Room* room(
         const QString& roomId,
@@ -536,20 +513,6 @@ public:
         return JobT::makeRequestUrl(homeserverData(), std::forward<JobArgTs>(jobArgs)...);
     }
 
-    //! \brief Start a local HTTP server and generate a single sign-on URL
-    //!
-    //! This call does the preparatory steps to carry out single sign-on
-    //! sequence
-    //! \sa https://matrix.org/docs/guides/sso-for-client-developers
-    //! \return A proxy object holding two URLs: one for SSO on the chosen
-    //!         homeserver and another for the local callback address. Normally
-    //!         you won't need the callback URL unless you proxy the response
-    //!         with a custom UI. You do not need to delete the SsoSession
-    //!         object; the Connection that issued it will dispose of it once
-    //!         the login sequence completes (with any outcome).
-    Q_INVOKABLE SsoSession* prepareForSso(const QString& initialDeviceName,
-                                          const QString& deviceId = {});
-
     //! \brief Generate a new transaction id
     //!
     //! Transaction id's are unique within a single Connection object
@@ -593,25 +556,6 @@ public:
         setUserFactory(defaultUserFactory<T>);
     }
 
-    //! \brief Determine and set the homeserver from MXID
-    //!
-    //! This attempts to resolve the homeserver by requesting
-    //! .well-known/matrix/client record from the server taken from the MXID
-    //! serverpart. If there is no record found, the serverpart itself is
-    //! attempted as the homeserver base URL; if the record is there but
-    //! is malformed (e.g., the homeserver base URL cannot be found in it)
-    //! resolveError() is emitted and further processing stops. Otherwise,
-    //! setHomeserver is called, preparing the Connection object for the login
-    //! attempt.
-    //! \param mxid user Matrix ID, such as @someone:example.org
-    //! \sa setHomeserver, homeserverChanged, loginFlowsChanged, resolveError
-    Q_INVOKABLE void resolveServer(const QString& mxid);
-
-    //! \brief Set the homeserver base URL and retrieve its login flows
-    //!
-    //! \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
-    Q_INVOKABLE QFuture<QList<LoginFlow> > setHomeserver(const QUrl& baseUrl);
-
     //! \brief Get a future to a direct chat with the user
     Q_INVOKABLE QFuture<Room*> getDirectChat(const QString& otherUserId);
 
@@ -632,16 +576,16 @@ public:
                                               const QStringList& serverNames = {});
 
 public Q_SLOTS:
-    //! \brief Log in using a username and password pair
-    //!
-    //! Before logging in, this method checks if the homeserver is valid and
-    //! supports the password login flow. If the homeserver is invalid but
-    //! a full user MXID is provided, this method calls resolveServer() using
-    //! this MXID.
-    //! \sa resolveServer, resolveError, loginError
-    void loginWithPassword(const QString& userId, const QString& password,
-                           const QString& initialDeviceName,
-                           const QString& deviceId = {});
+    // //! \brief Log in using a username and password pair
+    // //!
+    // //! Before logging in, this method checks if the homeserver is valid and
+    // //! supports the password login flow. If the homeserver is invalid but
+    // //! a full user MXID is provided, this method calls resolveServer() using
+    // //! this MXID.
+    // //! \sa resolveServer, resolveError, loginError
+    // void loginWithPassword(const QString& userId, const QString& password,
+    //                        const QString& initialDeviceName,
+    //                        const QString& deviceId = {});
 
     //! \brief Log in using a login token
     //!
@@ -650,16 +594,16 @@ public Q_SLOTS:
     //! resolve the server from the user name because the full user MXID is
     //! encoded in the login token. Callers should ensure the homeserver
     //! sanity in advance.
-    void loginWithToken(const QString& loginToken,
-                        const QString& initialDeviceName,
-                        const QString& deviceId = {});
+    // void loginWithToken(const QString& loginToken,
+    //                     const QString& initialDeviceName,
+    //                     const QString& deviceId = {});
 
     //! \brief Use an existing access token to connect to the homeserver
     //!
     //! Similar to loginWithPassword(), this method checks that the homeserver
     //! URL is valid and tries to resolve it from the MXID in case it is not.
     //! \since 0.7.2
-    void assumeIdentity(const QString& mxId, const QString& accessToken);
+    // void assumeIdentity(const QString& mxId, const QString& accessToken);
 
     //! \brief Request supported spec versions from the homeserver
     //!
@@ -751,22 +695,9 @@ public Q_SLOTS:
     Q_INVOKABLE void startSelfVerification();
     void encryptionUpdate(const Room* room, const QStringList& invitedIds = {});
 
-    static Connection* makeMockConnection(const QString& mxId,
-                                          bool enableEncryption = true);
-
 Q_SIGNALS:
-    //! \brief Initial server resolution has failed
-    //!
-    //! This signal is emitted when resolveServer() did not manage to resolve
-    //! the homeserver using its .well-known/client record or otherwise.
-    //! \sa resolveServer
-    void resolveError(QString error);
-
-    void homeserverChanged(QUrl baseUrl);
-    void loginFlowsChanged();
     void capabilitiesLoaded();
 
-    void connected();
     void loggedOut();
 
     //! \brief Login data or state have changed
@@ -775,7 +706,6 @@ Q_SIGNALS:
     //! accessToken - these properties normally only change at
     //! a successful login and logout and are constant at other times.
     void stateChanged();
-    void loginError(QString message, QString details);
 
     //! \brief A network request (job) started by callApi() has failed
     //! \param request the pointer to the failed job
@@ -957,8 +887,12 @@ protected Q_SLOTS:
     void syncLoopIteration();
 
 private:
+    friend class PendingConnection;
+
     class Private;
     ImplPtr<Private> d;
+
+    Connection(ConnectionData* connectionData, QObject* parent = nullptr);
 
     static room_factory_t _roomFactory;
     static user_factory_t _userFactory;
