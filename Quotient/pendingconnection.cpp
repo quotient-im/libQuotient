@@ -156,6 +156,7 @@ public:
 
     void completeSetup(const QString& mxId, bool mock);
     void saveAccessTokenToKeychain() const;
+    void setupConnection();
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
     JobHandle<GetWellknownJob> resolverJob = nullptr;
@@ -166,6 +167,8 @@ public:
     ConnectionData* connectionData = nullptr; //TODO this should be a unique_ptr
     Connection* connection = nullptr;
     AccountRegistry* accountRegistry;
+    bool mock = false;
+    ConnectionSettings settings;
 };
 
 inline UserIdentifier makeUserIdentifier(const QString& id)
@@ -176,6 +179,7 @@ inline UserIdentifier makeUserIdentifier(const QString& id)
 PendingConnection::PendingConnection(const QString& userId, const QString& password, const Quotient::ConnectionSettings& settings, Quotient::AccountRegistry* accountRegistry)
     : d(new Private(this))
 {
+    d->settings = settings;
     d->accountRegistry = accountRegistry;
     d->ensureHomeserver(userId, LoginFlows::Password).then([=, this] {
         d->loginToServer(LoginFlows::Password.type, makeUserIdentifier(userId),
@@ -198,15 +202,7 @@ PendingConnection::PendingConnection(const QString& userId, const Quotient::Conn
         d->connectionData->setToken(job->binaryData());
         d->connection = new Connection(d->connectionData);
 
-        //TODO do this in a more unified place
-        //TODO if (settings.cacheState)
-        d->connection->loadState();
-        connect(d->connection, &Connection::syncDone, d->connection, &Connection::saveState);
-        emit ready();
-        d->accountRegistry->add(d->connection);
-
-        //TODO if (settings.sync)
-        d->connection->syncLoop();
+        d->setupConnection();
     });
 }
 
@@ -363,35 +359,7 @@ void PendingConnection::Private::completeSetup(const QString& mxId, bool mock)
                   << "by user" << connectionData->userId()
                   << "from device" << connectionData->deviceId();
 
-    connection = new Connection(connectionData);
-
-    //if (settings.useEncryption) {
-        if (auto&& maybeEncryptionData = _impl::ConnectionEncryptionData::setup(connection, mock)) {
-            connection->d->encryptionData = std::move(*maybeEncryptionData);
-        } else {
-            //TODO useEncryption = false;
-            //TODO emit q->encryptionChanged(false);
-        }
-    // } else
-    //     qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for"
-    //                  << q->objectName();
-
-
-    //TODO if (settings.cacheState)
-    connection->loadState();
-    connect(connection, &Connection::syncDone, connection, &Connection::saveState);
-
-    //TODO if (settings.sync)
-    connection->syncLoop();
-
-    if (true/*settings.remember*/) {
-        auto config = Config::instance();
-        config->store(u"Accounts"_s, connection->userId(), u"DeviceId"_s, connection->deviceId(), Config::Data);
-        config->store(u"Accounts"_s, connection->userId(), u"Homeserver"_s, connection->homeserver().toString(), Config::Data);
-    }
-
-    emit q->ready();
-    accountRegistry->add(connection);
+    setupConnection();
 }
 
 PendingConnection::~PendingConnection() = default;
@@ -421,4 +389,41 @@ QString PendingConnection::userId() const
 Connection* PendingConnection::connection() const
 {
     return d->connection;
+}
+
+void PendingConnection::Private::setupConnection()
+{
+    connection = new Connection(connectionData);
+
+    if (settings.useEncryption) {
+        if (auto&& maybeEncryptionData = _impl::ConnectionEncryptionData::setup(connection, mock)) {
+            connection->d->encryptionData = std::move(*maybeEncryptionData);
+        } else {
+            //TODO d->connectionData->useEncryption = false;
+            //TODO emit q->encryptionChanged(false);
+        }
+    } else {
+        qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for"
+                     << q->objectName();
+
+    }
+
+
+    if (settings.cacheState) {
+        connection->loadState();
+        connect(connection, &Connection::syncDone, connection, &Connection::saveState);
+    }
+
+    if (settings.sync) {
+        connection->syncLoop();
+    }
+
+    if (settings.rememberConnection) {
+        auto config = Config::instance();
+        config->store(u"Accounts"_s, connection->userId(), u"DeviceId"_s, connection->deviceId(), Config::Data);
+        config->store(u"Accounts"_s, connection->userId(), u"Homeserver"_s, connection->homeserver().toString(), Config::Data);
+    }
+
+    emit q->ready();
+    accountRegistry->add(connection);
 }

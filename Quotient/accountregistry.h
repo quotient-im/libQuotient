@@ -16,8 +16,14 @@ class PendingConnection;
 
 struct ConnectionSettings
 {
+    // Only relevant when logging in or registering. This can be left empty to get a random device id
     QString deviceId;
+    // Only relevant when logging in or registering. Otherwise leave empty
     QString initialDeviceName;
+    bool useEncryption = true;
+    bool cacheState = true;
+    bool rememberConnection = true;
+    bool sync = true;
 };
 
 class QUOTIENT_API AccountRegistry : public QAbstractListModel,
