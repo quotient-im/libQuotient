@@ -127,6 +127,7 @@ void ConnectionData::setBaseUrl(QUrl baseUrl)
 void ConnectionData::setToken(QByteArray token)
 {
     d->accessToken = std::move(token);
+    NetworkAccessManager::setAccessToken(d->userId, d->accessToken);
 }
 
 const QString& ConnectionData::deviceId() const { return d->deviceId; }
@@ -143,8 +144,10 @@ void ConnectionData::setUserId(const QString& userId)
     if (d->baseUrl.isValid()) {
         if (d->userId != userId)
             NetworkAccessManager::dropAccount(d->userId);
-        if (!userId.isEmpty())
+        if (!userId.isEmpty()) {
             NetworkAccessManager::addAccount(userId, d->baseUrl);
+            NetworkAccessManager::setAccessToken(userId, d->accessToken);
+        }
     }
     d->userId = userId;
 }
