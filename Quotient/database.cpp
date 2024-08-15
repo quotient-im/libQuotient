@@ -284,7 +284,7 @@ void Database::migrateTo11()
     std::copy(m_picklingKey.data(), m_picklingKey.data() + 32, _key.begin());
 
     transaction();
-    auto query = prepareQuery(u"SELECT FROM accounts;"_s);
+    auto query = prepareQuery(u"SELECT pickle FROM accounts;"_s);
     execute(query);
     if (query.next()) {
         auto olmAccountPickle = query.value(u"pickle"_s).toString();
