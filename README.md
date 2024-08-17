@@ -16,7 +16,7 @@ The Quotient project aims to produce a Qt-based SDK to develop applications
 for [Matrix](https://matrix.org). libQuotient is a library that enables client
 applications. It is the backbone of
 [Quaternion](https://github.com/quotient-im/Quaternion),
-[NeoChat](https://matrix.org/docs/projects/client/neo-chat) and other projects.
+[NeoChat](https://invent.kde.org/network/neochat) and other projects.
 
 ## Contacts
 You can find Quotient developers in the Matrix room:
