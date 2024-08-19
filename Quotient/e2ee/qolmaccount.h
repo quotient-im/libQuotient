@@ -66,7 +66,7 @@ public:
     //! Sign all one time keys.
     OneTimeKeys signOneTimeKeys(const UnsignedOneTimeKeys &keys) const;
 
-    UploadKeysJob* createUploadKeyRequest(const UnsignedOneTimeKeys& oneTimeKeys) const;
+    UploadKeysJob *createUploadKeyRequest(const UnsignedOneTimeKeys& oneTimeKeys) const;
 
     DeviceKeys deviceKeys() const;
 
