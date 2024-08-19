@@ -467,9 +467,9 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
             return true;
 
         auto patternParts = pattern.split('/');
-        if (ALARM_X(patternParts.size() > 2,
-                    "Expected content type should have up to two /-separated parts; violating pattern: "
-                        % pattern))
+        if (QUO_ALARM_X(patternParts.size() > 2, "Expected content type should have up to two "
+                                                 "parts separated by `/`; violating pattern: "
+                                                     % pattern))
             return false;
 
         if (ctype.split('/').front() == patternParts.front()

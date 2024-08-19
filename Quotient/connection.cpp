@@ -800,7 +800,7 @@ JobHandle<CreateRoomJob> Connection::createRoom(
                                   creationContent, initialState, presetName, isDirect)
         .then(this, [this, invites, isDirect](const QString& roomId) {
             auto* room = provideRoom(roomId, JoinState::Join);
-            if (ALARM_X(!room, "Failed to create a room"))
+            if (QUO_ALARM_X(!room, "Failed to create a room object locally"))
                 return;
 
             emit createdRoom(room);
@@ -818,7 +818,7 @@ void Connection::requestDirectChat(const QString& userId)
 QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
 {
     auto* u = user(otherUserId);
-    if (ALARM_X(!u, u"Couldn't get a user object for" % otherUserId))
+    if (QUO_ALARM_X(!u, u"Couldn't get a user object for" % otherUserId))
         return {};
 
     // There can be more than one DC; find the first valid (existing and

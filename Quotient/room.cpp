@@ -2001,7 +2001,7 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
 void Room::Private::onEventReachedServer(PendingEvents::iterator eventItemIter,
                                          const QString& eventId)
 {
-    if (ALARM(eventItemIter == unsyncedEvents.end()))
+    if (QUO_ALARM(eventItemIter == unsyncedEvents.end()))
         return;
 
     if (eventItemIter->deliveryStatus() != EventStatus::ReachedServer) {

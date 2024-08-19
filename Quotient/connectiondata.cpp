@@ -156,7 +156,7 @@ void ConnectionData::setSupportedSpecVersions(QStringList versions)
 {
     qCInfo(MAIN).noquote() << "CS API versions:" << versions.join(u' ');
     d->supportedSpecVersions = std::move(versions);
-    if (!ALARM(d->userId.isEmpty()) && !ALARM(!d->baseUrl.isValid()))
+    if (QUO_CHECK(!d->userId.isEmpty()) && QUO_CHECK(d->baseUrl.isValid()))
         NetworkAccessManager::updateAccountSpecVersions(d->userId, d->supportedSpecVersions);
 }
 

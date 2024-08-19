@@ -47,8 +47,8 @@ public:
 
         const QWriteLocker _(&namLock);
         auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
-        if (ALARM_X(it == connectionData.end(), "Quotient::NAM: Trying to save supported spec "
-                                                "versions on an inexistent account"))
+        if (QUO_ALARM_X(it == connectionData.end(), "Quotient::NAM: Trying to save supported spec "
+                                                    "versions on an inexistent account"))
             return;
 
         it->hsData.supportedSpecVersions = std::move(versions);
