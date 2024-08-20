@@ -134,12 +134,11 @@ const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
 const QString& ConnectionData::userId() const { return d->userId; }
 
-void ConnectionData::setDeviceId(const QString& deviceId)
-{
-    d->deviceId = deviceId;
-}
+void ConnectionData::setDeviceId(const QString& deviceId) { d->deviceId = deviceId; }
 
-void ConnectionData::setUserId(const QString& userId)
+void ConnectionData::setUserId(const QString& userId) { setIdentity(userId, d->deviceId); }
+
+void ConnectionData::setIdentity(const QString& userId, const QString& deviceId)
 {
     if (d->baseUrl.isValid()) {
         if (d->userId != userId)
@@ -150,6 +149,7 @@ void ConnectionData::setUserId(const QString& userId)
         }
     }
     d->userId = userId;
+    d->deviceId = deviceId;
 }
 
 void ConnectionData::setSupportedSpecVersions(QStringList versions)

@@ -33,8 +33,11 @@ public:
 
     void setBaseUrl(QUrl baseUrl);
     void setToken(QByteArray accessToken);
+    [[deprecated("Use setIdentity() instead")]]
     void setDeviceId(const QString& deviceId);
+    [[deprecated("Use setIdentity() instead")]]
     void setUserId(const QString& userId);
+    void setIdentity(const QString& userId, const QString& deviceId);
     void setSupportedSpecVersions(QStringList versions);
 
     QString lastEvent() const;
