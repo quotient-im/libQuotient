@@ -37,14 +37,12 @@ class QUOTIENT_API BaseJob : public QObject {
     }
 
 public:
-    /*! The status code of a job
-     *
-     * Every job is created in Unprepared status; upon calling prepare()
-     * from Connection (if things are fine) it go to Pending status. After
-     * that, the next transition comes after the reply arrives and its contents
-     * are analysed. At any point in time the job can be abandon()ed, causing
-     * it to switch to status Abandoned for a brief period before deletion.
-     */
+    //! \brief Job status codes
+    //!
+    //! Every job is created in Unprepared status; upon calling Connection::prepare(), if things are
+    //! fine, it becomes Pending and remains so until the reply arrives; then the status code is
+    //! set according to the job result. At any point in time the job can be abandon()ed, causing
+    //! it to become Abandoned for a brief period before deletion.
     enum StatusCode {
         Success = 0,
         NoError = Success,
@@ -81,15 +79,13 @@ public:
         return (QByteArray() % ... % encodeIfParam(parts));
     }
 
-    /*!
-     * This structure stores the status of a server call job. The status
-     * consists of a code, that is described (but not delimited) by the
-     * respective enum, and a freeform message.
-     *
-     * To extend the list of error codes, define an (anonymous) enum
-     * along the lines of StatusCode, with additional values
-     * starting at UserDefinedError
-     */
+    //! \brief The status of a job
+    //!
+    //! The status consists of a code that is described (but not delimited) by StatusCode, and
+    //! a freeform message.
+    //!
+    //! To extend the list of error codes, define an (anonymous) enum along the lines of StatusCode,
+    //! with additional values starting at UserDefinedError.
     struct Status {
         Status(StatusCode c) : code(c) {}
         Status(int c, QString m) : code(c), message(std::move(m)) {}
@@ -138,56 +134,45 @@ public:
     QUrl requestUrl() const;
     bool isBackground() const;
 
-    /** Current status of the job */
+    //! Current status of the job
     Status status() const;
 
-    /** Short human-friendly message on the job status */
+    //! Short human-friendly message on the job status
     QString statusCaption() const;
 
-    /*! Get first bytes of the raw response body as received from the server
-     *
-     * \param bytesAtMost the number of leftmost bytes to return
-     *
-     * \sa rawDataSample
-     */
+    //! \brief Get first bytes of the raw response body as received from the server
+    //! \param bytesAtMost the number of leftmost bytes to return
+    //! \sa rawDataSample
     QByteArray rawData(int bytesAtMost) const;
 
-    /*! Access the whole response body as received from the server */
+    //! Access the whole response body as received from the server
     const QByteArray& rawData() const;
 
-    /** Get UI-friendly sample of raw data
-     *
-     * This is almost the same as rawData but appends the "truncated"
-     * suffix if not all data fit in bytesAtMost. This call is
-     * recommended to present a sample of raw data as "details" next to
-     * error messages. Note that the default \p bytesAtMost value is
-     * also tailored to UI cases.
-     *
-     * \sa rawData
-     */
+    //! \brief Get UI-friendly sample of raw data
+    //!
+    //! This is almost the same as rawData but appends the "truncated" suffix if not all data fit in
+    //! bytesAtMost. This call is recommended to present a sample of raw data as "details" next to
+    //! error messages. Note that the default \p bytesAtMost value is also tailored to UI cases.
+    //!
+    //! \sa //! rawData
     QString rawDataSample(int bytesAtMost = 65535) const;
 
-    /** Get the response body as a JSON object
-     *
-     * If the job's returned content type is not `application/json`
-     * or if the top-level JSON entity is not an object, an empty object
-     * is returned.
-     */
+    //! \brief Get the response body as a JSON object
+    //!
+    //! If the job's returned content type is not `application/json` or if the top-level JSON entity
+    //! is not an object, an empty object is returned.
     QJsonObject jsonData() const;
 
-    /** Get the response body as a JSON array
-     *
-     * If the job's returned content type is not `application/json`
-     * or if the top-level JSON entity is not an array, an empty array
-     * is returned.
-     */
+    //! \brief Get the response body as a JSON array
+    //!
+    //! If the job's returned content type is not `application/json` or if the top-level JSON entity
+    //! is not an array, an empty array is returned.
     QJsonArray jsonItems() const;
 
-    /** Load the property from the JSON response assuming a given C++ type
-     *
-     * If there's no top-level JSON object in the response or if there's
-     * no node with the key \p keyName, \p defaultValue is returned.
-     */
+    //! \brief Load the property from the JSON response assuming a given C++ type
+    //!
+    //! If there's no top-level JSON object in the response or if there's
+    //! no node with the key \p keyName, \p defaultValue is returned.
     template <typename T, typename StrT>
     T loadFromJson(const StrT& keyName, T&& defaultValue = {}) const
     {
@@ -196,11 +181,10 @@ public:
                                 : fromJson<T>(jv);
     }
 
-    /** Load the property from the JSON response and delete it from JSON
-     *
-     * If there's no top-level JSON object in the response or if there's
-     * no node with the key \p keyName, \p defaultValue is returned.
-     */
+    //! \brief Load the property from the JSON response and delete it from JSON
+    //!
+    //! If there's no top-level JSON object in the response or if there's
+    //! no node with the key \p keyName, \p defaultValue is returned.
     template <typename T>
     T takeFromJson(const QString& key, T&& defaultValue = {})
     {
@@ -210,16 +194,16 @@ public:
         return std::forward<T>(defaultValue);
     }
 
-    /** Error (more generally, status) code
-     * Equivalent to status().code
-     * \sa status
-     */
+    //! \brief Error (more generally, status) code
+    //!
+    //! Equivalent to status().code
+    //! \sa status, StatusCode
     int error() const;
 
-    /** Error-specific message, as returned by the server */
+    //! Error-specific message, as returned by the server
     virtual QString errorString() const;
 
-    /** A URL to help/clarify the error, if provided by the server */
+    //! A URL to help/clarify the error, if provided by the server
     QUrl errorUrl() const;
 
     int maxRetries() const;
@@ -264,73 +248,60 @@ Q_SIGNALS:
     //! \sa setRequestHeaders, setRequestQuery
     void aboutToSendRequest(QNetworkRequest* req);
 
-    /** The job has sent a network request */
+    //! The job has sent a network request
     void sentRequest();
 
-    /** The job has changed its status */
+    //! The job has changed its status
     void statusChanged(Quotient::BaseJob::Status newStatus);
 
-    /**
-     * The previous network request has failed; the next attempt will
-     * be done in the specified time
-     * @param nextAttempt the 1-based number of attempt (will always be more
-     * than 1)
-     * @param inMilliseconds the interval after which the next attempt will be
-     * taken
-     */
-    void retryScheduled(int nextAttempt,
-                        Quotient::BaseJob::duration_ms_t inMilliseconds);
+    //! \brief A retry of the network request is scheduled after the previous request failed
+    //! \param nextAttempt the 1-based number of attempt (will always be more than 1)
+    //! \param inMilliseconds the interval after which the next attempt will be taken
+    void retryScheduled(int nextAttempt, Quotient::BaseJob::duration_ms_t inMilliseconds);
 
-    /**
-     * The previous network request has been rate-limited; the next attempt
-     * will be queued and run sometime later. Since other jobs may already
-     * wait in the queue, it's not possible to predict the wait time.
-     */
+    //! \brief The job has been rate-limited
+    //!
+    //! The previous network request has been rate-limited; the next attempt will be queued and run
+    //! sometime later. Since other jobs may already wait in the queue, it's not possible to predict
+    //! the wait time.
     void rateLimited();
 
-    /**
-     * Emitted when the job is finished, in any case. It is used to notify
-     * observers that the job is terminated and that progress can be hidden.
-     *
-     * This should not be emitted directly by subclasses;
-     * use finishJob() instead.
-     *
-     * In general, to be notified of a job's completion, client code
-     * should connect to result(), success(), or failure()
-     * rather than finished(). However if you need to track the job's
-     * lifecycle you should connect to this instead of result();
-     * in particular, only this signal will be emitted on abandoning.
-     *
-     * @param job the job that emitted this signal
-     *
-     * @see result, success, failure
-     */
+    //! \brief The job has finished - either with a result, or abandoned
+    //!
+    //! Emitted when the job is finished, in any case. It is used to notify
+    //! observers that the job is terminated and that progress can be hidden.
+    //!
+    //! This should not be emitted directly by subclasses; use finishJob() instead.
+    //!
+    //! In general, to be notified of a job's completion, client code should connect to result(),
+    //! success(), or failure() rather than finished(). However if you need to track the job's
+    //! lifecycle you should connect to this instead of result(); in particular, only this signal
+    //! will be emitted on abandoning, the others won't.
+    //!
+    //! \param job the job that emitted this signal
+    //!
+    //! \sa result, success, failure
     void finished(Quotient::BaseJob* job);
 
-    /**
-     * Emitted when the job is finished (except when abandoned).
-     *
-     * Use error() to know if the job was finished with error.
-     *
-     * @param job the job that emitted this signal
-     *
-     * @see success, failure
-     */
+    //! \brief The job has finished with a result, successful or unsuccessful
+    //!
+    //! Use error() or status().good() to know if the job has finished successfully.
+    //!
+    //! \param job the job that emitted this signal
+    //!
+    //! \sa success, failure
     void result(Quotient::BaseJob* job);
 
-    /**
-     * Emitted together with result() in case there's no error.
-     *
-     * @see result, failure
-     */
+    //! \brief The job has finished with a successful result
+    //! \sa result, failure
     void success(Quotient::BaseJob*);
 
-    /**
-     * Emitted together with result() if there's an error.
-     * Similar to result(), this won't be emitted in case of abandon().
-     *
-     * @see result, success
-     */
+    //! \brief The job has finished with a failure result
+    //! Emitted together with result() when the job resulted in an error. Mutually exclusive with
+    //! success(): after result() is emitted, exactly one of success() and failure() will be emitted
+    //! next. Will not be emitted in case of abandon()ing.
+    //!
+    //! \sa result, success
     void failure(Quotient::BaseJob*);
 
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
@@ -359,66 +330,75 @@ protected:
     const QNetworkReply* reply() const;
     QNetworkReply* reply();
 
-    /** Construct a URL out of baseUrl, path and query
-     *
-     * The function ensures exactly one '/' between the path component of
-     * \p baseUrl and \p path. The query component of \p baseUrl is ignored.
-     */
+    //! \brief Construct a URL out of baseUrl, path and query
+    //!
+    //! The function ensures exactly one '/' between the path component of
+    //! \p baseUrl and \p path. The query component of \p baseUrl is ignored.
+    //! \note Unlike most of BaseJob, this function is thread-safe
     static QUrl makeRequestUrl(const HomeserverData& hsData, const QByteArray& encodedPath,
                                const QUrlQuery& query = {});
 
-    /*! Prepares the job for execution
-     *
-     * This method is called no more than once per job lifecycle,
-     * when it's first scheduled for execution; in particular, it is not called
-     * on retries.
-     */
+    //! \brief Prepare the job for execution
+    //!
+    //! This method is called no more than once per job lifecycle, when it's first scheduled
+    //! for execution; in particular, it is not called on retries.
     virtual void doPrepare(const ConnectionData*);
 
-    /*! Postprocessing after the network request has been sent
-     *
-     * This method is called every time the job receives a running
-     * QNetworkReply object from NetworkAccessManager - basically, after
-     * successfully sending a network request (including retries).
-     */
+    //! \brief Postprocessing after the network request has been sent
+    //!
+    //! This method is called every time the job receives a running
+    //! QNetworkReply object from NetworkAccessManager - basically, after
+    //! successfully sending a network request (including retries).
     virtual void onSentRequest(QNetworkReply*);
+
     virtual void beforeAbandon();
 
-    /*! \brief An extension point for additional reply processing.
-     *
-     * The base implementation does nothing and returns Success.
-     *
-     * \sa gotReply
-     */
+    //! \brief Check the pending or received reply for upfront issues
+    //!
+    //! This is invoked when headers are first received and also once the complete reply is
+    //! obtained; the base implementation checks the HTTP headers to detect general issues such as
+    //! network errors or access denial and it's strongly recommended to call it from overrides, as
+    //! early as possible.
+    //!
+    //! This slot is const and cannot read the response body from the reply. If you need to read the
+    //! body on the fly, override onSentRequest() and connect in it to reply->readyRead(); and if
+    //! you only need to validate the body after it fully arrived, use prepareResult() for that.
+    //! Returning anything except NoError/Success switches further processing from prepareResult()
+    //! to prepareError().
+    //!
+    //! \return the result of checking the reply
+    //!
+    //! \sa gotReply
+    virtual Status checkReply(const QNetworkReply* reply) const;
+
+    //! \brief An extension point for additional reply processing
+    //!
+    //! The base implementation simply returns Success without doing anything else.
+    //!
+    //! \sa gotReply
     virtual Status prepareResult();
 
-    /*! \brief Process details of the error
-     *
-     * The function processes the reply in case when status from checkReply()
-     * was not good (usually because of an unsuccessful HTTP code).
-     * The base implementation assumes Matrix JSON error object in the body;
-     * overrides are strongly recommended to call it for all stock Matrix
-     * responses as early as possible and only then process custom errors,
-     * with JSON or non-JSON payload.
-     *
-     * \return updated (if necessary) job status
-     */
+    //! \brief Process details of the error
+    //!
+    //! The function processes the reply in case when status from checkReply() was not good (usually
+    //! because of an unsuccessful HTTP code). The base implementation assumes Matrix JSON error
+    //! object in the body; overrides are strongly recommended to call it for all stock Matrix
+    //! responses as early as possible and only then process custom errors, with JSON or non-JSON
+    //! payload.
+    //!
+    //! \return updated (if necessary) job status
     virtual Status prepareError(Status currentStatus);
 
-    /*! \brief Get direct access to the JSON response object in the job
-     *
-     * This allows to implement deserialisation with "move" semantics for parts
-     * of the response. Assuming that the response body is a valid JSON object,
-     * the function calls QJsonObject::take(key) on it and returns the result.
-     *
-     * \return QJsonValue::Null, if the response content type is not
-     *                           advertised as `application/json`;
-     *         QJsonValue::Undefined, if the response is a JSON object but
-     *                                doesn't have \p key;
-     *         the value for \p key otherwise.
-     *
-     * \sa takeFromJson
-     */
+    //! \brief Retrieve a value for one specific key and delete it from the JSON response object
+    //!
+    //! This allows to implement deserialisation with "move" semantics for parts
+    //! of the response. Assuming that the response body is a valid JSON object,
+    //! the function calls QJsonObject::take(key) on it and returns the result.
+    //!
+    //! \return QJsonValue::Undefined if the response content is not a JSON object or it doesn't
+    //!         have \p key; the value for \p key otherwise.
+    //!
+    //! \sa takeFromJson
     QJsonValue takeValueFromJson(const QString& key);
 
     void setStatus(Status s);
@@ -442,26 +422,6 @@ protected:
 
 protected Q_SLOTS:
     void timeout();
-
-    /*! \brief Check the pending or received reply for upfront issues
-     *
-     * This is invoked when headers are first received and also once
-     * the complete reply is obtained; the base implementation checks the HTTP
-     * headers to detect general issues such as network errors or access denial
-     * and it's strongly recommended to call it from overrides,
-     * as early as possible.
-     * This slot is const and cannot read the response body. If you need to read
-     * the body on the fly, override onSentRequest() and connect in it
-     * to reply->readyRead(); and if you only need to validate the body after
-     * it fully arrived, use prepareResult() for that). Returning anything
-     * except NoError/Success switches further processing from prepareResult()
-     * to prepareError().
-     *
-     * @return the result of checking the reply
-     *
-     * @see gotReply
-     */
-    virtual Status checkReply(const QNetworkReply *reply) const;
 
 private Q_SLOTS:
     void sendRequest();
