@@ -25,7 +25,6 @@ public:
     struct ConnectionData {
         QString accountId;
         HomeserverData hsData;
-        QByteArray accessToken;
     };
 
     void addConnection(QString accountId, QUrl baseUrl)
@@ -39,7 +38,7 @@ public:
             it->hsData.baseUrl = std::move(baseUrl);
         } else
             connectionData.push_back(
-                { std::move(accountId), HomeserverData{ std::move(baseUrl), {}}, {} });
+                { std::move(accountId), HomeserverData{ std::move(baseUrl), {}, {}} });
     }
     void addSpecVersions(QStringView accountId, QStringList versions)
     {
@@ -81,18 +80,12 @@ public:
         const QReadLocker _(&namLock);
         return ignoredSslErrors;
     }
-    QByteArray getAccessToken(const QString& accountId) const
-    {
-        const QReadLocker _(&namLock);
-        auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
-        return it == connectionData.cend() ? QByteArray {} : it->accessToken;
-    }
     void setAccessToken(const QString& userId, const QByteArray& accessToken)
     {
         const QWriteLocker _(&namLock);
         if (auto it = std::ranges::find(connectionData, userId, &ConnectionData::accountId);
             it != connectionData.end()) {
-            it->accessToken = accessToken;
+            it->hsData.accessToken = accessToken;
         }
     }
 
@@ -186,7 +179,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
     // Convert mxc:// URL into normal http(s) for the given homeserver
     QNetworkRequest rewrittenRequest(request);
     rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(hsData, url));
-    rewrittenRequest.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + d.getAccessToken(accountId));
+    rewrittenRequest.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + d.getConnection(accountId).accessToken);
 
     auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
     implReply->ignoreSslErrors(d.getIgnoredSslErrors());
