@@ -9,6 +9,7 @@
 #include "../connectiondata.h"
 #include "../networkaccessmanager.h"
 
+#include <QtCore/QLibraryInfo>
 #include <QtCore/QMetaEnum>
 #include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
@@ -806,6 +807,8 @@ void BaseJob::abandon()
     if (d->reply)
         d->reply->disconnect(this);
     emit finished(this);
+    if (QLibraryInfo::version() < QVersionNumber(6, 5))
+        future().cancel(); // Qt 6.4 didn't do it on the promise destruction, see QTBUG-103992
 
     deleteLater(); // The promise will cancel itself on deletion
 }
