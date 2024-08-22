@@ -179,7 +179,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
     // Convert mxc:// URL into normal http(s) for the given homeserver
     QNetworkRequest rewrittenRequest(request);
     rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(hsData, url));
-    rewrittenRequest.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + d.getConnection(accountId).accessToken);
+    rewrittenRequest.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + hsData.accessToken);
 
     auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
     implReply->ignoreSslErrors(d.getIgnoredSslErrors());
