@@ -104,7 +104,7 @@ QUrl ConnectionData::baseUrl() const { return d->baseUrl; }
 
 HomeserverData ConnectionData::homeserverData() const
 {
-    return { d->baseUrl, d->supportedSpecVersions };
+    return { d->baseUrl, d->supportedSpecVersions, d->accessToken };
 }
 
 NetworkAccessManager* ConnectionData::nam() const
