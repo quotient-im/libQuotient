@@ -80,12 +80,12 @@ inline bool alarmX(bool alarmCondition, const auto& msg,
 //! if \p AlarmCondition holds, not the other way around.
 //!
 //! This macro is a trivial wrapper around alarmX(), provided for API uniformity with QUO_ALARM()
-#define QUO_ALARM_X(AlarmCondition, Message) alarmX((AlarmCondition), (Message))
+#define QUO_ALARM_X(...) alarmX(__VA_ARGS__)
 
-#define QUO_ALARM(AlarmCondition) alarmX((AlarmCondition), "Alarm: " #AlarmCondition)
+#define QUO_ALARM(...) alarmX((__VA_ARGS__) ? true : false, "Alarm: " #__VA_ARGS__)
 
 //! Evaluate the boolean expression and, in Debug mode, assert it to be true
-#define QUO_CHECK(Expression) !alarmX(!Expression, "Failing expression: " #Expression)
+#define QUO_CHECK(...) !alarmX(!(__VA_ARGS__) ? true : false, "Failing expression: " #__VA_ARGS__)
 
 #if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR < 10
 /// This is only to make UnorderedMap alias work until we get rid of it
