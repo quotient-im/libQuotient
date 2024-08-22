@@ -504,7 +504,7 @@ void KeyVerificationSession::trustKeys()
         m_connection->reloadDevices();
     }
 
-    if (m_pendingMasterKey.length() > 0) {
+    if (!m_pendingMasterKey.isEmpty()) {
         if (m_remoteUserId == m_connection->userId()) {
             const auto selfSigningKey = m_connection->database()->loadEncrypted("m.cross_signing.self_signing"_ls);
             if (!selfSigningKey.isEmpty()) {

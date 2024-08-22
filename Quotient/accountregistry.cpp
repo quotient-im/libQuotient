@@ -56,7 +56,7 @@ bool AccountRegistry::isLoggedIn(const QString &userId) const
 
 QVariant AccountRegistry::data(const QModelIndex& index, int role) const
 {
-    if (!index.isValid() || index.row() >= count())
+    if (!index.isValid() || index.row() >= size())
         return {};
 
     switch (role) {
@@ -71,7 +71,7 @@ QVariant AccountRegistry::data(const QModelIndex& index, int role) const
 
 int AccountRegistry::rowCount(const QModelIndex& parent) const
 {
-    return parent.isValid() ? 0 : count();
+    return parent.isValid() ? 0 : size();
 }
 
 QHash<int, QByteArray> AccountRegistry::roleNames() const

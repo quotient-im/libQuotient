@@ -645,13 +645,13 @@ TEST_IMPL(addAndRemoveTag)
     // of the tag change.
     const QSignalSpy spy(targetRoom, &Room::tagsChanged);
     targetRoom->addTag(TestTag);
-    if (spy.count() != 1 || !targetRoom->tags().contains(TestTag)) {
+    if (spy.size() != 1 || !targetRoom->tags().contains(TestTag)) {
         clog << "Tag adding failed" << endl;
         FAIL_TEST();
     }
     clog << "Test tag set, removing it now" << endl;
     targetRoom->removeTag(TestTag);
-    FINISH_TEST(spy.count() == 2 && !targetRoom->tags().contains(TestTag));
+    FINISH_TEST(spy.size() == 2 && !targetRoom->tags().contains(TestTag));
 }
 
 bool TestSuite::checkDirectChat() const
@@ -673,7 +673,7 @@ TEST_IMPL(markDirectChat)
     const QSignalSpy spy(connection(), &Connection::directChatsListChanged);
     clog << "Marking the room as a direct chat" << endl;
     connection()->addToDirectChats(targetRoom, connection()->user()->id());
-    if (spy.count() != 1 || !checkDirectChat())
+    if (spy.size() != 1 || !checkDirectChat())
         FAIL_TEST();
 
     // Check that the first argument (added DCs) actually contains the room
@@ -686,7 +686,7 @@ TEST_IMPL(markDirectChat)
 
     clog << "Unmarking the direct chat" << endl;
     connection()->removeFromDirectChats(targetRoom->id(), connection()->user()->id());
-    if (spy.count() != 2 && checkDirectChat())
+    if (spy.size() != 2 && checkDirectChat())
         FAIL_TEST();
 
     // Check that the second argument (removed DCs) actually contains the room
@@ -729,13 +729,13 @@ TEST_IMPL(visitResources)
                 FAIL_TEST();
             }
             ud.visitResource(connection(), uriString);
-            if (spy.count() != 1) {
-                clog << "Wrong number of signal emissions (" << spy.count()
+            if (spy.size() != 1) {
+                clog << "Wrong number of signal emissions (" << spy.size()
                      << ')' << endl;
                 FAIL_TEST();
             }
             const auto& emission = spy.front();
-            Q_ASSERT(emission.count() >= 2);
+            Q_ASSERT(emission.size() >= 2);
             if (emission.front().value<decltype(target)>() != target) {
                 clog << "Signal emitted with an incorrect target" << endl;
                 FAIL_TEST();

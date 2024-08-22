@@ -251,13 +251,12 @@ QOlmExpected<QOlmSession> QOlmAccount::createOutboundSession(
     const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey) const
 {
     QOlmSession olmOutboundSession{};
-    if (const auto randomLength = olm_create_outbound_session_random_length(
-            olmOutboundSession.olmData);
-        olm_create_outbound_session(
-            olmOutboundSession.olmData, olmData, theirIdentityKey.data(),
-            theirIdentityKey.length(), theirOneTimeKey.data(),
-            theirOneTimeKey.length(), getRandom(randomLength).data(),
-            randomLength)
+    if (const auto randomLength =
+            olm_create_outbound_session_random_length(olmOutboundSession.olmData);
+        olm_create_outbound_session(olmOutboundSession.olmData, olmData, theirIdentityKey.data(),
+                                    unsignedSize(theirIdentityKey), theirOneTimeKey.data(),
+                                    unsignedSize(theirOneTimeKey), getRandom(randomLength).data(),
+                                    randomLength)
         == olm_error()) {
         const auto errorCode = olmOutboundSession.lastErrorCode();
         QOLM_FAIL_OR_LOG_X(errorCode == OLM_NOT_ENOUGH_RANDOM,

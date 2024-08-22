@@ -312,7 +312,7 @@ std::vector<byte_t> Quotient::base58Decode(const QByteArray& encoded)
         }
     }
 
-    for (auto i = 0; i < encoded.length() && encoded[i] == '1'; ++i) {
+    for (auto i = 0; i < encoded.size() && encoded[i] == '1'; ++i) {
         result.push_back(0x0);
     }
 
@@ -324,7 +324,8 @@ QByteArray Quotient::sign(const QByteArray& key, const QByteArray& data)
 {
     auto context = makeCStruct(olm_pk_signing, olm_pk_signing_size, olm_clear_pk_signing);
     QByteArray pubKey(olm_pk_signing_public_key_length(), 0);
-    olm_pk_signing_key_from_seed(context.get(), pubKey.data(), pubKey.length(), key.data(), key.length());
+    olm_pk_signing_key_from_seed(context.get(), pubKey.data(), unsignedSize(pubKey), key.data(),
+                                 unsignedSize(key));
     Q_ASSERT(context);
 
     const auto signatureLength = olm_pk_signature_length();

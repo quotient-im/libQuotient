@@ -75,7 +75,7 @@ void TestOlmAccount::oneTimeKeysValid()
 
     olmAccount.generateOneTimeKeys(20);
     const auto oneTimeKeysFilled = olmAccount.oneTimeKeys();
-    QCOMPARE(20, oneTimeKeysFilled.curve25519().count());
+    QCOMPARE(20, oneTimeKeysFilled.curve25519().size());
 }
 
 void TestOlmAccount::deviceKeys()
@@ -167,7 +167,7 @@ void TestOlmAccount::encryptedFile()
     QCOMPARE(file.key.alg, "A256CTR"_ls);
     QCOMPARE(file.key.ext, true);
     QCOMPARE(file.key.k, "aWF6-32KGYaC3A_FEUCk1Bt0JA37zP0wrStgmdCaW-0"_ls);
-    QCOMPARE(file.key.keyOps.count(), 2);
+    QCOMPARE(file.key.keyOps.size(), 2);
     QCOMPARE(file.key.kty, "oct"_ls);
 }
 

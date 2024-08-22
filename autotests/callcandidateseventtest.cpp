@@ -47,7 +47,7 @@ void TestCallCandidatesEvent::fromJson()
 
     QCOMPARE(callCandidatesEvent->version(), 0);
     QCOMPARE(callCandidatesEvent->callId(), QStringLiteral("12345"));
-    QCOMPARE(callCandidatesEvent->candidates().count(), 1);
+    QCOMPARE(callCandidatesEvent->candidates().size(), 1);
 
     const auto& candidate = callCandidatesEvent->candidates().at(0).toObject();
     QCOMPARE(candidate.value("sdpMid"_ls).toString(), QStringLiteral("audio"));
