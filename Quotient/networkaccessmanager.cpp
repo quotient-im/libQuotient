@@ -195,7 +195,7 @@ QStringList NetworkAccessManager::supportedSchemesImplementation() const
            << QStringLiteral("mxc");
 }
 
-void NetworkAccessManager::setAccessToken(const QString& userId, const QByteArray& accessToken)
+void NetworkAccessManager::setAccessToken(const QString& userId, const QByteArray& token)
 {
-    d.setAccessToken(userId, accessToken);
+    d.setAccessToken(userId, token);
 }
