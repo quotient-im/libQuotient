@@ -98,15 +98,16 @@ QFuture<std::unique_ptr<ConnectionEncryptionData>> ConnectionEncryptionData::set
             }
             if (const auto outcome =
                     encryptionData->database.setupOlmAccount(encryptionData->olmAccount)) {
-                // account already existing or there's an error unpickling it
-                if (outcome == OLM_SUCCESS)
+                if (outcome == OLM_SUCCESS) {
+                    qCDebug(E2EE) << "The existing Olm account successfully unpickled";
                     return encryptionData;
+                }
 
                 qCritical(E2EE) << "Could not unpickle Olm account for" << connection->objectName();
                 ft.cancel();
                 return std::unique_ptr<ConnectionEncryptionData>{};
             }
-            // A new account has been created
+            qCDebug(E2EE) << "A new Olm account has been created, uploading device keys";
             connection->callApi<UploadKeysJob>(encryptionData->olmAccount.deviceKeys())
                 .then(connection,
                     // eData is meant to have the same lifetime as connection so it's safe
