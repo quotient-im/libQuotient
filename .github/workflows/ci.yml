@@ -18,16 +18,16 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-22.04 ]
+        os: [ ubuntu-24.04 ]
         qt-version: [ '6.4' ]
         override-compiler: [ '', GCC ] # Defaults: MSVC on Windows, Clang elsewhere
         include: # Attach API updating and static analysis to specific jobs
-        - os: ubuntu-22.04
-          qt-version: '6.4' # That's what is in Ubuntu 22.04
+        - os: ubuntu-24.04
+          qt-version: '6.4' # That's what is in Ubuntu 24.04
           override-compiler: GCC
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
-        - os: ubuntu-22.04
+        - os: ubuntu-24.04
           qt-version: '6.4'
           override-compiler: ''
           static-analysis: codeql
@@ -49,12 +49,12 @@ jobs:
     - name: Install dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        COMMON_PKGS="libolm-dev ninja-build gnome-keyring g++$GCC_VERSION clang$CLANG_VERSION"
+        COMMON_PKGS="libolm-dev ninja-build gnome-keyring libsecret-1-dev g++$GCC_VERSION clang$CLANG_VERSION"
         # See https://github.com/actions/runner-images/issues/9679
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        # sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         # Add LLVM repo for newer Clang
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-        sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy$CLANG_VERSION main" -y
+        # wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        # sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy$CLANG_VERSION main" -y
         sudo apt-get -qq update
         sudo apt-get -qq install $COMMON_PKGS
         gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
