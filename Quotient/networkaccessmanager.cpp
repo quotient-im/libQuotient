@@ -38,7 +38,7 @@ public:
             it->hsData.baseUrl = std::move(baseUrl);
         } else
             connectionData.push_back(
-                { std::move(accountId), HomeserverData{ std::move(baseUrl), {} } });
+                { std::move(accountId), HomeserverData{ std::move(baseUrl), {}, {}} });
     }
     void addSpecVersions(QStringView accountId, QStringList versions)
     {
@@ -80,6 +80,14 @@ public:
         const QReadLocker _(&namLock);
         return ignoredSslErrors;
     }
+    void setAccessToken(const QString& userId, const QByteArray& accessToken)
+    {
+        const QWriteLocker _(&namLock);
+        if (auto it = std::ranges::find(connectionData, userId, &ConnectionData::accountId);
+            it != connectionData.end()) {
+            it->hsData.accessToken = accessToken;
+        }
+    }
 
 private:
     mutable QReadWriteLock namLock{};
@@ -92,7 +100,7 @@ private:
 void NetworkAccessManager::addAccount(QString accountId, QUrl homeserver)
 {
     Q_ASSERT(!accountId.isEmpty());
-    d.addConnection( accountId, std::move(homeserver));
+    d.addConnection( accountId, std::move(homeserver) );
 }
 
 void NetworkAccessManager::updateAccountSpecVersions(QStringView accountId, QStringList versions)
@@ -171,6 +179,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
     // Convert mxc:// URL into normal http(s) for the given homeserver
     QNetworkRequest rewrittenRequest(request);
     rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(hsData, url));
+    rewrittenRequest.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + hsData.accessToken);
 
     auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
     implReply->ignoreSslErrors(d.getIgnoredSslErrors());
@@ -184,4 +193,9 @@ QStringList NetworkAccessManager::supportedSchemesImplementation() const
 {
     return QNetworkAccessManager::supportedSchemesImplementation()
            << QStringLiteral("mxc");
+}
+
+void NetworkAccessManager::setAccessToken(const QString& userId, const QByteArray& accessToken)
+{
+    d.setAccessToken(userId, accessToken);
 }

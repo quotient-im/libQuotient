@@ -447,6 +447,7 @@ QUOTIENT_API bool isGuestUserId(const UserId& uId);
 struct QUOTIENT_API HomeserverData {
     QUrl baseUrl;
     QStringList supportedSpecVersions;
+    QByteArray accessToken;
 
     bool checkMatrixSpecVersion(QStringView targetVersion) const;
 };

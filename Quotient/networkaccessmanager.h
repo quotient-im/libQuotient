@@ -22,6 +22,8 @@ public:
     static void addIgnoredSslError(const QSslError& error);
     static void clearIgnoredSslErrors();
 
+    static void setAccessToken(const QString& userId, const QByteArray& token);
+
     //! Get a NAM instance for the current thread
     static NetworkAccessManager* instance();
 
