@@ -19,112 +19,116 @@
 using namespace Quotient;
 using namespace Quotient::_impl;
 
-QFuture<PicklingKey> setupPicklingKey(const QString& id, bool mock)
+// Below, encryptionData gets filled inside setupPicklingKey() instead of returning the future for
+// a pickling key and then, in CED::setup(), another future for ConnectionEncryptionData because
+// Qt versions before 6.5.2 don't handle QFutures with move-only data quite well (see QTBUG-112513).
+// Oh, and unwrap() doesn't work with move-only types at all (QTBUG-127423). So it is a bit more
+// verbose and repetitive than it should be.
+
+inline QFuture<QKeychain::Job*> runKeychainJob(QKeychain::Job* j, const QString& keychainId)
+{
+    j->setAutoDelete(true);
+    j->setKey(keychainId);
+    auto ft = QtFuture::connect(j, &QKeychain::Job::finished);
+    j->start();
+    return ft;
+}
+
+QFuture<void> setupPicklingKey(Connection* connection, bool mock,
+                               std::unique_ptr<ConnectionEncryptionData>& encryptionData)
 {
     if (mock) {
         qInfo(E2EE) << "Using a mock pickling key";
-        return QtFuture::makeReadyFuture(PicklingKey::generate());
+        encryptionData =
+            std::make_unique<ConnectionEncryptionData>(connection, PicklingKey::generate());
+        return QtFuture::makeReadyFuture<void>();
     }
 
-    QPromise<PicklingKey> promise;
-    auto futureResult = promise.future();
-    promise.start();
-
     using namespace QKeychain;
-    const auto keychainId = id + "-Pickle"_ls;
-    auto readJob = new ReadPasswordJob(qAppName());
-    readJob->setAutoDelete(true);
+    const auto keychainId = connection->userId() + "-Pickle"_ls;
     qCInfo(MAIN) << "Keychain request: app" << qAppName() << "id" << keychainId;
-    readJob->setKey(keychainId);
-    QObject::connect(readJob, &Job::finished, readJob,
-        [readJob, keychainId, promise = std::move(promise)]() mutable {
-            switch (readJob->error()) {
+
+    return runKeychainJob(new ReadPasswordJob(qAppName()), keychainId)
+        .then([keychainId, &encryptionData, connection](const Job* j) -> QFuture<Job*> {
+            // The future will hold nullptr if the existing pickling key was found and no write is
+            // pending; a pointer to the write job if if a new key was made and is being written;
+            // be cancelled in case of an error.
+            switch (const auto readJob = static_cast<const ReadPasswordJob*>(j); readJob->error()) {
             case Error::NoError: {
                 auto&& data = readJob->binaryData();
                 if (data.size() == PicklingKey::extent) {
                     qDebug(E2EE) << "Successfully loaded pickling key from keychain";
-                    promise.addResult(PicklingKey::fromByteArray(std::move(data)));
-                } else {
-                    qCritical(E2EE)
-                        << "The pickling key loaded from" << keychainId << "has length"
-                        << data.size() << "but the library expected" << PicklingKey::extent;
-                    promise.future().cancel();
+                    encryptionData = std::make_unique<ConnectionEncryptionData>(
+                        connection, PicklingKey::fromByteArray(std::move(data)));
+                    return QtFuture::makeReadyFuture<Job*>(nullptr);
                 }
-                promise.finish();
-                return;
+                qCritical(E2EE)
+                    << "The pickling key loaded from" << keychainId << "has length"
+                    << data.size() << "but the library expected" << PicklingKey::extent;
+                return {};
             }
             case Error::EntryNotFound: {
                 auto&& picklingKey = PicklingKey::generate();
                 auto writeJob = new WritePasswordJob(qAppName());
-                writeJob->setAutoDelete(true);
-                writeJob->setKey(keychainId);
                 writeJob->setBinaryData(picklingKey.viewAsByteArray());
+                encryptionData = std::make_unique<ConnectionEncryptionData>(
+                    connection, std::move(picklingKey)); // the future may still get cancelled
                 qDebug(E2EE) << "Saving a new pickling key to the keychain";
-                promise.addResult(std::move(picklingKey)); // but don't finish yet
-                QObject::connect(writeJob, &Job::finished, writeJob,
-                                 [promise = std::move(promise), writeJob]() mutable {
-                                     if (writeJob->error() != Error::NoError) {
-                                         qCritical(E2EE)
-                                             << "Could not save pickling key to keychain: "
-                                             << writeJob->errorString();
-                                         promise.future().cancel();
-                                     } else
-                                         promise.finish();
-                                 });
-                writeJob->start();
-                return;
+                return runKeychainJob(writeJob, keychainId);
             }
             default:
                 qWarning(E2EE) << "Error loading pickling key - please fix your keychain:"
                                << readJob->errorString();
-                promise.future().cancel();
+            }
+            return {};
+        })
+        .unwrap()
+        .then([](QFuture<Job*> writeFuture) {
+            if (const Job* const writeJob = writeFuture.result();
+                writeJob && writeJob->error() != Error::NoError) //
+            {
+                qCritical(E2EE) << "Could not save pickling key to keychain: "
+                                << writeJob->errorString();
+                writeFuture.cancel();
             }
         });
-    readJob->start();
-    return futureResult;
 }
 
-QFuture<std::unique_ptr<ConnectionEncryptionData>> ConnectionEncryptionData::setup(
-    Connection* connection, bool mock)
+QFuture<bool> ConnectionEncryptionData::setup(Connection* connection, bool mock,
+                                              std::unique_ptr<ConnectionEncryptionData>& result)
 {
-    return setupPicklingKey(connection->userId(), mock)
-        .then([connection, mock](QFuture<PicklingKey> ft) {
-            auto encryptionData =
-                std::make_unique<ConnectionEncryptionData>(connection, ft.takeResult());
+    return setupPicklingKey(connection, mock, result)
+        .then([connection, mock, &result] {
             if (mock) {
-                encryptionData->database.clear();
-                encryptionData->olmAccount.setupNewAccount();
-                return encryptionData;
+                result->database.clear();
+                result->olmAccount.setupNewAccount();
+                return true;
             }
-            if (const auto outcome =
-                    encryptionData->database.setupOlmAccount(encryptionData->olmAccount)) {
+            if (const auto outcome = result->database.setupOlmAccount(result->olmAccount)) {
                 if (outcome == OLM_SUCCESS) {
                     qCDebug(E2EE) << "The existing Olm account successfully unpickled";
-                    return encryptionData;
+                    return true;
                 }
 
                 qCritical(E2EE) << "Could not unpickle Olm account for" << connection->objectName();
-                ft.cancel();
-                return std::unique_ptr<ConnectionEncryptionData>{};
+                return false;
             }
             qCDebug(E2EE) << "A new Olm account has been created, uploading device keys";
-            connection->callApi<UploadKeysJob>(encryptionData->olmAccount.deviceKeys())
+            connection->callApi<UploadKeysJob>(result->olmAccount.deviceKeys())
                 .then(connection,
-                    // eData is meant to have the same lifetime as connection so it's safe
-                    // to pass an unguarded pointer to encryption data here
-                    [connection, eData = encryptionData.get()] {
-                        eData->trackedUsers += connection->userId();
-                        eData->outdatedUsers += connection->userId();
-                        eData->encryptionUpdateRequired = true;
+                    [connection, &result] {
+                        result->trackedUsers += connection->userId();
+                        result->outdatedUsers += connection->userId();
+                        result->encryptionUpdateRequired = true;
                     },
                     [](auto* job) {
                         qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
                     });
-            return encryptionData;
+            return true;
         })
         .onCanceled([connection] {
             qCritical(E2EE) << "Could not setup E2EE for" << connection->objectName();
-            return std::unique_ptr<ConnectionEncryptionData>{};
+            return false;
         });
 }
 
