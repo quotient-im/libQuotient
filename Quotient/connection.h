@@ -659,7 +659,7 @@ public Q_SLOTS:
     //! Similar to loginWithPassword(), this method checks that the homeserver
     //! URL is valid and tries to resolve it from the MXID in case it is not.
     //! \since 0.7.2
-    void assumeIdentity(const QString& mxId, const QString& accessToken);
+    void assumeIdentity(const QString& mxId, const QString& deviceId, const QString& accessToken);
 
     //! \brief Request supported spec versions from the homeserver
     //!
@@ -921,6 +921,10 @@ Q_SIGNALS:
     //! The account does not yet have cross-signing keys. The client should ask the user
     //! whether to create them now and then set them up, if desired.
     void crossSigningSetupRequired();
+
+    //! The connection is ready to be used. Most notably, the fundamental e2ee data is loaded.
+    //! This does not mean that the server was reached, a sync was performed, or the state cache was loaded.
+    void ready();
 
     friend class ::TestCrossSigning;
 protected:
