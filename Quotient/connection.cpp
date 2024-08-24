@@ -172,8 +172,7 @@ void Connection::loginWithToken(const QString& loginToken,
 
 void Connection::assumeIdentity(const QString& mxId, const QString& deviceId, const QString& accessToken)
 {
-    d->data->setDeviceId(deviceId);
-    d->completeSetup(mxId);
+    d->completeSetup(mxId, deviceId);
     d->ensureHomeserver(mxId).then([this, mxId, accessToken] {
         d->data->setToken(accessToken.toLatin1());
         callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
@@ -289,24 +288,22 @@ void Connection::Private::dropAccessToken()
 template <typename... LoginArgTs>
 void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
 {
-    auto loginJob =
-            q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...);
-    connect(loginJob, &BaseJob::success, q, [this, loginJob] {
-        data->setToken(loginJob->accessToken().toLatin1());
-        data->setDeviceId(loginJob->deviceId());
-        completeSetup(loginJob->userId());
-        saveAccessTokenToKeychain();
-        if (encryptionData)
-            encryptionData->database.clear();
-    });
-    connect(loginJob, &BaseJob::failure, q, [this, loginJob] {
-        emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
-    });
+    q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...)
+        .onResult([this](const LoginJob* loginJob) {
+            if (loginJob->status().good()) {
+                data->setToken(loginJob->accessToken().toLatin1());
+                completeSetup(loginJob->userId(), loginJob->deviceId());
+                saveAccessTokenToKeychain();
+                if (encryptionData)
+                    encryptionData->database.clear();
+            } else
+                emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
+        });
 }
 
-void Connection::Private::completeSetup(const QString& mxId, bool mock)
+void Connection::Private::completeSetup(const QString& mxId, const QString& deviceId, bool mock)
 {
-    data->setUserId(mxId);
+    data->setIdentity(mxId, deviceId);
     q->setObjectName(data->userId() % u'/' % data->deviceId());
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
@@ -800,7 +797,7 @@ JobHandle<CreateRoomJob> Connection::createRoom(
                                   creationContent, initialState, presetName, isDirect)
         .then(this, [this, invites, isDirect](const QString& roomId) {
             auto* room = provideRoom(roomId, JoinState::Join);
-            if (ALARM_X(!room, "Failed to create a room"))
+            if (QUO_ALARM_X(!room, "Failed to create a room object locally"))
                 return;
 
             emit createdRoom(room);
@@ -818,7 +815,7 @@ void Connection::requestDirectChat(const QString& userId)
 QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
 {
     auto* u = user(otherUserId);
-    if (ALARM_X(!u, u"Couldn't get a user object for" % otherUserId))
+    if (QUO_ALARM_X(!u, u"Couldn't get a user object for" % otherUserId))
         return {};
 
     // There can be more than one DC; find the first valid (existing and
@@ -1924,7 +1921,7 @@ Connection* Connection::makeMockConnection(const QString& mxId,
 {
     auto* c = new Connection;
     c->enableEncryption(enableEncryption);
-    c->d->completeSetup(mxId, true);
+    c->d->completeSetup(mxId, {}, true);
     return c;
 }
 

@@ -64,7 +64,7 @@ void TestOlmUtility::verifySignedOneTimeKey()
     auto utility = olm_utility(utilityBuf);
 
 
-    QByteArray signatureBuf1(sig.length(), '\0');
+    QByteArray signatureBuf1(sig.size(), '\0');
     std::copy(sig.begin(), sig.end(), signatureBuf1.begin());
 
     auto res =

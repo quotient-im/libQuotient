@@ -65,16 +65,17 @@ inline std::pair<int, bool> checkedSize(
 
 // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 // TODO: remove NOLINT brackets once we're on clang-tidy 18
-#define CLAMP_SIZE(SizeVar_, ByteArray_, ...)                                                   \
-    const auto [SizeVar_, ByteArray_##Clamped] =                                                \
-        checkedSize((ByteArray_).size() __VA_OPT__(, ) __VA_ARGS__);                            \
-    if (ALARM_X(ByteArray_##Clamped,                                                            \
-                qPrintable(QStringLiteral(#ByteArray_ " is %1 bytes long, too much for OpenSSL" \
-                                                      " and overall suspicious")                \
-                               .arg((ByteArray_).size()))))                                     \
-        return SslPayloadTooLong;                                                               \
-    do {} while (false)                                                                         \
-    // End of macro
+#define CLAMP_SIZE(SizeVar_, ByteArray_, ...)                                             \
+    const auto [SizeVar_, ByteArray_##Clamped] =                                          \
+        checkedSize((ByteArray_).size() __VA_OPT__(, ) __VA_ARGS__);                      \
+    if (QUO_ALARM_X(ByteArray_##Clamped,                                                  \
+                    QStringLiteral(                                                       \
+                        #ByteArray_                                                       \
+                        " is %1 bytes long, too much for OpenSSL and overall suspicious") \
+                        .arg((ByteArray_).size())))                                       \
+        return SslPayloadTooLong;                                                         \
+    do {                                                                                  \
+    } while (false) // End of macro
 
 #define CALL_OPENSSL(Call_)                                                    \
     do {                                                                       \
@@ -106,7 +107,7 @@ SslExpected<QByteArray> Quotient::aesCtr256Encrypt(const QByteArray& plaintext,
     CLAMP_SIZE(plaintextSize, plaintext);
 
     const ContextHolder ctx(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
-    if (ALARM_X(!ctx, QByteArrayLiteral("failed to create SSL context: ")
+    if (QUO_ALARM_X(!ctx, QByteArrayLiteral("failed to create SSL context: ")
                           + ERR_error_string(ERR_get_error(), nullptr)))
         return ERR_get_error();
 
@@ -311,7 +312,7 @@ std::vector<byte_t> Quotient::base58Decode(const QByteArray& encoded)
         }
     }
 
-    for (auto i = 0; i < encoded.length() && encoded[i] == '1'; ++i) {
+    for (auto i = 0; i < encoded.size() && encoded[i] == '1'; ++i) {
         result.push_back(0x0);
     }
 
@@ -323,7 +324,8 @@ QByteArray Quotient::sign(const QByteArray& key, const QByteArray& data)
 {
     auto context = makeCStruct(olm_pk_signing, olm_pk_signing_size, olm_clear_pk_signing);
     QByteArray pubKey(olm_pk_signing_public_key_length(), 0);
-    olm_pk_signing_key_from_seed(context.get(), pubKey.data(), pubKey.length(), key.data(), key.length());
+    olm_pk_signing_key_from_seed(context.get(), pubKey.data(), unsignedSize(pubKey), key.data(),
+                                 unsignedSize(key));
     Q_ASSERT(context);
 
     const auto signatureLength = olm_pk_signature_length();

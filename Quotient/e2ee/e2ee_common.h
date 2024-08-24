@@ -182,8 +182,6 @@ public:
         return { std::bit_cast<const char*>(data_), untilPos };
     }
 
-    // TODO, 0.9: merge the overloads
-
     QByteArray toBase64() const { return viewAsByteArray().toBase64(); }
     QByteArray toBase64(QByteArray::Base64Options options) const
     {
@@ -218,11 +216,7 @@ public:
     static_assert(extent == std::dynamic_extent
                   || (extent < TotalSecureHeapSize / 2 && extent % 4 == 0));
 
-    FixedBuffer() // TODO, 0.9: merge with the next constructor
-        requires(extent != std::dynamic_extent)
-        : FixedBuffer(FillWithZeros)
-    {}
-    explicit FixedBuffer(InitOptions fillMode)
+    explicit FixedBuffer(InitOptions fillMode = FillWithZeros)
         requires(extent != std::dynamic_extent)
         : FixedBufferBase(ExtentN, fillMode)
     {}

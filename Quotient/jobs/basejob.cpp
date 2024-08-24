@@ -9,6 +9,7 @@
 #include "../connectiondata.h"
 #include "../networkaccessmanager.h"
 
+#include <QtCore/QLibraryInfo>
 #include <QtCore/QMetaEnum>
 #include <QtCore/QPointer>
 #include <QtCore/QRegularExpression>
@@ -467,9 +468,9 @@ bool checkContentType(const QByteArray& type, const QByteArrayList& patterns)
             return true;
 
         auto patternParts = pattern.split('/');
-        if (ALARM_X(patternParts.size() > 2,
-                    "Expected content type should have up to two /-separated parts; violating pattern: "
-                        % pattern))
+        if (QUO_ALARM_X(patternParts.size() > 2, "Expected content type should have up to two "
+                                                 "parts separated by `/`; violating pattern: "
+                                                     % pattern))
             return false;
 
         if (ctype.split('/').front() == patternParts.front()
@@ -806,6 +807,8 @@ void BaseJob::abandon()
     if (d->reply)
         d->reply->disconnect(this);
     emit finished(this);
+    if (QLibraryInfo::version() < QVersionNumber(6, 5))
+        future().cancel(); // Qt 6.4 didn't do it on the promise destruction, see QTBUG-103992
 
     deleteLater(); // The promise will cancel itself on deletion
 }

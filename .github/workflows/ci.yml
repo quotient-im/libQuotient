@@ -192,7 +192,7 @@ jobs:
         TEST_USER: ${{ secrets.TEST_USER }}
         TEST_PWD: ${{ secrets.TEST_PWD }}
         QT_ASSUME_STDERR_HAS_CONSOLE: 1 # Windows needs this for meaningful debug output
-        QT_LOGGING_RULES: 'quotient.main.debug=true;quotient.jobs.debug=true;quotient.events.debug=true'
+        QT_LOGGING_RULES: 'quotient.*.debug=true;quotient.jobs.sync.debug=false;quotient.events.ephemeral.debug=false;quotient.events.state.debug=false;quotient.events.members.debug=false'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
         CTEST_ARGS="--test-dir $BUILD_PATH --output-on-failure"
