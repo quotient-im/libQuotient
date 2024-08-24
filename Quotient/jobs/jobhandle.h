@@ -70,7 +70,7 @@ concept ResultHandler = BoundResultHandler<FnT, JobT> || std::is_member_function
 //! - otherwise, the return value is wrapped in a "normal" QFuture, JobHandle waves you good-bye and
 //!   further continuations will follow pristine QFuture rules.
 template <class JobT>
-class JobHandle : public QPointer<JobT>, public QFuture<JobT*> {
+class QUOTIENT_API JobHandle : public QPointer<JobT>, public QFuture<JobT*> {
 public:
     using pointer_type = QPointer<JobT>;
     using future_value_type = JobT*;
