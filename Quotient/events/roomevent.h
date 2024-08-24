@@ -27,7 +27,17 @@ public:
 
     ~RoomEvent() override; // Don't inline this - see the private section
 
+    //! \brief A convenience function to get a display string for an event ID.
+    //!
+    //! The aim is to give something that can be shown in a UI. Will return id() if not empty,
+    //! otherwise transactionId() will be returned. This is useful when dealing with
+    //! pending events that don't have an event_id yet.
+    //! \sa id(), transactionId()
+    QString displayId() const;
+
+    //! The event_id JSON value for the event.
     QString id() const;
+
     QDateTime originTimestamp() const;
     QString roomId() const;
     QString senderId() const;
@@ -37,7 +47,10 @@ public:
         return _redactedBecause;
     }
     QString redactionReason() const;
+
+    //! The transaction_id JSON value for the event.
     QString transactionId() const;
+
     QString stateKey() const;
 
     //! \brief Fill the pending event object with the room id

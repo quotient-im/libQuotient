@@ -19,6 +19,8 @@ RoomEvent::RoomEvent(const QJsonObject& json) : Event(json)
 
 RoomEvent::~RoomEvent() = default; // Let the smart pointer do its job
 
+QString RoomEvent::displayId() const { return id().isEmpty() ? transactionId() : id(); }
+
 QString RoomEvent::id() const { return fullJson()[EventIdKey].toString(); }
 
 QDateTime RoomEvent::originTimestamp() const
