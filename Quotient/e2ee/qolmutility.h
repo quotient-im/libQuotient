@@ -6,8 +6,6 @@
 
 #include <Quotient/util.h>
 
-#include <olm/error.h>
-
 struct OlmUtility;
 
 namespace Quotient {

@@ -15,8 +15,6 @@
 #include <span>
 #include <variant>
 
-#include <olm/error.h>
-
 namespace Quotient {
 
 constexpr inline auto AlgorithmKeyL = "algorithm"_L1;
