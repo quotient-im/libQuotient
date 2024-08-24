@@ -3,7 +3,6 @@ include(CMakeFindDependencyMacro)
 find_dependency(@Qt@Gui)
 find_dependency(@Qt@Network)
 find_dependency(@Qt@Keychain)
-find_dependency(Olm)
 find_dependency(OpenSSL)
 find_dependency(@Qt@Sql)
 
