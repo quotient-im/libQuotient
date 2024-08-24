@@ -90,9 +90,6 @@ public:
 
     void markKeysAsPublished();
 
-    OlmErrorCode lastErrorCode() const;
-    const char* lastError() const;
-
 Q_SIGNALS:
     void needsSave();
 

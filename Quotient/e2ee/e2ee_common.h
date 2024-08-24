@@ -59,7 +59,7 @@ inline bool isSupportedAlgorithm(const QString& algorithm)
     QOLM_FAIL_OR_LOG_X(lastErrorCode() == (InternalFailureValue_), (Message_), lastError())
 
 template <typename T>
-using QOlmExpected = Expected<T, OlmErrorCode>;
+using QOlmExpected = Expected<T, int>;
 
 //! \brief Initialise a buffer object for use with Olm calls
 //!

@@ -24,9 +24,6 @@ public:
     bool ed25519Verify(const QByteArray& key, const QByteArray& message,
                        QByteArray signature) const;
 
-    OlmErrorCode lastErrorCode() const;
-    const char* lastError() const;
-
 private:
     CStructPtr<OlmUtility> olmDataHolder;
 };

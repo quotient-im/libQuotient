@@ -42,9 +42,6 @@ public:
         return lhs.sessionId() < rhs.sessionId();
     }
 
-    OlmErrorCode lastErrorCode() const;
-    const char* lastError() const;
-
     explicit QOlmSession(rust::Box<olm::Session> session);
 private:
     QOlmSession();

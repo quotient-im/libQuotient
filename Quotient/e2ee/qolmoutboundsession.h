@@ -47,9 +47,6 @@ public:
     QDateTime creationTime() const;
     void setCreationTime(const QDateTime& creationTime);
 
-    OlmErrorCode lastErrorCode() const;
-    const char* lastError() const;
-
 private:
     int m_messageCount = 0;
     QDateTime m_creationTime = QDateTime::currentDateTime();

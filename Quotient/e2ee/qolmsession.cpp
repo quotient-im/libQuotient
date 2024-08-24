@@ -54,7 +54,7 @@ QOlmExpected<QByteArray> QOlmSession::tryDecrypt(const QOlmMessage& message)
     });
     auto decryptedResult = m_session->decrypt(*olmMessage.into_raw());
     if (decryptedResult->has_error()) {
-        return OlmErrorCode::OLM_BAD_MESSAGE_MAC; //TODO return proper error
+        return 1; //TODO return correct error
     }
     auto decrypted = olm::session_decrypt_result_value(std::move(decryptedResult));
     return QByteArray(decrypted.data(), decrypted.size());
