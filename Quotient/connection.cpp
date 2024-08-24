@@ -321,6 +321,7 @@ void Connection::Private::completeSetup(const QString& mxId, const QString& devi
         ConnectionEncryptionData::setup(q, mock, encryptionData).then([this](bool successful) {
             if (!successful || !encryptionData)
                 useEncryption = false;
+            //TODO connect needssave -> saveOlmAccount?
 
             emit q->encryptionChanged(useEncryption);
             emit q->stateChanged();
@@ -1098,7 +1099,7 @@ bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 
 QOlmAccount* Connection::olmAccount() const
 {
-    return d->encryptionData ? &d->encryptionData->olmAccount : nullptr;
+    return d->encryptionData ? d->encryptionData->olmAccount : nullptr;
 }
 
 SyncJob* Connection::syncJob() const { return d->syncJob; }

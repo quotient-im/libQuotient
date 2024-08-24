@@ -15,10 +15,9 @@
 #include <openssl/sha.h>
 #include <openssl/err.h>
 
-#include <olm/pk.h>
-#include <olm/olm.h>
-
 #include <source_location>
+
+#include <vodozemac/vodozemac.h>
 
 using namespace Quotient;
 
@@ -225,58 +224,61 @@ QOlmExpected<QByteArray> Quotient::curve25519AesSha2Decrypt(
     QByteArray ciphertext, const QByteArray& privateKey,
     const QByteArray& ephemeral, const QByteArray& mac)
 {
-    auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
-    Q_ASSERT(context);
-
-    // NB: The produced public key is not actually used, the call is only
-    //     to fill the context with the private key for olm_pk_decrypt()
-    if (std::vector<uint8_t> publicKey(olm_pk_key_length());
-        olm_pk_key_from_private(context.get(), publicKey.data(),
-                                publicKey.size(), privateKey.data(),
-                                unsignedSize(privateKey))
-        == olm_error())
-        return olm_pk_decryption_last_error_code(context.get());
-
-    auto plaintext = byteArrayForOlm(olm_pk_max_plaintext_length(context.get(), unsignedSize(ciphertext)));
-    const auto resultSize = olm_pk_decrypt(context.get(), ephemeral.data(), unsignedSize(ephemeral), mac.data(), unsignedSize(mac), ciphertext.data(), unsignedSize(ciphertext), plaintext.data(), unsignedSize(plaintext));
-    if (resultSize == olm_error())
-        return olm_pk_decryption_last_error_code(context.get());
-
-    const auto checkedResultSize = checkedSize(resultSize).first;
-    plaintext.resize(checkedResultSize);
-    return plaintext;
+    // auto context = makeCStruct(olm_pk_decryption, olm_pk_decryption_size, olm_clear_pk_decryption);
+    // Q_ASSERT(context);
+    //
+    // // NB: The produced public key is not actually used, the call is only
+    // //     to fill the context with the private key for olm_pk_decrypt()
+    // if (std::vector<uint8_t> publicKey(olm_pk_key_length());
+    //     olm_pk_key_from_private(context.get(), publicKey.data(),
+    //                             publicKey.size(), privateKey.data(),
+    //                             unsignedSize(privateKey))
+    //     == olm_error())
+    //     return olm_pk_decryption_last_error_code(context.get());
+    //
+    // auto plaintext = byteArrayForOlm(olm_pk_max_plaintext_length(context.get(), unsignedSize(ciphertext)));
+    // const auto resultSize = olm_pk_decrypt(context.get(), ephemeral.data(), unsignedSize(ephemeral), mac.data(), unsignedSize(mac), ciphertext.data(), unsignedSize(ciphertext), plaintext.data(), unsignedSize(plaintext));
+    // if (resultSize == olm_error())
+    //     return olm_pk_decryption_last_error_code(context.get());
+    //
+    // const auto checkedResultSize = checkedSize(resultSize).first;
+    // plaintext.resize(checkedResultSize);
+    // return plaintext;
+    //TODO
+    return {};
 }
 
 QOlmExpected<Curve25519Encrypted> Quotient::curve25519AesSha2Encrypt(
     const QByteArray& plaintext, const QByteArray& publicKey)
 {
-    auto context = makeCStruct(olm_pk_encryption, olm_pk_encryption_size,
-                               olm_clear_pk_encryption);
-
-    if (olm_pk_encryption_set_recipient_key(context.get(), publicKey.data(),
-                                            unsignedSize(publicKey))
-        == olm_error())
-        return olm_pk_encryption_last_error_code(context.get());
-
-    auto ephemeral = byteArrayForOlm(olm_pk_key_length());
-    auto mac = byteArrayForOlm(olm_pk_mac_length(context.get()));
-    auto ciphertext = byteArrayForOlm(
-        olm_pk_ciphertext_length(context.get(), unsignedSize(plaintext)));
-
-    const auto randomLength = olm_pk_encrypt_random_length(context.get());
-    if (olm_pk_encrypt(context.get(), plaintext.data(), unsignedSize(plaintext),
-                       ciphertext.data(), unsignedSize(ciphertext), mac.data(),
-                       unsignedSize(mac), ephemeral.data(),
-                       unsignedSize(ephemeral), getRandom(randomLength).data(),
-                       randomLength)
-        == olm_error())
-        return olm_pk_encryption_last_error_code(context.get());
-
-    return Curve25519Encrypted {
-        .ciphertext = ciphertext,
-        .mac = mac,
-        .ephemeral = ephemeral,
-    };
+    // auto context = makeCStruct(olm_pk_encryption, olm_pk_encryption_size,
+    //                            olm_clear_pk_encryption);
+    //
+    // if (olm_pk_encryption_set_recipient_key(context.get(), publicKey.data(),
+    //                                         unsignedSize(publicKey))
+    //     == olm_error())
+    //     return olm_pk_encryption_last_error_code(context.get());
+    //
+    // auto ephemeral = byteArrayForOlm(olm_pk_key_length());
+    // auto mac = byteArrayForOlm(olm_pk_mac_length(context.get()));
+    // auto ciphertext = byteArrayForOlm(
+    //     olm_pk_ciphertext_length(context.get(), unsignedSize(plaintext)));
+    //
+    // const auto randomLength = olm_pk_encrypt_random_length(context.get());
+    // if (olm_pk_encrypt(context.get(), plaintext.data(), unsignedSize(plaintext),
+    //                    ciphertext.data(), unsignedSize(ciphertext), mac.data(),
+    //                    unsignedSize(mac), ephemeral.data(),
+    //                    unsignedSize(ephemeral), getRandom(randomLength).data(),
+    //                    randomLength)
+    //     == olm_error())
+    //     return olm_pk_encryption_last_error_code(context.get());
+    //
+    // return Curve25519Encrypted {
+    //     .ciphertext = ciphertext,
+    //     .mac = mac,
+    //     .ephemeral = ephemeral,
+    // };
+    return {}; //TODO
 }
 
 std::vector<byte_t> Quotient::base58Decode(const QByteArray& encoded)
@@ -321,18 +323,19 @@ std::vector<byte_t> Quotient::base58Decode(const QByteArray& encoded)
 
 QByteArray Quotient::sign(const QByteArray& key, const QByteArray& data)
 {
-    auto context = makeCStruct(olm_pk_signing, olm_pk_signing_size, olm_clear_pk_signing);
-    QByteArray pubKey(olm_pk_signing_public_key_length(), 0);
-    olm_pk_signing_key_from_seed(context.get(), pubKey.data(), unsignedSize(pubKey), key.data(),
-                                 unsignedSize(key));
-    Q_ASSERT(context);
-
-    const auto signatureLength = olm_pk_signature_length();
-    auto signatureBuffer = byteArrayForOlm(signatureLength);
-
-    if (olm_pk_sign(context.get(), asCBytes(data).data(), unsignedSize(data), asWritableCBytes(signatureBuffer).data(), signatureLength)
-        == olm_error())
-        QOLM_INTERNAL_ERROR_X("Failed to sign a message", olm_pk_signing_last_error(context.get()));
-
-    return signatureBuffer;
+    // auto context = makeCStruct(olm_pk_signing, olm_pk_signing_size, olm_clear_pk_signing);
+    // QByteArray pubKey(olm_pk_signing_public_key_length(), 0);
+    // olm_pk_signing_key_from_seed(context.get(), pubKey.data(), unsignedSize(pubKey), key.data(),
+    //                              unsignedSize(key));
+    // Q_ASSERT(context);
+    //
+    // const auto signatureLength = olm_pk_signature_length();
+    // auto signatureBuffer = byteArrayForOlm(signatureLength);
+    //
+    // if (olm_pk_sign(context.get(), asCBytes(data).data(), unsignedSize(data), asWritableCBytes(signatureBuffer).data(), signatureLength)
+    //     == olm_error())
+    //     QOLM_INTERNAL_ERROR_X("Failed to sign a message", olm_pk_signing_last_error(context.get()));
+    //
+    // return signatureBuffer;
+    return {}; //TODO
 }

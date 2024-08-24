@@ -11,122 +11,67 @@
 #include "../csapi/keys.h"
 
 #include <QtCore/QRandomGenerator>
-
-#include <olm/olm.h>
+#include <QtCore/QTimer>
 
 #include <span>
 
+#include <vodozemac/vodozemac.h>
+
 using namespace Quotient;
 
-// Convert olm error to enum
-OlmErrorCode QOlmAccount::lastErrorCode() const {
-    return olm_account_last_error_code(olmData);
-}
-
-const char* QOlmAccount::lastError() const
-{
-    return olm_account_last_error(olmData);
-}
-
-QOlmExpected<QOlmSession> QOlmAccount::createInbound(
-    QOlmMessage preKeyMessage, const QByteArray& theirIdentityKey) const
-{
-    if (preKeyMessage.type() != QOlmMessage::PreKey) {
-        qCCritical(E2EE) << "The message is not a pre-key; will try to create "
-                            "the inbound session anyway";
-    }
-
-    QOlmSession session{};
-
-    // std::span has size_type that fits standard library and Olm, avoiding
-    // the warning noise about integer signedness/precision
-    const std::span oneTimeKeyMessageBuf{ preKeyMessage.begin(),
-                                          preKeyMessage.end() };
-    const std::span theirIdentityKeyBuf{ theirIdentityKey.cbegin(),
-                                         theirIdentityKey.cend() };
-    const auto error =
-        theirIdentityKey.isEmpty()
-            ? olm_create_inbound_session(session.olmData, olmData,
-                                         oneTimeKeyMessageBuf.data(),
-                                         oneTimeKeyMessageBuf.size())
-            : olm_create_inbound_session_from(session.olmData, olmData,
-                                              theirIdentityKeyBuf.data(),
-                                              theirIdentityKeyBuf.size(),
-                                              oneTimeKeyMessageBuf.data(),
-                                              oneTimeKeyMessageBuf.size());
-
-    if (error == olm_error()) {
-        qCWarning(E2EE) << "Error when creating inbound session"
-                        << session.lastError();
-        return session.lastErrorCode();
-    }
-
-    return session;
-}
-
-QOlmAccount::QOlmAccount(QString userId, QString deviceId, QObject* parent)
+QOlmAccount::QOlmAccount(QObject* parent)
     : QObject(parent)
-    , olmDataHolder(makeCStruct(olm_account, olm_account_size, olm_clear_account))
-    , m_userId(std::move(userId))
-    , m_deviceId(std::move(deviceId))
+    , olmData(olm::new_account())
 {}
 
-void QOlmAccount::setupNewAccount()
-{
-    if (const auto randomLength = olm_create_account_random_length(olmData);
-        olm_create_account(olmData, getRandom(randomLength).data(), randomLength)
-        == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to setup a new account");
+QOlmAccount::QOlmAccount(rust::Box<olm::Account> account, QObject* parent)
+    : QObject(parent)
+    , olmData(std::move(account))
+{}
 
-    emit needsSave();
+QOlmAccount *QOlmAccount::newAccount(QObject *parent, const QString& userId, const QString& deviceId)
+{
+    auto account = new QOlmAccount(parent);
+    account->m_userId = userId;
+    account->m_deviceId = deviceId;
+    QTimer::singleShot(0, account, &QOlmAccount::needsSave);
+    return account;
 }
 
-OlmErrorCode QOlmAccount::unpickle(QByteArray&& pickled, const PicklingKey& key)
+//TODO set user and device id
+QOlmAccount *QOlmAccount::unpickle(QByteArray&& pickled, const PicklingKey& key, QObject *parent)
 {
-    if (olm_unpickle_account(olmData, key.data(), key.size(), pickled.data(),
-                             unsignedSize(pickled))
-        == olm_error()) {
-        // Probably log the user out since we have no way of getting to the keys
-        return lastErrorCode();
-    }
-    return OLM_SUCCESS;
+    //TODO: This is terrible :(
+    std::array<std::uint8_t, 32> _key;
+    std::copy(key.data(), key.data() + 32, _key.begin());
+    auto account = olm::account_from_pickle(rust::String(pickled.data(), pickled.size()), _key);
+    return new QOlmAccount(std::move(account));
 }
 
 QByteArray QOlmAccount::pickle(const PicklingKey& key) const
 {
-    const auto pickleLength = olm_pickle_account_length(olmData);
-    auto pickleBuffer = byteArrayForOlm(pickleLength);
-    if (olm_pickle_account(olmData, key.data(), key.size(),
-                           pickleBuffer.data(), pickleLength)
-        == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to pickle Olm account "_L1 + accountId());
-
-    return pickleBuffer;
+    //TODO: This is terrible :(
+    std::array<std::uint8_t, 32> _key;
+    std::copy(key.data(), key.data() + 32, _key.begin());
+    auto pickle = olmData->pickle(_key);
+    return {pickle.data(), (qsizetype) pickle.size()};
 }
 
 IdentityKeys QOlmAccount::identityKeys() const
 {
-    const auto keyLength = olm_account_identity_keys_length(olmData);
-    auto keyBuffer = byteArrayForOlm(keyLength);
-    if (olm_account_identity_keys(olmData, keyBuffer.data(), keyLength)
-        == olm_error()) {
-        QOLM_INTERNAL_ERROR("Failed to get "_L1 % accountId() % " identity keys"_L1);
-    }
-    const auto key = QJsonDocument::fromJson(keyBuffer).object();
-    return { key.value("curve25519"_L1).toString(), key.value("ed25519"_L1).toString() };
+    const auto &edKeyRS = olmData->ed25519_key()->to_base64();
+    const auto &curveKeyRS = olmData->curve25519_key()->to_base64();
+
+    auto edKey = QString::fromLatin1(QByteArray(edKeyRS.data(), edKeyRS.size()));
+    auto curveKey = QString::fromLatin1(QByteArray(curveKeyRS.data(), curveKeyRS.size()));
+
+    return { curveKey, edKey };
 }
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
 {
-    const auto signatureLength = olm_account_signature_length(olmData);
-    auto signatureBuffer = byteArrayForOlm(signatureLength);
-
-    if (olm_account_sign(olmData, message.data(), unsignedSize(message),
-                         signatureBuffer.data(), signatureLength)
-        == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to sign a message");
-
-    return signatureBuffer;
+    auto signature = olmData->sign(::rust::Str(message.data(), message.size()))->to_base64();
+    return {signature.data(), (qsizetype) signature.size()};
 }
 
 QByteArray QOlmAccount::sign(const QJsonObject &message) const
@@ -148,60 +93,37 @@ QByteArray QOlmAccount::signIdentityKeys() const
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const
 {
-    return olm_account_max_number_of_one_time_keys(olmData);
+    return olmData->max_number_of_one_time_keys();
 }
 
-size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
+void QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
 {
-    const auto randomLength =
-        olm_account_generate_one_time_keys_random_length(olmData, numberOfKeys);
-    const auto result = olm_account_generate_one_time_keys(
-        olmData, numberOfKeys, getRandom(randomLength).data(), randomLength);
-
-    if (result == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to generate one-time keys for account "_L1 + accountId());
-
-    emit needsSave();
-    return result;
+    olmData->generate_one_time_keys(numberOfKeys);
 }
 
 UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
 {
-    const auto oneTimeKeyLength = olm_account_one_time_keys_length(olmData);
-    QByteArray oneTimeKeysBuffer(static_cast<int>(oneTimeKeyLength), '\0');
+    const auto keys = olmData->one_time_keys();
 
-    if (olm_account_one_time_keys(olmData, oneTimeKeysBuffer.data(),
-                                  oneTimeKeyLength)
-        == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to obtain one-time keys for account"_L1 % accountId());
-
-    const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     UnsignedOneTimeKeys oneTimeKeys;
-    fromJson(json, oneTimeKeys.keys);
+    for (size_t i = 0; i < keys.size(); i++) {
+        auto id = keys[i].key_id;
+        auto key = keys[i].key->to_base64();
+        oneTimeKeys.keys[QString::fromLatin1(QByteArray(id.data(), id.size()))] = QString::fromLatin1(QByteArray(key.data(), key.size()));
+    }
     return oneTimeKeys;
 }
 
 OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
 {
     OneTimeKeys signedOneTimeKeys;
-    for (const auto& [keyId, key] : keys.curve25519().asKeyValueRange())
-        signedOneTimeKeys.insert("signed_curve25519:"_L1 % keyId,
+    for (const auto& [keyId, key] : asKeyValueRange(keys.keys))
+        signedOneTimeKeys.insert("signed_curve25519:"_ls % keyId,
                                  SignedOneTimeKey {
                                      key, m_userId, m_deviceId,
-                                     sign(QJsonObject { { "key"_L1, key } }) });
-    return signedOneTimeKeys;
-}
+                                     sign(QJsonObject { { "key"_ls, key } }) });
 
-OlmErrorCode QOlmAccount::removeOneTimeKeys(const QOlmSession& session)
-{
-    if (olm_remove_one_time_keys(olmData, session.olmData) == olm_error()) {
-        qWarning(E2EE).nospace()
-            << "Failed to remove one-time keys for session "
-            << session.sessionId() << ": "_L1 << lastError();
-        return lastErrorCode();
-    }
-    emit needsSave();
-    return OLM_SUCCESS;
+    return signedOneTimeKeys;
 }
 
 DeviceKeys QOlmAccount::deviceKeys() const
@@ -228,43 +150,38 @@ UploadKeysJob* QOlmAccount::createUploadKeyRequest(
     return new UploadKeysJob(deviceKeys(), signOneTimeKeys(oneTimeKeys));
 }
 
-QOlmExpected<QOlmSession> QOlmAccount::createInboundSession(
-    const QOlmMessage& preKeyMessage) const
+QOlmSession QOlmAccount::createInboundSession(
+    const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage)
 {
-    Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
-    return createInbound(preKeyMessage);
+    rust::Str theirIdentityKeyRS(theirIdentityKey.data(), theirIdentityKey.length());
+    olm::OlmMessageParts parts(preKeyMessage.type(), ::rust::String(preKeyMessage.data(), preKeyMessage.length()));
+    auto theirIdentityKeyResult = types::curve25519_public_key_from_base64(theirIdentityKeyRS);
+    //TODO theirIdentityKeyResult error handling
+    qWarning() << "Creating inbound session";
+    auto result = olmData->create_inbound_session(*types::curve25519_public_key_from_base64_result_value(std::move(theirIdentityKeyResult)), *olm_message_from_parts(parts));
+
+    return QOlmSession(std::move(result.session));
 }
 
-QOlmExpected<QOlmSession> QOlmAccount::createInboundSessionFrom(
-    const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage) const
-{
-    Q_ASSERT(preKeyMessage.type() == QOlmMessage::PreKey);
-    return createInbound(preKeyMessage, theirIdentityKey);
-}
 
-QOlmExpected<QOlmSession> QOlmAccount::createOutboundSession(
-    const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey) const
+QOlmSession QOlmAccount::createOutboundSession(
+    const QByteArray& theirIdentityKey, const QByteArray& theirOneTimeKey)
 {
-    QOlmSession olmOutboundSession{};
-    if (const auto randomLength =
-            olm_create_outbound_session_random_length(olmOutboundSession.olmData);
-        olm_create_outbound_session(olmOutboundSession.olmData, olmData, theirIdentityKey.data(),
-                                    unsignedSize(theirIdentityKey), theirOneTimeKey.data(),
-                                    unsignedSize(theirOneTimeKey), getRandom(randomLength).data(),
-                                    randomLength)
-        == olm_error()) {
-        const auto errorCode = olmOutboundSession.lastErrorCode();
-        QOLM_FAIL_OR_LOG_X(errorCode == OLM_NOT_ENOUGH_RANDOM,
-                           "Failed to create an outbound Olm session"_L1,
-                           olmOutboundSession.lastError());
-        return errorCode;
-    }
-    return olmOutboundSession;
+    ::rust::Str theirIdentityKeyRS(theirIdentityKey.data(), theirIdentityKey.length());
+    auto theirIdentityKeyResult = types::curve25519_public_key_from_base64(theirIdentityKeyRS);
+    //TODO theirIdentityKeyResult error handling
+
+    ::rust::Str theirOneTimeKeyRS(theirOneTimeKey.data(), theirOneTimeKey.length());
+    auto theirOneTimeKeyResult = types::curve25519_public_key_from_base64(theirOneTimeKeyRS);
+    //TODO theirOneTimeKeyResult error handling
+    auto session = olmData->create_outbound_session(*types::curve25519_public_key_from_base64_result_value(std::move(theirIdentityKeyResult)), *types::curve25519_public_key_from_base64_result_value(std::move(theirOneTimeKeyResult)));
+
+    return QOlmSession(std::move(session));
 }
 
 void QOlmAccount::markKeysAsPublished()
 {
-    olm_account_mark_keys_as_published(olmData);
+    olmData->mark_keys_as_published();
     emit needsSave();
 }
 
