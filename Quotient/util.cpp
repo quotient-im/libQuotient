@@ -47,10 +47,10 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
     htmlEscapedText.replace(EmailAddressRegExp,
-                            R"(\1<a href='mailto:\3'>\2\3</a>)"_ls);
-    htmlEscapedText.replace(FullUrlRegExp, R"(<a href='\1'>\1</a>)"_ls);
+                            R"(\1<a href='mailto:\3'>\2\3</a>)"_L1);
+    htmlEscapedText.replace(FullUrlRegExp, R"(<a href='\1'>\1</a>)"_L1);
     htmlEscapedText.replace(MxIdRegExp,
-                            R"(\1<a href='https://matrix.to/#/\2'>\2</a>)"_ls);
+                            R"(\1<a href='https://matrix.to/#/\2'>\2</a>)"_L1);
 }
 
 QString Quotient::sanitized(const QString& plainText)
@@ -77,7 +77,7 @@ QString Quotient::cacheLocation(const QString& dirName)
         QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % u'/'
         % dirName % u'/';
     if (const QDir dir(cachePath); !dir.exists())
-        dir.mkpath("."_ls);
+        dir.mkpath("."_L1);
     return cachePath;
 }
 
@@ -102,8 +102,8 @@ static const auto ServerPartRegEx = QStringLiteral(
 
 QString Quotient::serverPart(const QString& mxId)
 {
-    static const QString re("^[@!#$+].*?:("_ls // Localpart and colon
-                            % ServerPartRegEx % ")$"_ls);
+    static const QString re("^[@!#$+].*?:("_L1 // Localpart and colon
+                            % ServerPartRegEx % ")$"_L1);
     static const QRegularExpression parser(
         re,
         QRegularExpression::UseUnicodePropertiesOption); // Because Asian digits

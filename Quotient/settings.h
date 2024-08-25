@@ -137,7 +137,7 @@ class QUOTIENT_API AccountSettings : public SettingsGroup {
                    WRITE setEncryptionAccountPickle)
 public:
     explicit AccountSettings(const QString& accountId, QObject* parent = nullptr)
-        : SettingsGroup("Accounts/"_ls + accountId, parent)
+        : SettingsGroup("Accounts/"_L1 + accountId, parent)
     {}
 
     QString userId() const;

@@ -61,9 +61,9 @@ using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
 //! Predefined login flows
 namespace LoginFlows {
-    inline const LoginFlow Password { "m.login.password"_ls };
-    inline const LoginFlow SSO { "m.login.sso"_ls };
-    inline const LoginFlow Token { "m.login.token"_ls };
+    inline const LoginFlow Password { "m.login.password"_L1 };
+    inline const LoginFlow SSO { "m.login.sso"_L1 };
+    inline const LoginFlow Token { "m.login.token"_L1 };
 }
 
 // To simplify comparisons of LoginFlows

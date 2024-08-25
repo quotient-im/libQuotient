@@ -16,10 +16,10 @@
 using namespace Quotient;
 
 namespace {
-constexpr inline auto MegolmBackupKey = "m.megolm_backup.v1"_ls;
-constexpr inline auto CrossSigningMasterKey = "m.cross_signing.master"_ls;
-constexpr inline auto CrossSigningSelfSigningKey = "m.cross_signing.self_signing"_ls;
-constexpr inline auto CrossSigningUserSigningKey = "m.cross_signing.user_signing"_ls;
+constexpr inline auto MegolmBackupKey = "m.megolm_backup.v1"_L1;
+constexpr inline auto CrossSigningMasterKey = "m.cross_signing.master"_L1;
+constexpr inline auto CrossSigningSelfSigningKey = "m.cross_signing.self_signing"_L1;
+constexpr inline auto CrossSigningUserSigningKey = "m.cross_signing.user_signing"_L1;
 }
 
 QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultKey,
@@ -33,7 +33,7 @@ QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultK
         return {};
     }
     const auto& encrypted =
-        encryptedKeyObject->contentPart<QJsonObject>("encrypted"_ls).value(defaultKey).toObject();
+        encryptedKeyObject->contentPart<QJsonObject>("encrypted"_L1).value(defaultKey).toObject();
 
     auto hkdfResult = hkdfSha256(decryptionKey, zeroes<32>(), asCBytes<>(keyType));
     if (!hkdfResult.has_value()) {
@@ -42,13 +42,13 @@ QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultK
     }
     const auto& keys = hkdfResult.value();
 
-    auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_ls].toString().toLatin1());
+    auto rawCipher = QByteArray::fromBase64(encrypted["ciphertext"_L1].toString().toLatin1());
     auto result = hmacSha256(keys.mac(), rawCipher);
     if (!result.has_value()) {
         qCWarning(E2EE) << "Failed to calculate HMAC for" << keyType;
         emit error(DecryptionError);
     }
-    if (QString::fromLatin1(result.value().toBase64()) != encrypted["mac"_ls].toString()) {
+    if (QString::fromLatin1(result.value().toBase64()) != encrypted["mac"_L1].toString()) {
         qCWarning(E2EE) << "MAC mismatch for" << keyType;
         emit error(DecryptionError);
         return {};
@@ -56,7 +56,7 @@ QByteArray SSSSHandler::decryptKey(event_type_t keyType, const QString& defaultK
     auto decryptResult =
         aesCtr256Decrypt(rawCipher, keys.aes(),
                          asCBytes<AesBlockSize>(QByteArray::fromBase64(
-                             encrypted["iv"_ls].toString().toLatin1())));
+                             encrypted["iv"_L1].toString().toLatin1())));
     if (!decryptResult.has_value()) {
         qCWarning(E2EE) << "Failed to decrypt for" << keyType;
         emit error(DecryptionError);
@@ -80,20 +80,20 @@ struct SSSSHandler::UnlockData {
     {
         Q_ASSERT(c);
 
-        const auto& defaultKeyEvent = c->accountData("m.secret_storage.default_key"_ls);
+        const auto& defaultKeyEvent = c->accountData("m.secret_storage.default_key"_L1);
         if (!defaultKeyEvent) {
             qCWarning(E2EE) << "SSSS: No default secret storage key";
             return NoKeyError;
         }
-        auto defaultKey = defaultKeyEvent->contentPart<QString>("key"_ls);
-        const auto keyName = "m.secret_storage.key."_ls + defaultKey;
+        auto defaultKey = defaultKeyEvent->contentPart<QString>("key"_L1);
+        const auto keyName = "m.secret_storage.key."_L1 + defaultKey;
         auto* const keyDescription = c->accountData<AesHmacSha2KeyDescription>(keyName);
         if (!keyDescription) {
             qCWarning(E2EE) << "SSSS: No account data for key" << keyName;
             return NoKeyError;
         }
 
-        if (keyDescription->algorithm() != "m.secret_storage.v1.aes-hmac-sha2"_ls) {
+        if (keyDescription->algorithm() != "m.secret_storage.v1.aes-hmac-sha2"_L1) {
             qCWarning(E2EE) << "Unsupported SSSS key algorithm" << keyDescription->algorithm()
                             << " - aborting.";
             return UnsupportedAlgorithmError;
@@ -125,16 +125,16 @@ void SSSSHandler::unlockSSSSWithPassphrase(const QString& passphrase)
         emit error(unlockData.error());
         return;
     }
-    if (unlockData->passphraseInfo["algorithm"_ls].toString() != "m.pbkdf2"_ls) {
+    if (unlockData->passphraseInfo["algorithm"_L1].toString() != "m.pbkdf2"_L1) {
         qCWarning(E2EE) << "Unsupported SSSS passphrase algorithm"
-                        << unlockData->passphraseInfo["algorithm"_ls].toString() << " - aborting.";
+                        << unlockData->passphraseInfo["algorithm"_L1].toString() << " - aborting.";
         emit error(UnsupportedAlgorithmError);
         return;
     }
     if (const auto& result =
             pbkdf2HmacSha512(viewAsByteArray(passphrase.toUtf8()),
-                             unlockData->passphraseInfo["salt"_ls].toString().toLatin1(),
-                             unlockData->passphraseInfo["iterations"_ls].toInt())) {
+                             unlockData->passphraseInfo["salt"_L1].toString().toLatin1(),
+                             unlockData->passphraseInfo["iterations"_L1].toInt())) {
         unlockAndLoad(*unlockData, *result);
         return;
     }
@@ -171,10 +171,10 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
 {
     auto job = m_connection->callApi<GetRoomKeysVersionCurrentJob>();
     connect(job, &BaseJob::finished, this, [this, job, megolmDecryptionKey] {
-        m_connection->database()->storeEncrypted("etag"_ls, job->etag().toLatin1());
+        m_connection->database()->storeEncrypted("etag"_L1, job->etag().toLatin1());
         auto authData = job->authData();
         const auto& userSignaturesObject =
-            authData["signatures"_ls].toObject().value(m_connection->userId()).toObject();
+            authData["signatures"_L1].toObject().value(m_connection->userId()).toObject();
         for (auto it = userSignaturesObject.constBegin(); it != userSignaturesObject.constEnd();
              ++it) {
             const auto& edKey =
@@ -202,10 +202,10 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
                      roomKeyBackup.sessions.asKeyValueRange()) {
                     const auto& sessionData = backupData.sessionData;
                     const auto result =
-                        curve25519AesSha2Decrypt(sessionData["ciphertext"_ls].toString().toLatin1(),
+                        curve25519AesSha2Decrypt(sessionData["ciphertext"_L1].toString().toLatin1(),
                                                  megolmDecryptionKey,
-                                                 sessionData["ephemeral"_ls].toString().toLatin1(),
-                                                 sessionData["mac"_ls].toString().toLatin1());
+                                                 sessionData["ephemeral"_L1].toString().toLatin1(),
+                                                 sessionData["mac"_L1].toString().toLatin1());
                     if (!result.has_value()) {
                         qCWarning(E2EE) << "Failed to decrypt session" << sessionId;
                         emit error(DecryptionError);
@@ -213,8 +213,8 @@ void SSSSHandler::loadMegolmBackup(const QByteArray& megolmDecryptionKey)
                     }
                     const auto data = QJsonDocument::fromJson(result.value()).object();
                     m_connection->room(roomId)->addMegolmSessionFromBackup(
-                        sessionId.toLatin1(), data["session_key"_ls].toString().toLatin1(),
-                        static_cast<uint32_t>(backupData.firstMessageIndex), data["sender_key"_ls].toVariant().toByteArray(), data["sender_claimed_keys"_ls]["ed25519"_ls].toVariant().toByteArray());
+                        sessionId.toLatin1(), data["session_key"_L1].toString().toLatin1(),
+                        static_cast<uint32_t>(backupData.firstMessageIndex), data["sender_key"_L1].toVariant().toByteArray(), data["sender_claimed_keys"_L1]["ed25519"_L1].toVariant().toByteArray());
                 }
             }
             emit finished();

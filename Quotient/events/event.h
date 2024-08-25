@@ -15,10 +15,10 @@ using event_ptr_tt = std::unique_ptr<EventT>;
 
 // === Standard Matrix key names ===
 
-constexpr inline auto TypeKey = "type"_ls;
-constexpr inline auto BodyKey = "body"_ls;
-constexpr inline auto ContentKey = "content"_ls;
-constexpr inline auto SenderKey = "sender"_ls;
+constexpr inline auto TypeKey = "type"_L1;
+constexpr inline auto BodyKey = "body"_L1;
+constexpr inline auto ContentKey = "content"_L1;
+constexpr inline auto SenderKey = "sender"_L1;
 
 using event_type_t = QLatin1String;
 
@@ -457,10 +457,10 @@ public:
 //! <tt>toSnakeCase(PartName_)</tt> (sic) and converts it to the type
 //! \p PartType_. Effectively, the generated method is an equivalent of
 //! \code
-//! contentPart<PartType_>(Quotient::toSnakeCase(#PartName_##_ls));
+//! contentPart<PartType_>(Quotient::toSnakeCase(#PartName_##_L1));
 //! \endcode
 #define QUO_CONTENT_GETTER(PartType_, PartName_) \
-    QUO_CONTENT_GETTER_X(PartType_, PartName_, toSnakeCase(#PartName_##_ls))
+    QUO_CONTENT_GETTER_X(PartType_, PartName_, toSnakeCase(#PartName_##_L1))
 
 /// \brief Define a new event class with a single key-value pair in the content
 ///
@@ -472,7 +472,7 @@ public:
 /// in camelCase, no quotes (an identifier, not a literal).
 #define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_,  \
                             JsonKey_)                                        \
-    constexpr inline auto Name_##ContentKey = JsonKey_##_ls;                 \
+    constexpr inline auto Name_##ContentKey = JsonKey_##_L1;                 \
     class QUOTIENT_API Name_                                                 \
         : public EventTemplate<                                              \
               Name_, Base_,                                                  \

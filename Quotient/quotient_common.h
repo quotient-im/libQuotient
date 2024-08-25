@@ -67,7 +67,7 @@ QUO_DECLARE_FLAGS_NS(MembershipMask, Membership)
 
 constexpr std::array MembershipStrings {
     // The order MUST be the same as the order in the Membership enum
-    "join"_ls, "leave"_ls, "invite"_ls, "knock"_ls, "ban"_ls
+    "join"_L1, "leave"_L1, "invite"_L1, "knock"_L1, "ban"_L1
 };
 
 //! \brief Local user join-state names
@@ -114,7 +114,7 @@ enum class RoomType : uint8_t {
 };
 Q_ENUM_NS(RoomType)
 
-[[maybe_unused]] constexpr std::array RoomTypeStrings { "m.space"_ls };
+[[maybe_unused]] constexpr std::array RoomTypeStrings { "m.space"_L1 };
 
 enum class EncryptionType : uint8_t {
     MegolmV1AesSha2 = 0,

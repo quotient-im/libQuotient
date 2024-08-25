@@ -18,15 +18,15 @@ struct ReplacePair { QLatin1String uriString; char sigil; };
 /// When there are two prefixes for the same sigil, the first matching
 /// entry for a given sigil is used.
 const ReplacePair replacePairs[] = {
-    { "u/"_ls, '@' },
-    { "user/"_ls, '@' },
-    { "roomid/"_ls, '!' },
-    { "r/"_ls, '#' },
-    { "room/"_ls, '#' },
+    { "u/"_L1, '@' },
+    { "user/"_L1, '@' },
+    { "roomid/"_L1, '!' },
+    { "r/"_L1, '#' },
+    { "room/"_L1, '#' },
     // The notation for bare event ids is not proposed in MSC2312 but there's
     // https://github.com/matrix-org/matrix-doc/pull/2644
-    { "e/"_ls, '$' },
-    { "event/"_ls, '$' }
+    { "e/"_L1, '$' },
+    { "event/"_L1, '$' }
 };
 
 }
@@ -36,7 +36,7 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
     if (primaryId.isEmpty())
         primaryType_ = Empty;
     else {
-        setScheme("matrix"_ls);
+        setScheme("matrix"_L1);
         QString pathToBe;
         primaryType_ = Invalid;
         if (primaryId.size() < 2) // There should be something after sigil
@@ -56,7 +56,7 @@ Uri::Uri(QByteArray primaryId, QByteArray secondaryId, QString query)
             }
             auto safeSecondaryId = secondaryId.mid(1);
             safeSecondaryId.replace('/', "%2F");
-            pathToBe += "/event/"_ls + QString::fromUtf8(safeSecondaryId);
+            pathToBe += "/event/"_L1 + QString::fromUtf8(safeSecondaryId);
         }
         setPath(pathToBe, QUrl::TolerantMode);
     }
@@ -84,7 +84,7 @@ static inline auto matrixToUrlRegexInit()
 {
     // See https://matrix.org/docs/spec/appendices#matrix-to-navigation
     const QRegularExpression MatrixToUrlRE {
-        "^/(?<main>[^:]+(:|%3A|%3a)[^/?]+)(/(?<sec>(\\$|%24)[^?]+))?(\\?(?<query>.+))?$"_ls
+        "^/(?<main>[^:]+(:|%3A|%3a)[^/?]+)(/(?<sec>(\\$|%24)[^?]+))?(\\?(?<query>.+))?$"_L1
     };
     Q_ASSERT(MatrixToUrlRE.isValid());
     return MatrixToUrlRE;
@@ -100,7 +100,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
     if (!QUrl::isValid()) // MatrixUri::isValid() checks primaryType_
         return;
 
-    if (scheme() == "matrix"_ls) {
+    if (scheme() == "matrix"_L1) {
         // Check sanity as per https://github.com/matrix-org/matrix-doc/pull/2312
         const auto& urlPath = encodedPath(*this);
         const auto& splitPath = urlPath.split(u'/');
@@ -108,7 +108,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
         case 2:
             break;
         case 4:
-            if (splitPath[2] == "event"_ls || splitPath[2] == "e"_ls)
+            if (splitPath[2] == "event"_L1 || splitPath[2] == "e"_L1)
                 break;
             [[fallthrough]];
         default:
@@ -126,7 +126,7 @@ Uri::Uri(QUrl url) : QUrl(std::move(url))
     }
 
     primaryType_ = NonMatrix; // Default, unless overridden by the code below
-    if (scheme() == "https"_ls && authority() == "matrix.to"_ls) {
+    if (scheme() == "https"_L1 && authority() == "matrix.to"_L1) {
         static const auto MatrixToUrlRE = matrixToUrlRegexInit();
         // matrix.to accepts both literal sigils (as well as & and ? used in
         // its "query" substitute) and their %-encoded forms;
@@ -162,7 +162,7 @@ Uri::Type Uri::type() const { return primaryType_; }
 Uri::SecondaryType Uri::secondaryType() const
 {
     const auto& type2 = pathSegment(*this, 2);
-    return type2 == "event"_ls || type2 == "e"_ls ? EventId : NoSecondaryId;
+    return type2 == "event"_L1 || type2 == "e"_L1 ? EventId : NoSecondaryId;
 }
 
 QUrl Uri::toUrl(UriForm form) const
@@ -174,9 +174,9 @@ QUrl Uri::toUrl(UriForm form) const
         return SLICE(*this, QUrl);
 
     QUrl url;
-    url.setScheme("https"_ls);
-    url.setHost("matrix.to"_ls);
-    url.setPath("/"_ls);
+    url.setScheme("https"_L1);
+    url.setHost("matrix.to"_L1);
+    url.setPath("/"_L1);
     auto fragment = u'/' + primaryId();
     if (const auto& secId = secondaryId(); !secId.isEmpty())
         fragment += u'/' + secId;

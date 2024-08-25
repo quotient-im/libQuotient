@@ -7,7 +7,7 @@
 
 namespace Quotient {
 
-constexpr inline auto PrevContentKey = "prev_content"_ls;
+constexpr inline auto PrevContentKey = "prev_content"_L1;
 
 class QUOTIENT_API StateEvent : public RoomEvent {
 public:
@@ -66,7 +66,7 @@ public:
     struct Prev {
         explicit Prev() = default;
         explicit Prev(const QJsonObject& unsignedJson)
-            : senderId(fromJson<QString>(unsignedJson["prev_sender"_ls]))
+            : senderId(fromJson<QString>(unsignedJson["prev_sender"_L1]))
             , content(fromJson<std::optional<ContentT>>(unsignedJson[PrevContentKey]))
         {}
 

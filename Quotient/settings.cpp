@@ -107,8 +107,8 @@ QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
                    setKeepLoggedIn)
 
 namespace {
-constexpr auto HomeserverKey = "homeserver"_ls;
-constexpr auto EncryptionAccountPickleKey = "encryption_account_pickle"_ls;
+constexpr auto HomeserverKey = "homeserver"_L1;
+constexpr auto EncryptionAccountPickleKey = "encryption_account_pickle"_L1;
 }
 
 QUrl AccountSettings::homeserver() const
@@ -125,13 +125,13 @@ QString AccountSettings::userId() const { return group().section(u'/', -1); }
 
 QByteArray AccountSettings::encryptionAccountPickle()
 {
-    return value("encryption_account_pickle"_ls, QString()).toByteArray();
+    return value("encryption_account_pickle"_L1, QString()).toByteArray();
 }
 
 void AccountSettings::setEncryptionAccountPickle(
     const QByteArray& encryptionAccountPickle)
 {
-    setValue("encryption_account_pickle"_ls, encryptionAccountPickle);
+    setValue("encryption_account_pickle"_L1, encryptionAccountPickle);
 }
 
 void AccountSettings::clearEncryptionAccountPickle()

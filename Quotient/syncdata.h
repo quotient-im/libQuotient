@@ -9,10 +9,10 @@
 
 namespace Quotient {
 
-constexpr inline auto UnreadNotificationsKey = "unread_notifications"_ls;
-constexpr inline auto PartiallyReadCountKey = "x-quotient.since_fully_read_count"_ls;
-constexpr inline auto NewUnreadCountKey = "org.matrix.msc2654.unread_count"_ls;
-constexpr inline auto HighlightCountKey = "highlight_count"_ls;
+constexpr inline auto UnreadNotificationsKey = "unread_notifications"_L1;
+constexpr inline auto PartiallyReadCountKey = "x-quotient.since_fully_read_count"_L1;
+constexpr inline auto NewUnreadCountKey = "org.matrix.msc2654.unread_count"_L1;
+constexpr inline auto HighlightCountKey = "highlight_count"_L1;
 
 //! \brief Room summary, as defined in MSC688
 //!

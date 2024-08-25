@@ -63,7 +63,7 @@ QString User::displayname() const
 
 QString User::fullName() const
 {
-    return displayname().isEmpty() ? id() : (displayname() % " ("_ls % id() % u')');
+    return displayname().isEmpty() ? id() : (displayname() % " ("_L1 % id() % u')');
 }
 
 bool User::isGuest() const

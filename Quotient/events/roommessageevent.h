@@ -163,7 +163,7 @@ namespace EventContent {
         using UrlBasedContent<InfoT>::UrlBasedContent;
         PlayableContent(const QJsonObject& json)
             : UrlBasedContent<InfoT>(json)
-            , duration(FileInfo::originalInfoJson["duration"_ls].toInt())
+            , duration(FileInfo::originalInfoJson["duration"_L1].toInt())
         {}
 
     protected:

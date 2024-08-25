@@ -18,8 +18,8 @@ template<>
 inline EventContent::AliasesEventContent fromJson(const QJsonObject& jo)
 {
     return EventContent::AliasesEventContent {
-        fromJson<QString>(jo["alias"_ls]),
-        fromJson<QStringList>(jo["alt_aliases"_ls])
+        fromJson<QString>(jo["alias"_L1]),
+        fromJson<QStringList>(jo["alt_aliases"_L1])
     };
 }
 template<>

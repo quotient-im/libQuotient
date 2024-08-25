@@ -59,7 +59,7 @@ public:
     QUO_CONTENT_GETTER(int, lifetime)
     QString sdp() const
     {
-        return contentPart<QJsonObject>("offer"_ls).value("sdp"_ls).toString();
+        return contentPart<QJsonObject>("offer"_L1).value("sdp"_L1).toString();
     }
 };
 
@@ -77,7 +77,7 @@ public:
 
     QString sdp() const
     {
-        return contentPart<QJsonObject>("answer"_ls).value("sdp"_ls).toString();
+        return contentPart<QJsonObject>("answer"_L1).value("sdp"_L1).toString();
     }
 };
 

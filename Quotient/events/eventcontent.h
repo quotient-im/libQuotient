@@ -176,16 +176,16 @@ public:
     using InfoT::InfoT;
     explicit UrlBasedContent(const QJsonObject& json)
         : TypedBase(json)
-        , InfoT(QUrl(json["url"_ls].toString()), json["info"_ls].toObject(),
-                json["filename"_ls].toString())
+        , InfoT(QUrl(json["url"_L1].toString()), json["info"_L1].toObject(),
+                json["filename"_L1].toString())
         , thumbnail(FileInfo::originalInfoJson)
     {
-        if (const auto efmJson = json.value("file"_ls).toObject();
+        if (const auto efmJson = json.value("file"_L1).toObject();
                 !efmJson.isEmpty())
             InfoT::source = fromJson<EncryptedFileMetadata>(efmJson);
         // Two small hacks on originalJson to expose mediaIds to QML
-        originalJson.insert("mediaId"_ls, InfoT::mediaId());
-        originalJson.insert("thumbnailMediaId"_ls, thumbnail.mediaId());
+        originalJson.insert("mediaId"_L1, InfoT::mediaId());
+        originalJson.insert("thumbnailMediaId"_L1, thumbnail.mediaId());
     }
 
     QMimeType type() const override { return InfoT::mimeType; }
@@ -202,14 +202,14 @@ protected:
 
     void fillJson(QJsonObject& json) const override
     {
-        Quotient::fillJson(json, { "url"_ls, "file"_ls }, InfoT::source);
+        Quotient::fillJson(json, { "url"_L1, "file"_L1 }, InfoT::source);
         if (!InfoT::originalName.isEmpty())
-            json.insert("filename"_ls, InfoT::originalName);
+            json.insert("filename"_L1, InfoT::originalName);
         auto infoJson = toInfoJson(*this);
         if (thumbnail.isValid())
             thumbnail.dumpTo(infoJson);
         fillInfoJson(infoJson);
-        json.insert("info"_ls, infoJson);
+        json.insert("info"_L1, infoJson);
     }
 };
 

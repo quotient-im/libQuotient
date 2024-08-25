@@ -23,11 +23,11 @@ struct JsonConverter<Membership> {
 using namespace Quotient;
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
-    : membership(fromJson<Membership>(json["membership"_ls]))
-    , isDirect(json["is_direct"_ls].toBool())
-    , displayName(fromJson<std::optional<QString>>(json["displayname"_ls]))
-    , avatarUrl(fromJson<std::optional<QString>>(json["avatar_url"_ls]))
-    , reason(json["reason"_ls].toString())
+    : membership(fromJson<Membership>(json["membership"_L1]))
+    , isDirect(json["is_direct"_L1].toBool())
+    , displayName(fromJson<std::optional<QString>>(json["displayname"_L1]))
+    , avatarUrl(fromJson<std::optional<QString>>(json["avatar_url"_L1]))
+    , reason(json["reason"_L1].toString())
 {
     if (displayName)
         displayName = sanitized(*displayName);

@@ -105,7 +105,7 @@ QString RoomMember::avatarMediaId() const
     } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
         baseUrl = *_member->prevContent()->avatarUrl;
     }
-    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_ls) {
+    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1) {
         return {};
     }
     return baseUrl.toString();
@@ -122,12 +122,12 @@ QUrl RoomMember::avatarUrl() const {
     } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
         baseUrl = *_member->prevContent()->avatarUrl;
     }
-    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_ls) {
+    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1) {
         return {};
     }
 
     const auto mediaUrl = _room->connection()->makeMediaUrl(baseUrl);
-    if (mediaUrl.isValid() && mediaUrl.scheme() == "mxc"_ls) {
+    if (mediaUrl.isValid() && mediaUrl.scheme() == "mxc"_L1) {
         return mediaUrl;
     }
     return {};

@@ -21,14 +21,14 @@ private Q_SLOTS:
     {
         auto userId = QStringLiteral("@bob:localhost");
         auto deviceId = QStringLiteral("DEFABC");
-        auto connection = Connection::makeMockConnection("@carl:localhost"_ls);
-        const auto transactionId = "other_transaction_id"_ls;
-        auto session = connection->startKeyVerificationSession("@alice:localhost"_ls, "ABCDEF"_ls);
+        auto connection = Connection::makeMockConnection("@carl:localhost"_L1);
+        const auto transactionId = "other_transaction_id"_L1;
+        auto session = connection->startKeyVerificationSession("@alice:localhost"_L1, "ABCDEF"_L1);
         session->sendRequest();
         QVERIFY(session->state() == KeyVerificationSession::WAITINGFORREADY);
-        session->handleEvent(KeyVerificationReadyEvent(transactionId, "ABCDEF"_ls, {SasV1Method}));
+        session->handleEvent(KeyVerificationReadyEvent(transactionId, "ABCDEF"_L1, {SasV1Method}));
         QVERIFY(session->state() == KeyVerificationSession::WAITINGFORACCEPT);
-        session->handleEvent(KeyVerificationAcceptEvent(transactionId, "commitment_TODO"_ls));
+        session->handleEvent(KeyVerificationAcceptEvent(transactionId, "commitment_TODO"_L1));
         QVERIFY(session->state() == KeyVerificationSession::WAITINGFORKEY);
         // Since we can't get the events sent by the session, we're limited by what we can test. This means that continuing here would force us to test
         // the exact same path as the other test, which is useless.
@@ -39,8 +39,8 @@ private Q_SLOTS:
     {
         auto userId = QStringLiteral("@bob:localhost");
         auto deviceId = QStringLiteral("DEFABC");
-        const auto transactionId = "trans123action123id"_ls;
-        auto connection = Connection::makeMockConnection("@carl:localhost"_ls);
+        const auto transactionId = "trans123action123id"_L1;
+        auto connection = Connection::makeMockConnection("@carl:localhost"_L1);
         auto session = new KeyVerificationSession(userId, KeyVerificationRequestEvent(transactionId, deviceId, {SasV1Method}, QDateTime::currentDateTime()), connection, false);
         QVERIFY(session->state() == KeyVerificationSession::INCOMING);
         session->sendReady();

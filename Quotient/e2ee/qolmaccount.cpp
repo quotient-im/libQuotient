@@ -101,7 +101,7 @@ QByteArray QOlmAccount::pickle(const PicklingKey& key) const
     if (olm_pickle_account(olmData, key.data(), key.size(),
                            pickleBuffer.data(), pickleLength)
         == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to pickle Olm account "_ls + accountId());
+        QOLM_INTERNAL_ERROR("Failed to pickle Olm account "_L1 + accountId());
 
     return pickleBuffer;
 }
@@ -112,7 +112,7 @@ IdentityKeys QOlmAccount::identityKeys() const
     auto keyBuffer = byteArrayForOlm(keyLength);
     if (olm_account_identity_keys(olmData, keyBuffer.data(), keyLength)
         == olm_error()) {
-        QOLM_INTERNAL_ERROR("Failed to get "_ls % accountId() % " identity keys"_ls);
+        QOLM_INTERNAL_ERROR("Failed to get "_L1 % accountId() % " identity keys"_L1);
     }
     const auto key = QJsonDocument::fromJson(keyBuffer).object();
     return { key.value(QStringLiteral("curve25519")).toString(),
@@ -142,10 +142,10 @@ QByteArray QOlmAccount::signIdentityKeys() const
     const auto keys = identityKeys();
     static const auto& Algorithms = toJson(SupportedAlgorithms);
     return sign(QJsonObject{
-        { "algorithms"_ls, Algorithms },
-        { "user_id"_ls, m_userId },
-        { "device_id"_ls, m_deviceId },
-        { "keys"_ls,
+        { "algorithms"_L1, Algorithms },
+        { "user_id"_L1, m_userId },
+        { "device_id"_L1, m_deviceId },
+        { "keys"_L1,
           QJsonObject{
               { QStringLiteral("curve25519:") + m_deviceId, keys.curve25519 },
               { QStringLiteral("ed25519:") + m_deviceId, keys.ed25519 } } } });
@@ -164,7 +164,7 @@ size_t QOlmAccount::generateOneTimeKeys(size_t numberOfKeys)
         olmData, numberOfKeys, getRandom(randomLength).data(), randomLength);
 
     if (result == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to generate one-time keys for account "_ls + accountId());
+        QOLM_INTERNAL_ERROR("Failed to generate one-time keys for account "_L1 + accountId());
 
     emit needsSave();
     return result;
@@ -178,7 +178,7 @@ UnsignedOneTimeKeys QOlmAccount::oneTimeKeys() const
     if (olm_account_one_time_keys(olmData, oneTimeKeysBuffer.data(),
                                   oneTimeKeyLength)
         == olm_error())
-        QOLM_INTERNAL_ERROR("Failed to obtain one-time keys for account"_ls % accountId());
+        QOLM_INTERNAL_ERROR("Failed to obtain one-time keys for account"_L1 % accountId());
 
     const auto json = QJsonDocument::fromJson(oneTimeKeysBuffer).object();
     UnsignedOneTimeKeys oneTimeKeys;
@@ -190,10 +190,10 @@ OneTimeKeys QOlmAccount::signOneTimeKeys(const UnsignedOneTimeKeys &keys) const
 {
     OneTimeKeys signedOneTimeKeys;
     for (const auto& [keyId, key] : keys.curve25519().asKeyValueRange())
-        signedOneTimeKeys.insert("signed_curve25519:"_ls % keyId,
+        signedOneTimeKeys.insert("signed_curve25519:"_L1 % keyId,
                                  SignedOneTimeKey {
                                      key, m_userId, m_deviceId,
-                                     sign(QJsonObject { { "key"_ls, key } }) });
+                                     sign(QJsonObject { { "key"_L1, key } }) });
     return signedOneTimeKeys;
 }
 
@@ -202,7 +202,7 @@ OlmErrorCode QOlmAccount::removeOneTimeKeys(const QOlmSession& session)
     if (olm_remove_one_time_keys(olmData, session.olmData) == olm_error()) {
         qWarning(E2EE).nospace()
             << "Failed to remove one-time keys for session "
-            << session.sessionId() << ": "_ls << lastError();
+            << session.sessionId() << ": "_L1 << lastError();
         return lastErrorCode();
     }
     emit needsSave();
@@ -219,10 +219,10 @@ DeviceKeys QOlmAccount::deviceKeys() const
         .userId = m_userId,
         .deviceId = m_deviceId,
         .algorithms = Algorithms,
-        .keys{ { "curve25519:"_ls + m_deviceId, idKeys.curve25519 },
-               { "ed25519:"_ls + m_deviceId, idKeys.ed25519 } },
+        .keys{ { "curve25519:"_L1 + m_deviceId, idKeys.curve25519 },
+               { "ed25519:"_L1 + m_deviceId, idKeys.ed25519 } },
         .signatures{ { m_userId,
-                       { { "ed25519:"_ls + m_deviceId,
+                       { { "ed25519:"_L1 + m_deviceId,
                            QString::fromLatin1(signIdentityKeys()) } } } }
     };
 }
@@ -260,7 +260,7 @@ QOlmExpected<QOlmSession> QOlmAccount::createOutboundSession(
         == olm_error()) {
         const auto errorCode = olmOutboundSession.lastErrorCode();
         QOLM_FAIL_OR_LOG_X(errorCode == OLM_NOT_ENOUGH_RANDOM,
-                           "Failed to create an outbound Olm session"_ls,
+                           "Failed to create an outbound Olm session"_L1,
                            olmOutboundSession.lastError());
         return errorCode;
     }
@@ -277,7 +277,7 @@ bool Quotient::verifyIdentitySignature(const DeviceKeys& deviceKeys,
                                        const QString& deviceId,
                                        const QString& userId)
 {
-    const auto signKeyId = "ed25519:"_ls + deviceId;
+    const auto signKeyId = "ed25519:"_L1 + deviceId;
     const auto signingKey = deviceKeys.keys[signKeyId];
     const auto signature = deviceKeys.signatures[userId][signKeyId];
 
@@ -293,8 +293,8 @@ bool Quotient::ed25519VerifySignature(const QString& signingKey,
 
     QJsonObject obj1 = obj;
 
-    obj1.remove("unsigned"_ls);
-    obj1.remove("signatures"_ls);
+    obj1.remove("unsigned"_L1);
+    obj1.remove("signatures"_L1);
 
     auto canonicalJson = QJsonDocument(obj1).toJson(QJsonDocument::Compact);
 

@@ -7,7 +7,7 @@
 
 namespace Quotient {
 
-constexpr inline auto SasV1Method = "m.sas.v1"_ls;
+constexpr inline auto SasV1Method = "m.sas.v1"_L1;
 
 // Same story as with EncryptedEvent: because KeyVerificationEvent inheritors can be sent both
 // in-room and out-of-room, and RoomEvent doesn't restrict the shape of the event, rather just
@@ -35,10 +35,10 @@ public:
                                 const QStringList& methods,
                                 const QDateTime& timestamp)
         : KeyVerificationRequestEvent(
-            basicJson(TypeId, { { "transaction_id"_ls, transactionId },
-                                { "from_device"_ls, fromDevice },
-                                { "methods"_ls, toJson(methods) },
-                                { "timestamp"_ls, toJson(timestamp) } }))
+            basicJson(TypeId, { { "transaction_id"_L1, transactionId },
+                                { "from_device"_L1, fromDevice },
+                                { "methods"_L1, toJson(methods) },
+                                { "timestamp"_L1, toJson(timestamp) } }))
     {}
 
     /// The device ID which is initiating the request.
@@ -63,9 +63,9 @@ public:
                               const QString& fromDevice,
                               const QStringList& methods)
         : KeyVerificationReadyEvent(
-            basicJson(TypeId, { { "transaction_id"_ls, transactionId },
-                                { "from_device"_ls, fromDevice },
-                                { "methods"_ls, toJson(methods) } }))
+            basicJson(TypeId, { { "transaction_id"_L1, transactionId },
+                                { "from_device"_L1, fromDevice },
+                                { "methods"_L1, toJson(methods) } }))
     {}
 
     /// The device ID which is accepting the request.
@@ -75,8 +75,8 @@ public:
     QUO_CONTENT_GETTER(QStringList, methods)
 };
 
-constexpr inline auto HmacSha256Code = "hkdf-hmac-sha256"_ls;
-constexpr inline auto HmacSha256V2Code = "hkdf-hmac-sha256.v2"_ls;
+constexpr inline auto HmacSha256Code = "hkdf-hmac-sha256"_L1;
+constexpr inline auto HmacSha256V2Code = "hkdf-hmac-sha256.v2"_L1;
 constexpr std::array SupportedMacs { HmacSha256Code, HmacSha256V2Code };
 
 /// Begins a key verification process.
@@ -88,16 +88,16 @@ public:
     KeyVerificationStartEvent(const QString& transactionId,
                               const QString& fromDevice)
         : KeyVerificationStartEvent(
-            basicJson(TypeId, { { "transaction_id"_ls, transactionId },
-                                { "from_device"_ls, fromDevice },
-                                { "method"_ls, SasV1Method },
-                                { "hashes"_ls, QJsonArray{ "sha256"_ls } },
-                                { "key_agreement_protocols"_ls,
-                                  QJsonArray{ "curve25519-hkdf-sha256"_ls } },
-                                { "message_authentication_codes"_ls,
+            basicJson(TypeId, { { "transaction_id"_L1, transactionId },
+                                { "from_device"_L1, fromDevice },
+                                { "method"_L1, SasV1Method },
+                                { "hashes"_L1, QJsonArray{ "sha256"_L1 } },
+                                { "key_agreement_protocols"_L1,
+                                  QJsonArray{ "curve25519-hkdf-sha256"_L1 } },
+                                { "message_authentication_codes"_L1,
                                   toJson(SupportedMacs) },
-                                { "short_authentication_string"_ls,
-                                  QJsonArray{ "decimal"_ls, "emoji"_ls } } }))
+                                { "short_authentication_string"_L1,
+                                  QJsonArray{ "decimal"_L1, "emoji"_L1 } } }))
     {}
 
     /// The device ID which is initiating the process.
@@ -116,7 +116,7 @@ public:
     QStringList keyAgreementProtocols() const
     {
         Q_ASSERT(method() == SasV1Method);
-        return contentPart<QStringList>("key_agreement_protocols"_ls);
+        return contentPart<QStringList>("key_agreement_protocols"_L1);
     }
 
     /// The hash methods the sending device understands.
@@ -124,7 +124,7 @@ public:
     QStringList hashes() const
     {
         Q_ASSERT(method() == SasV1Method);
-        return contentPart<QStringList>("hashes"_ls);
+        return contentPart<QStringList>("hashes"_L1);
     }
 
     /// The message authentication codes that the sending device understands.
@@ -132,7 +132,7 @@ public:
     QStringList messageAuthenticationCodes() const
     {
         Q_ASSERT(method() == SasV1Method);
-        return contentPart<QStringList>("message_authentication_codes"_ls);
+        return contentPart<QStringList>("message_authentication_codes"_L1);
     }
 
     /// The SAS methods the sending device (and the sending device's
@@ -141,7 +141,7 @@ public:
     QString shortAuthenticationString() const
     {
         Q_ASSERT(method() == SasV1Method);
-        return contentPart<QString>("short_authentication_string"_ls);
+        return contentPart<QString>("short_authentication_string"_L1);
     }
 };
 
@@ -154,14 +154,14 @@ public:
     KeyVerificationAcceptEvent(const QString& transactionId,
                                const QString& commitment)
         : KeyVerificationAcceptEvent(basicJson(
-            TypeId, { { "transaction_id"_ls, transactionId },
-                      { "method"_ls, SasV1Method },
-                      { "key_agreement_protocol"_ls, "curve25519-hkdf-sha256"_ls },
-                      { "hash"_ls, "sha256"_ls },
-                      { "message_authentication_code"_ls, HmacSha256V2Code },
-                      { "short_authentication_string"_ls,
-                        QJsonArray{ "decimal"_ls, "emoji"_ls, } },
-                      { "commitment"_ls, commitment } }))
+            TypeId, { { "transaction_id"_L1, transactionId },
+                      { "method"_L1, SasV1Method },
+                      { "key_agreement_protocol"_L1, "curve25519-hkdf-sha256"_L1 },
+                      { "hash"_L1, "sha256"_L1 },
+                      { "message_authentication_code"_L1, HmacSha256V2Code },
+                      { "short_authentication_string"_L1,
+                        QJsonArray{ "decimal"_L1, "emoji"_L1, } },
+                      { "commitment"_L1, commitment } }))
     {}
 
     /// The verification method to use. Must be 'm.sas.v1'.
@@ -173,7 +173,7 @@ public:
 
     /// The hash method the device is choosing to use, out of the
     /// options in the m.key.verification.start message.
-    QUO_CONTENT_GETTER_X(QString, hashData, "hash"_ls)
+    QUO_CONTENT_GETTER_X(QString, hashData, "hash"_L1)
 
     /// The message authentication code the device is choosing to use, out
     /// of the options in the m.key.verification.start message.
@@ -197,9 +197,9 @@ public:
                                const QString& reason)
         : KeyVerificationCancelEvent(
             basicJson(TypeId, {
-                                  { "transaction_id"_ls, transactionId },
-                                  { "reason"_ls, reason },
-                                  { "code"_ls, reason } // Not a typo
+                                  { "transaction_id"_L1, transactionId },
+                                  { "reason"_L1, reason },
+                                  { "code"_L1, reason } // Not a typo
                               }))
     {}
 
@@ -219,8 +219,8 @@ public:
     using KeyVerificationEvent::KeyVerificationEvent;
     KeyVerificationKeyEvent(const QString& transactionId, const QString& key)
         : KeyVerificationKeyEvent(
-            basicJson(TypeId, { { "transaction_id"_ls, transactionId },
-                                { "key"_ls, key } }))
+            basicJson(TypeId, { { "transaction_id"_L1, transactionId },
+                                { "key"_L1, key } }))
     {}
 
     /// The device's ephemeral public key, encoded as unpadded base64.
@@ -236,9 +236,9 @@ public:
     KeyVerificationMacEvent(const QString& transactionId, const QString& keys,
                             const QJsonObject& mac)
         : KeyVerificationMacEvent(
-            basicJson(TypeId, { { "transaction_id"_ls, transactionId },
-                                { "keys"_ls, keys },
-                                { "mac"_ls, mac } }))
+            basicJson(TypeId, { { "transaction_id"_L1, transactionId },
+                                { "keys"_L1, keys },
+                                { "mac"_L1, mac } }))
     {}
 
     /// The device's ephemeral public key, encoded as unpadded base64.
@@ -246,7 +246,7 @@ public:
 
     QHash<QString, QString> mac() const
     {
-        return contentPart<QHash<QString, QString>>("mac"_ls);
+        return contentPart<QHash<QString, QString>>("mac"_L1);
     }
 };
 
@@ -257,7 +257,7 @@ public:
     using KeyVerificationEvent::KeyVerificationEvent;
     explicit KeyVerificationDoneEvent(const QString& transactionId)
         : KeyVerificationDoneEvent(
-            basicJson(TypeId, { { "transaction_id"_ls, transactionId } }))
+            basicJson(TypeId, { { "transaction_id"_L1, transactionId } }))
     {}
 };
 } // namespace Quotient

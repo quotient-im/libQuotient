@@ -33,16 +33,16 @@ QString EncryptedEvent::algorithm() const
 RoomEventPtr EncryptedEvent::createDecrypted(const QString &decrypted) const
 {
     auto eventObject = QJsonDocument::fromJson(decrypted.toUtf8()).object();
-    eventObject["event_id"_ls] = id();
-    eventObject["sender"_ls] = senderId();
-    eventObject["origin_server_ts"_ls] = originTimestamp().toMSecsSinceEpoch();
+    eventObject["event_id"_L1] = id();
+    eventObject["sender"_L1] = senderId();
+    eventObject["origin_server_ts"_L1] = originTimestamp().toMSecsSinceEpoch();
     if (const auto relatesToJson = contentPart<QJsonObject>(RelatesToKey);
         !relatesToJson.isEmpty()) {
         replaceSubvalue(eventObject, ContentKey, RelatesToKey, relatesToJson);
     }
-    if (const auto redactsJson = unsignedPart<QString>("redacts"_ls);
+    if (const auto redactsJson = unsignedPart<QString>("redacts"_L1);
         !redactsJson.isEmpty()) {
-        replaceSubvalue(eventObject, UnsignedKey, "redacts"_ls, redactsJson);
+        replaceSubvalue(eventObject, UnsignedKey, "redacts"_L1, redactsJson);
     }
     return loadEvent<RoomEvent>(eventObject);
 }

@@ -15,10 +15,10 @@ public:
     explicit RoomKeyEvent(const QString& algorithm, const QString& roomId,
                           const QString& sessionId, const QString& sessionKey)
         : Event(basicJson(TypeId, {
-                                      { "algorithm"_ls, algorithm },
-                                      { "room_id"_ls, roomId },
-                                      { "session_id"_ls, sessionId },
-                                      { "session_key"_ls, sessionKey },
+                                      { "algorithm"_L1, algorithm },
+                                      { "room_id"_L1, roomId },
+                                      { "session_id"_L1, sessionId },
+                                      { "session_key"_L1, sessionKey },
                                   }))
     {}
 
@@ -27,7 +27,7 @@ public:
     QUO_CONTENT_GETTER(QString, sessionId)
     QByteArray sessionKey() const
     {
-        return contentPart<QString>("session_key"_ls).toLatin1();
+        return contentPart<QString>("session_key"_L1).toLatin1();
     }
 };
 } // namespace Quotient

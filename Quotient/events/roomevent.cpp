@@ -25,7 +25,7 @@ QString RoomEvent::id() const { return fullJson()[EventIdKey].toString(); }
 
 QDateTime RoomEvent::originTimestamp() const
 {
-    return Quotient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
+    return Quotient::fromJson<QDateTime>(fullJson()["origin_server_ts"_L1]);
 }
 
 QString RoomEvent::roomId() const
@@ -45,7 +45,7 @@ QString RoomEvent::redactionReason() const
 
 QString RoomEvent::transactionId() const
 {
-    return unsignedPart<QString>("transaction_id"_ls);
+    return unsignedPart<QString>("transaction_id"_L1);
 }
 
 QString RoomEvent::stateKey() const

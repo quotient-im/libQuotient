@@ -50,9 +50,9 @@ void TestCallCandidatesEvent::fromJson()
     QCOMPARE(callCandidatesEvent->candidates().size(), 1);
 
     const auto& candidate = callCandidatesEvent->candidates().at(0).toObject();
-    QCOMPARE(candidate.value("sdpMid"_ls).toString(), QStringLiteral("audio"));
-    QCOMPARE(candidate.value("sdpMLineIndex"_ls).toInt(), 0);
-    QCOMPARE(candidate.value("candidate"_ls).toString(),
+    QCOMPARE(candidate.value("sdpMid"_L1).toString(), QStringLiteral("audio"));
+    QCOMPARE(candidate.value("sdpMLineIndex"_L1).toInt(), 0);
+    QCOMPARE(candidate.value("candidate"_L1).toString(),
              QStringLiteral("candidate:863018703 1 udp 2122260223 10.9.64.156 43670 typ host generation 0"));
 }
 

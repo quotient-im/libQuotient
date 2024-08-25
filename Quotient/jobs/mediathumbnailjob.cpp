@@ -26,10 +26,10 @@ QUrl MediaThumbnailJob::makeRequestUrl(const HomeserverData& hsData, const QStri
                    ? GetContentThumbnailAuthedJob::makeRequestUrl(hsData, serverName, mediaId,
                                                                   requestedSize.width(),
                                                                   requestedSize.height(),
-                                                                  "scale"_ls, 20'000, animated)
+                                                                  "scale"_L1, 20'000, animated)
                    : GetContentThumbnailJob::makeRequestUrl(hsData, serverName, mediaId,
                                                             requestedSize.width(),
-                                                            requestedSize.height(), "scale"_ls,
+                                                            requestedSize.height(), "scale"_L1,
                                                             true, 20'000, false, animated);)
 }
 

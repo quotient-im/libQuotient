@@ -44,36 +44,36 @@ void JsonObjectConverter<RoomSummary>::dumpTo(QJsonObject& jo,
 void JsonObjectConverter<RoomSummary>::fillFrom(const QJsonObject& jo,
                                                 RoomSummary& rs)
 {
-    fromJson(jo["m.joined_member_count"_ls], rs.joinedMemberCount);
-    fromJson(jo["m.invited_member_count"_ls], rs.invitedMemberCount);
-    fromJson(jo["m.heroes"_ls], rs.heroes);
+    fromJson(jo["m.joined_member_count"_L1], rs.joinedMemberCount);
+    fromJson(jo["m.invited_member_count"_L1], rs.invitedMemberCount);
+    fromJson(jo["m.heroes"_L1], rs.heroes);
 }
 
 template <typename EventsArrayT, typename StrT>
 inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
 {
-    return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_ls));
+    return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_L1));
 }
 
 SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState,
                            const QJsonObject& roomJson)
     : roomId(std::move(roomId_))
     , joinState(joinState)
-    , summary(fromJson<RoomSummary>(roomJson["summary"_ls]))
+    , summary(fromJson<RoomSummary>(roomJson["summary"_L1]))
     , state(load<StateEvents>(roomJson, joinState == JoinState::Invite
-                                         ? "invite_state"_ls
-                                         : "state"_ls))
+                                         ? "invite_state"_L1
+                                         : "state"_L1))
 {
     switch (joinState) {
     case JoinState::Join:
-        ephemeral = load<Events>(roomJson, "ephemeral"_ls);
+        ephemeral = load<Events>(roomJson, "ephemeral"_L1);
         [[fallthrough]];
     case JoinState::Leave: {
-        accountData = load<Events>(roomJson, "account_data"_ls);
-        timeline = load<RoomEvents>(roomJson, "timeline"_ls);
-        const auto timelineJson = roomJson.value("timeline"_ls).toObject();
-        timelineLimited = timelineJson.value("limited"_ls).toBool();
-        timelinePrevBatch = timelineJson.value("prev_batch"_ls).toString();
+        accountData = load<Events>(roomJson, "account_data"_L1);
+        timeline = load<RoomEvents>(roomJson, "timeline"_L1);
+        const auto timelineJson = roomJson.value("timeline"_L1).toObject();
+        timelineLimited = timelineJson.value("limited"_L1).toBool();
+        timelinePrevBatch = timelineJson.value("prev_batch"_L1).toString();
 
         break;
     }
@@ -84,12 +84,12 @@ SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState,
 
     fromJson(unreadJson.value(PartiallyReadCountKey), partiallyReadCount);
     if (!partiallyReadCount.has_value())
-        fromJson(unreadJson.value("x-quotient.unread_count"_ls),
+        fromJson(unreadJson.value("x-quotient.unread_count"_L1),
                  partiallyReadCount);
 
     fromJson(roomJson.value(NewUnreadCountKey), unreadCount);
     if (!unreadCount.has_value())
-        fromJson(unreadJson.value("notification_count"_ls), unreadCount);
+        fromJson(unreadJson.value("notification_count"_L1), unreadCount);
     fromJson(unreadJson.value(HighlightCountKey), highlightCount);
 }
 
@@ -98,9 +98,9 @@ QDebug Quotient::operator<<(QDebug dbg, const DevicesList& devicesList)
     QDebugStateSaver _(dbg);
     QStringList sl;
     if (!devicesList.changed.isEmpty())
-        sl << QStringLiteral("changed: %1").arg(devicesList.changed.join(", "_ls));
+        sl << QStringLiteral("changed: %1").arg(devicesList.changed.join(", "_L1));
     if (!devicesList.left.isEmpty())
-        sl << QStringLiteral("left %1").arg(devicesList.left.join(", "_ls));
+        sl << QStringLiteral("left %1").arg(devicesList.left.join(", "_L1));
     dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
     return dbg;
 }
@@ -117,8 +117,8 @@ void JsonObjectConverter<DevicesList>::dumpTo(QJsonObject& jo,
 void JsonObjectConverter<DevicesList>::fillFrom(const QJsonObject& jo,
                                                 DevicesList& rs)
 {
-    fromJson(jo["changed"_ls], rs.changed);
-    fromJson(jo["left"_ls], rs.left);
+    fromJson(jo["changed"_L1], rs.changed);
+    fromJson(jo["left"_L1], rs.left);
 }
 
 namespace {
@@ -152,7 +152,7 @@ SyncData::SyncData(const QString& cacheFileName)
     auto json = loadJson(cacheFileName);
     auto requiredVersion = MajorCacheVersion;
     auto actualVersion =
-        json.value("cache_version"_ls).toObject().value("major"_ls).toInt();
+        json.value("cache_version"_L1).toObject().value("major"_L1).toInt();
     if (actualVersion == requiredVersion)
         parseJson(json, QFileInfo(cacheFileName).absolutePath() + u'/');
     else
@@ -166,7 +166,7 @@ SyncDataList SyncData::takeRoomData() { return std::move(roomData); }
 QString SyncData::fileNameForRoom(QString roomId)
 {
     roomId.replace(u':', u'_');
-    return roomId + ".json"_ls;
+    return roomId + ".json"_L1;
 }
 
 Events SyncData::takePresenceData() { return std::move(presenceData); }
@@ -188,19 +188,19 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
     QElapsedTimer et;
     et.start();
 
-    nextBatch_ = json.value("next_batch"_ls).toString();
-    presenceData = load<Events>(json, "presence"_ls);
-    accountData = load<Events>(json, "account_data"_ls);
-    toDeviceEvents = load<Events>(json, "to_device"_ls);
+    nextBatch_ = json.value("next_batch"_L1).toString();
+    presenceData = load<Events>(json, "presence"_L1);
+    accountData = load<Events>(json, "account_data"_L1);
+    toDeviceEvents = load<Events>(json, "to_device"_L1);
 
-    fromJson(json.value("device_one_time_keys_count"_ls),
+    fromJson(json.value("device_one_time_keys_count"_L1),
              deviceOneTimeKeysCount_);
 
-    if(json.contains("device_lists"_ls)) {
-        fromJson(json.value("device_lists"_ls), devicesList);
+    if(json.contains("device_lists"_L1)) {
+        fromJson(json.value("device_lists"_L1), devicesList);
     }
 
-    auto rooms = json.value("rooms"_ls).toObject();
+    auto rooms = json.value("rooms"_L1).toObject();
     qsizetype totalRooms = 0;
     size_t totalEvents = 0;
     for (size_t i = 0; i < JoinStateStrings.size(); ++i) {
@@ -218,7 +218,7 @@ void SyncData::parseJson(const QJsonObject& json, const QString& baseDir)
                 roomJson = loadJson(
                     baseDir
                     + (roomIt->isObject() // lib 0.8.1.2 onwards = cache 11.3 onwards
-                           ? roomIt->toObject().value("$ref"_ls).toString()
+                           ? roomIt->toObject().value("$ref"_L1).toString()
                            : fileNameForRoom(roomIt.key()))); // lib pre-0.8.1.2 = cache pre-11.3
                 if (roomJson.isEmpty()) {
                     unresolvedRoomIds.push_back(roomIt.key());

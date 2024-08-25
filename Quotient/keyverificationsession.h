@@ -178,8 +178,8 @@ private:
     void trustKeys();
     void sendEvent(const QString &userId, const QString &deviceId, const KeyVerificationEvent &event, bool encrypted);
 
-    QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_ls);
-    QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_ls);
+    QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_L1);
+    QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_L1);
 };
 
 } // namespace Quotient

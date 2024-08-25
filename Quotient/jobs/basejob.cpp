@@ -158,8 +158,8 @@ public:
 
     [[nodiscard]] QString dumpRequest() const
     {
-        static const std::array verbs { "GET"_ls, "PUT"_ls, "POST"_ls,
-                                        "DELETE"_ls };
+        static const std::array verbs { "GET"_L1, "PUT"_L1, "POST"_L1,
+                                        "DELETE"_L1 };
         const auto verbWord = verbs.at(size_t(verb));
         return verbWord % u' '
                % (reply ? reply->url().toString(QUrl::RemoveQuery)
@@ -295,7 +295,7 @@ QNetworkRequest BaseJob::Private::prepareRequest() const
 {
     QNetworkRequest req{ makeRequestUrl(connection->homeserverData(), apiEndpoint, requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
-        req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_ls);
+        req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_L1);
     if (needsToken)
         req.setRawHeader("Authorization",
                          QByteArray("Bearer ") + connection->accessToken());
@@ -350,7 +350,7 @@ void BaseJob::initiate(ConnectionData* connData, bool inBackground)
         else if ((d->verb == HttpVerb::Post || d->verb == HttpVerb::Put)
             && d->requestData.source()
             && !d->requestData.source()->isReadable()) {
-            setStatus(FileError, "Request data not ready"_ls);
+            setStatus(FileError, "Request data not ready"_L1);
         }
         Q_ASSERT(status().code != Pending); // doPrepare() must NOT set this
         if (Q_LIKELY(status().code == Unprepared)) {
@@ -498,7 +498,7 @@ BaseJob::Status BaseJob::checkReply(const QNetworkReply* reply) const
         if (!checkContentType(reply->rawHeader("Content-Type"),
                               d->expectedContentTypes))
             return { UnexpectedResponseTypeWarning,
-                     "Unexpected content type of the response"_ls };
+                     "Unexpected content type of the response"_L1 };
         return NoError;
     }
     if (reply->isFinished())
@@ -526,10 +526,10 @@ BaseJob::Status BaseJob::prepareError(Status currentStatus)
     // a valid JSON object - or an empty object otherwise (in which case most
     // of if's below will fall through retaining the current status)
     const auto& errorJson = jsonData();
-    const auto errCode = errorJson.value("errcode"_ls).toString();
-    if (error() == TooManyRequests || errCode == "M_LIMIT_EXCEEDED"_ls) {
+    const auto errCode = errorJson.value("errcode"_L1).toString();
+    if (error() == TooManyRequests || errCode == "M_LIMIT_EXCEEDED"_L1) {
         QString msg = tr("Too many requests");
-        int64_t retryAfterMs = errorJson.value("retry_after_ms"_ls).toInt(-1);
+        int64_t retryAfterMs = errorJson.value("retry_after_ms"_L1).toInt(-1);
         if (retryAfterMs >= 0)
             msg += tr(", next retry advised after %1 ms").arg(retryAfterMs);
         else // We still have to figure some reasonable interval
@@ -540,26 +540,26 @@ BaseJob::Status BaseJob::prepareError(Status currentStatus)
         return { TooManyRequests, msg };
     }
 
-    if (errCode == "M_CONSENT_NOT_GIVEN"_ls) {
-        d->errorUrl = QUrl(errorJson.value("consent_uri"_ls).toString());
+    if (errCode == "M_CONSENT_NOT_GIVEN"_L1) {
+        d->errorUrl = QUrl(errorJson.value("consent_uri"_L1).toString());
         return { UserConsentRequired };
     }
-    if (errCode == "M_UNSUPPORTED_ROOM_VERSION"_ls
-        || errCode == "M_INCOMPATIBLE_ROOM_VERSION"_ls)
+    if (errCode == "M_UNSUPPORTED_ROOM_VERSION"_L1
+        || errCode == "M_INCOMPATIBLE_ROOM_VERSION"_L1)
         return { UnsupportedRoomVersion,
-                 errorJson.contains("room_version"_ls)
+                 errorJson.contains("room_version"_L1)
                      ? tr("Requested room version: %1")
-                           .arg(errorJson.value("room_version"_ls).toString())
-                     : errorJson.value("error"_ls).toString() };
-    if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM"_ls)
+                           .arg(errorJson.value("room_version"_L1).toString())
+                     : errorJson.value("error"_L1).toString() };
+    if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM"_L1)
         return { CannotLeaveRoom,
                  tr("It's not allowed to leave a server notices room") };
-    if (errCode == "M_USER_DEACTIVATED"_ls)
+    if (errCode == "M_USER_DEACTIVATED"_L1)
         return { UserDeactivated };
 
     // Not localisable on the client side
-    if (errorJson.contains("error"_ls)) // Keep the code, update the message
-        return { currentStatus.code, errorJson.value("error"_ls).toString() };
+    if (errorJson.contains("error"_L1)) // Keep the code, update the message
+        return { currentStatus.code, errorJson.value("error"_L1).toString() };
 
     return currentStatus; // The error payload is not recognised
 }
@@ -612,7 +612,7 @@ void BaseJob::finishJob()
             qCWarning(d->logCat).nospace()
                 << this << ": retry #" << d->retriesTaken << " in "
                 << retryIn.count() << " s";
-            setStatus(Pending, "Pending retry"_ls);
+            setStatus(Pending, "Pending retry"_L1);
             d->retryTimer.start(retryIn);
             emit retryScheduled(d->retriesTaken, milliseconds(retryIn).count());
             return;
@@ -777,7 +777,7 @@ void BaseJob::setStatus(Status s)
 
     if (!s.message.isEmpty() && d->connection
         && !d->connection->accessToken().isEmpty())
-        s.message.replace(QString::fromUtf8(d->connection->accessToken()), "(REDACTED)"_ls);
+        s.message.replace(QString::fromUtf8(d->connection->accessToken()), "(REDACTED)"_L1);
     if (!s.good())
         qCWarning(d->logCat) << this << "status" << s;
     d->status = std::move(s);
@@ -813,7 +813,7 @@ void BaseJob::abandon()
 
 void BaseJob::timeout()
 {
-    setStatus(Timeout, "The job has timed out"_ls);
+    setStatus(Timeout, "The job has timed out"_L1);
     finishJob();
 }
 

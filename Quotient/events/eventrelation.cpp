@@ -33,6 +33,6 @@ void JsonObjectConverter<EventRelation>::fillFrom(const QJsonObject& jo,
         fromJson(jo[RelTypeKey], pod.type);
         fromJson(jo[EventIdKey], pod.eventId);
         if (pod.type == EventRelation::AnnotationType)
-            fromJson(jo["key"_ls], pod.key);
+            fromJson(jo["key"_L1], pod.key);
     }
 }

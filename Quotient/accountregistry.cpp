@@ -91,7 +91,7 @@ Connection* AccountRegistry::get(const QString& userId) const
 
 void AccountRegistry::invokeLogin()
 {
-    const auto accounts = SettingsGroup("Accounts"_ls).childGroups();
+    const auto accounts = SettingsGroup("Accounts"_L1).childGroups();
     for (const auto& accountId : accounts) {
         AccountSettings account { accountId };
 

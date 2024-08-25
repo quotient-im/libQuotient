@@ -373,7 +373,7 @@ public:
             return {};
         }
         auto& senderSession = groupSessionIt->second;
-        if (senderSession.senderId() != "BACKUP"_ls && senderSession.senderId() != senderId) {
+        if (senderSession.senderId() != "BACKUP"_L1 && senderSession.senderId() != senderId) {
             qCWarning(E2EE) << "Sender from event does not match sender from session";
             return {};
         }
@@ -1021,7 +1021,7 @@ bool Room::canSwitchVersions() const
         const auto currentUserLevel =
             plEvt->powerLevelForUser(localMember().id());
         const auto tombstonePowerLevel =
-            plEvt->powerLevelForState("m.room.tombstone"_ls);
+            plEvt->powerLevelForState("m.room.tombstone"_L1);
         return currentUserLevel >= tombstonePowerLevel;
     }
     return true;
@@ -1133,7 +1133,7 @@ void Room::Private::getAllMembers()
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
-        id, connection->nextBatchToken(), "join"_ls);
+        id, connection->nextBatchToken(), "join"_L1);
     auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
     connect(allMembersJob, &BaseJob::success, q, [this, nextIndex] {
         Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
@@ -1298,7 +1298,7 @@ std::pair<bool, QString> validatedTag(QString name)
 
     qCWarning(MAIN) << "The tag" << name
                     << "doesn't follow the CS API conventions";
-    name.prepend("u."_ls);
+    name.prepend("u."_L1);
     qCWarning(MAIN) << "Using " << name << "instead";
 
     return { true, name };
@@ -1329,8 +1329,8 @@ void Room::removeTag(const QString& name)
         d->tags.remove(name);
         emit tagsChanged();
         connection()->callApi<DeleteRoomTagJob>(localMember().id(), id(), name);
-    } else if (!name.startsWith("u."_ls))
-        removeTag("u."_ls + name);
+    } else if (!name.startsWith("u."_L1))
+        removeTag("u."_L1 + name);
     else
         qCWarning(MAIN) << "Tag" << name << "on room" << objectName()
                        << "not found, nothing to remove";
@@ -1404,9 +1404,9 @@ QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
 {
     auto url = connection()->makeMediaUrl(mxcUrl);
     QUrlQuery q(url.query());
-    Q_ASSERT(q.hasQueryItem("user_id"_ls));
-    q.addQueryItem("room_id"_ls, id());
-    q.addQueryItem("event_id"_ls, eventId);
+    Q_ASSERT(q.hasQueryItem("user_id"_L1));
+    q.addQueryItem("room_id"_L1, id());
+    q.addQueryItem("event_id"_L1, eventId);
     url.setQuery(q);
     return url;
 }
@@ -2016,7 +2016,7 @@ void Room::Private::onEventSendingFailure(PendingEvents::iterator eventItemIter,
     if (eventItemIter == unsyncedEvents.end()) // ¯\_(ツ)_/¯
         return;
 
-    eventItemIter->setSendingFailed(call ? call->statusCaption() % ": "_ls % call->errorString()
+    eventItemIter->setSendingFailed(call ? call->statusCaption() % ": "_L1 % call->errorString()
                                          : tr("The call could not be started"));
     emit q->pendingEventChanged(int(eventItemIter - unsyncedEvents.begin()));
 }
@@ -2317,7 +2317,7 @@ JobHandle<GetRoomEventsJob> Room::Private::getPreviousContent(int limit, const Q
 
     lastRequestedHistorySize = limit;
     eventsHistoryJob =
-        connection->callApi<GetRoomEventsJob>(id, "b"_ls, *prevBatch, QString(), limit, filter);
+        connection->callApi<GetRoomEventsJob>(id, "b"_L1, *prevBatch, QString(), limit, filter);
     emit q->eventsHistoryJobChanged();
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         if (const auto newPrevBatch = eventsHistoryJob->end();
@@ -2446,7 +2446,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         filePath = fileInfo->url().path().mid(1) % u'_' % event->fileNameToDownload();
 
         if (filePath.size() > 200) // If too long, elide in the middle
-            filePath.replace(128, filePath.size() - 192, "---"_ls);
+            filePath.replace(128, filePath.size() - 192, "---"_L1);
 
         filePath = QDir::tempPath() % u'/' % filePath;
         qDebug(MAIN) << "File path:" << filePath;
@@ -2561,8 +2561,8 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     // the preserved keys being only relevant for homeservers. Just in case.
     static const QStringList TopLevelKeysToKeep{
         EventIdKey,  TypeKey,          RoomIdKey,        SenderKey,
-        StateKeyKey, ContentKey,       "hashes"_ls,      "signatures"_ls,
-        "depth"_ls,  "prev_events"_ls, "auth_events"_ls, "origin_server_ts"_ls
+        StateKeyKey, ContentKey,       "hashes"_L1,      "signatures"_L1,
+        "depth"_L1,  "prev_events"_L1, "auth_events"_L1, "origin_server_ts"_L1
     };
 
     auto originalJson = target.fullJson();
@@ -2574,16 +2574,16 @@ RoomEventPtr makeRedacted(const RoomEvent& target,
     }
     if (!target.is<RoomCreateEvent>()) { // See MSC2176 on create events
         static const QHash<QString, QStringList> ContentKeysToKeepPerType{
-            { RedactionEvent::TypeId, { "redacts"_ls } },
+            { RedactionEvent::TypeId, { "redacts"_L1 } },
             { RoomMemberEvent::TypeId,
-              { "membership"_ls, "join_authorised_via_users_server"_ls } },
+              { "membership"_L1, "join_authorised_via_users_server"_L1 } },
             { RoomPowerLevelsEvent::TypeId,
-              { "ban"_ls, "events"_ls, "events_default"_ls, "invite"_ls,
-                "kick"_ls, "redact"_ls, "state_default"_ls, "users"_ls,
-                "users_default"_ls } },
+              { "ban"_L1, "events"_L1, "events_default"_L1, "invite"_L1,
+                "kick"_L1, "redact"_L1, "state_default"_L1, "users"_L1,
+                "users_default"_L1 } },
             // TODO: Replace with RoomJoinRules::TypeId etc. once available
-            { "m.room.join_rules"_ls, { "join_rule"_ls, "allow"_ls } },
-            { "m.room.history_visibility"_ls, { "history_visibility"_ls } }
+            { "m.room.join_rules"_L1, { "join_rule"_L1, "allow"_L1 } },
+            { "m.room.history_visibility"_L1, { "history_visibility"_L1 } }
         };
 
         if (const auto contentKeysToKeep = ContentKeysToKeepPerType.value(target.matrixType());
@@ -2670,12 +2670,12 @@ bool Room::Private::processRedaction(const RedactionEvent& redaction)
 RoomEventPtr makeReplaced(const RoomEvent& target,
                           const RoomMessageEvent& replacement)
 {
-    auto newContent = replacement.contentPart<QJsonObject>("m.new_content"_ls);
+    auto newContent = replacement.contentPart<QJsonObject>("m.new_content"_L1);
     addParam<IfNotEmpty>(newContent, RelatesToKey, target.contentPart<QJsonObject>(RelatesToKey));
     auto originalJson = target.fullJson();
     originalJson[ContentKey] = newContent;
     editSubobject(originalJson, UnsignedKey, [&replacement](QJsonObject& unsignedData) {
-        replaceSubvalue(unsignedData, "m.relations"_ls, "m.replace"_ls, replacement.id());
+        replaceSubvalue(unsignedData, "m.relations"_L1, "m.replace"_L1, replacement.id());
     });
 
     return loadEvent<RoomEvent>(originalJson);
@@ -2875,7 +2875,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     for (auto it = from; it != syncEdge(); ++it) {
         if (it->event()->senderId() == connection->userId()) {
             if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
-                if (evt->rawMsgtype() == "m.key.verification.request"_ls && pendingKeyVerificationSession && evt->senderId() == q->localMember().id()) {
+                if (evt->rawMsgtype() == "m.key.verification.request"_L1 && pendingKeyVerificationSession && evt->senderId() == q->localMember().id()) {
                     keyVerificationSessions[evt->id()] = pendingKeyVerificationSession;
                     connect(pendingKeyVerificationSession.get(), &QObject::destroyed, q, [this, evt] {
                         keyVerificationSessions.remove(evt->id());
@@ -2887,7 +2887,7 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             continue;
         }
         if (const auto* evt = it->viewAs<RoomMessageEvent>()) {
-            if (evt->rawMsgtype() == "m.key.verification.request"_ls) {
+            if (evt->rawMsgtype() == "m.key.verification.request"_L1) {
                 if (evt->originTimestamp() > QDateTime::currentDateTime().addSecs(-60)) {
                     auto session = new KeyVerificationSession(evt, q);
                     emit connection->newKeyVerificationSession(session);
@@ -2899,8 +2899,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
             }
         }
         if (auto event = it->viewAs<KeyVerificationEvent>()) {
-            const auto &baseEvent = event->contentJson()["m.relates_to"_ls]["event_id"_ls].toString();
-            if (event->matrixType() == "m.key.verification.done"_ls) {
+            const auto &baseEvent = event->contentJson()["m.relates_to"_L1]["event_id"_L1].toString();
+            if (event->matrixType() == "m.key.verification.done"_L1) {
                 continue;
             }
             if (keyVerificationSessions.contains(baseEvent)) {
@@ -3206,12 +3206,12 @@ Room::Changes Room::processEphemeralEvent(EventPtr&& event)
                         << "Event" << evtId
                         << "is not found; saving read receipt(s) anyway";
                 const auto reads =
-                    eventIt.value().toObject().value("m.read"_ls).toObject();
+                    eventIt.value().toObject().value("m.read"_L1).toObject();
                 for (auto userIt = reads.begin(); userIt != reads.end();
                      ++userIt) {
                     ReadReceipt rr{ evtId,
                                     fromJson<QDateTime>(
-                                        userIt->toObject().value("ts"_ls)) };
+                                        userIt->toObject().value("ts"_L1)) };
                     const auto userId = userIt.key();
                     if (userId == connection()->userId()) {
                         // Local user is special, and will get a signal about
@@ -3473,7 +3473,7 @@ void Room::addMegolmSessionFromBackup(const QByteArray& sessionId, const QByteAr
     session.setOlmSessionId(d->connection->isVerifiedSession(sessionId)
                                 ? QByteArrayLiteral("BACKUP_VERIFIED")
                                 : QByteArrayLiteral("BACKUP"));
-    session.setSenderId("BACKUP"_ls);
+    session.setSenderId("BACKUP"_L1);
     d->connection->saveMegolmSession(this, session, senderKey, senderEdKey);
 }
 
@@ -3499,13 +3499,13 @@ QJsonArray Room::exportMegolmSessions()
         const auto senderClaimedKey = connection()->database()->edKeyForMegolmSession(QString::fromLatin1(value.sessionId()));
         const auto senderKey = connection()->database()->senderKeyForMegolmSession(QString::fromLatin1(value.sessionId()));
         const auto json = QJsonObject {
-            {"algorithm"_ls, "m.megolm.v1.aes-sha2"_ls},
-            {"forwarding_curve25519_key_chain"_ls, QJsonArray()},
-            {"room_id"_ls, id()},
-            {"sender_claimed_keys"_ls, QJsonObject{ {"ed25519"_ls, senderClaimedKey} }},
-            {"sender_key"_ls, senderKey},
-            {"session_id"_ls, QString::fromLatin1(value.sessionId())},
-            {"session_key"_ls, QString::fromLatin1(session.value())},
+            {"algorithm"_L1, "m.megolm.v1.aes-sha2"_L1},
+            {"forwarding_curve25519_key_chain"_L1, QJsonArray()},
+            {"room_id"_L1, id()},
+            {"sender_claimed_keys"_L1, QJsonObject{ {"ed25519"_L1, senderClaimedKey} }},
+            {"sender_key"_L1, senderKey},
+            {"session_id"_L1, QString::fromLatin1(value.sessionId())},
+            {"session_key"_L1, QString::fromLatin1(session.value())},
         };
         if (senderClaimedKey.isEmpty() || senderKey.isEmpty()) {
             // These are edge-cases for some sessions that were added before libquotient started storing these fields.

@@ -14,7 +14,7 @@ public:
 
     QString redactedEvent() const
     {
-        return fullJson()["redacts"_ls].toString();
+        return fullJson()["redacts"_L1].toString();
     }
     QUO_CONTENT_GETTER(QString, reason)
 };

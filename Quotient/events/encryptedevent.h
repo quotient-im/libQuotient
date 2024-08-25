@@ -7,10 +7,10 @@
 
 namespace Quotient {
 
-constexpr inline auto CiphertextKey = "ciphertext"_ls;
-constexpr inline auto SenderKeyKey = "sender_key"_ls;
-constexpr inline auto DeviceIdKey = "device_id"_ls;
-constexpr inline auto SessionIdKey = "session_id"_ls;
+constexpr inline auto CiphertextKey = "ciphertext"_L1;
+constexpr inline auto SenderKeyKey = "sender_key"_L1;
+constexpr inline auto DeviceIdKey = "device_id"_L1;
+constexpr inline auto SessionIdKey = "session_id"_L1;
 
 /*
  * While the specification states:

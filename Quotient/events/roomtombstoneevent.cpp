@@ -7,10 +7,10 @@ using namespace Quotient;
 
 QString RoomTombstoneEvent::serverMessage() const
 {
-    return contentPart<QString>("body"_ls);
+    return contentPart<QString>("body"_L1);
 }
 
 QString RoomTombstoneEvent::successorRoomId() const
 {
-    return contentPart<QString>("replacement_room"_ls);
+    return contentPart<QString>("replacement_room"_L1);
 }

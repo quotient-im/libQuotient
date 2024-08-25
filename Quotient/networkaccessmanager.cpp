@@ -144,7 +144,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
     Operation op, const QNetworkRequest& request, QIODevice* outgoingData)
 {
     const auto url = request.url();
-    if (url.scheme() != "mxc"_ls) {
+    if (url.scheme() != "mxc"_L1) {
         auto reply =
             QNetworkAccessManager::createRequest(op, request, outgoingData);
         reply->ignoreSslErrors(d.getIgnoredSslErrors());
@@ -156,7 +156,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
         // Using QSettings here because Quotient::NetworkSettings
         // doesn't provide multi-threading guarantees
         if (static thread_local const QSettings s;
-            s.value("Network/allow_direct_media_requests"_ls).toBool()) //
+            s.value("Network/allow_direct_media_requests"_L1).toBool()) //
         {
             // TODO: Make the best effort with a direct unauthenticated request
             // to the media server

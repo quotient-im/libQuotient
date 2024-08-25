@@ -24,7 +24,7 @@ public:
         : serverName(std::move(serverName))
         , mediaId(std::move(mediaId))
         , targetFile(!localFilename.isEmpty() ? new QFile(localFilename) : nullptr)
-        , tempFile(!localFilename.isEmpty() ? new QFile(targetFile->fileName() + ".qtntdownload"_ls)
+        , tempFile(!localFilename.isEmpty() ? new QFile(targetFile->fileName() + ".qtntdownload"_L1)
                                             : new QTemporaryFile())
     {}
 
@@ -77,13 +77,13 @@ void DownloadFileJob::doPrepare(const ConnectionData* connectionData)
         && !d->targetFile->open(QIODevice::WriteOnly)) {
         qCWarning(JOBS) << "Couldn't open the file" << d->targetFile->fileName()
                         << "for writing";
-        setStatus(FileError, "Could not open the target file for writing"_ls);
+        setStatus(FileError, "Could not open the target file for writing"_L1);
         return;
     }
     if (!d->tempFile->isReadable() && !d->tempFile->open(QIODevice::ReadWrite)) {
         qCWarning(JOBS) << "Couldn't open the temporary file"
                         << d->tempFile->fileName() << "for writing";
-        setStatus(FileError, "Could not open the temporary download file"_ls);
+        setStatus(FileError, "Could not open the temporary download file"_L1);
         return;
     }
     qCDebug(JOBS) << "Downloading to" << d->tempFile->fileName();
@@ -102,7 +102,7 @@ void DownloadFileJob::onSentRequest(QNetworkReply* reply)
                     qCWarning(JOBS) << "Failed to allocate" << targetSize
                                     << "bytes for" << d->tempFile->fileName();
                     setStatus(FileError,
-                              "Could not reserve disk space for download"_ls);
+                              "Could not reserve disk space for download"_L1);
                 }
         }
     });
@@ -144,12 +144,12 @@ BaseJob::Status DownloadFileJob::prepareResult()
             d->targetFile->close();
             if (!d->targetFile->remove()) {
                 qWarning(JOBS) << "Failed to remove the target file placeholder";
-                return { FileError, "Couldn't finalise the download"_ls };
+                return { FileError, "Couldn't finalise the download"_L1 };
             }
             if (!d->tempFile->rename(d->targetFile->fileName())) {
                 qWarning(JOBS) << "Failed to rename" << d->tempFile->fileName()
                                 << "to" << d->targetFile->fileName();
-                return { FileError, "Couldn't finalise the download"_ls };
+                return { FileError, "Couldn't finalise the download"_L1 };
             }
         }
     } else {
@@ -160,12 +160,12 @@ BaseJob::Status DownloadFileJob::prepareResult()
             if (!d->tempFile->remove()) {
                 qWarning(JOBS)
                     << "Failed to remove the decrypted file placeholder";
-                return { FileError, "Couldn't finalise the download"_ls };
+                return { FileError, "Couldn't finalise the download"_L1 };
             }
             if (!tempTempFile.rename(d->tempFile->fileName())) {
                 qWarning(JOBS) << "Failed to rename" << tempTempFile.fileName()
                                 << "to" << d->tempFile->fileName();
-                return { FileError, "Couldn't finalise the download"_ls };
+                return { FileError, "Couldn't finalise the download"_L1 };
             }
         } else {
             d->tempFile->close();

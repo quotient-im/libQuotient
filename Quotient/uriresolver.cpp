@@ -27,7 +27,7 @@ UriResolveResult UriResolverBase::visitResource(Connection* account,
 
     switch (uri.type()) {
     case Uri::UserId: {
-        if (uri.action() == "join"_ls)
+        if (uri.action() == "join"_L1)
             return IncorrectAction;
         auto* user = account->user(uri.primaryId());
         Q_ASSERT(user != nullptr);
@@ -42,7 +42,7 @@ UriResolveResult UriResolverBase::visitResource(Connection* account,
             visitRoom(room, uri.secondaryId());
             return UriResolved;
         }
-        if (uri.action() == "join"_ls) {
+        if (uri.action() == "join"_L1) {
             joinRoom(account, uri.primaryId(), uri.viaServers());
             return UriResolved;
         }
