@@ -27,17 +27,17 @@ template <>
 struct JsonObjectConverter<KeyBackupData> {
     static void dumpTo(QJsonObject& jo, const KeyBackupData& pod)
     {
-        addParam<>(jo, QStringLiteral("first_message_index"), pod.firstMessageIndex);
-        addParam<>(jo, QStringLiteral("forwarded_count"), pod.forwardedCount);
-        addParam<>(jo, QStringLiteral("is_verified"), pod.isVerified);
-        addParam<>(jo, QStringLiteral("session_data"), pod.sessionData);
+        addParam<>(jo, "first_message_index"_L1, pod.firstMessageIndex);
+        addParam<>(jo, "forwarded_count"_L1, pod.forwardedCount);
+        addParam<>(jo, "is_verified"_L1, pod.isVerified);
+        addParam<>(jo, "session_data"_L1, pod.sessionData);
     }
     static void fillFrom(const QJsonObject& jo, KeyBackupData& pod)
     {
-        fillFromJson(jo.value("first_message_index"_ls), pod.firstMessageIndex);
-        fillFromJson(jo.value("forwarded_count"_ls), pod.forwardedCount);
-        fillFromJson(jo.value("is_verified"_ls), pod.isVerified);
-        fillFromJson(jo.value("session_data"_ls), pod.sessionData);
+        fillFromJson(jo.value("first_message_index"_L1), pod.firstMessageIndex);
+        fillFromJson(jo.value("forwarded_count"_L1), pod.forwardedCount);
+        fillFromJson(jo.value("is_verified"_L1), pod.isVerified);
+        fillFromJson(jo.value("session_data"_L1), pod.sessionData);
     }
 };
 

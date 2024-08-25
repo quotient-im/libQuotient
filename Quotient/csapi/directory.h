@@ -41,10 +41,10 @@ public:
     // Result properties
 
     //! The room ID for this room alias.
-    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
+    QString roomId() const { return loadFromJson<QString>("room_id"_L1); }
 
     //! A list of servers that are aware of this room alias.
-    QStringList servers() const { return loadFromJson<QStringList>("servers"_ls); }
+    QStringList servers() const { return loadFromJson<QStringList>("servers"_L1); }
 
     struct Response {
         //! The room ID for this room alias.
@@ -119,7 +119,7 @@ public:
     // Result properties
 
     //! The server's local aliases on the room. Can be empty.
-    QStringList aliases() const { return loadFromJson<QStringList>("aliases"_ls); }
+    QStringList aliases() const { return loadFromJson<QStringList>("aliases"_L1); }
 };
 
 inline auto collectResponse(const GetLocalAliasesJob* job) { return job->aliases(); }

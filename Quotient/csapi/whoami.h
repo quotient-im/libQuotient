@@ -29,18 +29,18 @@ public:
     // Result properties
 
     //! The user ID that owns the access token.
-    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
+    QString userId() const { return loadFromJson<QString>("user_id"_L1); }
 
     //! Device ID associated with the access token. If no device
     //! is associated with the access token (such as in the case
     //! of application services) then this field can be omitted.
     //! Otherwise this is required.
-    QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
+    QString deviceId() const { return loadFromJson<QString>("device_id"_L1); }
 
     //! When `true`, the user is a [Guest User](#guest-access). When
     //! not present or `false`, the user is presumed to be a non-guest
     //! user.
-    std::optional<bool> isGuest() const { return loadFromJson<std::optional<bool>>("is_guest"_ls); }
+    std::optional<bool> isGuest() const { return loadFromJson<std::optional<bool>>("is_guest"_L1); }
 
     struct Response {
         //! The user ID that owns the access token.

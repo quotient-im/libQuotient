@@ -10,6 +10,6 @@ QUrl GetWhoIsJob::makeRequestUrl(const HomeserverData& hsData, const QString& us
 }
 
 GetWhoIsJob::GetWhoIsJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetWhoIsJob"),
+    : BaseJob(HttpVerb::Get, u"GetWhoIsJob"_s,
               makePath("/_matrix/client/v3", "/admin/whois/", userId))
 {}

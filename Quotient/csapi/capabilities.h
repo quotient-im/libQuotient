@@ -55,7 +55,7 @@ public:
 
     //! The custom capabilities the server supports, using the
     //! Java package naming convention.
-    Capabilities capabilities() const { return loadFromJson<Capabilities>("capabilities"_ls); }
+    Capabilities capabilities() const { return loadFromJson<Capabilities>("capabilities"_L1); }
 };
 
 inline auto collectResponse(const GetCapabilitiesJob* job) { return job->capabilities(); }
@@ -64,7 +64,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::ChangePasswordCapability> {
     static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::ChangePasswordCapability& result)
     {
-        fillFromJson(jo.value("enabled"_ls), result.enabled);
+        fillFromJson(jo.value("enabled"_L1), result.enabled);
     }
 };
 
@@ -72,8 +72,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapability> {
     static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::RoomVersionsCapability& result)
     {
-        fillFromJson(jo.value("default"_ls), result.defaultVersion);
-        fillFromJson(jo.value("available"_ls), result.available);
+        fillFromJson(jo.value("default"_L1), result.defaultVersion);
+        fillFromJson(jo.value("available"_L1), result.available);
     }
 };
 
@@ -81,8 +81,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
     static void fillFrom(QJsonObject jo, GetCapabilitiesJob::Capabilities& result)
     {
-        fillFromJson(jo.take("m.change_password"_ls), result.changePassword);
-        fillFromJson(jo.take("m.room_versions"_ls), result.roomVersions);
+        fillFromJson(jo.take("m.change_password"_L1), result.changePassword);
+        fillFromJson(jo.take("m.room_versions"_L1), result.roomVersions);
         fromJson(jo, result.additionalProperties);
     }
 };

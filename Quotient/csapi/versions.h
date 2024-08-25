@@ -43,14 +43,14 @@ public:
     // Result properties
 
     //! The supported versions.
-    QStringList versions() const { return loadFromJson<QStringList>("versions"_ls); }
+    QStringList versions() const { return loadFromJson<QStringList>("versions"_L1); }
 
     //! Experimental features the server supports. Features not listed here,
     //! or the lack of this property all together, indicate that a feature is
     //! not supported.
     QHash<QString, bool> unstableFeatures() const
     {
-        return loadFromJson<QHash<QString, bool>>("unstable_features"_ls);
+        return loadFromJson<QHash<QString, bool>>("unstable_features"_L1);
     }
 
     struct Response {

@@ -10,6 +10,5 @@ QUrl GetWellknownJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetWellknownJob::GetWellknownJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetWellknownJob"),
-              makePath("/.well-known", "/matrix/client"), false)
+    : BaseJob(HttpVerb::Get, u"GetWellknownJob"_s, makePath("/.well-known", "/matrix/client"), false)
 {}

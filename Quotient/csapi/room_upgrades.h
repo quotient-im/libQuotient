@@ -21,7 +21,7 @@ public:
     // Result properties
 
     //! The ID of the new room.
-    QString replacementRoom() const { return loadFromJson<QString>("replacement_room"_ls); }
+    QString replacementRoom() const { return loadFromJson<QString>("replacement_room"_L1); }
 };
 
 inline auto collectResponse(const UpgradeRoomJob* job) { return job->replacementRoom(); }

@@ -10,7 +10,7 @@ QUrl LogoutJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 LogoutJob::LogoutJob()
-    : BaseJob(HttpVerb::Post, QStringLiteral("LogoutJob"), makePath("/_matrix/client/v3", "/logout"))
+    : BaseJob(HttpVerb::Post, u"LogoutJob"_s, makePath("/_matrix/client/v3", "/logout"))
 {}
 
 QUrl LogoutAllJob::makeRequestUrl(const HomeserverData& hsData)
@@ -19,6 +19,5 @@ QUrl LogoutAllJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 LogoutAllJob::LogoutAllJob()
-    : BaseJob(HttpVerb::Post, QStringLiteral("LogoutAllJob"),
-              makePath("/_matrix/client/v3", "/logout/all"))
+    : BaseJob(HttpVerb::Post, u"LogoutAllJob"_s, makePath("/_matrix/client/v3", "/logout/all"))
 {}

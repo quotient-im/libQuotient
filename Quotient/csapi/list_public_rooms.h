@@ -26,7 +26,7 @@ public:
     // Result properties
 
     //! The visibility of the room in the directory.
-    QString visibility() const { return loadFromJson<QString>("visibility"_ls); }
+    QString visibility() const { return loadFromJson<QString>("visibility"_L1); }
 };
 
 inline auto collectResponse(const GetRoomVisibilityOnDirectoryJob* job)
@@ -88,24 +88,24 @@ public:
     //! A paginated chunk of public rooms.
     QVector<PublicRoomsChunk> chunk() const
     {
-        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_ls);
+        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_L1);
     }
 
     //! A pagination token for the response. The absence of this token
     //! means there are no more results to fetch and the client should
     //! stop paginating.
-    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
     //! A pagination token that allows fetching previous results. The
     //! absence of this token means there are no results before this
     //! batch, i.e. this is the first batch.
-    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_L1); }
 
     //! An estimate on the total number of public rooms, if the
     //! server has an estimate.
     std::optional<int> totalRoomCountEstimate() const
     {
-        return loadFromJson<std::optional<int>>("total_room_count_estimate"_ls);
+        return loadFromJson<std::optional<int>>("total_room_count_estimate"_L1);
     }
 
     struct Response {
@@ -192,24 +192,24 @@ public:
     //! A paginated chunk of public rooms.
     QVector<PublicRoomsChunk> chunk() const
     {
-        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_ls);
+        return loadFromJson<QVector<PublicRoomsChunk>>("chunk"_L1);
     }
 
     //! A pagination token for the response. The absence of this token
     //! means there are no more results to fetch and the client should
     //! stop paginating.
-    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
     //! A pagination token that allows fetching previous results. The
     //! absence of this token means there are no results before this
     //! batch, i.e. this is the first batch.
-    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_L1); }
 
     //! An estimate on the total number of public rooms, if the
     //! server has an estimate.
     std::optional<int> totalRoomCountEstimate() const
     {
-        return loadFromJson<std::optional<int>>("total_room_count_estimate"_ls);
+        return loadFromJson<std::optional<int>>("total_room_count_estimate"_L1);
     }
 
     struct Response {
@@ -241,8 +241,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<QueryPublicRoomsJob::Filter> {
     static void dumpTo(QJsonObject& jo, const QueryPublicRoomsJob::Filter& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("generic_search_term"), pod.genericSearchTerm);
-        addParam<IfNotEmpty>(jo, QStringLiteral("room_types"), pod.roomTypes);
+        addParam<IfNotEmpty>(jo, "generic_search_term"_L1, pod.genericSearchTerm);
+        addParam<IfNotEmpty>(jo, "room_types"_L1, pod.roomTypes);
     }
 };
 

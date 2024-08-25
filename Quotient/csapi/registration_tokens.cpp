@@ -7,7 +7,7 @@ using namespace Quotient;
 auto queryToRegistrationTokenValidity(const QString& token)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("token"), token);
+    addParam<>(_q, u"token"_s, token);
     return _q;
 }
 
@@ -20,7 +20,7 @@ QUrl RegistrationTokenValidityJob::makeRequestUrl(const HomeserverData& hsData, 
 }
 
 RegistrationTokenValidityJob::RegistrationTokenValidityJob(const QString& token)
-    : BaseJob(HttpVerb::Get, QStringLiteral("RegistrationTokenValidityJob"),
+    : BaseJob(HttpVerb::Get, u"RegistrationTokenValidityJob"_s,
               makePath("/_matrix/client/v1", "/register/m.login.registration_token/validity"),
               queryToRegistrationTokenValidity(token), {}, false)
 {

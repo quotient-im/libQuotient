@@ -69,13 +69,13 @@ public:
     //! At least one of `contacts` or `support_page` is required.
     //! If only `contacts` is set, it must contain at least one
     //! item.
-    QVector<Contact> contacts() const { return loadFromJson<QVector<Contact>>("contacts"_ls); }
+    QVector<Contact> contacts() const { return loadFromJson<QVector<Contact>>("contacts"_L1); }
 
     //! The URL of a page to give users help specific to the
     //! homeserver, like extra login/registration steps.
     //!
     //! At least one of `contacts` or `support_page` is required.
-    QString supportPage() const { return loadFromJson<QString>("support_page"_ls); }
+    QString supportPage() const { return loadFromJson<QString>("support_page"_L1); }
 
     struct Response {
         //! Ways to contact the server administrator.
@@ -101,9 +101,9 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetWellknownSupportJob::Contact> {
     static void fillFrom(const QJsonObject& jo, GetWellknownSupportJob::Contact& result)
     {
-        fillFromJson(jo.value("role"_ls), result.role);
-        fillFromJson(jo.value("matrix_id"_ls), result.matrixId);
-        fillFromJson(jo.value("email_address"_ls), result.emailAddress);
+        fillFromJson(jo.value("role"_L1), result.role);
+        fillFromJson(jo.value("matrix_id"_L1), result.matrixId);
+        fillFromJson(jo.value("email_address"_L1), result.emailAddress);
     }
 };
 

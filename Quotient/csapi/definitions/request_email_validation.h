@@ -51,21 +51,21 @@ template <>
 struct JsonObjectConverter<EmailValidationData> {
     static void dumpTo(QJsonObject& jo, const EmailValidationData& pod)
     {
-        addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
-        addParam<>(jo, QStringLiteral("email"), pod.email);
-        addParam<>(jo, QStringLiteral("send_attempt"), pod.sendAttempt);
-        addParam<IfNotEmpty>(jo, QStringLiteral("next_link"), pod.nextLink);
-        addParam<IfNotEmpty>(jo, QStringLiteral("id_server"), pod.idServer);
-        addParam<IfNotEmpty>(jo, QStringLiteral("id_access_token"), pod.idAccessToken);
+        addParam<>(jo, "client_secret"_L1, pod.clientSecret);
+        addParam<>(jo, "email"_L1, pod.email);
+        addParam<>(jo, "send_attempt"_L1, pod.sendAttempt);
+        addParam<IfNotEmpty>(jo, "next_link"_L1, pod.nextLink);
+        addParam<IfNotEmpty>(jo, "id_server"_L1, pod.idServer);
+        addParam<IfNotEmpty>(jo, "id_access_token"_L1, pod.idAccessToken);
     }
     static void fillFrom(const QJsonObject& jo, EmailValidationData& pod)
     {
-        fillFromJson(jo.value("client_secret"_ls), pod.clientSecret);
-        fillFromJson(jo.value("email"_ls), pod.email);
-        fillFromJson(jo.value("send_attempt"_ls), pod.sendAttempt);
-        fillFromJson(jo.value("next_link"_ls), pod.nextLink);
-        fillFromJson(jo.value("id_server"_ls), pod.idServer);
-        fillFromJson(jo.value("id_access_token"_ls), pod.idAccessToken);
+        fillFromJson(jo.value("client_secret"_L1), pod.clientSecret);
+        fillFromJson(jo.value("email"_L1), pod.email);
+        fillFromJson(jo.value("send_attempt"_L1), pod.sendAttempt);
+        fillFromJson(jo.value("next_link"_L1), pod.nextLink);
+        fillFromJson(jo.value("id_server"_L1), pod.idServer);
+        fillFromJson(jo.value("id_access_token"_L1), pod.idAccessToken);
     }
 };
 

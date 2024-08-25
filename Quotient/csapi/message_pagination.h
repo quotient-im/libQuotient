@@ -64,7 +64,7 @@ public:
 
     //! A token corresponding to the start of `chunk`. This will be the same as
     //! the value given in `from`.
-    QString begin() const { return loadFromJson<QString>("start"_ls); }
+    QString begin() const { return loadFromJson<QString>("start"_L1); }
 
     //! A token corresponding to the end of `chunk`. This token can be passed
     //! back to this endpoint to request further events.
@@ -73,7 +73,7 @@ public:
     //! reached the start of the timeline, or because the user does
     //! not have permission to see any more events), this property
     //! is omitted from the response.
-    QString end() const { return loadFromJson<QString>("end"_ls); }
+    QString end() const { return loadFromJson<QString>("end"_L1); }
 
     //! A list of room events. The order depends on the `dir` parameter.
     //! For `dir=b` events will be in reverse-chronological order,
@@ -83,7 +83,7 @@ public:
     //! Note that an empty `chunk` does not *necessarily* imply that no more events
     //! are available. Clients should continue to paginate until no `end` property
     //! is returned.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
     //! A list of state events relevant to showing the `chunk`. For example, if
     //! `lazy_load_members` is enabled in the filter then this may contain
@@ -93,7 +93,7 @@ public:
     //! may remove membership events which would have already been
     //! sent to the client in prior calls to this endpoint, assuming
     //! the membership of those members has not changed.
-    RoomEvents state() { return takeFromJson<RoomEvents>("state"_ls); }
+    RoomEvents state() { return takeFromJson<RoomEvents>("state"_L1); }
 
     struct Response {
         //! A token corresponding to the start of `chunk`. This will be the same as

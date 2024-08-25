@@ -25,7 +25,7 @@ public:
     // Result properties
 
     //! A list of all registered devices for this user.
-    QVector<Device> devices() const { return loadFromJson<QVector<Device>>("devices"_ls); }
+    QVector<Device> devices() const { return loadFromJson<QVector<Device>>("devices"_L1); }
 };
 
 inline auto collectResponse(const GetDevicesJob* job) { return job->devices(); }

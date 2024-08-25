@@ -10,25 +10,22 @@ QUrl GetLoginFlowsJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetLoginFlowsJob::GetLoginFlowsJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetLoginFlowsJob"),
-              makePath("/_matrix/client/v3", "/login"), false)
+    : BaseJob(HttpVerb::Get, u"GetLoginFlowsJob"_s, makePath("/_matrix/client/v3", "/login"), false)
 {}
 
 LoginJob::LoginJob(const QString& type, const std::optional<UserIdentifier>& identifier,
                    const QString& password, const QString& token, const QString& deviceId,
                    const QString& initialDeviceDisplayName, std::optional<bool> refreshToken)
-    : BaseJob(HttpVerb::Post, QStringLiteral("LoginJob"), makePath("/_matrix/client/v3", "/login"),
-              false)
+    : BaseJob(HttpVerb::Post, u"LoginJob"_s, makePath("/_matrix/client/v3", "/login"), false)
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("type"), type);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("identifier"), identifier);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("password"), password);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("token"), token);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("device_id"), deviceId);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("initial_device_display_name"),
-                         initialDeviceDisplayName);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("refresh_token"), refreshToken);
+    addParam<>(_dataJson, "type"_L1, type);
+    addParam<IfNotEmpty>(_dataJson, "identifier"_L1, identifier);
+    addParam<IfNotEmpty>(_dataJson, "password"_L1, password);
+    addParam<IfNotEmpty>(_dataJson, "token"_L1, token);
+    addParam<IfNotEmpty>(_dataJson, "device_id"_L1, deviceId);
+    addParam<IfNotEmpty>(_dataJson, "initial_device_display_name"_L1, initialDeviceDisplayName);
+    addParam<IfNotEmpty>(_dataJson, "refresh_token"_L1, refreshToken);
     setRequestData({ _dataJson });
     addExpectedKey("user_id");
     addExpectedKey("access_token");

@@ -40,23 +40,23 @@ template <>
 struct JsonObjectConverter<RoomFilter> {
     static void dumpTo(QJsonObject& jo, const RoomFilter& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("not_rooms"), pod.notRooms);
-        addParam<IfNotEmpty>(jo, QStringLiteral("rooms"), pod.rooms);
-        addParam<IfNotEmpty>(jo, QStringLiteral("ephemeral"), pod.ephemeral);
-        addParam<IfNotEmpty>(jo, QStringLiteral("include_leave"), pod.includeLeave);
-        addParam<IfNotEmpty>(jo, QStringLiteral("state"), pod.state);
-        addParam<IfNotEmpty>(jo, QStringLiteral("timeline"), pod.timeline);
-        addParam<IfNotEmpty>(jo, QStringLiteral("account_data"), pod.accountData);
+        addParam<IfNotEmpty>(jo, "not_rooms"_L1, pod.notRooms);
+        addParam<IfNotEmpty>(jo, "rooms"_L1, pod.rooms);
+        addParam<IfNotEmpty>(jo, "ephemeral"_L1, pod.ephemeral);
+        addParam<IfNotEmpty>(jo, "include_leave"_L1, pod.includeLeave);
+        addParam<IfNotEmpty>(jo, "state"_L1, pod.state);
+        addParam<IfNotEmpty>(jo, "timeline"_L1, pod.timeline);
+        addParam<IfNotEmpty>(jo, "account_data"_L1, pod.accountData);
     }
     static void fillFrom(const QJsonObject& jo, RoomFilter& pod)
     {
-        fillFromJson(jo.value("not_rooms"_ls), pod.notRooms);
-        fillFromJson(jo.value("rooms"_ls), pod.rooms);
-        fillFromJson(jo.value("ephemeral"_ls), pod.ephemeral);
-        fillFromJson(jo.value("include_leave"_ls), pod.includeLeave);
-        fillFromJson(jo.value("state"_ls), pod.state);
-        fillFromJson(jo.value("timeline"_ls), pod.timeline);
-        fillFromJson(jo.value("account_data"_ls), pod.accountData);
+        fillFromJson(jo.value("not_rooms"_L1), pod.notRooms);
+        fillFromJson(jo.value("rooms"_L1), pod.rooms);
+        fillFromJson(jo.value("ephemeral"_L1), pod.ephemeral);
+        fillFromJson(jo.value("include_leave"_L1), pod.includeLeave);
+        fillFromJson(jo.value("state"_L1), pod.state);
+        fillFromJson(jo.value("timeline"_L1), pod.timeline);
+        fillFromJson(jo.value("account_data"_L1), pod.accountData);
     }
 };
 
@@ -86,19 +86,19 @@ template <>
 struct JsonObjectConverter<Filter> {
     static void dumpTo(QJsonObject& jo, const Filter& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("event_fields"), pod.eventFields);
-        addParam<IfNotEmpty>(jo, QStringLiteral("event_format"), pod.eventFormat);
-        addParam<IfNotEmpty>(jo, QStringLiteral("presence"), pod.presence);
-        addParam<IfNotEmpty>(jo, QStringLiteral("account_data"), pod.accountData);
-        addParam<IfNotEmpty>(jo, QStringLiteral("room"), pod.room);
+        addParam<IfNotEmpty>(jo, "event_fields"_L1, pod.eventFields);
+        addParam<IfNotEmpty>(jo, "event_format"_L1, pod.eventFormat);
+        addParam<IfNotEmpty>(jo, "presence"_L1, pod.presence);
+        addParam<IfNotEmpty>(jo, "account_data"_L1, pod.accountData);
+        addParam<IfNotEmpty>(jo, "room"_L1, pod.room);
     }
     static void fillFrom(const QJsonObject& jo, Filter& pod)
     {
-        fillFromJson(jo.value("event_fields"_ls), pod.eventFields);
-        fillFromJson(jo.value("event_format"_ls), pod.eventFormat);
-        fillFromJson(jo.value("presence"_ls), pod.presence);
-        fillFromJson(jo.value("account_data"_ls), pod.accountData);
-        fillFromJson(jo.value("room"_ls), pod.room);
+        fillFromJson(jo.value("event_fields"_L1), pod.eventFields);
+        fillFromJson(jo.value("event_format"_L1), pod.eventFormat);
+        fillFromJson(jo.value("presence"_L1), pod.presence);
+        fillFromJson(jo.value("account_data"_L1), pod.accountData);
+        fillFromJson(jo.value("room"_L1), pod.room);
     }
 };
 

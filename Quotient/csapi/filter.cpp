@@ -5,7 +5,7 @@
 using namespace Quotient;
 
 DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
-    : BaseJob(HttpVerb::Post, QStringLiteral("DefineFilterJob"),
+    : BaseJob(HttpVerb::Post, u"DefineFilterJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/filter"))
 {
     setRequestData({ toJson(filter) });
@@ -20,6 +20,6 @@ QUrl GetFilterJob::makeRequestUrl(const HomeserverData& hsData, const QString& u
 }
 
 GetFilterJob::GetFilterJob(const QString& userId, const QString& filterId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetFilterJob"),
+    : BaseJob(HttpVerb::Get, u"GetFilterJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/filter/", filterId))
 {}

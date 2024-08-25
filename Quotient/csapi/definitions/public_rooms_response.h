@@ -47,29 +47,29 @@ template <>
 struct JsonObjectConverter<PublicRoomsChunk> {
     static void dumpTo(QJsonObject& jo, const PublicRoomsChunk& pod)
     {
-        addParam<>(jo, QStringLiteral("num_joined_members"), pod.numJoinedMembers);
-        addParam<>(jo, QStringLiteral("room_id"), pod.roomId);
-        addParam<>(jo, QStringLiteral("world_readable"), pod.worldReadable);
-        addParam<>(jo, QStringLiteral("guest_can_join"), pod.guestCanJoin);
-        addParam<IfNotEmpty>(jo, QStringLiteral("canonical_alias"), pod.canonicalAlias);
-        addParam<IfNotEmpty>(jo, QStringLiteral("name"), pod.name);
-        addParam<IfNotEmpty>(jo, QStringLiteral("topic"), pod.topic);
-        addParam<IfNotEmpty>(jo, QStringLiteral("avatar_url"), pod.avatarUrl);
-        addParam<IfNotEmpty>(jo, QStringLiteral("join_rule"), pod.joinRule);
-        addParam<IfNotEmpty>(jo, QStringLiteral("room_type"), pod.roomType);
+        addParam<>(jo, "num_joined_members"_L1, pod.numJoinedMembers);
+        addParam<>(jo, "room_id"_L1, pod.roomId);
+        addParam<>(jo, "world_readable"_L1, pod.worldReadable);
+        addParam<>(jo, "guest_can_join"_L1, pod.guestCanJoin);
+        addParam<IfNotEmpty>(jo, "canonical_alias"_L1, pod.canonicalAlias);
+        addParam<IfNotEmpty>(jo, "name"_L1, pod.name);
+        addParam<IfNotEmpty>(jo, "topic"_L1, pod.topic);
+        addParam<IfNotEmpty>(jo, "avatar_url"_L1, pod.avatarUrl);
+        addParam<IfNotEmpty>(jo, "join_rule"_L1, pod.joinRule);
+        addParam<IfNotEmpty>(jo, "room_type"_L1, pod.roomType);
     }
     static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod)
     {
-        fillFromJson(jo.value("num_joined_members"_ls), pod.numJoinedMembers);
-        fillFromJson(jo.value("room_id"_ls), pod.roomId);
-        fillFromJson(jo.value("world_readable"_ls), pod.worldReadable);
-        fillFromJson(jo.value("guest_can_join"_ls), pod.guestCanJoin);
-        fillFromJson(jo.value("canonical_alias"_ls), pod.canonicalAlias);
-        fillFromJson(jo.value("name"_ls), pod.name);
-        fillFromJson(jo.value("topic"_ls), pod.topic);
-        fillFromJson(jo.value("avatar_url"_ls), pod.avatarUrl);
-        fillFromJson(jo.value("join_rule"_ls), pod.joinRule);
-        fillFromJson(jo.value("room_type"_ls), pod.roomType);
+        fillFromJson(jo.value("num_joined_members"_L1), pod.numJoinedMembers);
+        fillFromJson(jo.value("room_id"_L1), pod.roomId);
+        fillFromJson(jo.value("world_readable"_L1), pod.worldReadable);
+        fillFromJson(jo.value("guest_can_join"_L1), pod.guestCanJoin);
+        fillFromJson(jo.value("canonical_alias"_L1), pod.canonicalAlias);
+        fillFromJson(jo.value("name"_L1), pod.name);
+        fillFromJson(jo.value("topic"_L1), pod.topic);
+        fillFromJson(jo.value("avatar_url"_L1), pod.avatarUrl);
+        fillFromJson(jo.value("join_rule"_L1), pod.joinRule);
+        fillFromJson(jo.value("room_type"_L1), pod.roomType);
     }
 };
 

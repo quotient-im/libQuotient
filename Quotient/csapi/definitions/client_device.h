@@ -28,17 +28,17 @@ template <>
 struct JsonObjectConverter<Device> {
     static void dumpTo(QJsonObject& jo, const Device& pod)
     {
-        addParam<>(jo, QStringLiteral("device_id"), pod.deviceId);
-        addParam<IfNotEmpty>(jo, QStringLiteral("display_name"), pod.displayName);
-        addParam<IfNotEmpty>(jo, QStringLiteral("last_seen_ip"), pod.lastSeenIp);
-        addParam<IfNotEmpty>(jo, QStringLiteral("last_seen_ts"), pod.lastSeenTs);
+        addParam<>(jo, "device_id"_L1, pod.deviceId);
+        addParam<IfNotEmpty>(jo, "display_name"_L1, pod.displayName);
+        addParam<IfNotEmpty>(jo, "last_seen_ip"_L1, pod.lastSeenIp);
+        addParam<IfNotEmpty>(jo, "last_seen_ts"_L1, pod.lastSeenTs);
     }
     static void fillFrom(const QJsonObject& jo, Device& pod)
     {
-        fillFromJson(jo.value("device_id"_ls), pod.deviceId);
-        fillFromJson(jo.value("display_name"_ls), pod.displayName);
-        fillFromJson(jo.value("last_seen_ip"_ls), pod.lastSeenIp);
-        fillFromJson(jo.value("last_seen_ts"_ls), pod.lastSeenTs);
+        fillFromJson(jo.value("device_id"_L1), pod.deviceId);
+        fillFromJson(jo.value("display_name"_L1), pod.displayName);
+        fillFromJson(jo.value("last_seen_ip"_L1), pod.lastSeenIp);
+        fillFromJson(jo.value("last_seen_ts"_L1), pod.lastSeenTs);
     }
 };
 

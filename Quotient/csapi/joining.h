@@ -41,7 +41,7 @@ public:
     // Result properties
 
     //! The joined room ID.
-    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
+    QString roomId() const { return loadFromJson<QString>("room_id"_L1); }
 };
 
 inline auto collectResponse(const JoinRoomByIdJob* job) { return job->roomId(); }
@@ -82,7 +82,7 @@ public:
     // Result properties
 
     //! The joined room ID.
-    QString roomId() const { return loadFromJson<QString>("room_id"_ls); }
+    QString roomId() const { return loadFromJson<QString>("room_id"_L1); }
 };
 
 inline auto collectResponse(const JoinRoomJob* job) { return job->roomId(); }

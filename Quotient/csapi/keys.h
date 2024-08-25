@@ -54,7 +54,7 @@ public:
     //! is to be assumed zero.
     QHash<QString, int> oneTimeKeyCounts() const
     {
-        return loadFromJson<QHash<QString, int>>("one_time_key_counts"_ls);
+        return loadFromJson<QHash<QString, int>>("one_time_key_counts"_L1);
     }
 };
 
@@ -106,7 +106,7 @@ public:
     //! user or device is missing from the `device_keys` result.
     QHash<QString, QJsonObject> failures() const
     {
-        return loadFromJson<QHash<QString, QJsonObject>>("failures"_ls);
+        return loadFromJson<QHash<QString, QJsonObject>>("failures"_L1);
     }
 
     //! Information on the queried devices. A map from user ID, to a
@@ -116,7 +116,7 @@ public:
     //! property.
     QHash<UserId, QHash<QString, DeviceInformation>> deviceKeys() const
     {
-        return loadFromJson<QHash<UserId, QHash<QString, DeviceInformation>>>("device_keys"_ls);
+        return loadFromJson<QHash<UserId, QHash<QString, DeviceInformation>>>("device_keys"_L1);
     }
 
     //! Information on the master cross-signing keys of the queried users.
@@ -127,7 +127,7 @@ public:
     //! is allowed to see.
     QHash<UserId, CrossSigningKey> masterKeys() const
     {
-        return loadFromJson<QHash<UserId, CrossSigningKey>>("master_keys"_ls);
+        return loadFromJson<QHash<UserId, CrossSigningKey>>("master_keys"_L1);
     }
 
     //! Information on the self-signing keys of the queried users. A map
@@ -136,7 +136,7 @@ public:
     //! `/keys/device_signing/upload`.
     QHash<UserId, CrossSigningKey> selfSigningKeys() const
     {
-        return loadFromJson<QHash<UserId, CrossSigningKey>>("self_signing_keys"_ls);
+        return loadFromJson<QHash<UserId, CrossSigningKey>>("self_signing_keys"_L1);
     }
 
     //! Information on the user-signing key of the user making the
@@ -146,7 +146,7 @@ public:
     //! `/keys/device_signing/upload`.
     QHash<UserId, CrossSigningKey> userSigningKeys() const
     {
-        return loadFromJson<QHash<UserId, CrossSigningKey>>("user_signing_keys"_ls);
+        return loadFromJson<QHash<UserId, CrossSigningKey>>("user_signing_keys"_L1);
     }
 
     struct Response {
@@ -199,7 +199,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
     static void fillFrom(const QJsonObject& jo, QueryKeysJob::UnsignedDeviceInfo& result)
     {
-        fillFromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
+        fillFromJson(jo.value("device_display_name"_L1), result.deviceDisplayName);
     }
 };
 
@@ -208,7 +208,7 @@ struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::DeviceInformation> {
     static void fillFrom(const QJsonObject& jo, QueryKeysJob::DeviceInformation& result)
     {
         fillFromJson<DeviceKeys>(jo, result);
-        fillFromJson(jo.value("unsigned"_ls), result.unsignedData);
+        fillFromJson(jo.value("unsigned"_L1), result.unsignedData);
     }
 };
 
@@ -238,7 +238,7 @@ public:
     //! user or device is missing from the `one_time_keys` result.
     QHash<QString, QJsonObject> failures() const
     {
-        return loadFromJson<QHash<QString, QJsonObject>>("failures"_ls);
+        return loadFromJson<QHash<QString, QJsonObject>>("failures"_L1);
     }
 
     //! One-time keys for the queried devices. A map from user ID, to a
@@ -251,7 +251,7 @@ public:
     //! keys are re-used by the server until replaced by the device.
     QHash<UserId, QHash<QString, OneTimeKeys>> oneTimeKeys() const
     {
-        return loadFromJson<QHash<UserId, QHash<QString, OneTimeKeys>>>("one_time_keys"_ls);
+        return loadFromJson<QHash<UserId, QHash<QString, OneTimeKeys>>>("one_time_keys"_L1);
     }
 
     struct Response {
@@ -317,12 +317,12 @@ public:
 
     //! The Matrix User IDs of all users who updated their device
     //! identity keys.
-    QStringList changed() const { return loadFromJson<QStringList>("changed"_ls); }
+    QStringList changed() const { return loadFromJson<QStringList>("changed"_L1); }
 
     //! The Matrix User IDs of all users who may have left all
     //! the end-to-end encrypted rooms they previously shared
     //! with the user.
-    QStringList left() const { return loadFromJson<QStringList>("left"_ls); }
+    QStringList left() const { return loadFromJson<QStringList>("left"_L1); }
 
     struct Response {
         //! The Matrix User IDs of all users who updated their device

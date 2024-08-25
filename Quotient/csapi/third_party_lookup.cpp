@@ -10,7 +10,7 @@ QUrl GetProtocolsJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetProtocolsJob::GetProtocolsJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetProtocolsJob"),
+    : BaseJob(HttpVerb::Get, u"GetProtocolsJob"_s,
               makePath("/_matrix/client/v3", "/thirdparty/protocols"))
 {}
 
@@ -21,14 +21,14 @@ QUrl GetProtocolMetadataJob::makeRequestUrl(const HomeserverData& hsData, const 
 }
 
 GetProtocolMetadataJob::GetProtocolMetadataJob(const QString& protocol)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetProtocolMetadataJob"),
+    : BaseJob(HttpVerb::Get, u"GetProtocolMetadataJob"_s,
               makePath("/_matrix/client/v3", "/thirdparty/protocol/", protocol))
 {}
 
 auto queryToQueryLocationByProtocol(const QString& searchFields)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("searchFields"), searchFields);
+    addParam<IfNotEmpty>(_q, u"searchFields"_s, searchFields);
     return _q;
 }
 
@@ -42,7 +42,7 @@ QUrl QueryLocationByProtocolJob::makeRequestUrl(const HomeserverData& hsData,
 
 QueryLocationByProtocolJob::QueryLocationByProtocolJob(const QString& protocol,
                                                        const QString& searchFields)
-    : BaseJob(HttpVerb::Get, QStringLiteral("QueryLocationByProtocolJob"),
+    : BaseJob(HttpVerb::Get, u"QueryLocationByProtocolJob"_s,
               makePath("/_matrix/client/v3", "/thirdparty/location/", protocol),
               queryToQueryLocationByProtocol(searchFields))
 {}
@@ -50,7 +50,7 @@ QueryLocationByProtocolJob::QueryLocationByProtocolJob(const QString& protocol,
 auto queryToQueryUserByProtocol(const QHash<QString, QString>& fields)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("fields"), fields);
+    addParam<IfNotEmpty>(_q, u"fields"_s, fields);
     return _q;
 }
 
@@ -64,7 +64,7 @@ QUrl QueryUserByProtocolJob::makeRequestUrl(const HomeserverData& hsData, const 
 
 QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol,
                                                const QHash<QString, QString>& fields)
-    : BaseJob(HttpVerb::Get, QStringLiteral("QueryUserByProtocolJob"),
+    : BaseJob(HttpVerb::Get, u"QueryUserByProtocolJob"_s,
               makePath("/_matrix/client/v3", "/thirdparty/user/", protocol),
               queryToQueryUserByProtocol(fields))
 {}
@@ -72,7 +72,7 @@ QueryUserByProtocolJob::QueryUserByProtocolJob(const QString& protocol,
 auto queryToQueryLocationByAlias(const QString& alias)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("alias"), alias);
+    addParam<>(_q, u"alias"_s, alias);
     return _q;
 }
 
@@ -83,7 +83,7 @@ QUrl QueryLocationByAliasJob::makeRequestUrl(const HomeserverData& hsData, const
 }
 
 QueryLocationByAliasJob::QueryLocationByAliasJob(const QString& alias)
-    : BaseJob(HttpVerb::Get, QStringLiteral("QueryLocationByAliasJob"),
+    : BaseJob(HttpVerb::Get, u"QueryLocationByAliasJob"_s,
               makePath("/_matrix/client/v3", "/thirdparty/location"),
               queryToQueryLocationByAlias(alias))
 {}
@@ -91,7 +91,7 @@ QueryLocationByAliasJob::QueryLocationByAliasJob(const QString& alias)
 auto queryToQueryUserByID(const QString& userid)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("userid"), userid);
+    addParam<>(_q, u"userid"_s, userid);
     return _q;
 }
 
@@ -102,6 +102,6 @@ QUrl QueryUserByIDJob::makeRequestUrl(const HomeserverData& hsData, const QStrin
 }
 
 QueryUserByIDJob::QueryUserByIDJob(const QString& userid)
-    : BaseJob(HttpVerb::Get, QStringLiteral("QueryUserByIDJob"),
+    : BaseJob(HttpVerb::Get, u"QueryUserByIDJob"_s,
               makePath("/_matrix/client/v3", "/thirdparty/user"), queryToQueryUserByID(userid))
 {}

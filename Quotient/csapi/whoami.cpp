@@ -10,7 +10,7 @@ QUrl GetTokenOwnerJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetTokenOwnerJob::GetTokenOwnerJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetTokenOwnerJob"),
+    : BaseJob(HttpVerb::Get, u"GetTokenOwnerJob"_s,
               makePath("/_matrix/client/v3", "/account/whoami"))
 {
     addExpectedKey("user_id");

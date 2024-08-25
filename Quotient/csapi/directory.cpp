@@ -5,11 +5,11 @@
 using namespace Quotient;
 
 SetRoomAliasJob::SetRoomAliasJob(const QString& roomAlias, const QString& roomId)
-    : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomAliasJob"),
+    : BaseJob(HttpVerb::Put, u"SetRoomAliasJob"_s,
               makePath("/_matrix/client/v3", "/directory/room/", roomAlias))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("room_id"), roomId);
+    addParam<>(_dataJson, "room_id"_L1, roomId);
     setRequestData({ _dataJson });
 }
 
@@ -20,7 +20,7 @@ QUrl GetRoomIdByAliasJob::makeRequestUrl(const HomeserverData& hsData, const QSt
 }
 
 GetRoomIdByAliasJob::GetRoomIdByAliasJob(const QString& roomAlias)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomIdByAliasJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomIdByAliasJob"_s,
               makePath("/_matrix/client/v3", "/directory/room/", roomAlias), false)
 {}
 
@@ -31,7 +31,7 @@ QUrl DeleteRoomAliasJob::makeRequestUrl(const HomeserverData& hsData, const QStr
 }
 
 DeleteRoomAliasJob::DeleteRoomAliasJob(const QString& roomAlias)
-    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomAliasJob"),
+    : BaseJob(HttpVerb::Delete, u"DeleteRoomAliasJob"_s,
               makePath("/_matrix/client/v3", "/directory/room/", roomAlias))
 {}
 
@@ -42,7 +42,7 @@ QUrl GetLocalAliasesJob::makeRequestUrl(const HomeserverData& hsData, const QStr
 }
 
 GetLocalAliasesJob::GetLocalAliasesJob(const QString& roomId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetLocalAliasesJob"),
+    : BaseJob(HttpVerb::Get, u"GetLocalAliasesJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/aliases"))
 {
     addExpectedKey("aliases");

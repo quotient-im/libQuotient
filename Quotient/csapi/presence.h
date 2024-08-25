@@ -44,22 +44,22 @@ public:
     // Result properties
 
     //! This user's presence.
-    QString presence() const { return loadFromJson<QString>("presence"_ls); }
+    QString presence() const { return loadFromJson<QString>("presence"_L1); }
 
     //! The length of time in milliseconds since an action was performed
     //! by this user.
     std::optional<int> lastActiveAgo() const
     {
-        return loadFromJson<std::optional<int>>("last_active_ago"_ls);
+        return loadFromJson<std::optional<int>>("last_active_ago"_L1);
     }
 
     //! The state message for this user if one was set.
-    QString statusMsg() const { return loadFromJson<QString>("status_msg"_ls); }
+    QString statusMsg() const { return loadFromJson<QString>("status_msg"_L1); }
 
     //! Whether the user is currently active
     std::optional<bool> currentlyActive() const
     {
-        return loadFromJson<std::optional<bool>>("currently_active"_ls);
+        return loadFromJson<std::optional<bool>>("currently_active"_L1);
     }
 
     struct Response {

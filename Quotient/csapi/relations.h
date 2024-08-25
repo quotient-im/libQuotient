@@ -85,22 +85,22 @@ public:
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means there are no more results to fetch and the client should stop paginating.
-    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means this is the start of the result set, i.e. this is the first batch/page.
-    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_L1); }
 
     //! If the `recurse` parameter was supplied by the client, this response field is
     //! mandatory and gives the actual depth to which the server recursed. If the client
     //! did not specify the `recurse` parameter, this field must be absent.
     std::optional<int> recursionDepth() const
     {
-        return loadFromJson<std::optional<int>>("recursion_depth"_ls);
+        return loadFromJson<std::optional<int>>("recursion_depth"_L1);
     }
 
     //! The child events of the requested event, ordered topologically most-recent first.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
     struct Response {
         //! An opaque string representing a pagination token. The absence of this token
@@ -211,24 +211,24 @@ public:
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means there are no more results to fetch and the client should stop paginating.
-    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means this is the start of the result set, i.e. this is the first batch/page.
-    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_L1); }
 
     //! If the `recurse` parameter was supplied by the client, this response field is
     //! mandatory and gives the actual depth to which the server recursed. If the client
     //! did not specify the `recurse` parameter, this field must be absent.
     std::optional<int> recursionDepth() const
     {
-        return loadFromJson<std::optional<int>>("recursion_depth"_ls);
+        return loadFromJson<std::optional<int>>("recursion_depth"_L1);
     }
 
     //! The child events of the requested event, ordered topologically
     //! most-recent first. The events returned will match the `relType`
     //! supplied in the URL.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
     struct Response {
         //! An opaque string representing a pagination token. The absence of this token
@@ -347,24 +347,24 @@ public:
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means there are no more results to fetch and the client should stop paginating.
-    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
     //! An opaque string representing a pagination token. The absence of this token
     //! means this is the start of the result set, i.e. this is the first batch/page.
-    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_ls); }
+    QString prevBatch() const { return loadFromJson<QString>("prev_batch"_L1); }
 
     //! If the `recurse` parameter was supplied by the client, this response field is
     //! mandatory and gives the actual depth to which the server recursed. If the client
     //! did not specify the `recurse` parameter, this field must be absent.
     std::optional<int> recursionDepth() const
     {
-        return loadFromJson<std::optional<int>>("recursion_depth"_ls);
+        return loadFromJson<std::optional<int>>("recursion_depth"_L1);
     }
 
     //! The child events of the requested event, ordered topologically most-recent
     //! first. The events returned will match the `relType` and `eventType` supplied
     //! in the URL.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
     struct Response {
         //! An opaque string representing a pagination token. The absence of this token

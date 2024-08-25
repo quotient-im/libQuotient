@@ -7,9 +7,9 @@ using namespace Quotient;
 auto queryToGetThreadRoots(const QString& include, std::optional<int> limit, const QString& from)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("include"), include);
-    addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
-    addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
+    addParam<IfNotEmpty>(_q, u"include"_s, include);
+    addParam<IfNotEmpty>(_q, u"limit"_s, limit);
+    addParam<IfNotEmpty>(_q, u"from"_s, from);
     return _q;
 }
 
@@ -24,7 +24,7 @@ QUrl GetThreadRootsJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 
 GetThreadRootsJob::GetThreadRootsJob(const QString& roomId, const QString& include,
                                      std::optional<int> limit, const QString& from)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetThreadRootsJob"),
+    : BaseJob(HttpVerb::Get, u"GetThreadRootsJob"_s,
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/threads"),
               queryToGetThreadRoots(include, limit, from))
 {

@@ -40,19 +40,19 @@ template <>
 struct JsonObjectConverter<PushCondition> {
     static void dumpTo(QJsonObject& jo, const PushCondition& pod)
     {
-        addParam<>(jo, QStringLiteral("kind"), pod.kind);
-        addParam<IfNotEmpty>(jo, QStringLiteral("key"), pod.key);
-        addParam<IfNotEmpty>(jo, QStringLiteral("pattern"), pod.pattern);
-        addParam<IfNotEmpty>(jo, QStringLiteral("is"), pod.is);
-        addParam<IfNotEmpty>(jo, QStringLiteral("value"), pod.value);
+        addParam<>(jo, "kind"_L1, pod.kind);
+        addParam<IfNotEmpty>(jo, "key"_L1, pod.key);
+        addParam<IfNotEmpty>(jo, "pattern"_L1, pod.pattern);
+        addParam<IfNotEmpty>(jo, "is"_L1, pod.is);
+        addParam<IfNotEmpty>(jo, "value"_L1, pod.value);
     }
     static void fillFrom(const QJsonObject& jo, PushCondition& pod)
     {
-        fillFromJson(jo.value("kind"_ls), pod.kind);
-        fillFromJson(jo.value("key"_ls), pod.key);
-        fillFromJson(jo.value("pattern"_ls), pod.pattern);
-        fillFromJson(jo.value("is"_ls), pod.is);
-        fillFromJson(jo.value("value"_ls), pod.value);
+        fillFromJson(jo.value("kind"_L1), pod.kind);
+        fillFromJson(jo.value("key"_L1), pod.key);
+        fillFromJson(jo.value("pattern"_L1), pod.pattern);
+        fillFromJson(jo.value("is"_L1), pod.is);
+        fillFromJson(jo.value("value"_L1), pod.value);
     }
 };
 

@@ -17,11 +17,11 @@ template <>
 struct JsonObjectConverter<RoomKeyBackup> {
     static void dumpTo(QJsonObject& jo, const RoomKeyBackup& pod)
     {
-        addParam<>(jo, QStringLiteral("sessions"), pod.sessions);
+        addParam<>(jo, "sessions"_L1, pod.sessions);
     }
     static void fillFrom(const QJsonObject& jo, RoomKeyBackup& pod)
     {
-        fillFromJson(jo.value("sessions"_ls), pod.sessions);
+        fillFromJson(jo.value("sessions"_L1), pod.sessions);
     }
 };
 

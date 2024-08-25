@@ -35,21 +35,21 @@ template <>
 struct JsonObjectConverter<PushRule> {
     static void dumpTo(QJsonObject& jo, const PushRule& pod)
     {
-        addParam<>(jo, QStringLiteral("actions"), pod.actions);
-        addParam<>(jo, QStringLiteral("default"), pod.isDefault);
-        addParam<>(jo, QStringLiteral("enabled"), pod.enabled);
-        addParam<>(jo, QStringLiteral("rule_id"), pod.ruleId);
-        addParam<IfNotEmpty>(jo, QStringLiteral("conditions"), pod.conditions);
-        addParam<IfNotEmpty>(jo, QStringLiteral("pattern"), pod.pattern);
+        addParam<>(jo, "actions"_L1, pod.actions);
+        addParam<>(jo, "default"_L1, pod.isDefault);
+        addParam<>(jo, "enabled"_L1, pod.enabled);
+        addParam<>(jo, "rule_id"_L1, pod.ruleId);
+        addParam<IfNotEmpty>(jo, "conditions"_L1, pod.conditions);
+        addParam<IfNotEmpty>(jo, "pattern"_L1, pod.pattern);
     }
     static void fillFrom(const QJsonObject& jo, PushRule& pod)
     {
-        fillFromJson(jo.value("actions"_ls), pod.actions);
-        fillFromJson(jo.value("default"_ls), pod.isDefault);
-        fillFromJson(jo.value("enabled"_ls), pod.enabled);
-        fillFromJson(jo.value("rule_id"_ls), pod.ruleId);
-        fillFromJson(jo.value("conditions"_ls), pod.conditions);
-        fillFromJson(jo.value("pattern"_ls), pod.pattern);
+        fillFromJson(jo.value("actions"_L1), pod.actions);
+        fillFromJson(jo.value("default"_L1), pod.isDefault);
+        fillFromJson(jo.value("enabled"_L1), pod.enabled);
+        fillFromJson(jo.value("rule_id"_L1), pod.ruleId);
+        fillFromJson(jo.value("conditions"_L1), pod.conditions);
+        fillFromJson(jo.value("pattern"_L1), pod.pattern);
     }
 };
 

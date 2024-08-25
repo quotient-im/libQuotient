@@ -7,7 +7,7 @@ using namespace Quotient;
 auto queryToRedirectToSSO(const QString& redirectUrl)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("redirectUrl"), redirectUrl);
+    addParam<>(_q, u"redirectUrl"_s, redirectUrl);
     return _q;
 }
 
@@ -18,7 +18,7 @@ QUrl RedirectToSSOJob::makeRequestUrl(const HomeserverData& hsData, const QStrin
 }
 
 RedirectToSSOJob::RedirectToSSOJob(const QString& redirectUrl)
-    : BaseJob(HttpVerb::Get, QStringLiteral("RedirectToSSOJob"),
+    : BaseJob(HttpVerb::Get, u"RedirectToSSOJob"_s,
               makePath("/_matrix/client/v3", "/login/sso/redirect"),
               queryToRedirectToSSO(redirectUrl), {}, false)
 {}
@@ -26,7 +26,7 @@ RedirectToSSOJob::RedirectToSSOJob(const QString& redirectUrl)
 auto queryToRedirectToIdP(const QString& redirectUrl)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("redirectUrl"), redirectUrl);
+    addParam<>(_q, u"redirectUrl"_s, redirectUrl);
     return _q;
 }
 
@@ -39,7 +39,7 @@ QUrl RedirectToIdPJob::makeRequestUrl(const HomeserverData& hsData, const QStrin
 }
 
 RedirectToIdPJob::RedirectToIdPJob(const QString& idpId, const QString& redirectUrl)
-    : BaseJob(HttpVerb::Get, QStringLiteral("RedirectToIdPJob"),
+    : BaseJob(HttpVerb::Get, u"RedirectToIdPJob"_s,
               makePath("/_matrix/client/v3", "/login/sso/redirect/", idpId),
               queryToRedirectToIdP(redirectUrl), {}, false)
 {}

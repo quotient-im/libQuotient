@@ -40,7 +40,7 @@ public:
     // Result properties
 
     //! A unique identifier for the event.
-    QString eventId() const { return loadFromJson<QString>("event_id"_ls); }
+    QString eventId() const { return loadFromJson<QString>("event_id"_L1); }
 };
 
 inline auto collectResponse(const RedactEventJob* job) { return job->eventId(); }

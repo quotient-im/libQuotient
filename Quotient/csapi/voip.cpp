@@ -10,6 +10,6 @@ QUrl GetTurnServerJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetTurnServerJob::GetTurnServerJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetTurnServerJob"),
+    : BaseJob(HttpVerb::Get, u"GetTurnServerJob"_s,
               makePath("/_matrix/client/v3", "/voip/turnServer"))
 {}

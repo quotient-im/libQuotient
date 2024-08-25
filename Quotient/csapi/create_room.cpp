@@ -11,23 +11,21 @@ CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAlias
                              const QVector<StateEvent>& initialState, const QString& preset,
                              std::optional<bool> isDirect,
                              const QJsonObject& powerLevelContentOverride)
-    : BaseJob(HttpVerb::Post, QStringLiteral("CreateRoomJob"),
-              makePath("/_matrix/client/v3", "/createRoom"))
+    : BaseJob(HttpVerb::Post, u"CreateRoomJob"_s, makePath("/_matrix/client/v3", "/createRoom"))
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("visibility"), visibility);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("room_alias_name"), roomAliasName);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("name"), name);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("topic"), topic);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("invite"), invite);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("invite_3pid"), invite3pid);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("room_version"), roomVersion);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("creation_content"), creationContent);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("initial_state"), initialState);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("preset"), preset);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("is_direct"), isDirect);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("power_level_content_override"),
-                         powerLevelContentOverride);
+    addParam<IfNotEmpty>(_dataJson, "visibility"_L1, visibility);
+    addParam<IfNotEmpty>(_dataJson, "room_alias_name"_L1, roomAliasName);
+    addParam<IfNotEmpty>(_dataJson, "name"_L1, name);
+    addParam<IfNotEmpty>(_dataJson, "topic"_L1, topic);
+    addParam<IfNotEmpty>(_dataJson, "invite"_L1, invite);
+    addParam<IfNotEmpty>(_dataJson, "invite_3pid"_L1, invite3pid);
+    addParam<IfNotEmpty>(_dataJson, "room_version"_L1, roomVersion);
+    addParam<IfNotEmpty>(_dataJson, "creation_content"_L1, creationContent);
+    addParam<IfNotEmpty>(_dataJson, "initial_state"_L1, initialState);
+    addParam<IfNotEmpty>(_dataJson, "preset"_L1, preset);
+    addParam<IfNotEmpty>(_dataJson, "is_direct"_L1, isDirect);
+    addParam<IfNotEmpty>(_dataJson, "power_level_content_override"_L1, powerLevelContentOverride);
     setRequestData({ _dataJson });
     addExpectedKey("room_id");
 }

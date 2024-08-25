@@ -194,7 +194,7 @@ public:
     //! Describes which categories to search in and their criteria.
     ResultCategories searchCategories() const
     {
-        return loadFromJson<ResultCategories>("search_categories"_ls);
+        return loadFromJson<ResultCategories>("search_categories"_L1);
     }
 };
 
@@ -204,9 +204,9 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::IncludeEventContext> {
     static void dumpTo(QJsonObject& jo, const SearchJob::IncludeEventContext& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("before_limit"), pod.beforeLimit);
-        addParam<IfNotEmpty>(jo, QStringLiteral("after_limit"), pod.afterLimit);
-        addParam<IfNotEmpty>(jo, QStringLiteral("include_profile"), pod.includeProfile);
+        addParam<IfNotEmpty>(jo, "before_limit"_L1, pod.beforeLimit);
+        addParam<IfNotEmpty>(jo, "after_limit"_L1, pod.afterLimit);
+        addParam<IfNotEmpty>(jo, "include_profile"_L1, pod.includeProfile);
     }
 };
 
@@ -214,7 +214,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::Group> {
     static void dumpTo(QJsonObject& jo, const SearchJob::Group& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("key"), pod.key);
+        addParam<IfNotEmpty>(jo, "key"_L1, pod.key);
     }
 };
 
@@ -222,7 +222,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::Groupings> {
     static void dumpTo(QJsonObject& jo, const SearchJob::Groupings& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("group_by"), pod.groupBy);
+        addParam<IfNotEmpty>(jo, "group_by"_L1, pod.groupBy);
     }
 };
 
@@ -230,13 +230,13 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::RoomEventsCriteria> {
     static void dumpTo(QJsonObject& jo, const SearchJob::RoomEventsCriteria& pod)
     {
-        addParam<>(jo, QStringLiteral("search_term"), pod.searchTerm);
-        addParam<IfNotEmpty>(jo, QStringLiteral("keys"), pod.keys);
-        addParam<IfNotEmpty>(jo, QStringLiteral("filter"), pod.filter);
-        addParam<IfNotEmpty>(jo, QStringLiteral("order_by"), pod.orderBy);
-        addParam<IfNotEmpty>(jo, QStringLiteral("event_context"), pod.eventContext);
-        addParam<IfNotEmpty>(jo, QStringLiteral("include_state"), pod.includeState);
-        addParam<IfNotEmpty>(jo, QStringLiteral("groupings"), pod.groupings);
+        addParam<>(jo, "search_term"_L1, pod.searchTerm);
+        addParam<IfNotEmpty>(jo, "keys"_L1, pod.keys);
+        addParam<IfNotEmpty>(jo, "filter"_L1, pod.filter);
+        addParam<IfNotEmpty>(jo, "order_by"_L1, pod.orderBy);
+        addParam<IfNotEmpty>(jo, "event_context"_L1, pod.eventContext);
+        addParam<IfNotEmpty>(jo, "include_state"_L1, pod.includeState);
+        addParam<IfNotEmpty>(jo, "groupings"_L1, pod.groupings);
     }
 };
 
@@ -244,7 +244,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::Categories> {
     static void dumpTo(QJsonObject& jo, const SearchJob::Categories& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("room_events"), pod.roomEvents);
+        addParam<IfNotEmpty>(jo, "room_events"_L1, pod.roomEvents);
     }
 };
 
@@ -252,8 +252,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::UserProfile> {
     static void fillFrom(const QJsonObject& jo, SearchJob::UserProfile& result)
     {
-        fillFromJson(jo.value("displayname"_ls), result.displayname);
-        fillFromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+        fillFromJson(jo.value("displayname"_L1), result.displayname);
+        fillFromJson(jo.value("avatar_url"_L1), result.avatarUrl);
     }
 };
 
@@ -261,11 +261,11 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::EventContext> {
     static void fillFrom(const QJsonObject& jo, SearchJob::EventContext& result)
     {
-        fillFromJson(jo.value("start"_ls), result.begin);
-        fillFromJson(jo.value("end"_ls), result.end);
-        fillFromJson(jo.value("profile_info"_ls), result.profileInfo);
-        fillFromJson(jo.value("events_before"_ls), result.eventsBefore);
-        fillFromJson(jo.value("events_after"_ls), result.eventsAfter);
+        fillFromJson(jo.value("start"_L1), result.begin);
+        fillFromJson(jo.value("end"_L1), result.end);
+        fillFromJson(jo.value("profile_info"_L1), result.profileInfo);
+        fillFromJson(jo.value("events_before"_L1), result.eventsBefore);
+        fillFromJson(jo.value("events_after"_L1), result.eventsAfter);
     }
 };
 
@@ -273,9 +273,9 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::Result> {
     static void fillFrom(const QJsonObject& jo, SearchJob::Result& result)
     {
-        fillFromJson(jo.value("rank"_ls), result.rank);
-        fillFromJson(jo.value("result"_ls), result.result);
-        fillFromJson(jo.value("context"_ls), result.context);
+        fillFromJson(jo.value("rank"_L1), result.rank);
+        fillFromJson(jo.value("result"_L1), result.result);
+        fillFromJson(jo.value("context"_L1), result.context);
     }
 };
 
@@ -283,9 +283,9 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::GroupValue> {
     static void fillFrom(const QJsonObject& jo, SearchJob::GroupValue& result)
     {
-        fillFromJson(jo.value("next_batch"_ls), result.nextBatch);
-        fillFromJson(jo.value("order"_ls), result.order);
-        fillFromJson(jo.value("results"_ls), result.results);
+        fillFromJson(jo.value("next_batch"_L1), result.nextBatch);
+        fillFromJson(jo.value("order"_L1), result.order);
+        fillFromJson(jo.value("results"_L1), result.results);
     }
 };
 
@@ -293,12 +293,12 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::ResultRoomEvents> {
     static void fillFrom(const QJsonObject& jo, SearchJob::ResultRoomEvents& result)
     {
-        fillFromJson(jo.value("count"_ls), result.count);
-        fillFromJson(jo.value("highlights"_ls), result.highlights);
-        fillFromJson(jo.value("results"_ls), result.results);
-        fillFromJson(jo.value("state"_ls), result.state);
-        fillFromJson(jo.value("groups"_ls), result.groups);
-        fillFromJson(jo.value("next_batch"_ls), result.nextBatch);
+        fillFromJson(jo.value("count"_L1), result.count);
+        fillFromJson(jo.value("highlights"_L1), result.highlights);
+        fillFromJson(jo.value("results"_L1), result.results);
+        fillFromJson(jo.value("state"_L1), result.state);
+        fillFromJson(jo.value("groups"_L1), result.groups);
+        fillFromJson(jo.value("next_batch"_L1), result.nextBatch);
     }
 };
 
@@ -306,7 +306,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchJob::ResultCategories> {
     static void fillFrom(const QJsonObject& jo, SearchJob::ResultCategories& result)
     {
-        fillFromJson(jo.value("room_events"_ls), result.roomEvents);
+        fillFromJson(jo.value("room_events"_L1), result.roomEvents);
     }
 };
 

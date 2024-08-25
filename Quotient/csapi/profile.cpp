@@ -5,11 +5,11 @@
 using namespace Quotient;
 
 SetDisplayNameJob::SetDisplayNameJob(const QString& userId, const QString& displayname)
-    : BaseJob(HttpVerb::Put, QStringLiteral("SetDisplayNameJob"),
+    : BaseJob(HttpVerb::Put, u"SetDisplayNameJob"_s,
               makePath("/_matrix/client/v3", "/profile/", userId, "/displayname"))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("displayname"), displayname);
+    addParam<>(_dataJson, "displayname"_L1, displayname);
     setRequestData({ _dataJson });
 }
 
@@ -20,16 +20,16 @@ QUrl GetDisplayNameJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 }
 
 GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetDisplayNameJob"),
+    : BaseJob(HttpVerb::Get, u"GetDisplayNameJob"_s,
               makePath("/_matrix/client/v3", "/profile/", userId, "/displayname"), false)
 {}
 
 SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QUrl& avatarUrl)
-    : BaseJob(HttpVerb::Put, QStringLiteral("SetAvatarUrlJob"),
+    : BaseJob(HttpVerb::Put, u"SetAvatarUrlJob"_s,
               makePath("/_matrix/client/v3", "/profile/", userId, "/avatar_url"))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("avatar_url"), avatarUrl);
+    addParam<>(_dataJson, "avatar_url"_L1, avatarUrl);
     setRequestData({ _dataJson });
 }
 
@@ -40,7 +40,7 @@ QUrl GetAvatarUrlJob::makeRequestUrl(const HomeserverData& hsData, const QString
 }
 
 GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetAvatarUrlJob"),
+    : BaseJob(HttpVerb::Get, u"GetAvatarUrlJob"_s,
               makePath("/_matrix/client/v3", "/profile/", userId, "/avatar_url"), false)
 {}
 
@@ -50,6 +50,6 @@ QUrl GetUserProfileJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 }
 
 GetUserProfileJob::GetUserProfileJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetUserProfileJob"),
+    : BaseJob(HttpVerb::Get, u"GetUserProfileJob"_s,
               makePath("/_matrix/client/v3", "/profile/", userId), false)
 {}

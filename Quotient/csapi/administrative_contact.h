@@ -55,7 +55,7 @@ public:
 
     QVector<ThirdPartyIdentifier> threepids() const
     {
-        return loadFromJson<QVector<ThirdPartyIdentifier>>("threepids"_ls);
+        return loadFromJson<QVector<ThirdPartyIdentifier>>("threepids"_L1);
     }
 };
 
@@ -65,10 +65,10 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
     static void fillFrom(const QJsonObject& jo, GetAccount3PIDsJob::ThirdPartyIdentifier& result)
     {
-        fillFromJson(jo.value("medium"_ls), result.medium);
-        fillFromJson(jo.value("address"_ls), result.address);
-        fillFromJson(jo.value("validated_at"_ls), result.validatedAt);
-        fillFromJson(jo.value("added_at"_ls), result.addedAt);
+        fillFromJson(jo.value("medium"_L1), result.medium);
+        fillFromJson(jo.value("address"_L1), result.address);
+        fillFromJson(jo.value("validated_at"_L1), result.validatedAt);
+        fillFromJson(jo.value("added_at"_L1), result.addedAt);
     }
 };
 
@@ -126,7 +126,7 @@ public:
     //! verification will happen without the client's involvement
     //! provided the homeserver advertises this specification version
     //! in the `/versions` response (ie: r0.5.0).
-    QUrl submitUrl() const { return loadFromJson<QUrl>("submit_url"_ls); }
+    QUrl submitUrl() const { return loadFromJson<QUrl>("submit_url"_L1); }
 };
 
 QT_WARNING_PUSH
@@ -140,10 +140,10 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
     static void dumpTo(QJsonObject& jo, const Post3PIDsJob::ThreePidCredentials& pod)
     {
-        addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
-        addParam<>(jo, QStringLiteral("id_server"), pod.idServer);
-        addParam<>(jo, QStringLiteral("id_access_token"), pod.idAccessToken);
-        addParam<>(jo, QStringLiteral("sid"), pod.sid);
+        addParam<>(jo, "client_secret"_L1, pod.clientSecret);
+        addParam<>(jo, "id_server"_L1, pod.idServer);
+        addParam<>(jo, "id_access_token"_L1, pod.idAccessToken);
+        addParam<>(jo, "sid"_L1, pod.sid);
     }
 };
 QT_WARNING_POP
@@ -233,7 +233,7 @@ public:
     //! unbind from.
     QString idServerUnbindResult() const
     {
-        return loadFromJson<QString>("id_server_unbind_result"_ls);
+        return loadFromJson<QString>("id_server_unbind_result"_L1);
     }
 };
 
@@ -275,7 +275,7 @@ public:
     //! an identity server to unbind from.
     QString idServerUnbindResult() const
     {
-        return loadFromJson<QString>("id_server_unbind_result"_ls);
+        return loadFromJson<QString>("id_server_unbind_result"_L1);
     }
 };
 

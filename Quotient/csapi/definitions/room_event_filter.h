@@ -42,24 +42,22 @@ struct JsonObjectConverter<RoomEventFilter> {
     static void dumpTo(QJsonObject& jo, const RoomEventFilter& pod)
     {
         fillJson<EventFilter>(jo, pod);
-        addParam<IfNotEmpty>(jo, QStringLiteral("unread_thread_notifications"),
-                             pod.unreadThreadNotifications);
-        addParam<IfNotEmpty>(jo, QStringLiteral("lazy_load_members"), pod.lazyLoadMembers);
-        addParam<IfNotEmpty>(jo, QStringLiteral("include_redundant_members"),
-                             pod.includeRedundantMembers);
-        addParam<IfNotEmpty>(jo, QStringLiteral("not_rooms"), pod.notRooms);
-        addParam<IfNotEmpty>(jo, QStringLiteral("rooms"), pod.rooms);
-        addParam<IfNotEmpty>(jo, QStringLiteral("contains_url"), pod.containsUrl);
+        addParam<IfNotEmpty>(jo, "unread_thread_notifications"_L1, pod.unreadThreadNotifications);
+        addParam<IfNotEmpty>(jo, "lazy_load_members"_L1, pod.lazyLoadMembers);
+        addParam<IfNotEmpty>(jo, "include_redundant_members"_L1, pod.includeRedundantMembers);
+        addParam<IfNotEmpty>(jo, "not_rooms"_L1, pod.notRooms);
+        addParam<IfNotEmpty>(jo, "rooms"_L1, pod.rooms);
+        addParam<IfNotEmpty>(jo, "contains_url"_L1, pod.containsUrl);
     }
     static void fillFrom(const QJsonObject& jo, RoomEventFilter& pod)
     {
         fillFromJson<EventFilter>(jo, pod);
-        fillFromJson(jo.value("unread_thread_notifications"_ls), pod.unreadThreadNotifications);
-        fillFromJson(jo.value("lazy_load_members"_ls), pod.lazyLoadMembers);
-        fillFromJson(jo.value("include_redundant_members"_ls), pod.includeRedundantMembers);
-        fillFromJson(jo.value("not_rooms"_ls), pod.notRooms);
-        fillFromJson(jo.value("rooms"_ls), pod.rooms);
-        fillFromJson(jo.value("contains_url"_ls), pod.containsUrl);
+        fillFromJson(jo.value("unread_thread_notifications"_L1), pod.unreadThreadNotifications);
+        fillFromJson(jo.value("lazy_load_members"_L1), pod.lazyLoadMembers);
+        fillFromJson(jo.value("include_redundant_members"_L1), pod.includeRedundantMembers);
+        fillFromJson(jo.value("not_rooms"_L1), pod.notRooms);
+        fillFromJson(jo.value("rooms"_L1), pod.rooms);
+        fillFromJson(jo.value("contains_url"_L1), pod.containsUrl);
     }
 };
 

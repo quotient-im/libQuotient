@@ -21,15 +21,15 @@ template <>
 struct JsonObjectConverter<ThirdPartyLocation> {
     static void dumpTo(QJsonObject& jo, const ThirdPartyLocation& pod)
     {
-        addParam<>(jo, QStringLiteral("alias"), pod.alias);
-        addParam<>(jo, QStringLiteral("protocol"), pod.protocol);
-        addParam<>(jo, QStringLiteral("fields"), pod.fields);
+        addParam<>(jo, "alias"_L1, pod.alias);
+        addParam<>(jo, "protocol"_L1, pod.protocol);
+        addParam<>(jo, "fields"_L1, pod.fields);
     }
     static void fillFrom(const QJsonObject& jo, ThirdPartyLocation& pod)
     {
-        fillFromJson(jo.value("alias"_ls), pod.alias);
-        fillFromJson(jo.value("protocol"_ls), pod.protocol);
-        fillFromJson(jo.value("fields"_ls), pod.fields);
+        fillFromJson(jo.value("alias"_L1), pod.alias);
+        fillFromJson(jo.value("protocol"_L1), pod.protocol);
+        fillFromJson(jo.value("fields"_L1), pod.fields);
     }
 };
 

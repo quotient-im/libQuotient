@@ -54,23 +54,23 @@ template <>
 struct JsonObjectConverter<MsisdnValidationData> {
     static void dumpTo(QJsonObject& jo, const MsisdnValidationData& pod)
     {
-        addParam<>(jo, QStringLiteral("client_secret"), pod.clientSecret);
-        addParam<>(jo, QStringLiteral("country"), pod.country);
-        addParam<>(jo, QStringLiteral("phone_number"), pod.phoneNumber);
-        addParam<>(jo, QStringLiteral("send_attempt"), pod.sendAttempt);
-        addParam<IfNotEmpty>(jo, QStringLiteral("next_link"), pod.nextLink);
-        addParam<IfNotEmpty>(jo, QStringLiteral("id_server"), pod.idServer);
-        addParam<IfNotEmpty>(jo, QStringLiteral("id_access_token"), pod.idAccessToken);
+        addParam<>(jo, "client_secret"_L1, pod.clientSecret);
+        addParam<>(jo, "country"_L1, pod.country);
+        addParam<>(jo, "phone_number"_L1, pod.phoneNumber);
+        addParam<>(jo, "send_attempt"_L1, pod.sendAttempt);
+        addParam<IfNotEmpty>(jo, "next_link"_L1, pod.nextLink);
+        addParam<IfNotEmpty>(jo, "id_server"_L1, pod.idServer);
+        addParam<IfNotEmpty>(jo, "id_access_token"_L1, pod.idAccessToken);
     }
     static void fillFrom(const QJsonObject& jo, MsisdnValidationData& pod)
     {
-        fillFromJson(jo.value("client_secret"_ls), pod.clientSecret);
-        fillFromJson(jo.value("country"_ls), pod.country);
-        fillFromJson(jo.value("phone_number"_ls), pod.phoneNumber);
-        fillFromJson(jo.value("send_attempt"_ls), pod.sendAttempt);
-        fillFromJson(jo.value("next_link"_ls), pod.nextLink);
-        fillFromJson(jo.value("id_server"_ls), pod.idServer);
-        fillFromJson(jo.value("id_access_token"_ls), pod.idAccessToken);
+        fillFromJson(jo.value("client_secret"_L1), pod.clientSecret);
+        fillFromJson(jo.value("country"_L1), pod.country);
+        fillFromJson(jo.value("phone_number"_L1), pod.phoneNumber);
+        fillFromJson(jo.value("send_attempt"_L1), pod.sendAttempt);
+        fillFromJson(jo.value("next_link"_L1), pod.nextLink);
+        fillFromJson(jo.value("id_server"_L1), pod.idServer);
+        fillFromJson(jo.value("id_access_token"_L1), pod.idAccessToken);
     }
 };
 

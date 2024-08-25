@@ -15,11 +15,11 @@ template <>
 struct JsonObjectConverter<HomeserverInformation> {
     static void dumpTo(QJsonObject& jo, const HomeserverInformation& pod)
     {
-        addParam<>(jo, QStringLiteral("base_url"), pod.baseUrl);
+        addParam<>(jo, "base_url"_L1, pod.baseUrl);
     }
     static void fillFrom(const QJsonObject& jo, HomeserverInformation& pod)
     {
-        fillFromJson(jo.value("base_url"_ls), pod.baseUrl);
+        fillFromJson(jo.value("base_url"_L1), pod.baseUrl);
     }
 };
 
