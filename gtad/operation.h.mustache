@@ -69,7 +69,7 @@ public:
 
     {{>nonInlineResponseSignature}}
     {
-        return {{>takeOrLoad}}FromJson<{{>maybeOptionalType}}>("{{baseName}}"_ls);
+        return {{>takeOrLoad}}FromJson<{{>maybeOptionalType}}>("{{baseName}}"_L1);
     }
         {{/properties}}{{^singleValue?}}{{#properties?}}
 
@@ -108,8 +108,8 @@ template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {
             {{/propertyMap}}{{#parents}}
         fillJson<{{name}}>(jo, pod);
             {{/parents}}{{#vars}}
-        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo,
-                    QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});
+        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo, "{{baseName}}"_L1,
+                                                         pod.{{nameCamelCase}});
             {{/vars}}
     }
         {{/in?}}
@@ -118,8 +118,7 @@ template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {
         {   {{#parents}}
         fillFromJson<{{name}}{{!of the parent!}}>(jo, result);
             {{/parents}}{{#vars}}
-        fillFromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls),
-                 result.{{nameCamelCase}});
+        fillFromJson(jo.{{>takeOrValue}}("{{baseName}}"_L1), result.{{nameCamelCase}});
             {{/vars}}{{#propertyMap}}
         fromJson(jo, result.{{nameCamelCase}});
             {{/propertyMap}}

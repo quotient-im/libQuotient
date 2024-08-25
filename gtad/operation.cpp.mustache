@@ -12,8 +12,8 @@ auto queryTo{{>titleCaseOperationId}}(
             {{#queryParams}}{{>joinedParamDef}}{{/queryParams}})
 {
     QUrlQuery _q;{{#queryParams}}
-    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_q,
-            QStringLiteral("{{baseName}}"), {{paramName}});{{/queryParams}}
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_q, u"{{baseName}}"_s,
+                                                     {{paramName}});{{/queryParams}}
     return _q;
 }
     {{/queryParams?}}
@@ -28,8 +28,7 @@ QUrl {{>titleCaseOperationId}}Job::makeRequestUrl(const HomeserverData& hsData{{
 {{>titleCaseOperationId}}Job::{{>titleCaseOperationId}}Job(
         {{#allParams}}{{>joinedParamDef}}{{/allParams}})
     : BaseJob(HttpVerb::{{#_titleCase}}{{httpMethod}}{{/_titleCase}},
-            {{!object name}}QStringLiteral("{{>titleCaseOperationId}}Job"),
-            {{>passPathAndMaybeQuery}}
+              {{!object name}}u"{{>titleCaseOperationId}}Job"_s, {{>passPathAndMaybeQuery}}
         {{#skipAuth}}{{#queryParams?}}, {}{{/queryParams?}}, false{{/skipAuth}} )
 {   {{#headerParams}}
     setRequestHeader("{{baseName}}", {{paramName}}.toLatin1());
@@ -44,8 +43,7 @@ QUrl {{>titleCaseOperationId}}Job::makeRequestUrl(const HomeserverData& hsData{{
         {{/propertyMap}}{{#inlineBody}}
     fillJson<{{>maybeOptionalType}}>(_dataJson, {{paramName}});
         {{/inlineBody}}{{#bodyParams}}
-    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_dataJson,
-                    QStringLiteral("{{baseName}}"), {{paramName}});
+    addParam<{{^required?}}IfNotEmpty{{/required?}}>(_dataJson, "{{baseName}}"_L1, {{paramName}});
         {{/bodyParams}}
     setRequestData({ _dataJson });
     {{/bodyParams?}}{{/consumesNonJson?}}{{#producesNonJson?}}

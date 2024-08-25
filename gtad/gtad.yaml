@@ -83,20 +83,20 @@ analyzer:
       +on:
       - date:
           type: QDate
-          initializer: QDate::fromString("{{defaultValue}}")
+          initializer: QDate::fromString(u"{{defaultValue}}")
       - dateTime:
           type: QDateTime
-          initializer: QDateTime::fromString("{{defaultValue}}")
+          initializer: QDateTime::fromString(u"{{defaultValue}}")
       - uri: &Url
           type: QUrl
-          initializer: QUrl::fromEncoded("{{defaultValue}}")
+          initializer: QUrl::fromEncoded("{{defaultValue}}"_L1)
       - mx-mxc-uri: *Url
       - mx-user-id: UserId
       - mx-room-id: RoomId
       - mx-event-id: EventId
       - //: &QString
           type: QString
-          initializer: QStringLiteral("{{defaultValue}}")
+          initializer: u"{{defaultValue}}"_s
   - file: *ByteStream
   - +set: { avoidCopy: }
     +on:

@@ -109,8 +109,7 @@ It uses the following type attributes aside from pretty obvious `imports:`:
 * `initializer` - this is a _partial_ (see GTAD and Mustache documentation for
   explanations but basically it's a variable that is a Mustache template itself)
   that specifies how exactly a default value should be passed to the parameter.
-  E.g., the default value for a `QString` parameter is enclosed into
-  `QStringLiteral`.
+  E.g., the default value for a `QString` parameter is transformed as `u"{{defaultValue}}"_s`.
 
 Instead of relying on the event structure definition in the OpenAPI files,
 `gtad.yaml` uses pointers to libQuotient's event structures: `EventPtr`,
