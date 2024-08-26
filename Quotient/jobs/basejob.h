@@ -31,9 +31,9 @@ class QUOTIENT_API BaseJob : public QObject {
 
     static QByteArray encodeIfParam(const QString& paramPart);
     template <int N>
-    static auto encodeIfParam(const char (&constPart)[N])
+    static auto encodeIfParam(const char (&literalPart)[N])
     {
-        return constPart;
+        return literalPart;
     }
 
 public:
@@ -74,9 +74,9 @@ public:
     Q_ENUM(StatusCode)
 
     template <typename... StrTs>
-    static QByteArray makePath(StrTs&&... parts)
+    static QByteArray makePath(QByteArrayView base, StrTs&&... parts)
     {
-        return (QByteArray() % ... % encodeIfParam(parts));
+        return (base % ... % encodeIfParam(std::forward<StrTs>(parts)));
     }
 
     //! \brief The status of a job

@@ -174,14 +174,11 @@ inline bool isHex(QChar c)
 
 QByteArray BaseJob::encodeIfParam(const QString& paramPart)
 {
-    const auto percentIndex = paramPart.indexOf(u'%');
-    if (percentIndex != -1 && paramPart.size() > percentIndex + 2
-        && isHex(paramPart[percentIndex + 1])
-        && isHex(paramPart[percentIndex + 2])) {
-        qCWarning(JOBS)
-            << "Developers, upfront percent-encoding of job parameters is "
-               "deprecated since libQuotient 0.7; the string involved is"
-            << paramPart;
+    if (const auto percentIt = std::ranges::find(paramPart, u'%');
+        percentIt <= paramPart.end() - 3 && isHex(*(percentIt + 1)) && isHex((*(percentIt + 2)))) {
+        qCWarning(JOBS) << "Developers, upfront percent-encoding of job paramParteters is "
+                           "deprecated since libQuotient 0.7; the string involved is"
+                        << paramPart;
         return QUrl(paramPart, QUrl::TolerantMode).toEncoded();
     }
     return QUrl::toPercentEncoding(paramPart);
