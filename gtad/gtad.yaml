@@ -236,7 +236,7 @@ mustache:
 
     passPathAndMaybeQuery: >-
       makePath("{{basePathWithoutHost}}"{{#pathParts}},
-      {{_}}{{/pathParts}}){{#queryParams?}},
+      {{#literal}}"{{literal}}"{{/literal}}{{variable}}{{/pathParts}}){{#queryParams?}},
       queryTo{{>titleCaseOperationId}}(
       {{#queryParams}}{{paramName}}{{>cjoin}}{{/queryParams}}){{/queryParams?}}
 
