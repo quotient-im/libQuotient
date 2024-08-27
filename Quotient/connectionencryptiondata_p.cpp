@@ -105,10 +105,9 @@ QFuture<bool> ConnectionEncryptionData::setup(Connection* connection, bool mock,
             //     return true;
             // }
             if (const auto olmAccount = result->database.setupOlmAccount(connection->userId(), connection->deviceId())) {
+                //TODO: check unpickling errors here
                 result->olmAccount = olmAccount;
-
-                qCritical(E2EE) << "Could not unpickle Olm account for" << connection->objectName();
-                return false;
+                return true;
             }
             qCDebug(E2EE) << "A new Olm account has been created, uploading device keys";
             connection->callApi<UploadKeysJob>(result->olmAccount->deviceKeys())

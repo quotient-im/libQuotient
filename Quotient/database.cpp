@@ -279,6 +279,7 @@ void Database::migrateTo10()
 
 void Database::migrateTo11()
 {
+    qCDebug(DATABASE) << "Migrating database to version 11";
     //TODO: This is terrible :(
     std::array<std::uint8_t, 32> _key;
     std::copy(m_picklingKey.data(), m_picklingKey.data() + 32, _key.begin());
