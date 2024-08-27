@@ -127,11 +127,13 @@ struct QUOTIENT_API ImageInfo : public FileInfo {
     explicit ImageInfo(const QFileInfo& fi, QSize imageSize = {});
     explicit ImageInfo(FileSourceInfo sourceInfo, qint64 fileSize = -1,
                        const QMimeType& type = {}, QSize imageSize = {},
-                       const QString& originalFilename = {});
+                       const QString& originalFilename = {},
+                       const QString& imageBlurhash = {});
     ImageInfo(FileSourceInfo sourceInfo, const QJsonObject& infoJson,
               const QString& originalFilename = {});
 
     QSize imageSize;
+    QString blurhash;
 };
 
 QUOTIENT_API QJsonObject toInfoJson(const ImageInfo& info);
