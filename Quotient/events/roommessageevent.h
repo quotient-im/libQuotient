@@ -82,6 +82,35 @@ public:
 
     QString replacedBy() const;
 
+    //! \brief Determine whether the event is a reply to another message.
+    //!
+    //! \return true if this event is a reply, i.e. it has `"m.in_reply_to"`
+    //!         event ID and is not a thread fallback; false otherwise.
+    bool isReply() const;
+
+    //! \brief Determine whether the event is a reply to another message including fallbacks.
+    //!
+    //! \return true if this event is part of a thread, i.e. it has `"m.in_reply_to"`
+    //!         event ID this includes thread fallback; false otherwise.
+    bool isReplyIncludingFallbacks() const;
+
+    //! \brief The ID for the event being replied to.
+    //!
+    //! Returns an empty string if the message is not a reply.
+    QString replyEventId()const;
+
+    //! \brief Determine whether the event is part of a thread.
+    //!
+    //! \return true if this event is part of a thread, i.e. it has
+    //!         `"rel_type": "m.thread"` or  `"m.relations": { "m.thread": {}}`;
+    //!         false otherwise.
+    bool isThreaded() const;
+
+    //! \brief The event ID for the thread root event.
+    //!
+    //! Returns an empty string if the message is not part of a thread.
+    QString threadRootEventId()const;
+
     QString fileNameToDownload() const;
 
     static QString rawMsgTypeForUrl(const QUrl& url);

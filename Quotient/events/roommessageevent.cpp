@@ -215,6 +215,49 @@ QString RoomMessageEvent::replacedBy() const
     return unsignedPart<QJsonObject>("m.relations"_L1)["m.replace"_L1][EventIdKey].toString();
 }
 
+bool RoomMessageEvent::isReply() const
+{
+    const auto relations = contentPart<QJsonObject>("m.relates_to"_ls);
+    if (!relations.isEmpty()) {
+        const bool hasReplyRelation = relations.contains("m.in_reply_to"_ls);
+        bool isFallingBack = relations["is_falling_back"_ls].toBool();
+        return hasReplyRelation && !isFallingBack;
+    }
+    return false;
+}
+
+bool RoomMessageEvent::isReplyIncludingFallbacks() const
+{
+    return contentPart<QJsonObject>("m.relates_to"_ls).contains("m.in_reply_to"_ls);
+}
+
+QString RoomMessageEvent::replyEventId() const
+{
+    return contentJson()["m.relates_to"_ls].toObject()["m.in_reply_to"_ls].toObject()["event_id"_ls].toString();
+}
+
+bool RoomMessageEvent::isThreaded() const
+{
+    return (contentPart<QJsonObject>("m.relates_to"_ls).contains("rel_type"_ls)
+            && contentPart<QJsonObject>("m.relates_to"_ls)["rel_type"_ls].toString() == "m.thread"_ls)
+            || (!unsignedPart<QJsonObject>("m.relations"_ls).isEmpty() && unsignedPart<QJsonObject>("m.relations"_ls).contains("m.thread"_ls));
+}
+
+QString RoomMessageEvent::threadRootEventId() const
+{
+    // Get the thread root ID from m.relates_to if it exists.
+    if (contentPart<QJsonObject>("m.relates_to"_ls).contains("rel_type"_ls)
+        && contentPart<QJsonObject>("m.relates_to"_ls)["rel_type"_ls].toString() == "m.thread"_ls) {
+        return contentPart<QJsonObject>("m.relates_to"_ls)["event_id"_ls].toString();
+    }
+    // For thread root events they have an m.relations in the unsigned part with a m.thread object.
+    // If so return the event ID as it is the root.
+    if (!unsignedPart<QJsonObject>("m.relations"_ls).isEmpty() && unsignedPart<QJsonObject>("m.relations"_ls).contains("m.thread"_ls)) {
+        return id();
+    }
+    return {};
+}
+
 namespace {
 QString safeFileName(QString rawName)
 {
