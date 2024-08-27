@@ -98,28 +98,35 @@ QFuture<bool> ConnectionEncryptionData::setup(Connection* connection, bool mock,
                                               std::unique_ptr<ConnectionEncryptionData>& result)
 {
     return setupPicklingKey(connection, mock, result)
-        .then([connection, mock, &result] {
+        .then([connection, &result] {
             // if (mock) {
             //     result->database.clear();
             //     result->olmAccount.setupNewAccount();
             //     return true;
             // }
-            if (const auto olmAccount = result->database.setupOlmAccount(connection->userId(), connection->deviceId())) {
+            if (const auto accountResult = result->database.setupOlmAccount(connection->userId(), connection->deviceId()); accountResult.first) {
                 //TODO: check unpickling errors here
-                result->olmAccount = olmAccount;
-                return true;
+                result->olmAccount = accountResult.first;
+                result->olmAccount->connect(result->olmAccount, &QOlmAccount::needsSave, result->olmAccount, [&result]{
+                    result->saveOlmAccount();
+                });
+
+                if (accountResult.second) {
+                    qCDebug(E2EE) << "A new Olm account has been created, uploading device keys";
+                    result->saveOlmAccount();
+                    connection->callApi<UploadKeysJob>(result->olmAccount->deviceKeys())
+                        .then(connection, [connection, &result] {
+                                result->trackedUsers += connection->userId();
+                                result->outdatedUsers += connection->userId();
+                                result->encryptionUpdateRequired = true;
+                        },
+                        [](auto* job) {
+                            qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
+                        }
+                    );
+                }
+
             }
-            qCDebug(E2EE) << "A new Olm account has been created, uploading device keys";
-            connection->callApi<UploadKeysJob>(result->olmAccount->deviceKeys())
-                .then(connection,
-                    [connection, &result] {
-                        result->trackedUsers += connection->userId();
-                        result->outdatedUsers += connection->userId();
-                        result->encryptionUpdateRequired = true;
-                    },
-                    [](auto* job) {
-                        qCWarning(E2EE) << "Failed to upload device keys:" << job->errorString();
-                    });
             return true;
         })
         .onCanceled([connection] {

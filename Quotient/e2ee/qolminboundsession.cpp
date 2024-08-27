@@ -43,7 +43,7 @@ QOlmExpected<QOlmInboundGroupSession> QOlmInboundGroupSession::unpickle(
     //TODO: This is terrible :(
     std::array<std::uint8_t, 32> _key;
     std::copy(key.data(), key.data() + 32, _key.begin());
-    auto session = megolm::inbound_group_session_from_pickle(rust::String(keyBytes.data(), keyBytes.size()), _key);
+    auto session = megolm::inbound_group_session_from_pickle(rust::String(pickled.data(), pickled.size()), _key);
     return QOlmInboundGroupSession(std::move(session));
 }
 

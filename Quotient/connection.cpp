@@ -321,7 +321,6 @@ void Connection::Private::completeSetup(const QString& mxId, const QString& devi
         ConnectionEncryptionData::setup(q, mock, encryptionData).then([this](bool successful) {
             if (!successful || !encryptionData)
                 useEncryption = false;
-            //TODO connect needssave -> saveOlmAccount?
 
             emit q->encryptionChanged(useEncryption);
             emit q->stateChanged();

@@ -33,7 +33,7 @@ public:
     QSqlQuery prepareQuery(const QString& queryString) const;
 
     void storeOlmAccount(const QOlmAccount& olmAccount);
-    QOlmAccount *setupOlmAccount(const QString& userId, const QString& deviceId);
+    std::pair<QOlmAccount*, bool> setupOlmAccount(const QString& userId, const QString& deviceId);
     void clear();
     void saveOlmSession(const QByteArray& senderKey, const QOlmSession& session,
                         const QDateTime& timestamp);
