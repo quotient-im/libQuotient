@@ -94,6 +94,7 @@ private:
     void migrateTo8();
     void migrateTo9();
     void migrateTo10();
+    void migrateTo11();
 
     QString m_userId;
     QString m_deviceId;

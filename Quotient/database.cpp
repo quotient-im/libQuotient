@@ -47,7 +47,8 @@ Database::Database(const QString& userId, const QString& deviceId,
     case 6: migrateTo7(); [[fallthrough]];
     case 7: migrateTo8(); [[fallthrough]];
     case 8: migrateTo9(); [[fallthrough]];
-    case 9: migrateTo10();
+    case 9: migrateTo10(); [[fallthrough]];
+    case 10: migrateTo11();
     }
 }
 
@@ -269,9 +270,18 @@ void Database::migrateTo10()
         execute(updateQuery);
     }
 
-    execute(QStringLiteral("pragma user_version = 10"));
+    execute(QStringLiteral("pragma user_version = 10;"));
     commit();
+}
 
+void Database::migrateTo11()
+{
+    qCDebug(DATABASE) << "Migrating database to version 11";
+    transaction();
+    execute(QStringLiteral("CREATE TABLE events (roomId TEXT, ts INTEGER, json TEXT);"));
+    execute(QStringLiteral("CREATE TABLE event_batch_tokens (roomId TEXT, token TEXT);"));
+    execute(QStringLiteral("pragma user_version = 11;"));
+    commit();
 }
 
 void Database::storeOlmAccount(const QOlmAccount& olmAccount)
@@ -454,7 +464,9 @@ void Database::clearRoomData(const QString& roomId)
            QStringLiteral(
                "DELETE FROM outbound_megolm_sessions WHERE roomId=:roomId;"),
            QStringLiteral("DELETE FROM group_session_record_index WHERE "
-                          "roomId=:roomId;") }) {
+                          "roomId=:roomId;"),
+             QStringLiteral("DELETE FROM events WHERE roomID=:roomId;")
+        }) {
         auto q = prepareQuery(queryText);
         q.bindValue(QStringLiteral(":roomId"), roomId);
         execute(q);

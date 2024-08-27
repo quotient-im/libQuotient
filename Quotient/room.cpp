@@ -147,6 +147,9 @@ public:
     //! Map from event id of the request event to the session object
     QHash<QString, KeyVerificationSession *> keyVerificationSessions;
     QPointer<KeyVerificationSession> pendingKeyVerificationSession;
+    // The timestamp of the last message loaded from the database;
+    qlonglong lastTs = LONG_LONG_MAX;
+    bool isLoadingMessages = false;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -247,7 +250,9 @@ public:
     }
 
     Changes addNewMessageEvents(RoomEvents&& events);
-    std::pair<Changes, rev_iter_t> addHistoricalMessageEvents(RoomEvents&& events);
+    std::pair<Changes, rev_iter_t> addHistoricalMessageEvents(RoomEvents&& events, bool fromDb = false);
+    void storeInDb(const RoomEvents &events);
+    int loadFromDb(int limit);
 
     Changes updateStatsFromSyncData(const SyncRoomData &data, bool fromCache);
     void postprocessChanges(Changes changes, bool saveState = true);
@@ -489,6 +494,14 @@ Room::Room(Connection* connection, QString id, JoinState initialJoinState)
             connection->database()->clearRoomData(id);
         });
     }
+
+    auto query = connection->database()->prepareQuery("SELECT token FROM event_batch_tokens WHERE roomId=:roomId;"_ls);
+    query.bindValue(":roomId"_ls, id);
+    connection->database()->execute(query);
+    if (query.next()) {
+        d->prevBatch = query.value("token"_ls).toString();
+    };
+
     qCDebug(STATE) << "New" << terse << initialJoinState << "Room:" << id;
 }
 
@@ -556,7 +569,10 @@ int Room::requestedHistorySize() const
 
 bool Room::allHistoryLoaded() const
 {
-    return !d->prevBatch;
+    if (timelineSize() == 0) {
+        return false;
+    }
+    return messageEvents().front()->is<const RoomCreateEvent>();
 }
 
 QString Room::name() const
@@ -2304,7 +2320,16 @@ void Room::hangupCall(const QString& callId)
 
 JobHandle<GetRoomEventsJob> Room::getPreviousContent(int limit, const QString& filter)
 {
-    return d->getPreviousContent(limit, filter);
+    if (!d->isLoadingMessages) {
+        d->isLoadingMessages = true;
+        auto count = d->loadFromDb(limit);
+        d->isLoadingMessages = false;
+        if (count > 0) {
+            return {};
+        }
+        return d->getPreviousContent(limit, filter);
+    }
+    return {};
 }
 
 JobHandle<GetRoomEventsJob> Room::Private::getPreviousContent(int limit, const QString& filter)
@@ -2324,6 +2349,13 @@ JobHandle<GetRoomEventsJob> Room::Private::getPreviousContent(int limit, const Q
             !newPrevBatch.isEmpty() && *prevBatch != newPrevBatch) //
         {
             *prevBatch = newPrevBatch;
+            auto query = connection->database()->prepareQuery("DELETE FROM event_batch_tokens WHERE roomId=:roomId;"_ls);
+            query.bindValue(":roomId"_ls, q->id());
+            connection->database()->execute(query);
+            query = connection->database()->prepareQuery("INSERT INTO event_batch_tokens(roomId, token) VALUES(:roomId, :token);"_ls);
+            query.bindValue(":roomId"_ls, q->id());
+            query.bindValue(":token"_ls, newPrevBatch);
+            connection->database()->execute(query);
         } else {
             qCDebug(MESSAGES)
                 << "Room" << q->objectName() << "has loaded all history";
@@ -2788,6 +2820,8 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     if (events.empty())
         return Change::None;
 
+    storeInDb(events);
+
     decryptIncomingEvents(events);
 
     QElapsedTimer et;
@@ -2936,12 +2970,49 @@ Room::Changes Room::Private::addNewMessageEvents(RoomEvents&& events)
     return roomChanges;
 }
 
-std::pair<Room::Changes, Room::rev_iter_t> Room::Private::addHistoricalMessageEvents(RoomEvents&& events)
+void Room::Private::storeInDb(const RoomEvents &events)
 {
+    for (const auto& eptr : events) {
+        const auto& e = *eptr;
+        connection->database()->transaction();
 
+        auto query = connection->database()->prepareQuery(QStringLiteral("INSERT INTO events(roomId, ts, json) VALUES(:roomId, :ts, :json);"));
+        query.bindValue(QStringLiteral(":roomId"), q->id());
+        query.bindValue(QStringLiteral(":ts"), e.originTimestamp().toMSecsSinceEpoch());
+        query.bindValue(QStringLiteral(":json"), QString::fromUtf8(QJsonDocument(e.fullJson()).toJson(QJsonDocument::Compact)));
+        connection->database()->execute(query);
+
+        connection->database()->commit();
+    }
+}
+
+int Room::Private::loadFromDb(int limit)
+{
+    auto query = connection->database()->prepareQuery(QStringLiteral("SELECT json, ts FROM events WHERE roomId=:roomId AND ts <= :lastTs ORDER BY ts DESC LIMIT :limit"));
+    query.bindValue(QStringLiteral(":roomId"), id);
+    query.bindValue(QStringLiteral(":lastTs"), lastTs);
+    query.bindValue(QStringLiteral(":limit"), limit);
+    connection->database()->execute(query);
+
+    RoomEvents events;
+    while(query.next()) {
+        events.push_back(loadEvent<RoomEvent>(QJsonDocument::fromJson(query.value("json"_ls).toString().toUtf8()).object()));
+        lastTs = query.value("ts"_ls).toLongLong();
+
+    }
+    addHistoricalMessageEvents(std::move(events), true);
+    return events.size();
+}
+
+std::pair<Room::Changes, Room::rev_iter_t> Room::Private::addHistoricalMessageEvents(RoomEvents&& events, bool fromDb)
+{
     dropExtraneousEvents(events);
     if (events.empty())
         return { Change::None, historyEdge() };
+
+    if (!fromDb) {
+        storeInDb(events);
+    }
 
     const auto timelineSize = timeline.size();
     decryptIncomingEvents(events);
