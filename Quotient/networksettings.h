@@ -17,10 +17,7 @@ class QUOTIENT_API NetworkSettings : public SettingsGroup {
     QUO_DECLARE_SETTING(quint16, proxyPort, setProxyPort)
     Q_PROPERTY(QString proxyHost READ proxyHostName WRITE setProxyHostName)
 public:
-    template <typename... ArgTs>
-    explicit NetworkSettings(ArgTs... qsettingsArgs)
-        : SettingsGroup(QStringLiteral("Network"), qsettingsArgs...)
-    {}
+    explicit NetworkSettings() : SettingsGroup(u"Network"_s) {}
 
     Q_INVOKABLE void setupApplicationProxy() const;
 };
