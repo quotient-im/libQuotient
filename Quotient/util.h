@@ -103,7 +103,9 @@ using UnorderedMap
 
 inline namespace Literals { using namespace Qt::Literals; }
 
-// [[deprecated("Use operators from Qt::Literals (aka Quotient::Literals) instead")]]
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR > 9
+[[deprecated("Use operators from Qt::Literals (aka Quotient::Literals) instead")]]
+#endif
 constexpr auto operator""_ls(const char* s, std::size_t size)
 {
     return operator""_L1(s, size);
