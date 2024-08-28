@@ -212,11 +212,7 @@ bool RoomMessageEvent::isReplaced() const
 
 QString RoomMessageEvent::replacedBy() const
 {
-    // clang-format off
-    return unsignedPart<QJsonObject>("m.relations"_L1)
-            .value("m.replace"_L1).toObject()
-            .value(EventIdKey).toString();
-    // clang-format on
+    return unsignedPart<QJsonObject>("m.relations"_L1)["m.replace"_L1][EventIdKey].toString();
 }
 
 namespace {

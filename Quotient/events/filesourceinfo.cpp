@@ -102,23 +102,20 @@ void JsonObjectConverter<JWK>::fillFrom(const QJsonObject& jo, JWK& pod)
     fromJson(jo.value("ext"_L1), pod.ext);
 }
 
-QUrl Quotient::getUrlFromSourceInfo(const FileSourceInfo& fsi)
+namespace {
+template <typename FsiT>
+auto& getUrl(FsiT& fsi)
 {
-    return std::visit(Overloads { [](const QUrl& url) { return url; },
-                                  [](const EncryptedFileMetadata& efm) {
-                                      return efm.url;
-                                  } },
-                      fsi);
+    return std::visit( // std::variant_alternative_t<> applies const from FsiT if it's there
+        Overloads{ [](std::variant_alternative_t<0, FsiT>& url) -> auto& { return url; },
+                   [](std::variant_alternative_t<1, FsiT>& efm) -> auto& { return efm.url; } },
+        fsi);
+}
 }
 
-void Quotient::setUrlInSourceInfo(FileSourceInfo& fsi, const QUrl& newUrl)
-{
-    std::visit(Overloads { [&newUrl](QUrl& url) { url = newUrl; },
-                           [&newUrl](EncryptedFileMetadata& efm) {
-                               efm.url = newUrl;
-                           } },
-               fsi);
-}
+QUrl Quotient::getUrlFromSourceInfo(const FileSourceInfo& fsi) { return getUrl(fsi); }
+
+void Quotient::setUrlInSourceInfo(FileSourceInfo& fsi, const QUrl& newUrl) { getUrl(fsi) = newUrl; }
 
 void Quotient::fillJson(QJsonObject& jo,
                         const std::array<QLatin1String, 2>& jsonKeys,

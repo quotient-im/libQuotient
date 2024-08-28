@@ -1596,10 +1596,9 @@ QStringList Connection::stableRoomVersions() const
 {
     QStringList l;
     if (d->capabilities.roomVersions) {
-        const auto& allVersions = d->capabilities.roomVersions->available;
-        for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
-            if (it.value() == SupportedRoomVersion::StableTag)
-                l.push_back(it.key());
+        for (const auto& [v, isStable] : d->capabilities.roomVersions->available.asKeyValueRange())
+            if (isStable == SupportedRoomVersion::StableTag)
+                l.push_back(v);
     }
     return l;
 }
