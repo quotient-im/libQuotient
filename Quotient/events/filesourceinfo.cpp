@@ -67,11 +67,11 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
 void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(
     QJsonObject& jo, const EncryptedFileMetadata& pod)
 {
-    addParam<>(jo, QStringLiteral("url"), pod.url);
-    addParam<>(jo, QStringLiteral("key"), pod.key);
-    addParam<>(jo, QStringLiteral("iv"), pod.iv);
-    addParam<>(jo, QStringLiteral("hashes"), pod.hashes);
-    addParam<>(jo, QStringLiteral("v"), pod.v);
+    addParam<>(jo, "url"_L1, pod.url);
+    addParam<>(jo, "key"_L1, pod.key);
+    addParam<>(jo, "iv"_L1, pod.iv);
+    addParam<>(jo, "hashes"_L1, pod.hashes);
+    addParam<>(jo, "v"_L1, pod.v);
 }
 
 void JsonObjectConverter<EncryptedFileMetadata>::fillFrom(
@@ -86,11 +86,11 @@ void JsonObjectConverter<EncryptedFileMetadata>::fillFrom(
 
 void JsonObjectConverter<JWK>::dumpTo(QJsonObject& jo, const JWK& pod)
 {
-    addParam<>(jo, QStringLiteral("kty"), pod.kty);
-    addParam<>(jo, QStringLiteral("key_ops"), pod.keyOps);
-    addParam<>(jo, QStringLiteral("alg"), pod.alg);
-    addParam<>(jo, QStringLiteral("k"), pod.k);
-    addParam<>(jo, QStringLiteral("ext"), pod.ext);
+    addParam<>(jo, "kty"_L1, pod.kty);
+    addParam<>(jo, "key_ops"_L1, pod.keyOps);
+    addParam<>(jo, "alg"_L1, pod.alg);
+    addParam<>(jo, "k"_L1, pod.k);
+    addParam<>(jo, "ext"_L1, pod.ext);
 }
 
 void JsonObjectConverter<JWK>::fillFrom(const QJsonObject& jo, JWK& pod)

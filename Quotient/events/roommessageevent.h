@@ -169,7 +169,7 @@ namespace EventContent {
     protected:
         void fillInfoJson(QJsonObject& infoJson) const override
         {
-            infoJson.insert(QStringLiteral("duration"), duration);
+            infoJson.insert("duration"_L1, duration);
         }
 
     public:

@@ -499,7 +499,7 @@ const QString& Room::id() const { return d->id; }
 QString Room::version() const
 {
     const auto v = currentState().query(&RoomCreateEvent::version);
-    return v && !v->isEmpty() ? *v : QStringLiteral("1");
+    return v && !v->isEmpty() ? *v : u"1"_s;
 }
 
 bool Room::isUnstable() const
@@ -970,8 +970,7 @@ void Room::setReadReceipt(const QString& atEventId)
 {
     if (const auto changes =
             d->setLocalLastReadReceipt(historyEdge(), { atEventId })) {
-        connection()->callApi<PostReceiptJob>(BackgroundRequest, id(),
-                                              QStringLiteral("m.read"),
+        connection()->callApi<PostReceiptJob>(BackgroundRequest, id(), u"m.read"_s,
                                               QString::fromUtf8(QUrl::toPercentEncoding(atEventId)));
         d->postprocessChanges(changes);
     } else
@@ -1372,8 +1371,7 @@ void Room::Private::setTags(TagsMap&& newTags)
         }
 
     tags = std::move(newTags);
-    qCDebug(STATE) << "Room" << q->objectName() << "is tagged with"
-                   << q->tagNames().join(QStringLiteral(", "));
+    qCDebug(STATE) << "Room" << q->objectName() << "is tagged with" << q->tagNames().join(", "_L1);
     emit q->tagsChanged();
 }
 
@@ -2106,8 +2104,8 @@ QString Room::postPlainText(const QString& plainText)
 QString Room::postHtmlMessage(const QString& plainText, const QString& html,
                               MessageEventType type)
 {
-    return post<RoomMessageEvent>(
-               plainText, type, new EventContent::TextContent(html, QStringLiteral("text/html")))
+    return post<RoomMessageEvent>(plainText, type,
+                                  new EventContent::TextContent(html, u"text/html"_s))
         ->transactionId();
 }
 
@@ -3382,7 +3380,7 @@ QJsonObject Room::Private::toJson() const
     QElapsedTimer et;
     et.start();
     QJsonObject result;
-    addParam<IfNotEmpty>(result, QStringLiteral("summary"), summary);
+    addParam<IfNotEmpty>(result, "summary"_L1, summary);
     {
         QJsonArray stateEvents;
 
@@ -3394,16 +3392,13 @@ QJsonObject Room::Private::toJson() const
 
             auto json = evt->fullJson();
             auto unsignedJson = evt->unsignedJson();
-            unsignedJson.remove(QStringLiteral("prev_content"));
+            unsignedJson.remove("prev_content"_L1);
             json[UnsignedKey] = unsignedJson;
             stateEvents.append(json);
         }
 
-        const auto stateObjName = joinState == JoinState::Invite
-                                      ? QStringLiteral("invite_state")
-                                      : QStringLiteral("state");
-        result.insert(stateObjName,
-                      QJsonObject { { QStringLiteral("events"), stateEvents } });
+        const auto stateObjName = joinState == JoinState::Invite ? "invite_state"_L1 : "state"_L1;
+        result.insert(stateObjName, QJsonObject{ { u"events"_s, stateEvents } });
     }
 
     if (!accountData.empty()) {
@@ -3412,22 +3407,18 @@ QJsonObject Room::Private::toJson() const
             if (!e.second->contentJson().isEmpty())
                 accountDataEvents.append(e.second->fullJson());
         }
-        result.insert(QStringLiteral("account_data"),
-                      QJsonObject {
-                          { QStringLiteral("events"), accountDataEvents } });
+        result.insert("account_data"_L1, QJsonObject{ { u"events"_s, accountDataEvents } });
     }
 
     if (const auto& readReceipt = q->lastReadReceipt(connection->userId());
         !readReceipt.eventId.isEmpty()) //
     {
-        result.insert(
-            QStringLiteral("ephemeral"),
-            QJsonObject {
-                { QStringLiteral("events"),
-                  QJsonArray { ReceiptEvent({ { readReceipt.eventId,
-                                                { { connection->userId(),
-                                                    readReceipt.timestamp } } } })
-                                   .fullJson() } } });
+        result.insert("ephemeral"_L1,
+                      QJsonObject{ { u"events"_s,
+                                     QJsonArray{ ReceiptEvent({ { readReceipt.eventId,
+                                                                  { { connection->userId(),
+                                                                      readReceipt.timestamp } } } })
+                                                     .fullJson() } } });
     }
 
     result.insert(UnreadNotificationsKey,

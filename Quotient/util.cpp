@@ -29,28 +29,23 @@ void Quotient::linkifyUrls(QString& htmlEscapedText)
     // <, >, ' or ", and ends before whitespaces, <, >, ', ", ], !, ), :,
     // comma or dot
     static const QRegularExpression FullUrlRegExp(
-        QStringLiteral(
-            R"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp):(//)?\w|(magnet|matrix):)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"),
+        uR"(\b((www\.(?!\.)(?!(\w|\.|-)+@)|(https?|ftp):(//)?\w|(magnet|matrix):)(&(?![lg]t;)|[^&\s<>'"])+(&(?![lg]t;)|[^&!,.\s<>'"\]):])))"_s,
         RegExpOptions);
     static const QRegularExpression EmailAddressRegExp(
-        QStringLiteral(R"((^|[][[:space:](){}`'";<>])(mailto:)?((\w|[!#$%&'*+=^_‘{|}~.-])+@(\w|\.|-)+\.\w+\b))"),
+        uR"((^|[][[:space:](){}`'";<>])(mailto:)?((\w|[!#$%&'*+=^_‘{|}~.-])+@(\w|\.|-)+\.\w+\b))"_s,
         RegExpOptions);
     // An interim liberal implementation of
     // https://matrix.org/docs/spec/appendices.html#identifier-grammar
     static const QRegularExpression MxIdRegExp(
-        QStringLiteral(
-            R"((^|[][[:space:](){}`'";])([!#@][-a-z0-9_=#/.]{1,252}:\w(?:\w|\.|-)*\.\w+(?::\d{1,5})?))"),
+        uR"((^|[][[:space:](){}`'";])([!#@][-a-z0-9_=#/.]{1,252}:\w(?:\w|\.|-)*\.\w+(?::\d{1,5})?))"_s,
         RegExpOptions);
-    Q_ASSERT(FullUrlRegExp.isValid() && EmailAddressRegExp.isValid()
-             && MxIdRegExp.isValid());
+    Q_ASSERT(FullUrlRegExp.isValid() && EmailAddressRegExp.isValid() && MxIdRegExp.isValid());
 
     // NOTE: htmlEscapedText is already HTML-escaped! No literal <,>,&,"
 
-    htmlEscapedText.replace(EmailAddressRegExp,
-                            R"(\1<a href='mailto:\3'>\2\3</a>)"_L1);
-    htmlEscapedText.replace(FullUrlRegExp, R"(<a href='\1'>\1</a>)"_L1);
-    htmlEscapedText.replace(MxIdRegExp,
-                            R"(\1<a href='https://matrix.to/#/\2'>\2</a>)"_L1);
+    htmlEscapedText.replace(EmailAddressRegExp, uR"(\1<a href='mailto:\3'>\2\3</a>)"_s);
+    htmlEscapedText.replace(FullUrlRegExp, uR"(<a href='\1'>\1</a>)"_s);
+    htmlEscapedText.replace(MxIdRegExp, uR"(\1<a href='https://matrix.to/#/\2'>\2</a>)"_s);
 }
 
 QString Quotient::sanitized(const QString& plainText)
@@ -66,12 +61,11 @@ QString Quotient::prettyPrint(const QString& plainText)
 {
     auto pt = plainText.toHtmlEscaped();
     linkifyUrls(pt);
-    pt.replace(u'\n', QStringLiteral("<br/>"));
-    return QStringLiteral("<span style='white-space:pre-wrap'>") + pt
-           + QStringLiteral("</span>");
+    pt.replace(u'\n', "<br/>"_L1);
+    return "<span style='white-space:pre-wrap'>"_L1 % pt % "</span>"_L1;
 }
 
-QString Quotient::cacheLocation(const QString& dirName)
+QString Quotient::cacheLocation(QStringView dirName)
 {
     const QString cachePath =
         QStandardPaths::writableLocation(QStandardPaths::CacheLocation) % u'/'
@@ -95,10 +89,11 @@ qreal Quotient::stringToHueF(const QString& s)
     return hueF;
 }
 
-static const auto ServerPartRegEx = QStringLiteral(
-    "(\\[[^][:space:]]+]|[-[:alnum:].]+)" // IPv6 address or hostname/IPv4 address
-    "(?::(\\d{1,5}))?" // Optional port
-);
+namespace {
+inline constexpr auto ServerPartRegEx =
+    QLatin1StringView("(\\[[^][:space:]]+]|[-[:alnum:].]+)" // IPv6 address or hostname/IPv4 address
+                      "(?::(\\d{1,5}))?"); // Optional port
+}
 
 QString Quotient::serverPart(const QString& mxId)
 {
@@ -130,7 +125,7 @@ int Quotient::patchVersion() { return Quotient_VERSION_PATCH; }
 
 bool Quotient::isGuestUserId(const UserId& uId)
 {
-    static const QRegularExpression guestMxIdRe{ QStringLiteral("^@\\d+:") };
+    static const QRegularExpression guestMxIdRe{ u"^@\\d+:"_s };
     return guestMxIdRe.match(uId).hasMatch();
 }
 

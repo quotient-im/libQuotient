@@ -290,12 +290,12 @@ QString KeyVerificationSession::calculateMac(const QString& input,
     const auto inputBytes = input.toLatin1();
     const auto macLength = olm_sas_mac_length(olmData);
     auto macChars = byteArrayForOlm(macLength);
-    const auto macInfo =
-        (verifying ? "MATRIX_KEY_VERIFICATION_MAC%3%4%1%2%5%6"_L1
-                   : "MATRIX_KEY_VERIFICATION_MAC%1%2%3%4%5%6"_L1)
-            .arg(m_connection->userId(), m_connection->deviceId(),
-                 m_remoteUserId, m_remoteDeviceId, m_room ? m_requestEventId : m_transactionId, input.contains(u',') ? QStringLiteral("KEY_IDS") : keyId)
-            .toLatin1();
+    const auto macInfo = (verifying ? "MATRIX_KEY_VERIFICATION_MAC%3%4%1%2%5%6"_L1
+                                    : "MATRIX_KEY_VERIFICATION_MAC%1%2%3%4%5%6"_L1)
+                             .arg(m_connection->userId(), m_connection->deviceId(), m_remoteUserId,
+                                  m_remoteDeviceId, m_room ? m_requestEventId : m_transactionId,
+                                  input.contains(u',') ? u"KEY_IDS"_s : keyId)
+                             .toLatin1();
     if (m_commonMacCodes.contains(HmacSha256V2Code))
         olm_sas_calculate_mac_fixed_base64(olmData, inputBytes.data(),
                                            unsignedSize(inputBytes),
@@ -695,7 +695,7 @@ void KeyVerificationSession::sendEvent(const QString &userId, const QString &dev
         json.remove("transaction_id"_L1);
         if (event.metaType().matrixId == KeyVerificationRequestEvent::TypeId) {
             json["msgtype"_L1] = event.matrixType();
-            json["body"_L1] = QStringLiteral("%1 sent a verification request").arg(m_connection->userId());
+            json["body"_L1] = "%1 sent a verification request"_L1.arg(m_connection->userId());
             json["to"_L1] = m_remoteUserId;
             m_room->postJson("m.room.message"_L1, json);
         } else {

@@ -22,19 +22,16 @@ PowerLevelsEventContent::PowerLevelsEventContent(const QJsonObject& json) :
 
 QJsonObject PowerLevelsEventContent::toJson() const
 {
-    QJsonObject o;
-    o.insert(QStringLiteral("invite"), invite);
-    o.insert(QStringLiteral("kick"), kick);
-    o.insert(QStringLiteral("ban"), ban);
-    o.insert(QStringLiteral("redact"), redact);
-    o.insert(QStringLiteral("events"), Quotient::toJson(events));
-    o.insert(QStringLiteral("events_default"), eventsDefault);
-    o.insert(QStringLiteral("state_default"), stateDefault);
-    o.insert(QStringLiteral("users"), Quotient::toJson(users));
-    o.insert(QStringLiteral("users_default"), usersDefault);
-    o.insert(QStringLiteral("notifications"),
-             QJsonObject { { "room"_L1, notifications.room } });
-    return o;
+    return QJsonObject{ { u"invite"_s, invite },
+                        { u"kick"_s, kick },
+                        { u"ban"_s, ban },
+                        { u"redact"_s, redact },
+                        { u"events"_s, Quotient::toJson(events) },
+                        { u"events_default"_s, eventsDefault },
+                        { u"state_default"_s, stateDefault },
+                        { u"users"_s, Quotient::toJson(users) },
+                        { u"users_default"_s, usersDefault },
+                        { u"notifications"_s, QJsonObject{ { u"room"_s, notifications.room } } } };
 }
 
 int RoomPowerLevelsEvent::powerLevelForEvent(const QString& eventTypeId) const

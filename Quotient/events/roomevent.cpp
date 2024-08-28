@@ -66,7 +66,7 @@ void RoomEvent::setSender(const QString& senderId)
 void RoomEvent::setTransactionId(const QString& txnId)
 {
     auto unsignedData = fullJson()[UnsignedKey].toObject();
-    unsignedData.insert(QStringLiteral("transaction_id"), txnId);
+    unsignedData.insert("transaction_id"_L1, txnId);
     editJson().insert(UnsignedKey, unsignedData);
     Q_ASSERT(transactionId() == txnId);
 }

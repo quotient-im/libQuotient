@@ -35,7 +35,7 @@ QUrl MediaThumbnailJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 
 MediaThumbnailJob::MediaThumbnailJob(QString serverName, QString mediaId, QSize requestedSize,
                                      std::optional<bool> animated)
-    : BaseJob(HttpVerb::Get, QStringLiteral("MediaThumbnailJob"), {})
+    : BaseJob(HttpVerb::Get, u"MediaThumbnailJob"_s, {})
     , serverName(std::move(serverName))
     , mediaId(std::move(mediaId))
     , requestedSize(std::move(requestedSize))
@@ -70,5 +70,5 @@ BaseJob::Status MediaThumbnailJob::prepareResult()
     if (_thumbnail.loadFromData(reply()->readAll()))
         return Success;
 
-    return { IncorrectResponse, QStringLiteral("Could not read image data") };
+    return { IncorrectResponse, u"Could not read image data"_s };
 }

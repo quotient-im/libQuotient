@@ -107,7 +107,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
             auto newContentJson = json.take("m.new_content"_L1).toObject();
             newContentJson.insert(BodyKey, plainBody);
             newContentJson.insert(MsgTypeKey, jsonMsgType);
-            json.insert(QStringLiteral("m.new_content"), newContentJson);
+            json.insert("m.new_content"_L1, newContentJson);
             json[MsgTypeKey] = jsonMsgType;
             json[BodyKey] = "* "_L1 + plainBody;
             return json;
@@ -222,7 +222,7 @@ QString RoomMessageEvent::replacedBy() const
 namespace {
 QString safeFileName(QString rawName)
 {
-    static auto safeFileNameRegex = QRegularExpression(R"([/\<>|"*?:])"_L1);
+    static auto safeFileNameRegex = QRegularExpression(uR"([/\<>|"*?:])"_s);
     return rawName.replace(safeFileNameRegex, "_"_L1);
 }
 }
@@ -257,12 +257,10 @@ QString RoomMessageEvent::fileNameToDownload() const
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
 {
     auto name = mimeType.name();
-    return name.startsWith("image/"_L1)
-               ? QStringLiteral("m.image")
-               : name.startsWith("video/"_L1)
-                     ? QStringLiteral("m.video")
-                     : name.startsWith("audio/"_L1) ? QStringLiteral("m.audio")
-                                                 : QStringLiteral("m.file");
+    return name.startsWith("image/"_L1)   ? u"m.image"_s
+           : name.startsWith("video/"_L1) ? u"m.video"_s
+           : name.startsWith("audio/"_L1) ? u"m.audio"_s
+                                          : u"m.file"_s;
 }
 
 QString RoomMessageEvent::rawMsgTypeForUrl(const QUrl& url)
@@ -310,28 +308,26 @@ TextContent::TextContent(const QJsonObject& json)
 
 void TextContent::fillJson(QJsonObject &json) const
 {
-    static const auto FormatKey = QStringLiteral("format");
+    static const auto FormatKey = "format"_L1;
 
     if (mimeType.inherits("text/html"_L1)) {
         json.insert(FormatKey, HtmlContentTypeId);
         json.insert(FormattedBodyKey, body);
     }
     if (relatesTo) {
-        json.insert(
-            QStringLiteral("m.relates_to"),
-            relatesTo->type == EventRelation::ReplyType
-                ? QJsonObject { { relatesTo->type,
-                                  QJsonObject {
-                                      { EventIdKey, relatesTo->eventId } } } }
-                : QJsonObject { { RelTypeKey, relatesTo->type },
-                                { EventIdKey, relatesTo->eventId } });
+        json.insert("m.relates_to"_L1,
+                    relatesTo->type == EventRelation::ReplyType
+                        ? QJsonObject{ { relatesTo->type,
+                                         QJsonObject{ { EventIdKey, relatesTo->eventId } } } }
+                        : QJsonObject{ { RelTypeKey, relatesTo->type },
+                                       { EventIdKey, relatesTo->eventId } });
         if (relatesTo->type == EventRelation::ReplacementType) {
             QJsonObject newContentJson;
             if (mimeType.inherits("text/html"_L1)) {
                 newContentJson.insert(FormatKey, HtmlContentTypeId);
                 newContentJson.insert(FormattedBodyKey, body);
             }
-            json.insert(QStringLiteral("m.new_content"), newContentJson);
+            json.insert("m.new_content"_L1, newContentJson);
         }
     }
 }
@@ -354,6 +350,6 @@ QMimeType LocationContent::type() const
 
 void LocationContent::fillJson(QJsonObject& o) const
 {
-    o.insert(QStringLiteral("geo_uri"), geoUri);
-    o.insert(QStringLiteral("info"), toInfoJson(thumbnail));
+    o.insert("geo_uri"_L1, geoUri);
+    o.insert("info"_L1, toInfoJson(thumbnail));
 }

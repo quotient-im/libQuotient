@@ -18,7 +18,7 @@ void JsonObjectConverter<EventRelation>::dumpTo(QJsonObject& jo,
     jo.insert(RelTypeKey, pod.type);
     jo.insert(EventIdKey, pod.eventId);
     if (pod.type == EventRelation::AnnotationType)
-        jo.insert(QStringLiteral("key"), pod.key);
+        jo.insert("key"_L1, pod.key);
 }
 
 void JsonObjectConverter<EventRelation>::fillFrom(const QJsonObject& jo,

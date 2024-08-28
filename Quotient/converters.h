@@ -456,23 +456,23 @@ QVariantHash QUOTIENT_API fromJson(const QJsonValue& jv);
 constexpr bool IfNotEmpty = false;
 
 namespace _impl {
-    template <typename ValT>
-    inline void addTo(QJsonObject& o, const QString& k, ValT&& v)
+    template <typename KeyT, typename ValT>
+    inline void addTo(QJsonObject& o, KeyT&& k, ValT&& v)
     {
-        o.insert(k, toJson(std::forward<ValT>(v)));
+        o.insert(std::forward<KeyT>(k), toJson(std::forward<ValT>(v)));
     }
 
     inline void addTo(QUrlQuery& q, const QString& k, auto v)
-        requires requires { QStringLiteral("%1").arg(v); }
+        requires requires { u"%1"_s.arg(v); }
     {
-        q.addQueryItem(k, QStringLiteral("%1").arg(v));
+        q.addQueryItem(k, u"%1"_s.arg(v));
     }
 
     // OpenAPI is entirely JSON-based, which means representing bools as
     // textual true/false, rather than 1/0.
     inline void addTo(QUrlQuery& q, const QString& k, bool v)
     {
-        q.addQueryItem(k, v ? QStringLiteral("true") : QStringLiteral("false"));
+        q.addQueryItem(k, v ? u"true"_s : u"false"_s);
     }
 
     inline void addTo(QUrlQuery& q, const QString& k, const QUrl& v)
@@ -497,10 +497,10 @@ namespace _impl {
     // when Force is true
     template <typename ValT, bool Force = true>
     struct AddNode {
-        template <typename ForwardedT>
-        static void impl(auto& container, const QString& key, ForwardedT&& value)
+        template <typename KeyT, typename ForwardedT>
+        static void impl(auto& container, KeyT&& key, ForwardedT&& value)
         {
-            addTo(container, key, std::forward<ForwardedT>(value));
+            addTo(container, std::forward<KeyT>(key), std::forward<ForwardedT>(value));
         }
     };
 
@@ -508,21 +508,22 @@ namespace _impl {
     template <typename ValT>
         requires requires(ValT v) { v.isEmpty(); }
     struct AddNode<ValT, IfNotEmpty> {
-        template <typename ForwardedT>
-        static void impl(auto& container, const QString& key, ForwardedT&& value)
+        template <typename KeyT, typename ForwardedT>
+        static void impl(auto& container, KeyT&& key, ForwardedT&& value)
         {
             if (!value.isEmpty())
-                addTo(container, key, std::forward<ForwardedT>(value));
+                addTo(container, std::forward<KeyT>(key), std::forward<ForwardedT>(value));
         }
     };
 
     // This one unfolds optionals (also only when IfNotEmpty is requested)
     template <typename ValT>
     struct AddNode<std::optional<ValT>, IfNotEmpty> {
-        static void impl(auto& container, const QString& key, const auto& optValue)
+        template <typename KeyT>
+        static void impl(auto& container, KeyT&& key, const auto& optValue)
         {
             if (optValue)
-                addTo(container, key, *optValue);
+                addTo(container, std::forward<KeyT>(key), *optValue);
         }
     };
 } // namespace _impl
@@ -550,10 +551,10 @@ namespace _impl {
  *               by default; passing IfNotEmpty or false for this parameter
  *               enables emptiness checks as described above
  */
-template <bool Force = true, typename ContT, typename ValT>
-inline void addParam(ContT& container, const QString& key, ValT&& value)
+template <bool Force = true, typename ContT, typename KeyT, typename ValT>
+inline void addParam(ContT& container, KeyT&& key, ValT&& value)
 {
-    _impl::AddNode<std::decay_t<ValT>, Force>::impl(container, key,
+    _impl::AddNode<std::decay_t<ValT>, Force>::impl(container, std::forward<KeyT>(key),
                                                     std::forward<ValT>(value));
 }
 

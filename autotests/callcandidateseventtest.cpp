@@ -16,7 +16,7 @@ private Q_SLOTS:
 
 void TestCallCandidatesEvent::fromJson()
 {
-    auto document = QJsonDocument::fromJson(R"({
+    auto document = QJsonDocument::fromJson(QByteArrayLiteral(R"({
         "age": 242352,
         "content": {
             "call_id": "12345",
@@ -34,7 +34,7 @@ void TestCallCandidatesEvent::fromJson()
         "room_id": "!Cuyf34gef24t:localhost",
         "sender": "@example:localhost",
         "type": "m.call.candidates"
-    })");
+    })"));
 
     QVERIFY(document.isObject());
 
@@ -46,14 +46,14 @@ void TestCallCandidatesEvent::fromJson()
     QVERIFY(callCandidatesEvent->is<CallCandidatesEvent>());
 
     QCOMPARE(callCandidatesEvent->version(), 0);
-    QCOMPARE(callCandidatesEvent->callId(), QStringLiteral("12345"));
+    QCOMPARE(callCandidatesEvent->callId(), u"12345");
     QCOMPARE(callCandidatesEvent->candidates().size(), 1);
 
     const auto& candidate = callCandidatesEvent->candidates().at(0).toObject();
-    QCOMPARE(candidate.value("sdpMid"_L1).toString(), QStringLiteral("audio"));
+    QCOMPARE(candidate.value("sdpMid"_L1).toString(), u"audio");
     QCOMPARE(candidate.value("sdpMLineIndex"_L1).toInt(), 0);
     QCOMPARE(candidate.value("candidate"_L1).toString(),
-             QStringLiteral("candidate:863018703 1 udp 2122260223 10.9.64.156 43670 typ host generation 0"));
+             u"candidate:863018703 1 udp 2122260223 10.9.64.156 43670 typ host generation 0");
 }
 
 QTEST_APPLESS_MAIN(TestCallCandidatesEvent)

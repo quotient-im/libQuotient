@@ -26,8 +26,7 @@ class QUOTIENT_API QOlmAccount : public QObject
 {
     Q_OBJECT
 public:
-    QOlmAccount(QStringView userId, QStringView deviceId,
-                QObject* parent = nullptr);
+    QOlmAccount(QString userId, QString deviceId, QObject* parent = nullptr);
 
     //! Creates a new instance of OlmAccount. During the instantiation
     //! the Ed25519 fingerprint key pair and the Curve25519 identity key

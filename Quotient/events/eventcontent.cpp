@@ -70,9 +70,9 @@ QJsonObject Quotient::EventContent::toInfoJson(const FileInfo& info)
 {
     QJsonObject infoJson;
     if (info.payloadSize != -1)
-        infoJson.insert(QStringLiteral("size"), info.payloadSize);
+        infoJson.insert("size"_L1, info.payloadSize);
     if (info.mimeType.isValid())
-        infoJson.insert(QStringLiteral("mimetype"), info.mimeType.name());
+        infoJson.insert("mimetype"_L1, info.mimeType.name());
     return infoJson;
 }
 
@@ -97,9 +97,9 @@ QJsonObject Quotient::EventContent::toInfoJson(const ImageInfo& info)
 {
     auto infoJson = toInfoJson(static_cast<const FileInfo&>(info));
     if (info.imageSize.width() != -1)
-        infoJson.insert(QStringLiteral("w"), info.imageSize.width());
+        infoJson.insert("w"_L1, info.imageSize.width());
     if (info.imageSize.height() != -1)
-        infoJson.insert(QStringLiteral("h"), info.imageSize.height());
+        infoJson.insert("h"_L1, info.imageSize.height());
     return infoJson;
 }
 
@@ -117,6 +117,5 @@ void Thumbnail::dumpTo(QJsonObject& infoJson) const
     if (url().isValid())
         fillJson(infoJson, { "thumbnail_url"_L1, "thumbnail_file"_L1 }, source);
     if (!imageSize.isEmpty())
-        infoJson.insert(QStringLiteral("thumbnail_info"),
-                         toInfoJson(*this));
+        infoJson.insert("thumbnail_info"_L1, toInfoJson(*this));
 }

@@ -20,25 +20,27 @@ bool RoomSummary::isEmpty() const
 QDebug Quotient::operator<<(QDebug dbg, const RoomSummary& rs)
 {
     QDebugStateSaver _(dbg);
-    QStringList sl;
-    if (rs.joinedMemberCount)
-        sl << QStringLiteral("joined: %1").arg(*rs.joinedMemberCount);
-    if (rs.invitedMemberCount)
-        sl << QStringLiteral("invited: %1").arg(*rs.invitedMemberCount);
+    dbg.nospace().noquote();
+    auto joiner = "";
+    if (rs.joinedMemberCount) {
+        dbg << "joined: " << *rs.joinedMemberCount;
+        joiner = ", ";
+    }
+    if (rs.invitedMemberCount) {
+        dbg << joiner << "invited: " << *rs.invitedMemberCount;
+        joiner = ", ";
+    }
     if (rs.heroes)
-        sl << QStringLiteral("heroes: [%1]").arg(rs.heroes->join(u','));
-    dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
+        dbg << joiner << "heroes: " << rs.heroes->join(u',');
     return dbg;
 }
 
 void JsonObjectConverter<RoomSummary>::dumpTo(QJsonObject& jo,
                                               const RoomSummary& rs)
 {
-    addParam<IfNotEmpty>(jo, QStringLiteral("m.joined_member_count"),
-                         rs.joinedMemberCount);
-    addParam<IfNotEmpty>(jo, QStringLiteral("m.invited_member_count"),
-                         rs.invitedMemberCount);
-    addParam<IfNotEmpty>(jo, QStringLiteral("m.heroes"), rs.heroes);
+    addParam<IfNotEmpty>(jo, "m.joined_member_count"_L1, rs.joinedMemberCount);
+    addParam<IfNotEmpty>(jo, "m.invited_member_count"_L1, rs.invitedMemberCount);
+    addParam<IfNotEmpty>(jo, "m.heroes"_L1, rs.heroes);
 }
 
 void JsonObjectConverter<RoomSummary>::fillFrom(const QJsonObject& jo,
@@ -55,14 +57,12 @@ inline EventsArrayT load(const QJsonObject& batches, StrT keyName)
     return fromJson<EventsArrayT>(batches[keyName].toObject().value("events"_L1));
 }
 
-SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState,
-                           const QJsonObject& roomJson)
+SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState, const QJsonObject& roomJson)
     : roomId(std::move(roomId_))
     , joinState(joinState)
     , summary(fromJson<RoomSummary>(roomJson["summary"_L1]))
-    , state(load<StateEvents>(roomJson, joinState == JoinState::Invite
-                                         ? "invite_state"_L1
-                                         : "state"_L1))
+    , state(load<StateEvents>(roomJson,
+                              joinState == JoinState::Invite ? "invite_state"_L1 : "state"_L1))
 {
     switch (joinState) {
     case JoinState::Join:
@@ -96,22 +96,22 @@ SyncRoomData::SyncRoomData(QString roomId_, JoinState joinState,
 QDebug Quotient::operator<<(QDebug dbg, const DevicesList& devicesList)
 {
     QDebugStateSaver _(dbg);
-    QStringList sl;
-    if (!devicesList.changed.isEmpty())
-        sl << QStringLiteral("changed: %1").arg(devicesList.changed.join(", "_L1));
+    dbg.nospace().noquote();
+    auto joiner = "";
+    if (!devicesList.changed.isEmpty()) {
+        dbg << "changed: " << devicesList.changed.join(", "_L1);
+        joiner = "; ";
+    }
     if (!devicesList.left.isEmpty())
-        sl << QStringLiteral("left %1").arg(devicesList.left.join(", "_L1));
-    dbg.nospace().noquote() << sl.join(QStringLiteral("; "));
+        dbg << joiner << "left " << devicesList.left.join(", "_L1);
     return dbg;
 }
 
 void JsonObjectConverter<DevicesList>::dumpTo(QJsonObject& jo,
                                               const DevicesList& rs)
 {
-    addParam<IfNotEmpty>(jo, QStringLiteral("changed"),
-                         rs.changed);
-    addParam<IfNotEmpty>(jo, QStringLiteral("left"),
-                         rs.left);
+    addParam<IfNotEmpty>(jo, u"changed"_s, rs.changed);
+    addParam<IfNotEmpty>(jo, u"left"_s, rs.left);
 }
 
 void JsonObjectConverter<DevicesList>::fillFrom(const QJsonObject& jo,

@@ -189,7 +189,7 @@ bool Avatar::Private::checkUrl(const QUrl& url) const
 
 QString Avatar::Private::localFile() const
 {
-    static const auto cachePath = cacheLocation(QStringLiteral("avatars"));
+    static const auto cachePath = cacheLocation(u"avatars");
     return cachePath % _url.authority() % u'_' % _url.fileName() % ".png"_L1;
 }
 

@@ -18,7 +18,7 @@ private Q_SLOTS:
     {
         auto path = QString::fromUtf8(__FILE__);
         path = path.left(path.lastIndexOf(QDir::separator()));
-        path += QStringLiteral("/cross_signing_data.json");
+        path += "/cross_signing_data.json"_L1;
         QFile file(path);
         file.open(QIODevice::ReadOnly);
         auto data = file.readAll();

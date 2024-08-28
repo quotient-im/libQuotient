@@ -369,7 +369,7 @@ TEST_IMPL(sendReaction)
         FAIL_TEST();
     }
 
-    const auto key = QStringLiteral("+1");
+    const auto key = u"+1"_s;
     const auto txnId = targetRoom->postReaction(targetEvtId, key);
     if (!validatePendingEvent<ReactionEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
@@ -633,7 +633,7 @@ TEST_IMPL(showLocalUsername)
 
 TEST_IMPL(addAndRemoveTag)
 {
-    static const auto TestTag = QStringLiteral("im.quotient.test");
+    static const auto TestTag = u"im.quotient.test"_s;
     // Pre-requisite
     if (targetRoom->tags().contains(TestTag))
         targetRoom->removeTag(TestTag);
@@ -762,14 +762,13 @@ TEST_IMPL(visitResources)
             clog << "Empty Matrix URI test failed" << endl;
             FAIL_TEST();
         }
-    if (Uri { QStringLiteral("#") }.isValid()) {
+    if (Uri { u"#"_s }.isValid()) {
         clog << "Bare sigil URI test failed" << endl;
         FAIL_TEST();
     }
     QUrl invalidUrl { "https://"_L1 };
     invalidUrl.setAuthority("---:@@@"_L1);
-    const Uri matrixUriFromInvalidUrl { invalidUrl },
-        invalidMatrixUri { QStringLiteral("matrix:&invalid@") };
+    const Uri matrixUriFromInvalidUrl{ invalidUrl }, invalidMatrixUri{ u"matrix:&invalid@"_s };
     if (matrixUriFromInvalidUrl.isEmpty() || matrixUriFromInvalidUrl.isValid()) {
         clog << "Invalid Matrix URI test failed" << endl;
         FAIL_TEST();
@@ -805,10 +804,9 @@ TEST_IMPL(visitResources)
         "https://matrix.to/#/"_L1 + roomId + u'/' + eventId
     };
     // Check that reserved characters are correctly processed.
-    static const auto& joinRoomAlias =
-        QStringLiteral("##/?.@\"unjoined:example.org");
+    static const auto joinRoomAlias = u"##/?.@\"unjoined:example.org"_s;
     static const auto& encodedRoomAliasNoSigil =
-        QString::fromLatin1(QUrl::toPercentEncoding(joinRoomAlias.mid(1), QByteArrayLiteral(":")));
+        QString::fromLatin1(QUrl::toPercentEncoding(joinRoomAlias.mid(1), ":"_ba));
     static const QString joinQuery { "?action=join"_L1 };
     // These URIs are not supposed to be actually joined (and even exist,
     // as yet) - only to be syntactically correct
@@ -819,7 +817,7 @@ TEST_IMPL(visitResources)
         "https://matrix.to/#/%23"_L1/*`#`*/ + encodedRoomAliasNoSigil + joinQuery,
         "https://matrix.to/#/%23"_L1 + joinRoomAlias.mid(1) /* unencoded */ + joinQuery
     };
-    static const auto& joinRoomId = QStringLiteral("!anyid:example.org");
+    static const auto joinRoomId = u"!anyid:example.org"_s;
     static const QStringList viaServers { "matrix.org"_L1, "example.org"_L1 };
     static const auto viaQuery =
         std::accumulate(viaServers.cbegin(), viaServers.cend(), joinQuery,

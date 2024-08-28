@@ -9,18 +9,16 @@ using namespace Quotient;
 
 static size_t jobId = 0;
 
-SyncJob::SyncJob(const QString& since, const QString& filter, int timeout,
-                 const QString& presence)
-    : BaseJob(HttpVerb::Get, QStringLiteral("SyncJob-%1").arg(++jobId),
-              "_matrix/client/r0/sync")
+SyncJob::SyncJob(const QString& since, const QString& filter, int timeout, const QString& presence)
+    : BaseJob(HttpVerb::Get, "SyncJob-"_L1 + QString::number(++jobId), "_matrix/client/r0/sync")
 {
     setLoggingCategory(SYNCJOB);
     QUrlQuery query;
-    addParam<IfNotEmpty>(query, QStringLiteral("filter"), filter);
-    addParam<IfNotEmpty>(query, QStringLiteral("set_presence"), presence);
+    addParam<IfNotEmpty>(query, u"filter"_s, filter);
+    addParam<IfNotEmpty>(query, u"set_presence"_s, presence);
     if (timeout >= 0)
-        query.addQueryItem(QStringLiteral("timeout"), QString::number(timeout));
-    addParam<IfNotEmpty>(query, QStringLiteral("since"), since);
+        query.addQueryItem(u"timeout"_s, QString::number(timeout));
+    addParam<IfNotEmpty>(query, u"since"_s, since);
     setRequestQuery(query);
 
     setMaxRetries(std::numeric_limits<int>::max());

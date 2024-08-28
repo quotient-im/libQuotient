@@ -135,40 +135,37 @@ QFuture<bool> ConnectionEncryptionData::setup(Connection* connection, bool mock,
 void ConnectionEncryptionData::saveDevicesList()
 {
     database.transaction();
-    auto query =
-        database.prepareQuery(QStringLiteral("DELETE FROM tracked_users"));
+    auto query = database.prepareQuery(u"DELETE FROM tracked_users"_s);
     database.execute(query);
-    query.prepare(QStringLiteral(
-        "INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"));
+    query.prepare(u"INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"_s);
     for (const auto& user : trackedUsers) {
-        query.bindValue(":matrixId"_L1, user);
+        query.bindValue(u":matrixId"_s, user);
         database.execute(query);
     }
 
-    query.prepare(QStringLiteral("DELETE FROM outdated_users"));
+    query.prepare(u"DELETE FROM outdated_users"_s);
     database.execute(query);
-    query.prepare(QStringLiteral(
-        "INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"));
+    query.prepare(u"INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"_s);
     for (const auto& user : outdatedUsers) {
-        query.bindValue(":matrixId"_L1, user);
+        query.bindValue(u":matrixId"_s, user);
         database.execute(query);
     }
 
-    query.prepare(QStringLiteral(
-        "INSERT INTO tracked_devices"
+    query.prepare(
+        u"INSERT INTO tracked_devices"
         "(matrixId, deviceId, curveKeyId, curveKey, edKeyId, edKey, verified, selfVerified) "
-        "VALUES (:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey, :verified, :selfVerified);"));
+        "VALUES (:matrixId, :deviceId, :curveKeyId, :curveKey, :edKeyId, :edKey, :verified, :selfVerified);"_s);
     for (const auto& [user, devices] : deviceKeys.asKeyValueRange()) {
-        auto deleteQuery = database.prepareQuery(
-            QStringLiteral("DELETE FROM tracked_devices WHERE matrixId=:matrixId;"));
-        deleteQuery.bindValue(":matrixId"_L1, user);
+        auto deleteQuery =
+            database.prepareQuery(u"DELETE FROM tracked_devices WHERE matrixId=:matrixId;"_s);
+        deleteQuery.bindValue(u":matrixId"_s, user);
         database.execute(deleteQuery);
         for (const auto& device : devices) {
             const auto keys = device.keys.asKeyValueRange();
             deleteQuery.prepare(
-                "DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_L1);
-            deleteQuery.bindValue(":matrixId"_L1, user);
-            deleteQuery.bindValue(":deviceId"_L1, device.deviceId);
+                u"DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_s);
+            deleteQuery.bindValue(u":matrixId"_s, user);
+            deleteQuery.bindValue(u":deviceId"_s, device.deviceId);
             database.execute(deleteQuery);
 
             const auto curveKeyIt = std::ranges::find_if(keys, [](const auto& p) {
@@ -180,15 +177,15 @@ void ConnectionEncryptionData::saveDevicesList()
             });
             Q_ASSERT(edKeyIt != keys.end());
 
-            query.bindValue(":matrixId"_L1, user);
-            query.bindValue(":deviceId"_L1, device.deviceId);
-            query.bindValue(":curveKeyId"_L1, curveKeyIt->first);
-            query.bindValue(":curveKey"_L1, curveKeyIt->second);
-            query.bindValue(":edKeyId"_L1, edKeyIt->first);
-            query.bindValue(":edKey"_L1, edKeyIt->second);
+            query.bindValue(u":matrixId"_s, user);
+            query.bindValue(u":deviceId"_s, device.deviceId);
+            query.bindValue(u":curveKeyId"_s, curveKeyIt->first);
+            query.bindValue(u":curveKey"_s, curveKeyIt->second);
+            query.bindValue(u":edKeyId"_s, edKeyIt->first);
+            query.bindValue(u":edKey"_s, edKeyIt->second);
             // If the device gets saved here, it can't be verified
-            query.bindValue(":verified"_L1, verifiedDevices[user][device.deviceId]);
-            query.bindValue(":selfVerified"_L1, selfVerifiedDevices[user][device.deviceId]);
+            query.bindValue(u":verified"_s, verifiedDevices[user][device.deviceId]);
+            query.bindValue(u":selfVerified"_s, selfVerifiedDevices[user][device.deviceId]);
 
             database.execute(query);
         }

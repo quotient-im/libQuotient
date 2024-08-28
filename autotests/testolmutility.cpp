@@ -49,7 +49,7 @@ void TestOlmUtility::canonicalJSON()
 
 void TestOlmUtility::verifySignedOneTimeKey()
 {
-    QOlmAccount aliceOlm { u"@alice:matrix.org", u"aliceDevice" };
+    QOlmAccount aliceOlm(u"@alice:matrix.org"_s, u"aliceDevice"_s);
     aliceOlm.setupNewAccount();
     aliceOlm.generateOneTimeKeys(1);
     auto keys = aliceOlm.oneTimeKeys();
@@ -89,8 +89,8 @@ void TestOlmUtility::verifySignedOneTimeKey()
 
 void TestOlmUtility::validUploadKeysRequest()
 {
-    const auto userId = QStringLiteral("@alice:matrix.org");
-    const auto deviceId = QStringLiteral("FKALSOCCC");
+    const auto userId = u"@alice:matrix.org"_s;
+    const auto deviceId = u"FKALSOCCC"_s;
 
     QOlmAccount alice { userId, deviceId };
     alice.setupNewAccount();
@@ -102,14 +102,10 @@ void TestOlmUtility::validUploadKeysRequest()
         { "algorithms"_L1, toJson(SupportedAlgorithms) },
         { "user_id"_L1, userId },
         { "device_id"_L1, deviceId },
-        { "keys"_L1,
-          QJsonObject{
-              { "curve25519:"_L1 + deviceId, alice.identityKeys().curve25519 },
-              { "ed25519:"_L1 + deviceId, alice.identityKeys().ed25519 } } },
-        { "signatures"_L1,
-          QJsonObject{
-              { userId, QJsonObject{ { "ed25519:"_L1 + deviceId,
-                                       QString::fromLatin1(idSig) } } } } }
+        { "keys"_L1, QJsonObject{ { "curve25519:"_L1 + deviceId, alice.identityKeys().curve25519 },
+                                  { "ed25519:"_L1 + deviceId, alice.identityKeys().ed25519 } } },
+        { "signatures"_L1, QJsonObject{ { userId, QJsonObject{ { "ed25519:"_L1 + deviceId,
+                                                                 QString::fromLatin1(idSig) } } } } }
     };
 
     const auto deviceKeys = alice.deviceKeys();

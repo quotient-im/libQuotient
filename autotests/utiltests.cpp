@@ -91,10 +91,9 @@ void TestUtils::testQuoCStr()
     T(QUtf8StringView);
 #endif
 #undef T
-    QVERIFY("Test QStringBuilder<QString>"sv
-            == QUO_CSTR(QStringLiteral("Test ") % u"QStringBuilder<QString>"));
+    QVERIFY("Test QStringBuilder<QString>"sv == QUO_CSTR(u"Test "_s % u"QStringBuilder<QString>"));
     QVERIFY("Test QStringBuilder<QByteArray>"sv
-            == QUO_CSTR(QByteArrayLiteral("Test ") % "QStringBuilder<QByteArray>"));
+            == QUO_CSTR("Test "_ba % "QStringBuilder<QByteArray>"));
 }
 
 QTEST_APPLESS_MAIN(TestUtils)

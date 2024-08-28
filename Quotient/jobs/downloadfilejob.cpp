@@ -51,7 +51,7 @@ QUrl DownloadFileJob::makeRequestUrl(const HomeserverData& hsData, const QString
 }
 
 DownloadFileJob::DownloadFileJob(QString serverName, QString mediaId, const QString& localFilename)
-    : BaseJob(HttpVerb::Get, QStringLiteral("DownloadFileJob"), {})
+    : BaseJob(HttpVerb::Get, u"DownloadFileJob"_s, {})
     , d(makeImpl<Private>(std::move(serverName), std::move(mediaId), localFilename))
 {}
 

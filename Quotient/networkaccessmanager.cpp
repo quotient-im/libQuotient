@@ -151,7 +151,7 @@ QNetworkReply* NetworkAccessManager::createRequest(
         return reply;
     }
     const QUrlQuery query{ url.query() };
-    const auto accountId = query.queryItemValue(QStringLiteral("user_id"));
+    const auto accountId = query.queryItemValue(u"user_id"_s);
     if (accountId.isEmpty()) {
         // Using QSettings here because Quotient::NetworkSettings
         // doesn't provide multi-threading guarantees
@@ -179,20 +179,18 @@ QNetworkReply* NetworkAccessManager::createRequest(
     // Convert mxc:// URL into normal http(s) for the given homeserver
     QNetworkRequest rewrittenRequest(request);
     rewrittenRequest.setUrl(DownloadFileJob::makeRequestUrl(hsData, url));
-    rewrittenRequest.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + hsData.accessToken);
+    rewrittenRequest.setRawHeader("Authorization", "Bearer "_ba + hsData.accessToken);
 
     auto* implReply = QNetworkAccessManager::createRequest(op, rewrittenRequest);
     implReply->ignoreSslErrors(d.getIgnoredSslErrors());
-    const auto& fileMetadata = FileMetadataMap::lookup(
-        query.queryItemValue(QStringLiteral("room_id")),
-        query.queryItemValue(QStringLiteral("event_id")));
+    const auto& fileMetadata = FileMetadataMap::lookup(query.queryItemValue(u"room_id"_s),
+                                                       query.queryItemValue(u"event_id"_s));
     return new MxcReply(implReply, fileMetadata);
 }
 
 QStringList NetworkAccessManager::supportedSchemesImplementation() const
 {
-    return QNetworkAccessManager::supportedSchemesImplementation()
-           << QStringLiteral("mxc");
+    return QNetworkAccessManager::supportedSchemesImplementation() << u"mxc"_s;
 }
 
 void NetworkAccessManager::setAccessToken(const QString& userId, const QByteArray& token)

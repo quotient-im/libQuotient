@@ -37,14 +37,13 @@ QJsonObject MemberEventContent::toJson() const
 {
     QJsonObject o;
     if (membership != Membership::Invalid)
-        o.insert(QStringLiteral("membership"),
-                 flagToJsonString(membership, MembershipStrings));
+        o.insert("membership"_L1, flagToJsonString(membership, MembershipStrings));
     if (displayName)
-        o.insert(QStringLiteral("displayname"), *displayName);
+        o.insert("displayname"_L1, *displayName);
     if (avatarUrl && avatarUrl->isValid())
-        o.insert(QStringLiteral("avatar_url"), avatarUrl->toString());
+        o.insert("avatar_url"_L1, avatarUrl->toString());
     if (!reason.isEmpty())
-        o.insert(QStringLiteral("reason"), reason);
+        o.insert("reason"_L1, reason);
     return o;
 }
 

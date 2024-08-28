@@ -11,8 +11,8 @@ QJsonObject CallEvent::basicJson(const QString& matrixType,
                                  const QString& callId, int version,
                                  QJsonObject contentJson)
 {
-    contentJson.insert(QStringLiteral("call_id"), callId);
-    contentJson.insert(QStringLiteral("version"), version);
+    contentJson.insert("call_id"_L1, callId);
+    contentJson.insert("version"_L1, version);
     return RoomEvent::basicJson(matrixType, contentJson);
 }
 
@@ -44,14 +44,10 @@ m.call.invite
 }
 */
 
-CallInviteEvent::CallInviteEvent(const QString& callId, int lifetime,
-                                 const QString& sdp)
-    : EventTemplate(
-        callId,
-        { { QStringLiteral("lifetime"), lifetime },
-          { QStringLiteral("offer"),
-            QJsonObject{ { QStringLiteral("type"), QStringLiteral("offer") },
-                         { QStringLiteral("sdp"), sdp } } } })
+CallInviteEvent::CallInviteEvent(const QString& callId, int lifetime, const QString& sdp)
+    : EventTemplate(callId,
+                    { { u"lifetime"_s, lifetime },
+                      { u"offer"_s, QJsonObject{ { u"type"_s, u"offer"_s }, { u"sdp"_s, sdp } } } })
 {}
 
 /*
@@ -75,8 +71,6 @@ m.call.answer
 */
 
 CallAnswerEvent::CallAnswerEvent(const QString& callId, const QString& sdp)
-    : EventTemplate(callId, { { QStringLiteral("answer"),
-                            QJsonObject { { QStringLiteral("type"),
-                                            QStringLiteral("answer") },
-                                          { QStringLiteral("sdp"), sdp } } } })
+    : EventTemplate(callId, { { u"answer"_s,
+                                QJsonObject{ { u"type"_s, u"answer"_s }, { u"sdp"_s, sdp } } } })
 {}

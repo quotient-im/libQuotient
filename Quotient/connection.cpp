@@ -133,15 +133,13 @@ void Connection::resolveServer(const QString& mxid)
 
 inline UserIdentifier makeUserIdentifier(const QString& id)
 {
-    return { QStringLiteral("m.id.user"), { { QStringLiteral("user"), id } } };
+    return { u"m.id.user"_s, { { u"user"_s, id } } };
 }
 
 inline UserIdentifier make3rdPartyIdentifier(const QString& medium,
                                              const QString& address)
 {
-    return { QStringLiteral("m.id.thirdparty"),
-             { { QStringLiteral("medium"), medium },
-               { QStringLiteral("address"), address } } };
+    return { u"m.id.thirdparty"_s, { { u"medium"_s, medium }, { u"address"_s, address } } };
 }
 
 void Connection::loginWithPassword(const QString& userId,
@@ -615,8 +613,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
         qDebug(MAIN) << "Sending updated direct chats to the server:"
                      << dcLocalRemovals.size() << "removal(s),"
                      << dcLocalAdditions.size() << "addition(s)";
-        q->callApi<SetAccountDataJob>(data->userId(), QStringLiteral("m.direct"),
-                                      toJson(directChats));
+        q->callApi<SetAccountDataJob>(data->userId(), u"m.direct"_s, toJson(directChats));
         dcLocalAdditions.clear();
         dcLocalRemovals.clear();
     }
@@ -701,7 +698,7 @@ QUrl Connection::makeMediaUrl(QUrl mxcUrl) const
 {
     Q_ASSERT(mxcUrl.scheme() == "mxc"_L1);
     QUrlQuery q(mxcUrl.query());
-    q.addQueryItem(QStringLiteral("user_id"), userId());
+    q.addQueryItem(u"user_id"_s, userId());
     mxcUrl.setQuery(q);
     return mxcUrl;
 }
@@ -790,8 +787,7 @@ JobHandle<CreateRoomJob> Connection::createRoom(
     const QVector<CreateRoomJob::Invite3pid>& invite3pids, const QJsonObject& creationContent)
 {
     invites.removeOne(userId()); // The creator is by definition in the room
-    return callApi<CreateRoomJob>(visibility == PublishRoom ? QStringLiteral("public")
-                                                            : QStringLiteral("private"),
+    return callApi<CreateRoomJob>(visibility == PublishRoom ? u"public"_s : u"private"_s,
                                   alias, name, topic, invites, invite3pids, roomVersion,
                                   creationContent, initialState, presetName, isDirect)
         .then(this, [this, invites, isDirect](const QString& roomId) {
@@ -873,8 +869,8 @@ JobHandle<CreateRoomJob> Connection::createDirectChat(const QString& userId, con
         initialStateEvents.append({ EncryptionEvent::TypeId, encryptionContent.toJson() });
     }
 
-    return createRoom(UnpublishRoom, {}, name, topic, { userId },
-                      QStringLiteral("trusted_private_chat"), {}, true, initialStateEvents)
+    return createRoom(UnpublishRoom, {}, name, topic, { userId }, u"trusted_private_chat"_s, {},
+                      true, initialStateEvents)
         .then([userId](const QString& roomId) {
             qCDebug(MAIN) << "Direct chat with" << userId << "has been created as" << roomId;
         });
@@ -1472,12 +1468,9 @@ void Connection::saveState() const
         return;
     }
 
-    QJsonObject rootObj {
-        { QStringLiteral("cache_version"),
-          QJsonObject {
-              { QStringLiteral("major"), SyncData::cacheVersion().first },
-              { QStringLiteral("minor"), SyncData::cacheVersion().second } } }
-    };
+    QJsonObject rootObj{ { u"cache_version"_s,
+                           QJsonObject{ { u"major"_s, SyncData::cacheVersion().first },
+                                        { u"minor"_s, SyncData::cacheVersion().second } } } };
     {
         QJsonObject roomsJson;
         QJsonObject inviteRoomsJson;
@@ -1485,36 +1478,30 @@ void Connection::saveState() const
             if (r->joinState() == JoinState::Leave)
                 continue;
             (r->joinState() == JoinState::Invite ? inviteRoomsJson : roomsJson)
-                .insert(r->id(),
-                        QJsonObject{ { "$ref"_L1,
-                                       SyncData::fileNameForRoom(r->id()) } });
+                .insert(r->id(), QJsonObject{ { u"$ref"_s, SyncData::fileNameForRoom(r->id()) } });
         }
 
         QJsonObject roomObj;
         if (!roomsJson.isEmpty())
-            roomObj.insert(QStringLiteral("join"), roomsJson);
+            roomObj.insert("join"_L1, roomsJson);
         if (!inviteRoomsJson.isEmpty())
-            roomObj.insert(QStringLiteral("invite"), inviteRoomsJson);
+            roomObj.insert("invite"_L1, inviteRoomsJson);
 
-        rootObj.insert(QStringLiteral("next_batch"), d->data->lastEvent());
-        rootObj.insert(QStringLiteral("rooms"), roomObj);
+        rootObj.insert("next_batch"_L1, d->data->lastEvent());
+        rootObj.insert("rooms"_L1, roomObj);
     }
     {
-        QJsonArray accountDataEvents {
-            Event::basicJson(DirectChatEvent::TypeId, toJson(d->directChats))
-        };
+        QJsonArray accountDataEvents{ Event::basicJson(DirectChatEvent::TypeId,
+                                                       toJson(d->directChats)) };
         for (const auto& e : d->accountData)
-            accountDataEvents.append(
-                Event::basicJson(e.first, e.second->contentJson()));
+            accountDataEvents.append(Event::basicJson(e.first, e.second->contentJson()));
 
-        rootObj.insert(QStringLiteral("account_data"),
-                       QJsonObject {
-                           { QStringLiteral("events"), accountDataEvents } });
+        rootObj.insert("account_data"_L1, QJsonObject{ { u"events"_s, accountDataEvents } });
     }
 
     if (d->encryptionData) {
         QJsonObject keysJson = toJson(d->encryptionData->oneTimeKeysCount);
-        rootObj.insert(QStringLiteral("device_one_time_keys_count"), keysJson);
+        rootObj.insert("device_one_time_keys_count"_L1, keysJson);
     }
 
     const auto data =
@@ -1597,9 +1584,6 @@ void Connection::getTurnServers()
     connect(job, &GetTurnServerJob::success, this,
             [this,job] { emit turnServersChanged(job->data()); });
 }
-
-const QString Connection::SupportedRoomVersion::StableTag =
-    QStringLiteral("stable");
 
 QString Connection::defaultRoomVersion() const
 {

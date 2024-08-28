@@ -19,8 +19,6 @@ class TestKeyVerificationSession : public QObject
 private Q_SLOTS:
     void testOutgoing1()
     {
-        auto userId = QStringLiteral("@bob:localhost");
-        auto deviceId = QStringLiteral("DEFABC");
         auto connection = Connection::makeMockConnection("@carl:localhost"_L1);
         const auto transactionId = "other_transaction_id"_L1;
         auto session = connection->startKeyVerificationSession("@alice:localhost"_L1, "ABCDEF"_L1);
@@ -37,8 +35,8 @@ private Q_SLOTS:
 
     void testIncoming1()
     {
-        auto userId = QStringLiteral("@bob:localhost");
-        auto deviceId = QStringLiteral("DEFABC");
+        auto userId = u"@bob:localhost"_s;
+        auto deviceId = u"DEFABC"_s;
         const auto transactionId = "trans123action123id"_L1;
         auto connection = Connection::makeMockConnection("@carl:localhost"_L1);
         auto session = new KeyVerificationSession(userId, KeyVerificationRequestEvent(transactionId, deviceId, {SasV1Method}, QDateTime::currentDateTime()), connection, false);

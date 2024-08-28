@@ -151,7 +151,7 @@ Uri Uri::fromUserInput(const QString& uriOrId)
     // spec but there's a movement towards making them navigable (see, e.g.,
     // https://github.com/matrix-org/matrix-doc/pull/2644) - so treat them
     // as valid
-    if (QStringLiteral("!@#+$").contains(uriOrId[0]))
+    if ("!@#+$"_L1.contains(uriOrId[0]))
         return Uri { uriOrId.toUtf8() };
 
     return Uri { QUrl::fromUserInput(uriOrId) };
@@ -205,13 +205,14 @@ QString Uri::secondaryId() const
     return idStem;
 }
 
-static const auto ActionKey = QStringLiteral("action");
+namespace {
+inline constexpr auto ActionKey = "action"_L1;
+}
 
 QString Uri::action() const
 {
-    return type() == NonMatrix || !isValid()
-               ? QString()
-               : QUrlQuery { query() }.queryItemValue(ActionKey);
+    return type() == NonMatrix || !isValid() ? QString()
+                                             : QUrlQuery{ query() }.queryItemValue(ActionKey);
 }
 
 void Uri::setAction(const QString& newAction)
@@ -228,8 +229,7 @@ void Uri::setAction(const QString& newAction)
 
 QStringList Uri::viaServers() const
 {
-    return QUrlQuery { query() }.allQueryItemValues(QStringLiteral("via"),
-                                                    QUrl::EncodeReserved);
+    return QUrlQuery{ query() }.allQueryItemValues(u"via"_s, QUrl::EncodeReserved);
 }
 
 bool Uri::isValid() const

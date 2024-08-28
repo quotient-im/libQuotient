@@ -325,7 +325,7 @@ QUOTIENT_API QString prettyPrint(const QString& plainText);
  * The returned path has a trailing slash, clients don't need to append it.
  * \param dirName path to cache directory relative to the standard cache path
  */
-QUOTIENT_API QString cacheLocation(const QString& dirName);
+QUOTIENT_API QString cacheLocation(QStringView dirName);
 
 /** Hue color component of based of the hash of the string.
  *

@@ -64,13 +64,11 @@ QOlmExpected<QOlmSession> QOlmAccount::createInbound(
     return session;
 }
 
-QOlmAccount::QOlmAccount(QStringView userId, QStringView deviceId,
-                         QObject* parent)
+QOlmAccount::QOlmAccount(QString userId, QString deviceId, QObject* parent)
     : QObject(parent)
-    , olmDataHolder(
-          makeCStruct(olm_account, olm_account_size, olm_clear_account))
-    , m_userId(userId.toString())
-    , m_deviceId(deviceId.toString())
+    , olmDataHolder(makeCStruct(olm_account, olm_account_size, olm_clear_account))
+    , m_userId(std::move(userId))
+    , m_deviceId(std::move(deviceId))
 {}
 
 void QOlmAccount::setupNewAccount()
@@ -115,8 +113,7 @@ IdentityKeys QOlmAccount::identityKeys() const
         QOLM_INTERNAL_ERROR("Failed to get "_L1 % accountId() % " identity keys"_L1);
     }
     const auto key = QJsonDocument::fromJson(keyBuffer).object();
-    return { key.value(QStringLiteral("curve25519")).toString(),
-             key.value(QStringLiteral("ed25519")).toString() };
+    return { key.value("curve25519"_L1).toString(), key.value("ed25519"_L1).toString() };
 }
 
 QByteArray QOlmAccount::sign(const QByteArray &message) const
@@ -141,14 +138,12 @@ QByteArray QOlmAccount::signIdentityKeys() const
 {
     const auto keys = identityKeys();
     static const auto& Algorithms = toJson(SupportedAlgorithms);
-    return sign(QJsonObject{
-        { "algorithms"_L1, Algorithms },
-        { "user_id"_L1, m_userId },
-        { "device_id"_L1, m_deviceId },
-        { "keys"_L1,
-          QJsonObject{
-              { QStringLiteral("curve25519:") + m_deviceId, keys.curve25519 },
-              { QStringLiteral("ed25519:") + m_deviceId, keys.ed25519 } } } });
+    return sign(
+        QJsonObject{ { u"algorithms"_s, Algorithms },
+                     { u"user_id"_s, m_userId },
+                     { u"device_id"_s, m_deviceId },
+                     { u"keys"_s, QJsonObject{ { "curve25519:"_L1 + m_deviceId, keys.curve25519 },
+                                               { "ed25519:"_L1 + m_deviceId, keys.ed25519 } } } });
 }
 
 size_t QOlmAccount::maxNumberOfOneTimeKeys() const
