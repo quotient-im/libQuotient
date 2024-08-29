@@ -58,7 +58,6 @@
 #include "events/typingevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
-#include <Quotient/events/roommessageevent.h>
 
 // NB: since Qt 6, moc_room.cpp needs User fully defined
 #include "moc_room.cpp" // NOLINT(bugprone-suspicious-include)
@@ -265,15 +264,6 @@ public:
      */
     Timeline::size_type moveEventsToTimeline(RoomEventsRange events,
                                              EventsPlacement placement);
-
-    //! \brief Update an event's data with the latest from the server.
-    //!
-    //! This is mainly designed for threads where the server aggregates the root event
-    //! with the other thread messages and places this in the unsigned value but doesn't
-    //! doesn't automatically download the updated event.
-    //!
-    //! Does nothing if the event is not in the timeline.
-    void updateEventFromServer(const QString& eventId);
 
     /**
      * Remove events from the passed container that are already in the timeline
@@ -1745,12 +1735,6 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
             !eventsIndex.contains(eId), __FUNCTION__,
             makeErrorStr(*e, "Event is already in the timeline; "
                              "incoming events were not properly deduplicated"));
-
-        const auto messageE = eventCast<const RoomMessageEvent>(e);
-        if (messageE != nullptr && messageE->isThreaded()) {
-            updateEventFromServer(messageE->threadRootEventId());
-        }
-
         const auto& ti = placement == Older
                              ? timeline.emplace_front(std::move(e), --index)
                              : timeline.emplace_back(std::move(e), ++index);
