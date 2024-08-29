@@ -695,7 +695,7 @@ void KeyVerificationSession::sendEvent(const QString &userId, const QString &dev
         json.remove("transaction_id"_L1);
         if (event.metaType().matrixId == KeyVerificationRequestEvent::TypeId) {
             json["msgtype"_L1] = event.matrixType();
-            json["body"_L1] = "%1 sent a verification request"_L1.arg(m_connection->userId());
+            json["body"_L1] = m_connection->userId() + " sent a verification request"_L1;
             json["to"_L1] = m_remoteUserId;
             m_room->postJson("m.room.message"_L1, json);
         } else {
