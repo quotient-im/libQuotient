@@ -106,8 +106,8 @@ public:
 
     //! \brief Determine whether the event is a reply to another message including fallbacks.
     //!
-    //! \return true if this event is part of a thread, i.e. it has `"m.in_reply_to"`
-    //!         event ID this includes thread fallback; false otherwise.
+    //! \return true if this event is a reply, i.e. it has `"m.in_reply_to"`
+    //!         event ID, this includes thread fallback; false otherwise.
     bool isReplyIncludingFallbacks() const;
 
     //! \brief The ID for the event being replied to.
