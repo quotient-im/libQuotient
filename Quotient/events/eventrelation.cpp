@@ -4,7 +4,6 @@
 #include "eventrelation.h"
 
 #include "../logging_categories_p.h"
-#include "converters.h"
 #include "roomevent.h"
 
 using namespace Quotient;
