@@ -281,16 +281,18 @@ void Database::migrateTo11()
 {
     qCDebug(DATABASE) << "Migrating database to version 11";
     //TODO: This is terrible :(
-    std::array<std::uint8_t, 32> _key;
-    std::copy(m_picklingKey.data(), m_picklingKey.data() + 32, _key.begin());
+    std::array<std::uint8_t, 128> _key;
+    std::array<std::uint8_t, 32> vodoKey;
+    std::copy(m_picklingKey.data(), m_picklingKey.data() + 128, _key.begin());
+    std::copy(m_picklingKey.data(), m_picklingKey.data() + 32, vodoKey.begin());
 
     transaction();
     auto query = prepareQuery(u"SELECT pickle FROM accounts;"_s);
     execute(query);
     if (query.next()) {
         auto olmAccountPickle = query.value(u"pickle"_s).toString();
-        auto account = olm::account_from_olm_pickle(rust::String((const char *) olmAccountPickle.data(), olmAccountPickle.size()), _key);
-        auto pickle = account->pickle(_key);
+        auto account = olm::account_from_olm_pickle(rust::String((const char *) olmAccountPickle.toLatin1().data(), olmAccountPickle.size()), _key);
+        auto pickle = account->pickle(vodoKey);
         execute(u"DELETE FROM accounts;"_s);
         query = prepareQuery(u"INSERT INTO accounts(pickle) VALUES(:pickle);"_s);
         query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
@@ -299,38 +301,50 @@ void Database::migrateTo11()
 
     query = prepareQuery(u"SELECT pickle FROM inbound_megolm_sessions;"_s);
     execute(query);
+    QStringList inboundPickles;
     while(query.next()) {
-        auto olmPickle = query.value(0).toString();
-        auto session = megolm::inbound_group_session_from_olm_pickle((rust::String((const char *) olmPickle.data(), olmPickle.size())), _key);
-        auto pickle = session->pickle(_key);
+        inboundPickles += query.value(0).toString();
+    }
+    for (const auto &olmPickle : inboundPickles) {
+        auto session = megolm::inbound_group_session_from_olm_pickle((rust::String((const char *) olmPickle.toLatin1().data(), olmPickle.size())), _key);
+        auto pickle = session->pickle(vodoKey);
         auto replaceQuery = prepareQuery(u"UPDATE inbound_megolm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
-        query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
-        query.bindValue(u":olmPickle"_s, olmPickle);
-        execute(query);
+        replaceQuery.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
+        replaceQuery.bindValue(u":olmPickle"_s, olmPickle);
+        execute(replaceQuery);
     }
 
     query = prepareQuery(u"SELECT pickle FROM outbound_megolm_sessions;"_s);
     execute(query);
+
+    QStringList outboundPickles;
     while(query.next()) {
-        auto olmPickle = query.value(0).toString();
-        auto session = megolm::group_session_from_olm_pickle((rust::String((const char *) olmPickle.data(), olmPickle.size())), _key);
-        auto pickle = session->pickle(_key);
+        outboundPickles += query.value(0).toString();
+    }
+
+    for (const auto &olmPickle : outboundPickles) {
+        auto session = megolm::group_session_from_olm_pickle((rust::String((const char *) olmPickle.toLatin1().data(), olmPickle.size())), _key);
+        auto pickle = session->pickle(vodoKey);
         auto replaceQuery = prepareQuery(u"UPDATE outbound_megolm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
-        query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
-        query.bindValue(u":olmPickle"_s, olmPickle);
-        execute(query);
+        replaceQuery.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
+        replaceQuery.bindValue(u":olmPickle"_s, olmPickle);
+        execute(replaceQuery);
     }
 
     query = prepareQuery(u"SELECT pickle FROM olm_sessions;"_s);
     execute(query);
-    while(query.next()) {
-        auto olmPickle = query.value(0).toString();
-        auto session = olm::session_from_olm_pickle((rust::String((const char *) olmPickle.data(), olmPickle.size())), _key);
-        auto pickle = session->pickle(_key);
+
+    QStringList olmPickles;
+    while (query.next()) {
+     olmPickles += query.value(0).toString();
+    }
+    for (const auto &olmPickle : olmPickles) {
+        auto session = olm::session_from_olm_pickle((rust::String((const char *) olmPickle.toLatin1().data(), olmPickle.size())), _key);
+        auto pickle = session->pickle(vodoKey);
         auto replaceQuery = prepareQuery(u"UPDATE olm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
-        query.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
-        query.bindValue(u":olmPickle"_s, olmPickle);
-        execute(query);
+        replaceQuery.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
+        replaceQuery.bindValue(u":olmPickle"_s, olmPickle.toLatin1());
+        execute(replaceQuery);
     }
     execute(QStringLiteral("pragma user_version = 11;"));
     commit();
