@@ -70,6 +70,22 @@ public:
     //!         false otherwise
     bool hasThumbnail() const;
 
+    //! \brief The EventRelation for this event.
+    //!
+    //! \return an EventRelation object which can be checked for type if it exists,
+    //!         std::nullopt otherwise.
+    std::optional<EventRelation> relatesTo() const;
+
+    //! \brief The upstream event ID for the relation.
+    //!
+    //! \warning If your client is not thread aware use replyEventId() as this will
+    //!          return the fallback reply ID so you can treat a threaded reply like a normal one.
+    //!
+    //! \warning If your client is thread aware use threadRootEventId() to get the
+    //!          thread root ID as this will return an empty string on the root event.
+    //!          threadRootEventId() will return the root messages ID on itself.
+    QString upstreamEventId() const;
+
     //! \brief Obtain id of an event replaced by the current one
     //! \sa RoomEvent::isReplaced, RoomEvent::replacedBy
     QString replacedEvent() const;
@@ -96,7 +112,8 @@ public:
 
     //! \brief The ID for the event being replied to.
     //!
-    //! Returns an empty string if the message is not a reply.
+    //! \return The event ID for a reply or the fallback event ID for a threaded message,
+    //!         an empty string otherwise.
     QString replyEventId()const;
 
     //! \brief Determine whether the event is part of a thread.
@@ -108,7 +125,9 @@ public:
 
     //! \brief The event ID for the thread root event.
     //!
-    //! Returns an empty string if the message is not part of a thread.
+    //! \note This will return the ID of the event if it is the thread root.
+    //!
+    //! \return The event ID of the thread root if threaded, an empty string otherwise.
     QString threadRootEventId()const;
 
     QString fileNameToDownload() const;

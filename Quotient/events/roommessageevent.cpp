@@ -196,6 +196,17 @@ bool RoomMessageEvent::hasThumbnail() const
     return content() && content()->thumbnailInfo();
 }
 
+std::optional<EventRelation> RoomMessageEvent::relatesTo() const
+{
+    return content() && hasTextContent() ? static_cast<const TextContent*>(content())->relatesTo : std::nullopt;
+}
+
+QString RoomMessageEvent::upstreamEventId() const
+{
+    const auto relation = relatesTo();
+    return relation ? relation.value().eventId : QString();
+}
+
 QString RoomMessageEvent::replacedEvent() const
 {
     if (!content() || !hasTextContent())
@@ -217,43 +228,44 @@ QString RoomMessageEvent::replacedBy() const
 
 bool RoomMessageEvent::isReply() const
 {
-    const auto relations = contentPart<QJsonObject>("m.relates_to"_ls);
-    if (!relations.isEmpty()) {
-        const bool hasReplyRelation = relations.contains("m.in_reply_to"_ls);
-        bool isFallingBack = relations["is_falling_back"_ls].toBool();
-        return hasReplyRelation && !isFallingBack;
-    }
-    return false;
+    const auto relation = relatesTo();
+    return relation.has_value() && relation.value().type == EventRelation::ReplyType;
 }
 
 bool RoomMessageEvent::isReplyIncludingFallbacks() const
 {
-    return contentPart<QJsonObject>("m.relates_to"_ls).contains("m.in_reply_to"_ls);
+    const auto relation = relatesTo();
+    // If we are not thread aware a thread relationship should be treated as a reply
+    return relation.has_value() && (relation.value().type == EventRelation::ReplyType || relation.value().type == EventRelation::ThreadType);
 }
 
 QString RoomMessageEvent::replyEventId() const
 {
-    return contentJson()["m.relates_to"_ls].toObject()["m.in_reply_to"_ls].toObject()["event_id"_ls].toString();
+    const auto relation = relatesTo();
+    if (relation.has_value()) {
+        if (relation.value().type == EventRelation::ReplyType) {
+            return relation.value().eventId;
+        } else if (relation.value().type == EventRelation::ThreadType) {
+            return relation.value().fallbackEventId;
+        }
+    }
+    return {};
 }
 
 bool RoomMessageEvent::isThreaded() const
 {
-    return (contentPart<QJsonObject>("m.relates_to"_ls).contains("rel_type"_ls)
-            && contentPart<QJsonObject>("m.relates_to"_ls)["rel_type"_ls].toString() == "m.thread"_ls)
-            || (!unsignedPart<QJsonObject>("m.relations"_ls).isEmpty() && unsignedPart<QJsonObject>("m.relations"_ls).contains("m.thread"_ls));
+    const auto relation = relatesTo();
+    return (relation && relation.value().type == EventRelation::ThreadType)
+            || unsignedPart<QJsonObject>("m.relations"_ls).contains(EventRelation::ThreadType);
 }
 
 QString RoomMessageEvent::threadRootEventId() const
 {
-    // Get the thread root ID from m.relates_to if it exists.
-    if (contentPart<QJsonObject>("m.relates_to"_ls).contains("rel_type"_ls)
-        && contentPart<QJsonObject>("m.relates_to"_ls)["rel_type"_ls].toString() == "m.thread"_ls) {
-        return contentPart<QJsonObject>("m.relates_to"_ls)["event_id"_ls].toString();
-    }
-    // For thread root events they have an m.relations in the unsigned part with a m.thread object.
-    // If so return the event ID as it is the root.
-    if (!unsignedPart<QJsonObject>("m.relations"_ls).isEmpty() && unsignedPart<QJsonObject>("m.relations"_ls).contains("m.thread"_ls)) {
-        return id();
+    const auto relation = relatesTo();
+    if (relation && relation.value().type == EventRelation::ThreadType) {
+        return relation.value().eventId;
+    } else if (unsignedPart<QJsonObject>("m.relations"_ls).contains(EventRelation::ThreadType)) {
+        return unsignedPart<QJsonObject>("m.relations"_ls)[EventRelation::ThreadType].toString();
     }
     return {};
 }

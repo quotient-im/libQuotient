@@ -8,6 +8,7 @@
 namespace Quotient {
 
 constexpr inline auto RelTypeKey = "rel_type"_L1;
+constexpr inline auto IsFallingBackKey = "is_falling_back"_L1;
 
 struct QUOTIENT_API EventRelation {
     using reltypeid_t = QLatin1String;
@@ -15,10 +16,15 @@ struct QUOTIENT_API EventRelation {
     QString type;
     QString eventId;
     QString key = {}; // Only used for m.annotation for now
+    bool isFallingBack = false;
+    // Only used for m.thread to provide the reply event fallback for non-threaded clients
+    // or to allow a reply within the thread.
+    QString fallbackEventId = {};
 
     static constexpr auto ReplyType = "m.in_reply_to"_L1;
     static constexpr auto AnnotationType = "m.annotation"_L1;
     static constexpr auto ReplacementType = "m.replace"_L1;
+    static constexpr auto ThreadType = "m.thread"_L1;
 
     static EventRelation replyTo(QString eventId)
     {
@@ -31,6 +37,10 @@ struct QUOTIENT_API EventRelation {
     static EventRelation replace(QString eventId)
     {
         return { ReplacementType, std::move(eventId) };
+    }
+    static EventRelation replyThread(QString threadRoot, bool isFallingBack, QString fallbackEventId)
+    {
+        return { ReplacementType, std::move(threadRoot), {}, std::move(isFallingBack), std::move(fallbackEventId) };
     }
 };
 
