@@ -431,7 +431,6 @@ private:
     template <class JobT>
     friend class JobHandle;
 
-private:
     void stop();
     void finishJob();
     QFuture<void> future();
