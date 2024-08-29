@@ -310,7 +310,7 @@ void Database::migrateTo11()
         auto pickle = session->pickle(vodoKey);
         auto replaceQuery = prepareQuery(u"UPDATE inbound_megolm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
         replaceQuery.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
-        replaceQuery.bindValue(u":olmPickle"_s, olmPickle);
+        replaceQuery.bindValue(u":olmPickle"_s, olmPickle.toLatin1());
         execute(replaceQuery);
     }
 
@@ -327,7 +327,7 @@ void Database::migrateTo11()
         auto pickle = session->pickle(vodoKey);
         auto replaceQuery = prepareQuery(u"UPDATE outbound_megolm_sessions SET pickle=:pickle WHERE pickle=:olmPickle;"_s);
         replaceQuery.bindValue(u":pickle"_s, QString::fromLatin1({pickle.data(), (qsizetype) pickle.size()}));
-        replaceQuery.bindValue(u":olmPickle"_s, olmPickle);
+        replaceQuery.bindValue(u":olmPickle"_s, olmPickle.toLatin1());
         execute(replaceQuery);
     }
 
