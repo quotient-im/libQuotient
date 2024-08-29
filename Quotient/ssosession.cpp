@@ -33,7 +33,7 @@ public:
                 << "Could not open the port, SSO callback won't work:" << server->errorString();
         // The "/returnToApplication" part is just a hint for the end-user,
         // the callback will work without it equally well.
-        callbackUrl = "http://localhost:%1/returnToApplication"_L1.arg(server->serverPort());
+        callbackUrl = u"http://localhost:%1/returnToApplication"_s.arg(server->serverPort());
         ssoUrl = connection->getUrlForApi<RedirectToSSOJob>(callbackUrl);
 
         QObject::connect(server, &QTcpServer::newConnection, q, [this, q, server] {
