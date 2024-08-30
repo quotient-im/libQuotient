@@ -141,7 +141,7 @@ jobs:
         cmake -S qtkeychain -B qtkeychain/build -DBUILD_WITH_QT6=ON $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
 
-    - name: Build and install corrosion
+    - name: Build and install Corrosion
       run: |
         cd ..
         git clone https://github.com/corrosion-rs/corrosion
@@ -152,8 +152,8 @@ jobs:
       run: |
         cd ..
         git clone https://github.com/TobiasFella/vodozemac-cpp
-        cmake -S vodozemac -B vodozemac/build $CMAKE_ARGS
-        cmake --build vodozemac/build --target install
+        cmake -S vodozemac-cpp -B vodozemac/build $CMAKE_ARGS
+        cmake --build vodozemac/build-cpp --target install
 
     - name: Get CS API definitions; clone and build GTAD
       if: matrix.update-api
