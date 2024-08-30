@@ -49,7 +49,7 @@ jobs:
     - name: Install dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        COMMON_PKGS="libolm-dev ninja-build gnome-keyring rustc cargo g++$GCC_VERSION clang$CLANG_VERSION"
+        COMMON_PKGS="libolm-dev ninja-build gnome-keyring rustc cargo corrosion g++$GCC_VERSION clang$CLANG_VERSION"
         # See https://github.com/actions/runner-images/issues/9679
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         # Add LLVM repo for newer Clang
