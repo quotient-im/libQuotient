@@ -229,7 +229,7 @@ QString RoomMessageEvent::replacedBy() const
 bool RoomMessageEvent::isReply() const
 {
     const auto relation = relatesTo();
-    return relation.has_value() && relation.value().type == EventRelation::ReplyType;
+    return relation.has_value() && (relation.value().type == EventRelation::ReplyType || (relation.value().type == EventRelation::ThreadType && relation.value().isFallingBack == false));
 }
 
 bool RoomMessageEvent::isReplyIncludingFallbacks() const
@@ -240,6 +240,19 @@ bool RoomMessageEvent::isReplyIncludingFallbacks() const
 }
 
 QString RoomMessageEvent::replyEventId() const
+{
+    const auto relation = relatesTo();
+    if (relation.has_value()) {
+        if (relation.value().type == EventRelation::ReplyType) {
+            return relation.value().eventId;
+        } else if (relation.value().type == EventRelation::ThreadType && relation.value().isFallingBack == false) {
+            return relation.value().fallbackEventId;
+        }
+    }
+    return {};
+}
+
+QString RoomMessageEvent::replyEventIdIncludingFallbacks()const
 {
     const auto relation = relatesTo();
     if (relation.has_value()) {

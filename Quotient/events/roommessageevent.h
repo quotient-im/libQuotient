@@ -102,6 +102,10 @@ public:
     //!
     //! \return true if this event is a reply, i.e. it has `"m.in_reply_to"`
     //!         event ID and is not a thread fallback; false otherwise.
+    //!
+    //! \note It's possible to reply to another message in a thread so this function
+    //!       will return true for a `"rel_type"` of `"m.thread"` if `"is_falling_back"`
+    //!       is false.
     bool isReply() const;
 
     //! \brief Determine whether the event is a reply to another message including fallbacks.
@@ -112,9 +116,15 @@ public:
 
     //! \brief The ID for the event being replied to.
     //!
+    //! \return The event ID for a reply, this includes threaded replies where `"rel_type"`
+    //!         is `"m.thread"` and `"is_falling_back"` is false.
+    QString replyEventId()const;
+
+    //! \brief The ID for the event being replied to.
+    //!
     //! \return The event ID for a reply or the fallback event ID for a threaded message,
     //!         an empty string otherwise.
-    QString replyEventId()const;
+    QString replyEventIdIncludingFallbacks()const;
 
     //! \brief Determine whether the event is part of a thread.
     //!

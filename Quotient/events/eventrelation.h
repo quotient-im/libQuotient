@@ -40,7 +40,7 @@ struct QUOTIENT_API EventRelation {
     }
     static EventRelation replyThread(QString threadRoot, bool isFallingBack, QString fallbackEventId)
     {
-        return { ReplacementType, std::move(threadRoot), {}, std::move(isFallingBack), std::move(fallbackEventId) };
+        return { ThreadType, std::move(threadRoot), {}, std::move(isFallingBack), std::move(fallbackEventId) };
     }
 };
 

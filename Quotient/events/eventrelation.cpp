@@ -17,7 +17,7 @@ void JsonObjectConverter<EventRelation>::dumpTo(QJsonObject& jo,
     }
 
     if (pod.type == EventRelation::ReplyType) {
-        jo.insert(RelTypeKey, {{EventIdKey, pod.eventId}});
+        jo.insert(EventRelation::ReplyType, {{EventIdKey, pod.eventId}});
         return;
     }
 
@@ -26,7 +26,7 @@ void JsonObjectConverter<EventRelation>::dumpTo(QJsonObject& jo,
     if (pod.type == EventRelation::AnnotationType)
         jo.insert("key"_L1, pod.key);
     if (pod.type == EventRelation::ThreadType) {
-        jo.insert(RelTypeKey, {{EventIdKey, pod.fallbackEventId}});
+        jo.insert(EventRelation::ReplyType, {{EventIdKey, pod.fallbackEventId}});
     }
     jo.insert(IsFallingBackKey, pod.isFallingBack);
 }
