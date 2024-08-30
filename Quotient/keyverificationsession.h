@@ -9,6 +9,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
 
+#include <vodozemac/vodozemac.h>
+
 struct OlmSAS;
 
 namespace Quotient {
@@ -150,9 +152,9 @@ private:
     bool m_encrypted = false;
     QStringList m_remoteSupportedMethods{};
     QStringList m_commonMacCodes{};
+    rust::Box<sas::Sas> m_sas;
+    std::optional<rust::Box<sas::EstablishedSas>> m_establishedSas;
 
-    CStructPtr<OlmSAS> olmDataHolder = makeOlmData();
-    OlmSAS* olmData = olmDataHolder.get();
     QVector<EmojiEntry> m_sasEmojis;
     bool startSentByUs = false;
     State m_state = INCOMING;
@@ -178,9 +180,8 @@ private:
     void trustKeys();
     void sendEvent(const QString &userId, const QString &deviceId, const KeyVerificationEvent &event, bool encrypted);
 
-    QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_L1);
-    QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_L1);
+    QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_ls);
+    QString calculateMac(const QString& input, bool verifying, const QString& keyId = "KEY_IDS"_ls);
 };
 
 } // namespace Quotient
-Q_DECLARE_METATYPE(Quotient::EmojiEntry)
