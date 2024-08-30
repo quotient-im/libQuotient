@@ -6,11 +6,11 @@ using namespace Quotient;
 
 ReportContentJob::ReportContentJob(const QString& roomId, const QString& eventId,
                                    std::optional<int> score, const QString& reason)
-    : BaseJob(HttpVerb::Post, QStringLiteral("ReportContentJob"),
+    : BaseJob(HttpVerb::Post, u"ReportContentJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/report/", eventId))
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("score"), score);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    addParam<IfNotEmpty>(_dataJson, "score"_L1, score);
+    addParam<IfNotEmpty>(_dataJson, "reason"_L1, reason);
     setRequestData({ _dataJson });
 }

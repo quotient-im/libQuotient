@@ -77,7 +77,7 @@ public:
     //! be set to `M_INVALID_SIGNATURE`.
     QHash<UserId, QHash<QString, QJsonObject>> failures() const
     {
-        return loadFromJson<QHash<UserId, QHash<QString, QJsonObject>>>("failures"_ls);
+        return loadFromJson<QHash<UserId, QHash<QString, QJsonObject>>>("failures"_L1);
     }
 };
 

@@ -3,12 +3,11 @@
 
 #pragma once
 
-#include "quotient_export.h"
 #include "util.h"
 
 #include <QtCore/QSettings>
 #include <QtCore/QUrl>
-#include <QtCore/QVector>
+#include <QtCore/QStringBuilder>
 
 class QVariant;
 
@@ -32,10 +31,10 @@ public:
 
     /// Set the value for a given key
     /*! If the key exists in the legacy location, it is removed. */
-    Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
+    Q_INVOKABLE void setValue(QAnyStringView key, const QVariant& value);
 
     /// Remove the value from both the primary and legacy locations
-    Q_INVOKABLE void remove(const QString& key);
+    Q_INVOKABLE void remove(QAnyStringView key);
 
     /// Obtain a value for a given key
     /*!
@@ -48,8 +47,7 @@ public:
      *
      * \sa setLegacyNames, get
      */
-    Q_INVOKABLE QVariant value(const QString& key,
-                               const QVariant& defaultValue = {}) const;
+    Q_INVOKABLE QVariant value(QAnyStringView key, const QVariant& defaultValue = {}) const;
 
     /// Obtain a value for a given key, coerced to the given type
     /*!
@@ -68,7 +66,7 @@ public:
         return qv.isValid() && qv.canConvert<T>() ? qv.value<T>() : defaultValue;
     }
 
-    Q_INVOKABLE bool contains(const QString& key) const;
+    Q_INVOKABLE bool contains(QAnyStringView key) const;
     Q_INVOKABLE QStringList childGroups() const;
 
 private:
@@ -86,24 +84,25 @@ public:
         , groupPath(std::move(path))
     {}
 
-    Q_INVOKABLE bool contains(const QString& key) const;
-    Q_INVOKABLE QVariant value(const QString& key,
-                               const QVariant& defaultValue = {}) const;
+    Q_INVOKABLE bool contains(QAnyStringView key) const;
+    Q_INVOKABLE QVariant value(QAnyStringView key, const QVariant& defaultValue = {}) const;
 
     template <typename T>
-    T get(const QString& key, const T& defaultValue = {}) const
+    T get(auto key, const T& defaultValue = {}) const
     {
         const auto qv = value(key, QVariant());
-        return qv.isValid() && qv.canConvert<T>() ? qv.value<T>() : defaultValue;
+        return qv.isValid() && qv.template canConvert<T>() ? qv.template value<T>() : defaultValue;
     }
 
     Q_INVOKABLE QString group() const;
     Q_INVOKABLE QStringList childGroups() const;
-    Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
+    Q_INVOKABLE void setValue(QAnyStringView key, const QVariant& value);
 
     Q_INVOKABLE void remove(const QString& key);
 
 private:
+    QString fullPath(QAnyStringView key) const { return groupPath % u'/' % key.toString(); }
+
     QString groupPath;
 };
 
@@ -115,17 +114,9 @@ public:                                                  \
                                                          \
 private:
 
-#define QUO_DEFINE_SETTING(classname, type, propname, qsettingname,   \
-                           defaultValue, setter)                      \
-    type classname::propname() const                                  \
-    {                                                                 \
-        return get<type>(QStringLiteral(qsettingname), defaultValue); \
-    }                                                                 \
-                                                                      \
-    void classname::setter(type newValue)                             \
-    {                                                                 \
-        setValue(QStringLiteral(qsettingname), std::move(newValue));  \
-    }
+#define QUO_DEFINE_SETTING(classname, type, propname, qsettingname, defaultValue, setter)   \
+    type classname::propname() const { return get<type>(qsettingname##_L1, defaultValue); } \
+    void classname::setter(type newValue) { setValue(qsettingname##_L1, std::move(newValue)); }
 
 class QUOTIENT_API AccountSettings : public SettingsGroup {
     Q_OBJECT
@@ -137,7 +128,7 @@ class QUOTIENT_API AccountSettings : public SettingsGroup {
                    WRITE setEncryptionAccountPickle)
 public:
     explicit AccountSettings(const QString& accountId, QObject* parent = nullptr)
-        : SettingsGroup("Accounts/"_ls + accountId, parent)
+        : SettingsGroup("Accounts/"_L1 + accountId, parent)
     {}
 
     QString userId() const;

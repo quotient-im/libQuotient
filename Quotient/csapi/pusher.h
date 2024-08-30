@@ -73,7 +73,7 @@ public:
     // Result properties
 
     //! An array containing the current pushers for the user
-    QVector<Pusher> pushers() const { return loadFromJson<QVector<Pusher>>("pushers"_ls); }
+    QVector<Pusher> pushers() const { return loadFromJson<QVector<Pusher>>("pushers"_L1); }
 };
 
 inline auto collectResponse(const GetPushersJob* job) { return job->pushers(); }
@@ -82,8 +82,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetPushersJob::PusherData> {
     static void fillFrom(const QJsonObject& jo, GetPushersJob::PusherData& result)
     {
-        fillFromJson(jo.value("url"_ls), result.url);
-        fillFromJson(jo.value("format"_ls), result.format);
+        fillFromJson(jo.value("url"_L1), result.url);
+        fillFromJson(jo.value("format"_L1), result.format);
     }
 };
 
@@ -91,14 +91,14 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetPushersJob::Pusher> {
     static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
     {
-        fillFromJson(jo.value("pushkey"_ls), result.pushkey);
-        fillFromJson(jo.value("kind"_ls), result.kind);
-        fillFromJson(jo.value("app_id"_ls), result.appId);
-        fillFromJson(jo.value("app_display_name"_ls), result.appDisplayName);
-        fillFromJson(jo.value("device_display_name"_ls), result.deviceDisplayName);
-        fillFromJson(jo.value("lang"_ls), result.lang);
-        fillFromJson(jo.value("data"_ls), result.data);
-        fillFromJson(jo.value("profile_tag"_ls), result.profileTag);
+        fillFromJson(jo.value("pushkey"_L1), result.pushkey);
+        fillFromJson(jo.value("kind"_L1), result.kind);
+        fillFromJson(jo.value("app_id"_L1), result.appId);
+        fillFromJson(jo.value("app_display_name"_L1), result.appDisplayName);
+        fillFromJson(jo.value("device_display_name"_L1), result.deviceDisplayName);
+        fillFromJson(jo.value("lang"_L1), result.lang);
+        fillFromJson(jo.value("data"_L1), result.data);
+        fillFromJson(jo.value("profile_tag"_L1), result.profileTag);
     }
 };
 
@@ -199,8 +199,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<PostPusherJob::PusherData> {
     static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("url"), pod.url);
-        addParam<IfNotEmpty>(jo, QStringLiteral("format"), pod.format);
+        addParam<IfNotEmpty>(jo, "url"_L1, pod.url);
+        addParam<IfNotEmpty>(jo, "format"_L1, pod.format);
     }
 };
 

@@ -5,12 +5,12 @@
 using namespace Quotient;
 
 PostRoomKeysVersionJob::PostRoomKeysVersionJob(const QString& algorithm, const QJsonObject& authData)
-    : BaseJob(HttpVerb::Post, QStringLiteral("PostRoomKeysVersionJob"),
+    : BaseJob(HttpVerb::Post, u"PostRoomKeysVersionJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/version"))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("algorithm"), algorithm);
-    addParam<>(_dataJson, QStringLiteral("auth_data"), authData);
+    addParam<>(_dataJson, "algorithm"_L1, algorithm);
+    addParam<>(_dataJson, "auth_data"_L1, authData);
     setRequestData({ _dataJson });
     addExpectedKey("version");
 }
@@ -21,7 +21,7 @@ QUrl GetRoomKeysVersionCurrentJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetRoomKeysVersionCurrentJob::GetRoomKeysVersionCurrentJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomKeysVersionCurrentJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomKeysVersionCurrentJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/version"))
 {
     addExpectedKey("algorithm");
@@ -38,7 +38,7 @@ QUrl GetRoomKeysVersionJob::makeRequestUrl(const HomeserverData& hsData, const Q
 }
 
 GetRoomKeysVersionJob::GetRoomKeysVersionJob(const QString& version)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomKeysVersionJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomKeysVersionJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/version/", version))
 {
     addExpectedKey("algorithm");
@@ -50,12 +50,12 @@ GetRoomKeysVersionJob::GetRoomKeysVersionJob(const QString& version)
 
 PutRoomKeysVersionJob::PutRoomKeysVersionJob(const QString& version, const QString& algorithm,
                                              const QJsonObject& authData)
-    : BaseJob(HttpVerb::Put, QStringLiteral("PutRoomKeysVersionJob"),
+    : BaseJob(HttpVerb::Put, u"PutRoomKeysVersionJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/version/", version))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("algorithm"), algorithm);
-    addParam<>(_dataJson, QStringLiteral("auth_data"), authData);
+    addParam<>(_dataJson, "algorithm"_L1, algorithm);
+    addParam<>(_dataJson, "auth_data"_L1, authData);
     setRequestData({ _dataJson });
 }
 
@@ -66,20 +66,20 @@ QUrl DeleteRoomKeysVersionJob::makeRequestUrl(const HomeserverData& hsData, cons
 }
 
 DeleteRoomKeysVersionJob::DeleteRoomKeysVersionJob(const QString& version)
-    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomKeysVersionJob"),
+    : BaseJob(HttpVerb::Delete, u"DeleteRoomKeysVersionJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/version/", version))
 {}
 
 auto queryToPutRoomKeyBySessionId(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
 PutRoomKeyBySessionIdJob::PutRoomKeyBySessionIdJob(const QString& roomId, const QString& sessionId,
                                                    const QString& version, const KeyBackupData& data)
-    : BaseJob(HttpVerb::Put, QStringLiteral("PutRoomKeyBySessionIdJob"),
+    : BaseJob(HttpVerb::Put, u"PutRoomKeyBySessionIdJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/keys/", roomId, "/", sessionId),
               queryToPutRoomKeyBySessionId(version))
 {
@@ -91,7 +91,7 @@ PutRoomKeyBySessionIdJob::PutRoomKeyBySessionIdJob(const QString& roomId, const 
 auto queryToGetRoomKeyBySessionId(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
@@ -106,7 +106,7 @@ QUrl GetRoomKeyBySessionIdJob::makeRequestUrl(const HomeserverData& hsData, cons
 
 GetRoomKeyBySessionIdJob::GetRoomKeyBySessionIdJob(const QString& roomId, const QString& sessionId,
                                                    const QString& version)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomKeyBySessionIdJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomKeyBySessionIdJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/keys/", roomId, "/", sessionId),
               queryToGetRoomKeyBySessionId(version))
 {}
@@ -114,7 +114,7 @@ GetRoomKeyBySessionIdJob::GetRoomKeyBySessionIdJob(const QString& roomId, const 
 auto queryToDeleteRoomKeyBySessionId(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
@@ -130,7 +130,7 @@ QUrl DeleteRoomKeyBySessionIdJob::makeRequestUrl(const HomeserverData& hsData, c
 DeleteRoomKeyBySessionIdJob::DeleteRoomKeyBySessionIdJob(const QString& roomId,
                                                          const QString& sessionId,
                                                          const QString& version)
-    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomKeyBySessionIdJob"),
+    : BaseJob(HttpVerb::Delete, u"DeleteRoomKeyBySessionIdJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/keys/", roomId, "/", sessionId),
               queryToDeleteRoomKeyBySessionId(version))
 {
@@ -141,13 +141,13 @@ DeleteRoomKeyBySessionIdJob::DeleteRoomKeyBySessionIdJob(const QString& roomId,
 auto queryToPutRoomKeysByRoomId(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
 PutRoomKeysByRoomIdJob::PutRoomKeysByRoomIdJob(const QString& roomId, const QString& version,
                                                const RoomKeyBackup& backupData)
-    : BaseJob(HttpVerb::Put, QStringLiteral("PutRoomKeysByRoomIdJob"),
+    : BaseJob(HttpVerb::Put, u"PutRoomKeysByRoomIdJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/keys/", roomId),
               queryToPutRoomKeysByRoomId(version))
 {
@@ -159,7 +159,7 @@ PutRoomKeysByRoomIdJob::PutRoomKeysByRoomIdJob(const QString& roomId, const QStr
 auto queryToGetRoomKeysByRoomId(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
@@ -172,7 +172,7 @@ QUrl GetRoomKeysByRoomIdJob::makeRequestUrl(const HomeserverData& hsData, const 
 }
 
 GetRoomKeysByRoomIdJob::GetRoomKeysByRoomIdJob(const QString& roomId, const QString& version)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomKeysByRoomIdJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomKeysByRoomIdJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/keys/", roomId),
               queryToGetRoomKeysByRoomId(version))
 {}
@@ -180,7 +180,7 @@ GetRoomKeysByRoomIdJob::GetRoomKeysByRoomIdJob(const QString& roomId, const QStr
 auto queryToDeleteRoomKeysByRoomId(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
@@ -193,7 +193,7 @@ QUrl DeleteRoomKeysByRoomIdJob::makeRequestUrl(const HomeserverData& hsData, con
 }
 
 DeleteRoomKeysByRoomIdJob::DeleteRoomKeysByRoomIdJob(const QString& roomId, const QString& version)
-    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomKeysByRoomIdJob"),
+    : BaseJob(HttpVerb::Delete, u"DeleteRoomKeysByRoomIdJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/keys/", roomId),
               queryToDeleteRoomKeysByRoomId(version))
 {
@@ -204,16 +204,16 @@ DeleteRoomKeysByRoomIdJob::DeleteRoomKeysByRoomIdJob(const QString& roomId, cons
 auto queryToPutRoomKeys(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
 PutRoomKeysJob::PutRoomKeysJob(const QString& version, const QHash<RoomId, RoomKeyBackup>& rooms)
-    : BaseJob(HttpVerb::Put, QStringLiteral("PutRoomKeysJob"),
-              makePath("/_matrix/client/v3", "/room_keys/keys"), queryToPutRoomKeys(version))
+    : BaseJob(HttpVerb::Put, u"PutRoomKeysJob"_s, makePath("/_matrix/client/v3", "/room_keys/keys"),
+              queryToPutRoomKeys(version))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("rooms"), rooms);
+    addParam<>(_dataJson, "rooms"_L1, rooms);
     setRequestData({ _dataJson });
     addExpectedKey("etag");
     addExpectedKey("count");
@@ -222,7 +222,7 @@ PutRoomKeysJob::PutRoomKeysJob(const QString& version, const QHash<RoomId, RoomK
 auto queryToGetRoomKeys(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
@@ -233,8 +233,8 @@ QUrl GetRoomKeysJob::makeRequestUrl(const HomeserverData& hsData, const QString&
 }
 
 GetRoomKeysJob::GetRoomKeysJob(const QString& version)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomKeysJob"),
-              makePath("/_matrix/client/v3", "/room_keys/keys"), queryToGetRoomKeys(version))
+    : BaseJob(HttpVerb::Get, u"GetRoomKeysJob"_s, makePath("/_matrix/client/v3", "/room_keys/keys"),
+              queryToGetRoomKeys(version))
 {
     addExpectedKey("rooms");
 }
@@ -242,7 +242,7 @@ GetRoomKeysJob::GetRoomKeysJob(const QString& version)
 auto queryToDeleteRoomKeys(const QString& version)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("version"), version);
+    addParam<>(_q, u"version"_s, version);
     return _q;
 }
 
@@ -253,7 +253,7 @@ QUrl DeleteRoomKeysJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 }
 
 DeleteRoomKeysJob::DeleteRoomKeysJob(const QString& version)
-    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomKeysJob"),
+    : BaseJob(HttpVerb::Delete, u"DeleteRoomKeysJob"_s,
               makePath("/_matrix/client/v3", "/room_keys/keys"), queryToDeleteRoomKeys(version))
 {
     addExpectedKey("etag");

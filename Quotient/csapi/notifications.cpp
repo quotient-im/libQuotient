@@ -7,9 +7,9 @@ using namespace Quotient;
 auto queryToGetNotifications(const QString& from, std::optional<int> limit, const QString& only)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("from"), from);
-    addParam<IfNotEmpty>(_q, QStringLiteral("limit"), limit);
-    addParam<IfNotEmpty>(_q, QStringLiteral("only"), only);
+    addParam<IfNotEmpty>(_q, u"from"_s, from);
+    addParam<IfNotEmpty>(_q, u"limit"_s, limit);
+    addParam<IfNotEmpty>(_q, u"only"_s, only);
     return _q;
 }
 
@@ -22,7 +22,7 @@ QUrl GetNotificationsJob::makeRequestUrl(const HomeserverData& hsData, const QSt
 
 GetNotificationsJob::GetNotificationsJob(const QString& from, std::optional<int> limit,
                                          const QString& only)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetNotificationsJob"),
+    : BaseJob(HttpVerb::Get, u"GetNotificationsJob"_s,
               makePath("/_matrix/client/v3", "/notifications"),
               queryToGetNotifications(from, limit, only))
 {

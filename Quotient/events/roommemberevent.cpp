@@ -23,11 +23,11 @@ struct JsonConverter<Membership> {
 using namespace Quotient;
 
 MemberEventContent::MemberEventContent(const QJsonObject& json)
-    : membership(fromJson<Membership>(json["membership"_ls]))
-    , isDirect(json["is_direct"_ls].toBool())
-    , displayName(fromJson<std::optional<QString>>(json["displayname"_ls]))
-    , avatarUrl(fromJson<std::optional<QString>>(json["avatar_url"_ls]))
-    , reason(json["reason"_ls].toString())
+    : membership(fromJson<Membership>(json["membership"_L1]))
+    , isDirect(json["is_direct"_L1].toBool())
+    , displayName(fromJson<std::optional<QString>>(json["displayname"_L1]))
+    , avatarUrl(fromJson<std::optional<QString>>(json["avatar_url"_L1]))
+    , reason(json["reason"_L1].toString())
 {
     if (displayName)
         displayName = sanitized(*displayName);
@@ -37,14 +37,13 @@ QJsonObject MemberEventContent::toJson() const
 {
     QJsonObject o;
     if (membership != Membership::Invalid)
-        o.insert(QStringLiteral("membership"),
-                 flagToJsonString(membership, MembershipStrings));
+        o.insert("membership"_L1, flagToJsonString(membership, MembershipStrings));
     if (displayName)
-        o.insert(QStringLiteral("displayname"), *displayName);
+        o.insert("displayname"_L1, *displayName);
     if (avatarUrl && avatarUrl->isValid())
-        o.insert(QStringLiteral("avatar_url"), avatarUrl->toString());
+        o.insert("avatar_url"_L1, avatarUrl->toString());
     if (!reason.isEmpty())
-        o.insert(QStringLiteral("reason"), reason);
+        o.insert("reason"_L1, reason);
     return o;
 }
 

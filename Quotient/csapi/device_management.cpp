@@ -10,8 +10,7 @@ QUrl GetDevicesJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetDevicesJob::GetDevicesJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetDevicesJob"),
-              makePath("/_matrix/client/v3", "/devices"))
+    : BaseJob(HttpVerb::Get, u"GetDevicesJob"_s, makePath("/_matrix/client/v3", "/devices"))
 {}
 
 QUrl GetDeviceJob::makeRequestUrl(const HomeserverData& hsData, const QString& deviceId)
@@ -20,36 +19,36 @@ QUrl GetDeviceJob::makeRequestUrl(const HomeserverData& hsData, const QString& d
 }
 
 GetDeviceJob::GetDeviceJob(const QString& deviceId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetDeviceJob"),
+    : BaseJob(HttpVerb::Get, u"GetDeviceJob"_s,
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {}
 
 UpdateDeviceJob::UpdateDeviceJob(const QString& deviceId, const QString& displayName)
-    : BaseJob(HttpVerb::Put, QStringLiteral("UpdateDeviceJob"),
+    : BaseJob(HttpVerb::Put, u"UpdateDeviceJob"_s,
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("display_name"), displayName);
+    addParam<IfNotEmpty>(_dataJson, "display_name"_L1, displayName);
     setRequestData({ _dataJson });
 }
 
 DeleteDeviceJob::DeleteDeviceJob(const QString& deviceId,
                                  const std::optional<AuthenticationData>& auth)
-    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteDeviceJob"),
+    : BaseJob(HttpVerb::Delete, u"DeleteDeviceJob"_s,
               makePath("/_matrix/client/v3", "/devices/", deviceId))
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
+    addParam<IfNotEmpty>(_dataJson, "auth"_L1, auth);
     setRequestData({ _dataJson });
 }
 
 DeleteDevicesJob::DeleteDevicesJob(const QStringList& devices,
                                    const std::optional<AuthenticationData>& auth)
-    : BaseJob(HttpVerb::Post, QStringLiteral("DeleteDevicesJob"),
+    : BaseJob(HttpVerb::Post, u"DeleteDevicesJob"_s,
               makePath("/_matrix/client/v3", "/delete_devices"))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("devices"), devices);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("auth"), auth);
+    addParam<>(_dataJson, "devices"_L1, devices);
+    addParam<IfNotEmpty>(_dataJson, "auth"_L1, auth);
     setRequestData({ _dataJson });
 }

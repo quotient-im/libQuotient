@@ -227,12 +227,12 @@ public:
     //! The byte-size of the image. Omitted if there is no image attached.
     std::optional<qint64> matrixImageSize() const
     {
-        return loadFromJson<std::optional<qint64>>("matrix:image:size"_ls);
+        return loadFromJson<std::optional<qint64>>("matrix:image:size"_L1);
     }
 
     //! An [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) to the image. Omitted if
     //! there is no image.
-    QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_ls); }
+    QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_L1); }
 
     struct Response {
         //! The byte-size of the image. Omitted if there is no image attached.
@@ -279,7 +279,7 @@ public:
     //! If not listed or null, the size limit should be treated as unknown.
     std::optional<qint64> uploadSize() const
     {
-        return loadFromJson<std::optional<qint64>>("m.upload.size"_ls);
+        return loadFromJson<std::optional<qint64>>("m.upload.size"_L1);
     }
 };
 

@@ -12,7 +12,7 @@ QUrl GetOneRoomEventJob::makeRequestUrl(const HomeserverData& hsData, const QStr
 }
 
 GetOneRoomEventJob::GetOneRoomEventJob(const QString& roomId, const QString& eventId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetOneRoomEventJob"),
+    : BaseJob(HttpVerb::Get, u"GetOneRoomEventJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/event/", eventId))
 {}
 
@@ -25,7 +25,7 @@ QUrl GetRoomStateWithKeyJob::makeRequestUrl(const HomeserverData& hsData, const 
 
 GetRoomStateWithKeyJob::GetRoomStateWithKeyJob(const QString& roomId, const QString& eventType,
                                                const QString& stateKey)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomStateWithKeyJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomStateWithKeyJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/state/", eventType, "/", stateKey))
 {}
 
@@ -36,7 +36,7 @@ QUrl GetRoomStateJob::makeRequestUrl(const HomeserverData& hsData, const QString
 }
 
 GetRoomStateJob::GetRoomStateJob(const QString& roomId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomStateJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomStateJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/state"))
 {}
 
@@ -44,9 +44,9 @@ auto queryToGetMembersByRoom(const QString& at, const QString& membership,
                              const QString& notMembership)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("at"), at);
-    addParam<IfNotEmpty>(_q, QStringLiteral("membership"), membership);
-    addParam<IfNotEmpty>(_q, QStringLiteral("not_membership"), notMembership);
+    addParam<IfNotEmpty>(_q, u"at"_s, at);
+    addParam<IfNotEmpty>(_q, u"membership"_s, membership);
+    addParam<IfNotEmpty>(_q, u"not_membership"_s, notMembership);
     return _q;
 }
 
@@ -61,7 +61,7 @@ QUrl GetMembersByRoomJob::makeRequestUrl(const HomeserverData& hsData, const QSt
 
 GetMembersByRoomJob::GetMembersByRoomJob(const QString& roomId, const QString& at,
                                          const QString& membership, const QString& notMembership)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetMembersByRoomJob"),
+    : BaseJob(HttpVerb::Get, u"GetMembersByRoomJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/members"),
               queryToGetMembersByRoom(at, membership, notMembership))
 {}
@@ -73,6 +73,6 @@ QUrl GetJoinedMembersByRoomJob::makeRequestUrl(const HomeserverData& hsData, con
 }
 
 GetJoinedMembersByRoomJob::GetJoinedMembersByRoomJob(const QString& roomId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetJoinedMembersByRoomJob"),
+    : BaseJob(HttpVerb::Get, u"GetJoinedMembersByRoomJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/joined_members"))
 {}

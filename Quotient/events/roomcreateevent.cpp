@@ -14,27 +14,27 @@ RoomType Quotient::fromJson(const QJsonValue& jv)
 
 bool RoomCreateEvent::isFederated() const
 {
-    return contentPart<bool>("m.federate"_ls);
+    return contentPart<bool>("m.federate"_L1);
 }
 
 QString RoomCreateEvent::version() const
 {
-    return contentPart<QString>("room_version"_ls);
+    return contentPart<QString>("room_version"_L1);
 }
 
 RoomCreateEvent::Predecessor RoomCreateEvent::predecessor() const
 {
-    const auto predJson = contentPart<QJsonObject>("predecessor"_ls);
+    const auto predJson = contentPart<QJsonObject>("predecessor"_L1);
     return { fromJson<QString>(predJson[RoomIdKey]),
              fromJson<QString>(predJson[EventIdKey]) };
 }
 
 bool RoomCreateEvent::isUpgrade() const
 {
-    return contentJson().contains("predecessor"_ls);
+    return contentJson().contains("predecessor"_L1);
 }
 
 RoomType RoomCreateEvent::roomType() const
 {
-    return contentPart<RoomType>("type"_ls);
+    return contentPart<RoomType>("type"_L1);
 }

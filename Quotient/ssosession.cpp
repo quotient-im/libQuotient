@@ -33,8 +33,7 @@ public:
                 << "Could not open the port, SSO callback won't work:" << server->errorString();
         // The "/returnToApplication" part is just a hint for the end-user,
         // the callback will work without it equally well.
-        callbackUrl = QStringLiteral("http://localhost:%1/returnToApplication")
-                          .arg(server->serverPort());
+        callbackUrl = u"http://localhost:%1/returnToApplication"_s.arg(server->serverPort());
         ssoUrl = connection->getUrlForApi<RedirectToSSOJob>(callbackUrl);
 
         QObject::connect(server, &QTcpServer::newConnection, q, [this, q, server] {
@@ -92,7 +91,7 @@ void SsoSession::Private::processCallback()
         onError("400 Bad Request", tr("Malformed single sign-on callback"));
         return;
     }
-    const auto& QueryItemName = QStringLiteral("loginToken");
+    const auto QueryItemName = u"loginToken"_s;
     QUrlQuery query { QUrl(QString::fromUtf8(requestParts[1])).query() };
     if (!query.hasQueryItem(QueryItemName)) {
         onError("400 Bad Request", tr("No login token in SSO callback"));

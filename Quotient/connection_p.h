@@ -71,9 +71,9 @@ public:
 
     bool cacheState = true;
     bool cacheToBinary =
-        SettingsGroup("libQuotient"_ls).get("cache_type"_ls,
-                                            SettingsGroup("libQMatrixClient"_ls).get<QString>("cache_type"_ls))
-        != "json"_ls;
+        SettingsGroup("libQuotient"_L1).get("cache_type"_L1,
+                                            SettingsGroup("libQMatrixClient"_L1).get<QString>("cache_type"_L1))
+        != "json"_L1;
     bool lazyLoading = false;
 
     //! \brief Check the homeserver and resolve it if needed, before connecting
@@ -118,7 +118,7 @@ public:
     }
     QString topLevelStatePath() const
     {
-        return q->stateCacheDir().filePath("state.json"_ls);
+        return q->stateCacheDir().filePath("state.json"_L1);
     }
 
     void saveAccessTokenToKeychain() const;

@@ -6,35 +6,32 @@ using namespace Quotient;
 
 UploadKeysJob::UploadKeysJob(const std::optional<DeviceKeys>& deviceKeys,
                              const OneTimeKeys& oneTimeKeys, const OneTimeKeys& fallbackKeys)
-    : BaseJob(HttpVerb::Post, QStringLiteral("UploadKeysJob"),
-              makePath("/_matrix/client/v3", "/keys/upload"))
+    : BaseJob(HttpVerb::Post, u"UploadKeysJob"_s, makePath("/_matrix/client/v3", "/keys/upload"))
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("device_keys"), deviceKeys);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("one_time_keys"), oneTimeKeys);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("fallback_keys"), fallbackKeys);
+    addParam<IfNotEmpty>(_dataJson, "device_keys"_L1, deviceKeys);
+    addParam<IfNotEmpty>(_dataJson, "one_time_keys"_L1, oneTimeKeys);
+    addParam<IfNotEmpty>(_dataJson, "fallback_keys"_L1, fallbackKeys);
     setRequestData({ _dataJson });
     addExpectedKey("one_time_key_counts");
 }
 
 QueryKeysJob::QueryKeysJob(const QHash<UserId, QStringList>& deviceKeys, std::optional<int> timeout)
-    : BaseJob(HttpVerb::Post, QStringLiteral("QueryKeysJob"),
-              makePath("/_matrix/client/v3", "/keys/query"))
+    : BaseJob(HttpVerb::Post, u"QueryKeysJob"_s, makePath("/_matrix/client/v3", "/keys/query"))
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("timeout"), timeout);
-    addParam<>(_dataJson, QStringLiteral("device_keys"), deviceKeys);
+    addParam<IfNotEmpty>(_dataJson, "timeout"_L1, timeout);
+    addParam<>(_dataJson, "device_keys"_L1, deviceKeys);
     setRequestData({ _dataJson });
 }
 
 ClaimKeysJob::ClaimKeysJob(const QHash<UserId, QHash<QString, QString>>& oneTimeKeys,
                            std::optional<int> timeout)
-    : BaseJob(HttpVerb::Post, QStringLiteral("ClaimKeysJob"),
-              makePath("/_matrix/client/v3", "/keys/claim"))
+    : BaseJob(HttpVerb::Post, u"ClaimKeysJob"_s, makePath("/_matrix/client/v3", "/keys/claim"))
 {
     QJsonObject _dataJson;
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("timeout"), timeout);
-    addParam<>(_dataJson, QStringLiteral("one_time_keys"), oneTimeKeys);
+    addParam<IfNotEmpty>(_dataJson, "timeout"_L1, timeout);
+    addParam<>(_dataJson, "one_time_keys"_L1, oneTimeKeys);
     setRequestData({ _dataJson });
     addExpectedKey("one_time_keys");
 }
@@ -42,8 +39,8 @@ ClaimKeysJob::ClaimKeysJob(const QHash<UserId, QHash<QString, QString>>& oneTime
 auto queryToGetKeysChanges(const QString& from, const QString& to)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("from"), from);
-    addParam<>(_q, QStringLiteral("to"), to);
+    addParam<>(_q, u"from"_s, from);
+    addParam<>(_q, u"to"_s, to);
     return _q;
 }
 
@@ -55,6 +52,6 @@ QUrl GetKeysChangesJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 }
 
 GetKeysChangesJob::GetKeysChangesJob(const QString& from, const QString& to)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetKeysChangesJob"),
+    : BaseJob(HttpVerb::Get, u"GetKeysChangesJob"_s,
               makePath("/_matrix/client/v3", "/keys/changes"), queryToGetKeysChanges(from, to))
 {}

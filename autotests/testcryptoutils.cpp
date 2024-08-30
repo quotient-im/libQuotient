@@ -102,9 +102,9 @@ void TestCryptoUtils::testEncrypted()
 {
     QByteArray key(32, '\0');
     auto text = QByteArrayLiteral("This is a message");
-    auto connection = Connection::makeMockConnection("@foo:bar.com"_ls, true);
-    connection->database()->storeEncrypted("testKey"_ls, text);
-    auto decrypted = connection->database()->loadEncrypted("testKey"_ls);
+    auto connection = Connection::makeMockConnection("@foo:bar.com"_L1, true);
+    connection->database()->storeEncrypted("testKey"_L1, text);
+    auto decrypted = connection->database()->loadEncrypted("testKey"_L1);
     QCOMPARE(text, decrypted);
 }
 

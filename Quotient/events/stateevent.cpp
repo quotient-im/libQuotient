@@ -24,7 +24,7 @@ bool StateEvent::repeatsState() const
 
 QString StateEvent::replacedState() const
 {
-    return unsignedPart<QString>("replaces_state"_ls);
+    return unsignedPart<QString>("replaces_state"_L1);
 }
 
 void StateEvent::dumpTo(QDebug dbg) const

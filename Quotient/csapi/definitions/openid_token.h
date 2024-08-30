@@ -28,17 +28,17 @@ template <>
 struct JsonObjectConverter<OpenIdCredentials> {
     static void dumpTo(QJsonObject& jo, const OpenIdCredentials& pod)
     {
-        addParam<>(jo, QStringLiteral("access_token"), pod.accessToken);
-        addParam<>(jo, QStringLiteral("token_type"), pod.tokenType);
-        addParam<>(jo, QStringLiteral("matrix_server_name"), pod.matrixServerName);
-        addParam<>(jo, QStringLiteral("expires_in"), pod.expiresIn);
+        addParam<>(jo, "access_token"_L1, pod.accessToken);
+        addParam<>(jo, "token_type"_L1, pod.tokenType);
+        addParam<>(jo, "matrix_server_name"_L1, pod.matrixServerName);
+        addParam<>(jo, "expires_in"_L1, pod.expiresIn);
     }
     static void fillFrom(const QJsonObject& jo, OpenIdCredentials& pod)
     {
-        fillFromJson(jo.value("access_token"_ls), pod.accessToken);
-        fillFromJson(jo.value("token_type"_ls), pod.tokenType);
-        fillFromJson(jo.value("matrix_server_name"_ls), pod.matrixServerName);
-        fillFromJson(jo.value("expires_in"_ls), pod.expiresIn);
+        fillFromJson(jo.value("access_token"_L1), pod.accessToken);
+        fillFromJson(jo.value("token_type"_L1), pod.tokenType);
+        fillFromJson(jo.value("matrix_server_name"_L1), pod.matrixServerName);
+        fillFromJson(jo.value("expires_in"_L1), pod.expiresIn);
     }
 };
 

@@ -8,9 +8,9 @@
 #include "../csapi/definitions/tag.h"
 
 namespace Quotient {
-constexpr inline auto FavouriteTag = "m.favourite"_ls;
-constexpr inline auto LowPriorityTag = "m.lowpriority"_ls;
-constexpr inline auto ServerNoticeTag = "m.server_notice"_ls;
+constexpr inline auto FavouriteTag = "m.favourite"_L1;
+constexpr inline auto LowPriorityTag = "m.lowpriority"_L1;
+constexpr inline auto ServerNoticeTag = "m.server_notice"_L1;
 
 using TagRecord [[deprecated("Use Tag from csapi/definitions/tag.h instead")]] = Tag;
 

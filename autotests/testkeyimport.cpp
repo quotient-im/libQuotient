@@ -23,12 +23,12 @@ void TestKeyImport::testImport()
 
     auto path = QString::fromUtf8(__FILE__);
     path = path.left(path.lastIndexOf(QDir::separator()));
-    path += QStringLiteral("/key-export.data");
+    path += "/key-export.data"_L1;
     QFile file(path);
     file.open(QIODevice::ReadOnly);
     auto data = file.readAll();
     QVERIFY(!data.isEmpty());
-    const auto result = keyImport.decrypt(QString::fromUtf8(data), QStringLiteral("123passphrase"));
+    const auto result = keyImport.decrypt(QString::fromUtf8(data), u"123passphrase"_s);
     QVERIFY(result.has_value());
     const auto &json = result.value();
     QCOMPARE(json.size(), 2);
@@ -39,27 +39,25 @@ void TestKeyImport::testExport()
     KeyImport keyImport;
 
     QJsonArray sessions;
-    sessions += QJsonObject {
-        {"algorithm"_ls, "m.megolm.v1.aes-sha2"_ls},
-        {"forwarding_curve25519_key_chain"_ls, QJsonArray()},
-        {"room_id"_ls, "!asdf:foo.bar"_ls},
-        {"sender_claimed_keys"_ls, QJsonObject {
-            {"ed25519"_ls, "asdfkey"_ls}
-        }},
-        {"sender_key"_ls, "senderkey"_ls},
-        {"session_id"_ls, "sessionidasdf"_ls},
-        {"session_key"_ls, "sessionkeyfoo"_ls},
+    sessions += QJsonObject{
+        { "algorithm"_L1, "m.megolm.v1.aes-sha2"_L1 },
+        { "forwarding_curve25519_key_chain"_L1, QJsonArray() },
+        { "room_id"_L1, "!asdf:foo.bar"_L1 },
+        { "sender_claimed_keys"_L1, QJsonObject{ { "ed25519"_L1, "asdfkey"_L1 } } },
+        { "sender_key"_L1, "senderkey"_L1 },
+        { "session_id"_L1, "sessionidasdf"_L1 },
+        { "session_key"_L1, "sessionkeyfoo"_L1 },
 
     };
-    auto result = keyImport.encrypt(sessions, QStringLiteral("a passphrase"));
+    auto result = keyImport.encrypt(sessions, u"a passphrase"_s);
     QVERIFY(result.has_value());
     QVERIFY(result.value().size() > 0);
 
-    auto plain = keyImport.decrypt(QString::fromLatin1(result.value()), "a passphrase"_ls);
+    auto plain = keyImport.decrypt(QString::fromLatin1(result.value()), u"a passphrase"_s);
     QVERIFY(plain.has_value());
     auto value = plain.value();
     QCOMPARE(value.size(), 1);
-    QCOMPARE(value[0]["algorithm"_ls].toString(), "m.megolm.v1.aes-sha2"_ls);
+    QCOMPARE(value[0]["algorithm"_L1].toString(), "m.megolm.v1.aes-sha2"_L1);
 }
 
 QTEST_GUILESS_MAIN(TestKeyImport)

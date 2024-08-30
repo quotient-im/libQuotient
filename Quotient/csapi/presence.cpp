@@ -6,12 +6,12 @@ using namespace Quotient;
 
 SetPresenceJob::SetPresenceJob(const QString& userId, const QString& presence,
                                const QString& statusMsg)
-    : BaseJob(HttpVerb::Put, QStringLiteral("SetPresenceJob"),
+    : BaseJob(HttpVerb::Put, u"SetPresenceJob"_s,
               makePath("/_matrix/client/v3", "/presence/", userId, "/status"))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("presence"), presence);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("status_msg"), statusMsg);
+    addParam<>(_dataJson, "presence"_L1, presence);
+    addParam<IfNotEmpty>(_dataJson, "status_msg"_L1, statusMsg);
     setRequestData({ _dataJson });
 }
 
@@ -22,7 +22,7 @@ QUrl GetPresenceJob::makeRequestUrl(const HomeserverData& hsData, const QString&
 }
 
 GetPresenceJob::GetPresenceJob(const QString& userId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetPresenceJob"),
+    : BaseJob(HttpVerb::Get, u"GetPresenceJob"_s,
               makePath("/_matrix/client/v3", "/presence/", userId, "/status"))
 {
     addExpectedKey("presence");

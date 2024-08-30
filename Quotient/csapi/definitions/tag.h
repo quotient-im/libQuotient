@@ -16,11 +16,11 @@ template <>
 struct JsonObjectConverter<Tag> {
     static void dumpTo(QJsonObject& jo, const Tag& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("order"), pod.order);
+        addParam<IfNotEmpty>(jo, "order"_L1, pod.order);
     }
     static void fillFrom(const QJsonObject& jo, Tag& pod)
     {
-        fillFromJson(jo.value("order"_ls), pod.order);
+        fillFromJson(jo.value("order"_L1), pod.order);
     }
 };
 

@@ -20,13 +20,13 @@ template <>
 struct JsonObjectConverter<FieldType> {
     static void dumpTo(QJsonObject& jo, const FieldType& pod)
     {
-        addParam<>(jo, QStringLiteral("regexp"), pod.regexp);
-        addParam<>(jo, QStringLiteral("placeholder"), pod.placeholder);
+        addParam<>(jo, "regexp"_L1, pod.regexp);
+        addParam<>(jo, "placeholder"_L1, pod.placeholder);
     }
     static void fillFrom(const QJsonObject& jo, FieldType& pod)
     {
-        fillFromJson(jo.value("regexp"_ls), pod.regexp);
-        fillFromJson(jo.value("placeholder"_ls), pod.placeholder);
+        fillFromJson(jo.value("regexp"_L1), pod.regexp);
+        fillFromJson(jo.value("placeholder"_L1), pod.placeholder);
     }
 };
 
@@ -49,17 +49,17 @@ template <>
 struct JsonObjectConverter<ProtocolInstance> {
     static void dumpTo(QJsonObject& jo, const ProtocolInstance& pod)
     {
-        addParam<>(jo, QStringLiteral("desc"), pod.desc);
-        addParam<>(jo, QStringLiteral("fields"), pod.fields);
-        addParam<>(jo, QStringLiteral("network_id"), pod.networkId);
-        addParam<IfNotEmpty>(jo, QStringLiteral("icon"), pod.icon);
+        addParam<>(jo, "desc"_L1, pod.desc);
+        addParam<>(jo, "fields"_L1, pod.fields);
+        addParam<>(jo, "network_id"_L1, pod.networkId);
+        addParam<IfNotEmpty>(jo, "icon"_L1, pod.icon);
     }
     static void fillFrom(const QJsonObject& jo, ProtocolInstance& pod)
     {
-        fillFromJson(jo.value("desc"_ls), pod.desc);
-        fillFromJson(jo.value("fields"_ls), pod.fields);
-        fillFromJson(jo.value("network_id"_ls), pod.networkId);
-        fillFromJson(jo.value("icon"_ls), pod.icon);
+        fillFromJson(jo.value("desc"_L1), pod.desc);
+        fillFromJson(jo.value("fields"_L1), pod.fields);
+        fillFromJson(jo.value("network_id"_L1), pod.networkId);
+        fillFromJson(jo.value("icon"_L1), pod.icon);
     }
 };
 
@@ -96,19 +96,19 @@ template <>
 struct JsonObjectConverter<ThirdPartyProtocol> {
     static void dumpTo(QJsonObject& jo, const ThirdPartyProtocol& pod)
     {
-        addParam<>(jo, QStringLiteral("user_fields"), pod.userFields);
-        addParam<>(jo, QStringLiteral("location_fields"), pod.locationFields);
-        addParam<>(jo, QStringLiteral("icon"), pod.icon);
-        addParam<>(jo, QStringLiteral("field_types"), pod.fieldTypes);
-        addParam<>(jo, QStringLiteral("instances"), pod.instances);
+        addParam<>(jo, "user_fields"_L1, pod.userFields);
+        addParam<>(jo, "location_fields"_L1, pod.locationFields);
+        addParam<>(jo, "icon"_L1, pod.icon);
+        addParam<>(jo, "field_types"_L1, pod.fieldTypes);
+        addParam<>(jo, "instances"_L1, pod.instances);
     }
     static void fillFrom(const QJsonObject& jo, ThirdPartyProtocol& pod)
     {
-        fillFromJson(jo.value("user_fields"_ls), pod.userFields);
-        fillFromJson(jo.value("location_fields"_ls), pod.locationFields);
-        fillFromJson(jo.value("icon"_ls), pod.icon);
-        fillFromJson(jo.value("field_types"_ls), pod.fieldTypes);
-        fillFromJson(jo.value("instances"_ls), pod.instances);
+        fillFromJson(jo.value("user_fields"_L1), pod.userFields);
+        fillFromJson(jo.value("location_fields"_L1), pod.locationFields);
+        fillFromJson(jo.value("icon"_L1), pod.icon);
+        fillFromJson(jo.value("field_types"_L1), pod.fieldTypes);
+        fillFromJson(jo.value("instances"_L1), pod.instances);
     }
 };
 

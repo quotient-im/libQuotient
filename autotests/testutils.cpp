@@ -17,11 +17,11 @@ bool waitForSignal(auto objPtr, auto signal)
     return QSignalSpy(std::to_address(objPtr), signal).wait(60000);
 }
 
-std::shared_ptr<Quotient::Connection> Quotient::createTestConnection(
-    const QString& localUserName, const QString& secret,
-    const QString& deviceName)
+std::shared_ptr<Quotient::Connection> Quotient::createTestConnection(QLatin1StringView localUserName,
+                                                                     QLatin1StringView secret,
+                                                                     QLatin1StringView deviceName)
 {
-    static constexpr auto homeserverAddr = "localhost:1234"_ls;
+    static constexpr auto homeserverAddr = "localhost:1234"_L1;
     auto* const nam = NetworkAccessManager::instance();
     QObject::connect(nam, &QNetworkAccessManager::sslErrors, nam,
                      [](QNetworkReply* reply) { reply->ignoreSslErrors(); });

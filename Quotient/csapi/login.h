@@ -44,7 +44,7 @@ public:
     // Result properties
 
     //! The homeserver's supported login types
-    QVector<LoginFlow> flows() const { return loadFromJson<QVector<LoginFlow>>("flows"_ls); }
+    QVector<LoginFlow> flows() const { return loadFromJson<QVector<LoginFlow>>("flows"_L1); }
 };
 
 inline auto collectResponse(const GetLoginFlowsJob* job) { return job->flows(); }
@@ -53,8 +53,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
     static void fillFrom(const QJsonObject& jo, GetLoginFlowsJob::LoginFlow& result)
     {
-        fillFromJson(jo.value("type"_ls), result.type);
-        fillFromJson(jo.value("get_login_token"_ls), result.getLoginToken);
+        fillFromJson(jo.value("type"_L1), result.type);
+        fillFromJson(jo.value("get_login_token"_L1), result.getLoginToken);
     }
 };
 
@@ -111,16 +111,16 @@ public:
     // Result properties
 
     //! The fully-qualified Matrix ID for the account.
-    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
+    QString userId() const { return loadFromJson<QString>("user_id"_L1); }
 
     //! An access token for the account.
     //! This access token can then be used to authorize other requests.
-    QString accessToken() const { return loadFromJson<QString>("access_token"_ls); }
+    QString accessToken() const { return loadFromJson<QString>("access_token"_L1); }
 
     //! A refresh token for the account. This token can be used to
     //! obtain a new access token when it expires by calling the
     //! `/refresh` endpoint.
-    QString refreshToken() const { return loadFromJson<QString>("refresh_token"_ls); }
+    QString refreshToken() const { return loadFromJson<QString>("refresh_token"_L1); }
 
     //! The lifetime of the access token, in milliseconds. Once
     //! the access token has expired a new access token can be
@@ -130,12 +130,12 @@ public:
     //! assume that the access token will not expire.
     std::optional<int> expiresInMs() const
     {
-        return loadFromJson<std::optional<int>>("expires_in_ms"_ls);
+        return loadFromJson<std::optional<int>>("expires_in_ms"_L1);
     }
 
     //! ID of the logged-in device. Will be the same as the
     //! corresponding parameter in the request, if one was specified.
-    QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
+    QString deviceId() const { return loadFromJson<QString>("device_id"_L1); }
 
     //! Optional client configuration provided by the server. If present,
     //! clients SHOULD use the provided object to reconfigure themselves,
@@ -143,7 +143,7 @@ public:
     //! form as the one returned from .well-known autodiscovery.
     std::optional<DiscoveryInformation> wellKnown() const
     {
-        return loadFromJson<std::optional<DiscoveryInformation>>("well_known"_ls);
+        return loadFromJson<std::optional<DiscoveryInformation>>("well_known"_L1);
     }
 
     struct Response {

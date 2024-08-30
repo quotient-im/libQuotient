@@ -25,7 +25,7 @@ QString RoomEvent::id() const { return fullJson()[EventIdKey].toString(); }
 
 QDateTime RoomEvent::originTimestamp() const
 {
-    return Quotient::fromJson<QDateTime>(fullJson()["origin_server_ts"_ls]);
+    return Quotient::fromJson<QDateTime>(fullJson()["origin_server_ts"_L1]);
 }
 
 QString RoomEvent::roomId() const
@@ -45,7 +45,7 @@ QString RoomEvent::redactionReason() const
 
 QString RoomEvent::transactionId() const
 {
-    return unsignedPart<QString>("transaction_id"_ls);
+    return unsignedPart<QString>("transaction_id"_L1);
 }
 
 QString RoomEvent::stateKey() const
@@ -66,7 +66,7 @@ void RoomEvent::setSender(const QString& senderId)
 void RoomEvent::setTransactionId(const QString& txnId)
 {
     auto unsignedData = fullJson()[UnsignedKey].toObject();
-    unsignedData.insert(QStringLiteral("transaction_id"), txnId);
+    unsignedData.insert("transaction_id"_L1, txnId);
     editJson().insert(UnsignedKey, unsignedData);
     Q_ASSERT(transactionId() == txnId);
 }

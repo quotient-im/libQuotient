@@ -42,40 +42,40 @@ void TestUtils::testLinkifyUrl()
     // Pending rewrite once std::source_location() works everywhere
 #define T(Original, Expected) testLinkified(Original, Expected, __LINE__)
 
-    T("https://www.matrix.org"_ls,
-      "<a href='https://www.matrix.org'>https://www.matrix.org</a>"_ls);
-//    T("www.matrix.org"_ls, // Doesn't work yet
-//      "<a href='https://www.matrix.org'>www.matrix.org</a>"_ls);
-    T("smb://some/file"_ls, "smb://some/file"_ls); // Disallowed scheme
-    T("https:/something"_ls, "https:/something"_ls); // Malformed URL
-    T("https://matrix.to/#/!roomid:example.org"_ls,
-      "<a href='https://matrix.to/#/!roomid:example.org'>https://matrix.to/#/!roomid:example.org</a>"_ls);
-    T("https://matrix.to/#/@user_id:example.org"_ls,
-      "<a href='https://matrix.to/#/@user_id:example.org'>https://matrix.to/#/@user_id:example.org</a>"_ls);
-    T("https://matrix.to/#/#roomalias:example.org"_ls,
-      "<a href='https://matrix.to/#/#roomalias:example.org'>https://matrix.to/#/#roomalias:example.org</a>"_ls);
-    T("https://matrix.to/#/##ircroomalias:example.org"_ls,
-      "<a href='https://matrix.to/#/##ircroomalias:example.org'>https://matrix.to/#/##ircroomalias:example.org</a>"_ls);
-    T("me@example.org"_ls,
-      "<a href='mailto:me@example.org'>me@example.org</a>"_ls);
-    T("mailto:me@example.org"_ls,
-      "<a href='mailto:me@example.org'>mailto:me@example.org</a>"_ls);
-    T("www.example.com?email@example.com"_ls,
-      "<a href='www.example.com?email@example.com'>www.example.com?email@example.com</a>"_ls);
-    T("!room_id:example.org"_ls,
-      "<a href='https://matrix.to/#/!room_id:example.org'>!room_id:example.org</a>"_ls);
-    T("@user_id:example.org"_ls,
-      "<a href='https://matrix.to/#/@user_id:example.org'>@user_id:example.org</a>"_ls);
-    T("#room_alias:example.org"_ls,
-      "<a href='https://matrix.to/#/#room_alias:example.org'>#room_alias:example.org</a>"_ls);
+    T("https://www.matrix.org"_L1,
+      "<a href='https://www.matrix.org'>https://www.matrix.org</a>"_L1);
+//    T("www.matrix.org"_L1, // Doesn't work yet
+//      "<a href='https://www.matrix.org'>www.matrix.org</a>"_L1);
+    T("smb://some/file"_L1, "smb://some/file"_L1); // Disallowed scheme
+    T("https:/something"_L1, "https:/something"_L1); // Malformed URL
+    T("https://matrix.to/#/!roomid:example.org"_L1,
+      "<a href='https://matrix.to/#/!roomid:example.org'>https://matrix.to/#/!roomid:example.org</a>"_L1);
+    T("https://matrix.to/#/@user_id:example.org"_L1,
+      "<a href='https://matrix.to/#/@user_id:example.org'>https://matrix.to/#/@user_id:example.org</a>"_L1);
+    T("https://matrix.to/#/#roomalias:example.org"_L1,
+      "<a href='https://matrix.to/#/#roomalias:example.org'>https://matrix.to/#/#roomalias:example.org</a>"_L1);
+    T("https://matrix.to/#/##ircroomalias:example.org"_L1,
+      "<a href='https://matrix.to/#/##ircroomalias:example.org'>https://matrix.to/#/##ircroomalias:example.org</a>"_L1);
+    T("me@example.org"_L1,
+      "<a href='mailto:me@example.org'>me@example.org</a>"_L1);
+    T("mailto:me@example.org"_L1,
+      "<a href='mailto:me@example.org'>mailto:me@example.org</a>"_L1);
+    T("www.example.com?email@example.com"_L1,
+      "<a href='www.example.com?email@example.com'>www.example.com?email@example.com</a>"_L1);
+    T("!room_id:example.org"_L1,
+      "<a href='https://matrix.to/#/!room_id:example.org'>!room_id:example.org</a>"_L1);
+    T("@user_id:example.org"_L1,
+      "<a href='https://matrix.to/#/@user_id:example.org'>@user_id:example.org</a>"_L1);
+    T("#room_alias:example.org"_L1,
+      "<a href='https://matrix.to/#/#room_alias:example.org'>#room_alias:example.org</a>"_L1);
 
 #undef T
 }
 
 void TestUtils::testIsGuestUserId()
 {
-    QVERIFY(isGuestUserId("@123:example.org"_ls));
-    QVERIFY(!isGuestUserId("@normal:example.org"_ls));
+    QVERIFY(isGuestUserId("@123:example.org"_L1));
+    QVERIFY(!isGuestUserId("@normal:example.org"_L1));
 }
 
 void TestUtils::testQuoCStr()
@@ -91,10 +91,9 @@ void TestUtils::testQuoCStr()
     T(QUtf8StringView);
 #endif
 #undef T
-    QVERIFY("Test QStringBuilder<QString>"sv
-            == QUO_CSTR(QStringLiteral("Test ") % u"QStringBuilder<QString>"));
+    QVERIFY("Test QStringBuilder<QString>"sv == QUO_CSTR(u"Test "_s % u"QStringBuilder<QString>"));
     QVERIFY("Test QStringBuilder<QByteArray>"sv
-            == QUO_CSTR(QByteArrayLiteral("Test ") % "QStringBuilder<QByteArray>"));
+            == QUO_CSTR("Test "_ba % "QStringBuilder<QByteArray>"));
 }
 
 QTEST_APPLESS_MAIN(TestUtils)

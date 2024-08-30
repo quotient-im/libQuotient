@@ -35,8 +35,8 @@ QJsonObject Quotient::toJson(const EventsWithReceipts& ewrs)
         QJsonObject receiptsJson;
         for (const auto& r : e.receipts)
             receiptsJson.insert(r.userId,
-                                QJsonObject { { "ts"_ls, toJson(r.timestamp) } });
-        json.insert(e.evtId, QJsonObject { { "m.read"_ls, receiptsJson } });
+                                QJsonObject { { "ts"_L1, toJson(r.timestamp) } });
+        json.insert(e.evtId, QJsonObject { { "m.read"_L1, receiptsJson } });
     }
     return json;
 }
@@ -54,13 +54,13 @@ EventsWithReceipts Quotient::fromJson(const QJsonObject& json)
             continue;
         }
         const auto reads =
-            eventIt.value().toObject().value("m.read"_ls).toObject();
+            eventIt.value().toObject().value("m.read"_L1).toObject();
         QVector<UserTimestamp> usersAtEvent;
         usersAtEvent.reserve(reads.size());
         for (auto userIt = reads.begin(); userIt != reads.end(); ++userIt) {
             const auto user = userIt.value().toObject();
             usersAtEvent.push_back(
-                { userIt.key(), fromJson<QDateTime>(user["ts"_ls]) });
+                { userIt.key(), fromJson<QDateTime>(user["ts"_L1]) });
         }
         result.push_back({ eventIt.key(), std::move(usersAtEvent) });
     }

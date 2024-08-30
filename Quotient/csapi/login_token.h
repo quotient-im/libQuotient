@@ -52,11 +52,11 @@ public:
     // Result properties
 
     //! The login token for the `m.login.token` login flow.
-    QString loginToken() const { return loadFromJson<QString>("login_token"_ls); }
+    QString loginToken() const { return loadFromJson<QString>("login_token"_L1); }
 
     //! The time remaining in milliseconds until the homeserver will no longer accept the token.
     //! `120000` (2 minutes) is recommended as a default.
-    int expiresInMs() const { return loadFromJson<int>("expires_in_ms"_ls); }
+    int expiresInMs() const { return loadFromJson<int>("expires_in_ms"_L1); }
 
     struct Response {
         //! The login token for the `m.login.token` login flow.

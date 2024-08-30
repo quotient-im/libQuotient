@@ -90,7 +90,7 @@ public:
     //!
     //! \param refreshToken
     //!   If true, the client supports refresh tokens.
-    explicit RegisterJob(const QString& kind = QStringLiteral("user"),
+    explicit RegisterJob(const QString& kind = u"user"_s,
                          const std::optional<AuthenticationData>& auth = std::nullopt,
                          const QString& username = {}, const QString& password = {},
                          const QString& deviceId = {}, const QString& initialDeviceDisplayName = {},
@@ -103,19 +103,19 @@ public:
     //!
     //! Any user ID returned by this API must conform to the grammar given in the
     //! [Matrix specification](/appendices/#user-identifiers).
-    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
+    QString userId() const { return loadFromJson<QString>("user_id"_L1); }
 
     //! An access token for the account.
     //! This access token can then be used to authorize other requests.
     //! Required if the `inhibit_login` option is false.
-    QString accessToken() const { return loadFromJson<QString>("access_token"_ls); }
+    QString accessToken() const { return loadFromJson<QString>("access_token"_L1); }
 
     //! A refresh token for the account. This token can be used to
     //! obtain a new access token when it expires by calling the
     //! `/refresh` endpoint.
     //!
     //! Omitted if the `inhibit_login` option is true.
-    QString refreshToken() const { return loadFromJson<QString>("refresh_token"_ls); }
+    QString refreshToken() const { return loadFromJson<QString>("refresh_token"_L1); }
 
     //! The lifetime of the access token, in milliseconds. Once
     //! the access token has expired a new access token can be
@@ -127,13 +127,13 @@ public:
     //! Omitted if the `inhibit_login` option is true.
     std::optional<int> expiresInMs() const
     {
-        return loadFromJson<std::optional<int>>("expires_in_ms"_ls);
+        return loadFromJson<std::optional<int>>("expires_in_ms"_L1);
     }
 
     //! ID of the registered device. Will be the same as the
     //! corresponding parameter in the request, if one was specified.
     //! Required if the `inhibit_login` option is false.
-    QString deviceId() const { return loadFromJson<QString>("device_id"_ls); }
+    QString deviceId() const { return loadFromJson<QString>("device_id"_L1); }
 
     struct Response {
         //! The fully-qualified Matrix user ID (MXID) that has been registered.
@@ -380,7 +380,7 @@ public:
     //! for the user.
     QString idServerUnbindResult() const
     {
-        return loadFromJson<QString>("id_server_unbind_result"_ls);
+        return loadFromJson<QString>("id_server_unbind_result"_L1);
     }
 };
 
@@ -418,7 +418,7 @@ public:
     //! be `true` when the server replies with 200 OK.
     std::optional<bool> available() const
     {
-        return loadFromJson<std::optional<bool>>("available"_ls);
+        return loadFromJson<std::optional<bool>>("available"_L1);
     }
 };
 

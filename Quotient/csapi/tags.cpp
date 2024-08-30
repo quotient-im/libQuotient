@@ -12,13 +12,13 @@ QUrl GetRoomTagsJob::makeRequestUrl(const HomeserverData& hsData, const QString&
 }
 
 GetRoomTagsJob::GetRoomTagsJob(const QString& userId, const QString& roomId)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetRoomTagsJob"),
+    : BaseJob(HttpVerb::Get, u"GetRoomTagsJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/", roomId, "/tags"))
 {}
 
 SetRoomTagJob::SetRoomTagJob(const QString& userId, const QString& roomId, const QString& tag,
                              const Tag& data)
-    : BaseJob(HttpVerb::Put, QStringLiteral("SetRoomTagJob"),
+    : BaseJob(HttpVerb::Put, u"SetRoomTagJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/", roomId, "/tags/", tag))
 {
     setRequestData({ toJson(data) });
@@ -32,6 +32,6 @@ QUrl DeleteRoomTagJob::makeRequestUrl(const HomeserverData& hsData, const QStrin
 }
 
 DeleteRoomTagJob::DeleteRoomTagJob(const QString& userId, const QString& roomId, const QString& tag)
-    : BaseJob(HttpVerb::Delete, QStringLiteral("DeleteRoomTagJob"),
+    : BaseJob(HttpVerb::Delete, u"DeleteRoomTagJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/", roomId, "/tags/", tag))
 {}

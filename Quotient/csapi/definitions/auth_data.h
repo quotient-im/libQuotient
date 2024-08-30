@@ -25,13 +25,13 @@ struct JsonObjectConverter<AuthenticationData> {
     static void dumpTo(QJsonObject& jo, const AuthenticationData& pod)
     {
         fillJson(jo, pod.authInfo);
-        addParam<IfNotEmpty>(jo, QStringLiteral("type"), pod.type);
-        addParam<IfNotEmpty>(jo, QStringLiteral("session"), pod.session);
+        addParam<IfNotEmpty>(jo, "type"_L1, pod.type);
+        addParam<IfNotEmpty>(jo, "session"_L1, pod.session);
     }
     static void fillFrom(QJsonObject jo, AuthenticationData& pod)
     {
-        fillFromJson(jo.take("type"_ls), pod.type);
-        fillFromJson(jo.take("session"_ls), pod.session);
+        fillFromJson(jo.take("type"_L1), pod.type);
+        fillFromJson(jo.take("session"_L1), pod.session);
         fromJson(jo, pod.authInfo);
     }
 };

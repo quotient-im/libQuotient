@@ -87,7 +87,7 @@ void Connection::resolveServer(const QString& mxid)
     d->resolverJob.abandon(); // The previous network request is no more relevant
 
     auto maybeBaseUrl = QUrl::fromUserInput(serverPart(mxid));
-    maybeBaseUrl.setScheme("https"_ls); // Instead of the Qt-default "http"
+    maybeBaseUrl.setScheme("https"_L1); // Instead of the Qt-default "http"
     if (maybeBaseUrl.isEmpty() || !maybeBaseUrl.isValid()) {
         emit resolveError(tr("%1 is not a valid homeserver address")
                               .arg(maybeBaseUrl.toString()));
@@ -133,15 +133,13 @@ void Connection::resolveServer(const QString& mxid)
 
 inline UserIdentifier makeUserIdentifier(const QString& id)
 {
-    return { QStringLiteral("m.id.user"), { { QStringLiteral("user"), id } } };
+    return { u"m.id.user"_s, { { u"user"_s, id } } };
 }
 
 inline UserIdentifier make3rdPartyIdentifier(const QString& medium,
                                              const QString& address)
 {
-    return { QStringLiteral("m.id.thirdparty"),
-             { { QStringLiteral("medium"), medium },
-               { QStringLiteral("address"), address } } };
+    return { u"m.id.thirdparty"_s, { { u"medium"_s, medium }, { u"address"_s, address } } };
 }
 
 void Connection::loginWithPassword(const QString& userId,
@@ -271,7 +269,7 @@ void Connection::Private::dropAccessToken()
     });
 
     auto pickleJob = new DeletePasswordJob(qAppName());
-    pickleJob->setKey(q->userId() + "-Pickle"_ls);
+    pickleJob->setKey(q->userId() + "-Pickle"_L1);
     pickleJob->start();
     QObject::connect(job, &Job::finished, q, [job] {
         if (job->error() == Error::NoError
@@ -393,7 +391,7 @@ QFuture<void> Connection::logout()
             || d->logoutJob->error() == BaseJob::ContentAccessError) {
             if (d->syncLoopConnection)
                 disconnect(d->syncLoopConnection);
-            SettingsGroup("Accounts"_ls).remove(userId());
+            SettingsGroup("Accounts"_L1).remove(userId());
             d->dropAccessToken();
             emit loggedOut();
             deleteLater();
@@ -615,8 +613,7 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
         qDebug(MAIN) << "Sending updated direct chats to the server:"
                      << dcLocalRemovals.size() << "removal(s),"
                      << dcLocalAdditions.size() << "addition(s)";
-        q->callApi<SetAccountDataJob>(data->userId(), QStringLiteral("m.direct"),
-                                      toJson(directChats));
+        q->callApi<SetAccountDataJob>(data->userId(), u"m.direct"_s, toJson(directChats));
         dcLocalAdditions.clear();
         dcLocalRemovals.clear();
     }
@@ -693,16 +690,15 @@ inline auto splitMediaId(const QString& mediaId)
 {
     auto idParts = mediaId.split(u'/');
     Q_ASSERT_X(idParts.size() == 2, __FUNCTION__,
-               qPrintable("'"_ls % mediaId
-                          % "' doesn't look like 'serverName/localMediaId'"_ls));
+               qPrintable(u'\'' % mediaId % "' doesn't look like 'serverName/localMediaId'"_L1));
     return idParts;
 }
 
 QUrl Connection::makeMediaUrl(QUrl mxcUrl) const
 {
-    Q_ASSERT(mxcUrl.scheme() == "mxc"_ls);
+    Q_ASSERT(mxcUrl.scheme() == "mxc"_L1);
     QUrlQuery q(mxcUrl.query());
-    q.addQueryItem(QStringLiteral("user_id"), userId());
+    q.addQueryItem(u"user_id"_s, userId());
     mxcUrl.setQuery(q);
     return mxcUrl;
 }
@@ -791,8 +787,7 @@ JobHandle<CreateRoomJob> Connection::createRoom(
     const QVector<CreateRoomJob::Invite3pid>& invite3pids, const QJsonObject& creationContent)
 {
     invites.removeOne(userId()); // The creator is by definition in the room
-    return callApi<CreateRoomJob>(visibility == PublishRoom ? QStringLiteral("public")
-                                                            : QStringLiteral("private"),
+    return callApi<CreateRoomJob>(visibility == PublishRoom ? u"public"_s : u"private"_s,
                                   alias, name, topic, invites, invite3pids, roomVersion,
                                   creationContent, initialState, presetName, isDirect)
         .then(this, [this, invites, isDirect](const QString& roomId) {
@@ -874,8 +869,8 @@ JobHandle<CreateRoomJob> Connection::createDirectChat(const QString& userId, con
         initialStateEvents.append({ EncryptionEvent::TypeId, encryptionContent.toJson() });
     }
 
-    return createRoom(UnpublishRoom, {}, name, topic, { userId },
-                      QStringLiteral("trusted_private_chat"), {}, true, initialStateEvents)
+    return createRoom(UnpublishRoom, {}, name, topic, { userId }, u"trusted_private_chat"_s, {},
+                      true, initialStateEvents)
         .then([userId](const QString& roomId) {
             qCDebug(MAIN) << "Direct chat with" << userId << "has been created as" << roomId;
         });
@@ -1473,12 +1468,9 @@ void Connection::saveState() const
         return;
     }
 
-    QJsonObject rootObj {
-        { QStringLiteral("cache_version"),
-          QJsonObject {
-              { QStringLiteral("major"), SyncData::cacheVersion().first },
-              { QStringLiteral("minor"), SyncData::cacheVersion().second } } }
-    };
+    QJsonObject rootObj{ { u"cache_version"_s,
+                           QJsonObject{ { u"major"_s, SyncData::cacheVersion().first },
+                                        { u"minor"_s, SyncData::cacheVersion().second } } } };
     {
         QJsonObject roomsJson;
         QJsonObject inviteRoomsJson;
@@ -1486,36 +1478,30 @@ void Connection::saveState() const
             if (r->joinState() == JoinState::Leave)
                 continue;
             (r->joinState() == JoinState::Invite ? inviteRoomsJson : roomsJson)
-                .insert(r->id(),
-                        QJsonObject{ { "$ref"_ls,
-                                       SyncData::fileNameForRoom(r->id()) } });
+                .insert(r->id(), QJsonObject{ { u"$ref"_s, SyncData::fileNameForRoom(r->id()) } });
         }
 
         QJsonObject roomObj;
         if (!roomsJson.isEmpty())
-            roomObj.insert(QStringLiteral("join"), roomsJson);
+            roomObj.insert("join"_L1, roomsJson);
         if (!inviteRoomsJson.isEmpty())
-            roomObj.insert(QStringLiteral("invite"), inviteRoomsJson);
+            roomObj.insert("invite"_L1, inviteRoomsJson);
 
-        rootObj.insert(QStringLiteral("next_batch"), d->data->lastEvent());
-        rootObj.insert(QStringLiteral("rooms"), roomObj);
+        rootObj.insert("next_batch"_L1, d->data->lastEvent());
+        rootObj.insert("rooms"_L1, roomObj);
     }
     {
-        QJsonArray accountDataEvents {
-            Event::basicJson(DirectChatEvent::TypeId, toJson(d->directChats))
-        };
+        QJsonArray accountDataEvents{ Event::basicJson(DirectChatEvent::TypeId,
+                                                       toJson(d->directChats)) };
         for (const auto& e : d->accountData)
-            accountDataEvents.append(
-                Event::basicJson(e.first, e.second->contentJson()));
+            accountDataEvents.append(Event::basicJson(e.first, e.second->contentJson()));
 
-        rootObj.insert(QStringLiteral("account_data"),
-                       QJsonObject {
-                           { QStringLiteral("events"), accountDataEvents } });
+        rootObj.insert("account_data"_L1, QJsonObject{ { u"events"_s, accountDataEvents } });
     }
 
     if (d->encryptionData) {
         QJsonObject keysJson = toJson(d->encryptionData->oneTimeKeysCount);
-        rootObj.insert(QStringLiteral("device_one_time_keys_count"), keysJson);
+        rootObj.insert("device_one_time_keys_count"_L1, keysJson);
     }
 
     const auto data =
@@ -1599,9 +1585,6 @@ void Connection::getTurnServers()
             [this,job] { emit turnServersChanged(job->data()); });
 }
 
-const QString Connection::SupportedRoomVersion::StableTag =
-    QStringLiteral("stable");
-
 QString Connection::defaultRoomVersion() const
 {
     return d->capabilities.roomVersions
@@ -1613,10 +1596,9 @@ QStringList Connection::stableRoomVersions() const
 {
     QStringList l;
     if (d->capabilities.roomVersions) {
-        const auto& allVersions = d->capabilities.roomVersions->available;
-        for (auto it = allVersions.begin(); it != allVersions.end(); ++it)
-            if (it.value() == SupportedRoomVersion::StableTag)
-                l.push_back(it.key());
+        for (const auto& [v, isStable] : d->capabilities.roomVersions->available.asKeyValueRange())
+            if (isStable == SupportedRoomVersion::StableTag)
+                l.push_back(v);
     }
     return l;
 }
@@ -1716,14 +1698,14 @@ QFuture<QByteArray> Connection::requestKeyFromDevices(event_type_t name)
 
     UsersToDevicesToContent content;
     const auto& requestId = generateTxnId();
-    const QJsonObject eventContent{ { "action"_ls, "request"_ls },
-                                    { "name"_ls, name },
-                                    { "request_id"_ls, requestId },
-                                    { "requesting_device_id"_ls, deviceId() } };
+    const QJsonObject eventContent{ { "action"_L1, "request"_L1 },
+                                    { "name"_L1, name },
+                                    { "request_id"_L1, requestId },
+                                    { "requesting_device_id"_L1, deviceId() } };
     for (const auto& deviceId : devicesForUser(userId())) {
         content[userId()][deviceId] = eventContent;
     }
-    sendToDevices("m.secret.request"_ls, content);
+    sendToDevices("m.secret.request"_L1, content);
     auto futureKey = keyPromise.future();
     keyPromise.setProgressValue(5); // Already sent the request, now it's only to get the result
     connectUntil(this, &Connection::secretReceived, this,
@@ -1745,7 +1727,7 @@ QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
     if (auto r = room(notification[RoomIdKey].toString()))
         if (auto event =
-                loadEvent<EncryptedEvent>(notification["event"_ls].toObject()))
+                loadEvent<EncryptedEvent>(notification["event"_L1].toObject()))
             if (const auto decrypted = r->decryptMessage(*event))
                 return decrypted->fullJson();
     return {};
@@ -1776,7 +1758,7 @@ QString Connection::edKeyForUserDevice(const QString& userId,
                                        const QString& deviceId) const
 {
     return d->encryptionData->deviceKeys[userId][deviceId]
-        .keys["ed25519:"_ls + deviceId];
+        .keys["ed25519:"_L1 + deviceId];
 }
 
 QString Connection::curveKeyForUserDevice(
@@ -1833,70 +1815,70 @@ void Connection::sendToDevice(const QString& targetUserId,
 
 bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
 {
-    auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_ls);
-    query.bindValue(":sessionId"_ls, megolmSessionId);
+    auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_L1);
+    query.bindValue(":sessionId"_L1, megolmSessionId);
     database()->execute(query);
     if (!query.next()) {
         return false;
     }
-    const auto olmSessionId = query.value("olmSessionId"_ls).toString();
-    if (olmSessionId == "BACKUP_VERIFIED"_ls) {
+    const auto olmSessionId = query.value("olmSessionId"_L1).toString();
+    if (olmSessionId == "BACKUP_VERIFIED"_L1) {
         return true;
     }
-    if (olmSessionId == "SELF"_ls) {
+    if (olmSessionId == "SELF"_L1) {
         return true;
     }
-    query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_ls);
-    query.bindValue(":sessionId"_ls, olmSessionId.toLatin1());
+    query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_L1);
+    query.bindValue(":sessionId"_L1, olmSessionId.toLatin1());
     database()->execute(query);
     if (!query.next()) {
         return false;
     }
-    const auto curveKey = query.value("senderKey"_ls).toString();
+    const auto curveKey = query.value("senderKey"_L1).toString();
 
-    query.prepare("SELECT matrixId, selfVerified, verified FROM tracked_devices WHERE curveKey=:curveKey;"_ls);
-    query.bindValue(":curveKey"_ls, curveKey);
+    query.prepare("SELECT matrixId, selfVerified, verified FROM tracked_devices WHERE curveKey=:curveKey;"_L1);
+    query.bindValue(":curveKey"_L1, curveKey);
     database()->execute(query);
     if (!query.next()) {
         return false;
     }
-    const auto userId = query.value("matrixId"_ls).toString();
-    return query.value("verified"_ls).toBool() || (isUserVerified(userId) && query.value("selfVerified"_ls).toBool());
+    const auto userId = query.value("matrixId"_L1).toString();
+    return query.value("verified"_L1).toBool() || (isUserVerified(userId) && query.value("selfVerified"_L1).toBool());
 }
 
 QString Connection::masterKeyForUser(const QString& userId) const
 {
-    auto query = database()->prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_ls);
-    query.bindValue(":userId"_ls, userId);
+    auto query = database()->prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_L1);
+    query.bindValue(":userId"_L1, userId);
     database()->execute(query);
-    return query.next() ? query.value("key"_ls).toString() : QString();
+    return query.next() ? query.value("key"_L1).toString() : QString();
 }
 
 bool Connection::isUserVerified(const QString& userId) const
 {
-    auto query = database()->prepareQuery("SELECT verified FROM master_keys WHERE userId=:userId"_ls);
-    query.bindValue(":userId"_ls, userId);
+    auto query = database()->prepareQuery("SELECT verified FROM master_keys WHERE userId=:userId"_L1);
+    query.bindValue(":userId"_L1, userId);
     database()->execute(query);
-    return query.next() && query.value("verified"_ls).toBool();
+    return query.next() && query.value("verified"_L1).toBool();
 }
 
 bool Connection::isVerifiedDevice(const QString& userId, const QString& deviceId) const
 {
-    auto query = database()->prepareQuery("SELECT verified, selfVerified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_ls);
-    query.bindValue(":deviceId"_ls, deviceId);
-    query.bindValue(":matrixId"_ls, userId);
+    auto query = database()->prepareQuery("SELECT verified, selfVerified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_L1);
+    query.bindValue(":deviceId"_L1, deviceId);
+    query.bindValue(":matrixId"_L1, userId);
     database()->execute(query);
     if (!query.next()) {
         return false;
     }
-    return query.value("verified"_ls).toBool() || (isUserVerified(userId) && query.value("selfVerified"_ls).toBool());
+    return query.value("verified"_L1).toBool() || (isUserVerified(userId) && query.value("selfVerified"_L1).toBool());
 }
 
 bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const
 {
-    auto query = database()->prepareQuery("SELECT verified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_ls);
-    query.bindValue(":deviceId"_ls, deviceId);
-    query.bindValue(":matrixId"_ls, userId);
+    auto query = database()->prepareQuery("SELECT verified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_L1);
+    query.bindValue(":deviceId"_L1, deviceId);
+    query.bindValue(":matrixId"_L1, userId);
     database()->execute(query);
     return query.next();
 }
@@ -1937,12 +1919,12 @@ QStringList Connection::accountDataEventTypes() const
 
 void Connection::startSelfVerification()
 {
-    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=1;"_ls);
-    query.bindValue(":matrixId"_ls, userId());
+    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=1;"_L1);
+    query.bindValue(":matrixId"_L1, userId());
     database()->execute(query);
     QStringList devices;
     while(query.next()) {
-        auto id = query.value("deviceId"_ls).toString();
+        auto id = query.value("deviceId"_L1).toString();
         if (id != deviceId()) {
             devices += id;
         }
@@ -1965,8 +1947,8 @@ void Connection::startSelfVerification()
 
 bool Connection::allSessionsSelfVerified(const QString& userId) const
 {
-    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=0;"_ls);
-    query.bindValue(":matrixId"_ls, userId);
+    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=0;"_L1);
+    query.bindValue(":matrixId"_L1, userId);
     database()->execute(query);
     return !query.next();
 }

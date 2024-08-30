@@ -47,10 +47,10 @@ public:
     // Result properties
 
     //! Ordered by rank and then whether or not profile info is available.
-    QVector<User> results() const { return loadFromJson<QVector<User>>("results"_ls); }
+    QVector<User> results() const { return loadFromJson<QVector<User>>("results"_L1); }
 
     //! Indicates if the result list has been truncated by the limit.
-    bool limited() const { return loadFromJson<bool>("limited"_ls); }
+    bool limited() const { return loadFromJson<bool>("limited"_L1); }
 
     struct Response {
         //! Ordered by rank and then whether or not profile info is available.
@@ -69,9 +69,9 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<SearchUserDirectoryJob::User> {
     static void fillFrom(const QJsonObject& jo, SearchUserDirectoryJob::User& result)
     {
-        fillFromJson(jo.value("user_id"_ls), result.userId);
-        fillFromJson(jo.value("display_name"_ls), result.displayName);
-        fillFromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+        fillFromJson(jo.value("user_id"_L1), result.userId);
+        fillFromJson(jo.value("display_name"_L1), result.displayName);
+        fillFromJson(jo.value("avatar_url"_L1), result.avatarUrl);
     }
 };
 

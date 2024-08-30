@@ -56,11 +56,11 @@ public:
     //! If the thread root event was sent by an [ignored user](/client-server-api/#ignoring-users),
     //! the event is returned redacted to the caller. This is to simulate the same behaviour of a
     //! client doing aggregation locally on the thread.
-    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_ls); }
+    RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
     //! A token to supply to `from` to keep paginating the responses. Not present when there are
     //! no further results.
-    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
     struct Response {
         //! The thread roots, ordered by the `latest_event` in each event's aggregated children. All

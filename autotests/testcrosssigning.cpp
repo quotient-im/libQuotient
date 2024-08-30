@@ -18,7 +18,7 @@ private Q_SLOTS:
     {
         auto path = QString::fromUtf8(__FILE__);
         path = path.left(path.lastIndexOf(QDir::separator()));
-        path += QStringLiteral("/cross_signing_data.json");
+        path += "/cross_signing_data.json"_L1;
         QFile file(path);
         file.open(QIODevice::ReadOnly);
         auto data = file.readAll();
@@ -27,25 +27,25 @@ private Q_SLOTS:
         jobMock.setResult(QJsonDocument::fromJson(data));
         auto mockKeys = collectResponse(&jobMock);
 
-        auto connection = Connection::makeMockConnection("@tobiasfella:kde.org"_ls, true);
+        auto connection = Connection::makeMockConnection("@tobiasfella:kde.org"_L1, true);
         connection->d->encryptionData->handleQueryKeys(mockKeys);
 
-        QVERIFY(!connection->isUserVerified("@tobiasfella:kde.org"_ls));
-        QVERIFY(!connection->isUserVerified("@carl:kde.org"_ls));
-        QVERIFY(!connection->isUserVerified("@eve:foo.bar"_ls));
-        QVERIFY(!connection->isUserVerified("@aloy:kde.org"_ls));
-        QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_ls, "LTLVYDIVMO"_ls));
-        connection->database()->setMasterKeyVerified("iiNvK2+mJtBXj6t+FVnaPBZ4e/M/n84wPJBfUVN38OE"_ls);
-        QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_ls));
+        QVERIFY(!connection->isUserVerified("@tobiasfella:kde.org"_L1));
+        QVERIFY(!connection->isUserVerified("@carl:kde.org"_L1));
+        QVERIFY(!connection->isUserVerified("@eve:foo.bar"_L1));
+        QVERIFY(!connection->isUserVerified("@aloy:kde.org"_L1));
+        QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_L1, "LTLVYDIVMO"_L1));
+        connection->database()->setMasterKeyVerified("iiNvK2+mJtBXj6t+FVnaPBZ4e/M/n84wPJBfUVN38OE"_L1);
+        QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_L1));
         connection->d->encryptionData->handleQueryKeys(mockKeys);
 
-        QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_ls));
-        QVERIFY(connection->isUserVerified("@aloy:kde.org"_ls));
-        QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_ls, "IDEJTUJQAF"_ls));
-        QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_ls, "DEADBEEF"_ls));
-        QVERIFY(connection->isVerifiedDevice("@tobiasfella:kde.org"_ls, "LTLVYDIVMO"_ls));
-        QVERIFY(connection->isVerifiedDevice("@aloy:kde.org"_ls, "BUJGIJTVJB"_ls));
-        QVERIFY(!connection->isVerifiedDevice("@aloy:kde.org"_ls, "VJIBVDKIST"_ls));
+        QVERIFY(connection->isUserVerified("@tobiasfella:kde.org"_L1));
+        QVERIFY(connection->isUserVerified("@aloy:kde.org"_L1));
+        QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_L1, "IDEJTUJQAF"_L1));
+        QVERIFY(!connection->isVerifiedDevice("@tobiasfella:kde.org"_L1, "DEADBEEF"_L1));
+        QVERIFY(connection->isVerifiedDevice("@tobiasfella:kde.org"_L1, "LTLVYDIVMO"_L1));
+        QVERIFY(connection->isVerifiedDevice("@aloy:kde.org"_L1, "BUJGIJTVJB"_L1));
+        QVERIFY(!connection->isVerifiedDevice("@aloy:kde.org"_L1, "VJIBVDKIST"_L1));
     }
 };
 QTEST_GUILESS_MAIN(TestCrossSigning)

@@ -12,10 +12,9 @@ namespace Quotient {
 
 class Connection;
 
-std::shared_ptr<Connection> createTestConnection(const QString& localUserName,
-                                                 const QString& secret,
-                                                 const QString& deviceName);
-
+std::shared_ptr<Connection> createTestConnection(QLatin1StringView localUserName,
+                                                 QLatin1StringView secret,
+                                                 QLatin1StringView deviceName);
 }
 
 #define CREATE_CONNECTION(VAR, USERNAME, SECRET, DEVICE_NAME)             \

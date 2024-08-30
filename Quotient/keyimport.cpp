@@ -28,8 +28,8 @@ const auto HeaderLength = VersionLength + AesBlockSize + AesBlockSize + RoundsLe
 
 Expected<QJsonArray, KeyImport::Error> KeyImport::decrypt(QString data, const QString& passphrase)
 {
-    data.remove("-----BEGIN MEGOLM SESSION DATA-----"_ls);
-    data.remove("-----END MEGOLM SESSION DATA-----"_ls);
+    data.remove("-----BEGIN MEGOLM SESSION DATA-----"_L1);
+    data.remove("-----END MEGOLM SESSION DATA-----"_L1);
     data.remove(u'\n');
     auto decoded = QByteArray::fromBase64(data.toLatin1());
     if (decoded[0] != 1) {
@@ -88,10 +88,10 @@ KeyImport::Error KeyImport::importKeys(QString data, const QString& passphrase, 
         }
         // We don't know the session index for these sessions here. We just pretend it's 0, it's not terribly important.
         room->addMegolmSessionFromBackup(
-            keyObject["session_id"_ls].toString().toLatin1(),
-            keyObject["session_key"_ls].toString().toLatin1(), 0,
+            keyObject["session_id"_L1].toString().toLatin1(),
+            keyObject["session_key"_L1].toString().toLatin1(), 0,
             keyObject[SenderKeyKey].toVariant().toByteArray(),
-            keyObject["sender_claimed_keys"_ls]["ed25519"_ls].toString().toLatin1()
+            keyObject["sender_claimed_keys"_L1]["ed25519"_L1].toString().toLatin1()
         );
     }
     return Success;

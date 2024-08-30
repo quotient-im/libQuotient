@@ -61,9 +61,9 @@ using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
 //! Predefined login flows
 namespace LoginFlows {
-    inline const LoginFlow Password { "m.login.password"_ls };
-    inline const LoginFlow SSO { "m.login.sso"_ls };
-    inline const LoginFlow Token { "m.login.token"_ls };
+    inline const LoginFlow Password { "m.login.password"_L1 };
+    inline const LoginFlow SSO { "m.login.sso"_L1 };
+    inline const LoginFlow Token { "m.login.token"_L1 };
 }
 
 // To simplify comparisons of LoginFlows
@@ -389,7 +389,7 @@ public:
         QString id;
         QString status;
 
-        static const QString StableTag; // "stable", as of CS API 0.5
+        static constexpr QStringView StableTag = u"stable";
         bool isStable() const { return status == StableTag; }
 
         friend QDebug operator<<(QDebug dbg, const SupportedRoomVersion& v)

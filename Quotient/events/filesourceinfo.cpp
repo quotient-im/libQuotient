@@ -17,7 +17,7 @@ using namespace Quotient;
 QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
                                  const EncryptedFileMetadata& metadata)
 {
-    if (QByteArray::fromBase64(metadata.hashes["sha256"_ls].toLatin1())
+    if (QByteArray::fromBase64(metadata.hashes["sha256"_L1].toLatin1())
         != QCryptographicHash::hash(ciphertext, QCryptographicHash::Sha256)) {
         qCWarning(E2EE) << "Hash verification failed for file";
         return {};
@@ -48,7 +48,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
                               | QByteArray::OmitTrailingEquals);
     auto iv = getRandom<AesBlockSize>();
     const JWK key = {
-        "oct"_ls, { "encrypt"_ls, "decrypt"_ls }, "A256CTR"_ls, QString::fromLatin1(kBase64), true
+        "oct"_L1, { "encrypt"_L1, "decrypt"_L1 }, "A256CTR"_L1, QString::fromLatin1(kBase64), true
     };
     auto result = aesCtr256Encrypt(plainText, k, iv);
     if (!result.has_value())
@@ -59,7 +59,7 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
     const EncryptedFileMetadata efm = {
         {}, key, QString::fromLatin1(ivBase64),
-        { { "sha256"_ls, QString::fromLatin1(hash) } }, "v2"_ls
+        { { "sha256"_L1, QString::fromLatin1(hash) } }, "v2"_L1
     };
     return { efm, result.value() };
 }
@@ -67,58 +67,55 @@ std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
 void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(
     QJsonObject& jo, const EncryptedFileMetadata& pod)
 {
-    addParam<>(jo, QStringLiteral("url"), pod.url);
-    addParam<>(jo, QStringLiteral("key"), pod.key);
-    addParam<>(jo, QStringLiteral("iv"), pod.iv);
-    addParam<>(jo, QStringLiteral("hashes"), pod.hashes);
-    addParam<>(jo, QStringLiteral("v"), pod.v);
+    addParam<>(jo, "url"_L1, pod.url);
+    addParam<>(jo, "key"_L1, pod.key);
+    addParam<>(jo, "iv"_L1, pod.iv);
+    addParam<>(jo, "hashes"_L1, pod.hashes);
+    addParam<>(jo, "v"_L1, pod.v);
 }
 
 void JsonObjectConverter<EncryptedFileMetadata>::fillFrom(
     const QJsonObject& jo, EncryptedFileMetadata& pod)
 {
-    fromJson(jo.value("url"_ls), pod.url);
-    fromJson(jo.value("key"_ls), pod.key);
-    fromJson(jo.value("iv"_ls), pod.iv);
-    fromJson(jo.value("hashes"_ls), pod.hashes);
-    fromJson(jo.value("v"_ls), pod.v);
+    fromJson(jo.value("url"_L1), pod.url);
+    fromJson(jo.value("key"_L1), pod.key);
+    fromJson(jo.value("iv"_L1), pod.iv);
+    fromJson(jo.value("hashes"_L1), pod.hashes);
+    fromJson(jo.value("v"_L1), pod.v);
 }
 
 void JsonObjectConverter<JWK>::dumpTo(QJsonObject& jo, const JWK& pod)
 {
-    addParam<>(jo, QStringLiteral("kty"), pod.kty);
-    addParam<>(jo, QStringLiteral("key_ops"), pod.keyOps);
-    addParam<>(jo, QStringLiteral("alg"), pod.alg);
-    addParam<>(jo, QStringLiteral("k"), pod.k);
-    addParam<>(jo, QStringLiteral("ext"), pod.ext);
+    addParam<>(jo, "kty"_L1, pod.kty);
+    addParam<>(jo, "key_ops"_L1, pod.keyOps);
+    addParam<>(jo, "alg"_L1, pod.alg);
+    addParam<>(jo, "k"_L1, pod.k);
+    addParam<>(jo, "ext"_L1, pod.ext);
 }
 
 void JsonObjectConverter<JWK>::fillFrom(const QJsonObject& jo, JWK& pod)
 {
-    fromJson(jo.value("kty"_ls), pod.kty);
-    fromJson(jo.value("key_ops"_ls), pod.keyOps);
-    fromJson(jo.value("alg"_ls), pod.alg);
-    fromJson(jo.value("k"_ls), pod.k);
-    fromJson(jo.value("ext"_ls), pod.ext);
+    fromJson(jo.value("kty"_L1), pod.kty);
+    fromJson(jo.value("key_ops"_L1), pod.keyOps);
+    fromJson(jo.value("alg"_L1), pod.alg);
+    fromJson(jo.value("k"_L1), pod.k);
+    fromJson(jo.value("ext"_L1), pod.ext);
 }
 
-QUrl Quotient::getUrlFromSourceInfo(const FileSourceInfo& fsi)
+namespace {
+template <typename FsiT>
+auto& getUrl(FsiT& fsi)
 {
-    return std::visit(Overloads { [](const QUrl& url) { return url; },
-                                  [](const EncryptedFileMetadata& efm) {
-                                      return efm.url;
-                                  } },
-                      fsi);
+    return std::visit( // std::variant_alternative_t<> applies const from FsiT if it's there
+        Overloads{ [](std::variant_alternative_t<0, FsiT>& url) -> auto& { return url; },
+                   [](std::variant_alternative_t<1, FsiT>& efm) -> auto& { return efm.url; } },
+        fsi);
+}
 }
 
-void Quotient::setUrlInSourceInfo(FileSourceInfo& fsi, const QUrl& newUrl)
-{
-    std::visit(Overloads { [&newUrl](QUrl& url) { url = newUrl; },
-                           [&newUrl](EncryptedFileMetadata& efm) {
-                               efm.url = newUrl;
-                           } },
-               fsi);
-}
+QUrl Quotient::getUrlFromSourceInfo(const FileSourceInfo& fsi) { return getUrl(fsi); }
+
+void Quotient::setUrlInSourceInfo(FileSourceInfo& fsi, const QUrl& newUrl) { getUrl(fsi) = newUrl; }
 
 void Quotient::fillJson(QJsonObject& jo,
                         const std::array<QLatin1String, 2>& jsonKeys,

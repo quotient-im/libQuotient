@@ -35,19 +35,19 @@ template <>
 struct JsonObjectConverter<DeviceKeys> {
     static void dumpTo(QJsonObject& jo, const DeviceKeys& pod)
     {
-        addParam<>(jo, QStringLiteral("user_id"), pod.userId);
-        addParam<>(jo, QStringLiteral("device_id"), pod.deviceId);
-        addParam<>(jo, QStringLiteral("algorithms"), pod.algorithms);
-        addParam<>(jo, QStringLiteral("keys"), pod.keys);
-        addParam<>(jo, QStringLiteral("signatures"), pod.signatures);
+        addParam<>(jo, "user_id"_L1, pod.userId);
+        addParam<>(jo, "device_id"_L1, pod.deviceId);
+        addParam<>(jo, "algorithms"_L1, pod.algorithms);
+        addParam<>(jo, "keys"_L1, pod.keys);
+        addParam<>(jo, "signatures"_L1, pod.signatures);
     }
     static void fillFrom(const QJsonObject& jo, DeviceKeys& pod)
     {
-        fillFromJson(jo.value("user_id"_ls), pod.userId);
-        fillFromJson(jo.value("device_id"_ls), pod.deviceId);
-        fillFromJson(jo.value("algorithms"_ls), pod.algorithms);
-        fillFromJson(jo.value("keys"_ls), pod.keys);
-        fillFromJson(jo.value("signatures"_ls), pod.signatures);
+        fillFromJson(jo.value("user_id"_L1), pod.userId);
+        fillFromJson(jo.value("device_id"_L1), pod.deviceId);
+        fillFromJson(jo.value("algorithms"_L1), pod.algorithms);
+        fillFromJson(jo.value("keys"_L1), pod.keys);
+        fillFromJson(jo.value("signatures"_L1), pod.signatures);
     }
 };
 

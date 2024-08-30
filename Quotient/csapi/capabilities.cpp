@@ -10,7 +10,7 @@ QUrl GetCapabilitiesJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetCapabilitiesJob::GetCapabilitiesJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetCapabilitiesJob"),
+    : BaseJob(HttpVerb::Get, u"GetCapabilitiesJob"_s,
               makePath("/_matrix/client/v3", "/capabilities"))
 {
     addExpectedKey("capabilities");

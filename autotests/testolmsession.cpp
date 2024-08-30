@@ -12,23 +12,21 @@ std::pair<QOlmSession, QOlmSession> createSessionPair()
 {
     QByteArray pickledAccountA("eOBXIKivUT6YYowRH031BNv7zNmzqM5B7CpXdyeaPvala5mt7/OeqrG1qVA7vA1SYloFyvJPIy0QNkD3j1HiPl5vtZHN53rtfZ9exXDok03zjmssqn4IJsqcA7Fbo1FZeKafG0NFcWwCPTdmcV7REqxjqGm3I4K8MQFa45AdTGSUu2C12cWeOcbSMlcINiMral+Uyah1sgPmLJ18h1qcnskXUXQvpffZ5DiUw1Iz5zxnwOQF1GVyowPJD7Zdugvj75RQnDxAn6CzyvrY2k2CuedwqDC3fIXM2xdUNWttW4nC2g4InpBhCVvNwhZYxlUb5BUEjmPI2AB3dAL5ry6o9MFncmbN6x5x");
     QByteArray pickledAccountB("eModTvoFi9oOIkax4j4nuxw9Tcl/J8mOmUctUWI68Q89HSaaPTqR+tdlKQ85v2GOs5NlZCp7EuycypN9GQ4fFbHUCrS7nspa3GFBWsR8PnM8+wez5PWmfFZLg3drOvT0jbMjpDx0MjGYClHBqcrEpKx9oFaIRGBaX6HXzT4lRaWSJkXxuX92q8iGNrLn96PuAWFNcD+2JXpPcNFntslwLUNgqzpZ04aIFYwL80GmzyOgq3Bz1GO6u3TgCQEAmTIYN2QkO0MQeuSfe7UoMumhlAJ6R8GPcdSSPtmXNk4tdyzzlgpVq1hm7ZLKto+g8/5Aq3PvnvA8wCqno2+Pi1duK1pZFTIlActr");
-    auto accountA = QOlmAccount(u"accountA:foo.com", u"Device1UserA");
+    auto accountA = QOlmAccount(u"accountA:foo.com"_s, u"Device1UserA"_s);
     if (accountA.unpickle(std::move(pickledAccountA), PicklingKey::mock())
         != OLM_SUCCESS)
         qFatal("Failed to unpickle account A: %s", accountA.lastError());
 
-    auto accountB = QOlmAccount(u"accountB:foo.com", u"Device1UserB");
+    auto accountB = QOlmAccount(u"accountB:foo.com"_s, u"Device1UserB"_s);
     if (accountB.unpickle(std::move(pickledAccountB), PicklingKey::mock())
         != OLM_SUCCESS)
         qFatal("Failed to unpickle account B: %s", accountB.lastError());
 
-
-    const QByteArray identityKeyA("qIEr3TWcJQt4CP8QoKKJcCaukByIOpgh6erBkhLEa2o");
-    const QByteArray oneTimeKeyA("WzsbsjD85iB1R32iWxfJdwkgmdz29ClMbJSJziECYwk");
-    const QByteArray identityKeyB("q/YhJtog/5VHCAS9rM9uUf6AaFk1yPe4GYuyUOXyQCg");
-    const QByteArray oneTimeKeyB("oWvzryma+B2onYjo3hM6A3Mgo/Yepm8HvgSvwZMTnjQ");
-    auto outbound =
-        accountA.createOutboundSession(identityKeyB, oneTimeKeyB).value();
+    //const auto identityKeyA = "qIEr3TWcJQt4CP8QoKKJcCaukByIOpgh6erBkhLEa2o"_ba;
+    //const auto oneTimeKeyA = "WzsbsjD85iB1R32iWxfJdwkgmdz29ClMbJSJziECYwk"_ba;
+    const auto identityKeyB = "q/YhJtog/5VHCAS9rM9uUf6AaFk1yPe4GYuyUOXyQCg"_ba;
+    const auto oneTimeKeyB = "oWvzryma+B2onYjo3hM6A3Mgo/Yepm8HvgSvwZMTnjQ"_ba;
+    auto outbound = accountA.createOutboundSession(identityKeyB, oneTimeKeyB).value();
 
     const auto preKey = outbound.encrypt(""); // Payload does not matter for PreKey
 

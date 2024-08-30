@@ -130,7 +130,7 @@ public:
 
     // Result properties
 
-    StateEvents chunk() { return takeFromJson<StateEvents>("chunk"_ls); }
+    StateEvents chunk() { return takeFromJson<StateEvents>("chunk"_L1); }
 };
 
 inline auto collectResponse(GetMembersByRoomJob* job) { return job->chunk(); }
@@ -171,7 +171,7 @@ public:
     //! A map from user ID to a RoomMember object.
     QHash<UserId, RoomMember> joined() const
     {
-        return loadFromJson<QHash<UserId, RoomMember>>("joined"_ls);
+        return loadFromJson<QHash<UserId, RoomMember>>("joined"_L1);
     }
 };
 
@@ -181,8 +181,8 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember> {
     static void fillFrom(const QJsonObject& jo, GetJoinedMembersByRoomJob::RoomMember& result)
     {
-        fillFromJson(jo.value("display_name"_ls), result.displayName);
-        fillFromJson(jo.value("avatar_url"_ls), result.avatarUrl);
+        fillFromJson(jo.value("display_name"_L1), result.displayName);
+        fillFromJson(jo.value("avatar_url"_L1), result.avatarUrl);
     }
 };
 

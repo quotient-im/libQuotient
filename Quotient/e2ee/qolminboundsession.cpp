@@ -122,7 +122,7 @@ QOlmExpected<QByteArray> QOlmInboundGroupSession::exportSession(
                                          messageIndex)
         == olm_error()) {
         QOLM_FAIL_OR_LOG(OLM_OUTPUT_BUFFER_TOO_SMALL,
-                         "Failed to export the inbound group session"_ls);
+                         "Failed to export the inbound group session"_L1);
         return lastErrorCode();
     }
     return keyBuf;

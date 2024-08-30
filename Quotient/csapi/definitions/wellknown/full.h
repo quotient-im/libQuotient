@@ -24,13 +24,13 @@ struct JsonObjectConverter<DiscoveryInformation> {
     static void dumpTo(QJsonObject& jo, const DiscoveryInformation& pod)
     {
         fillJson(jo, pod.additionalProperties);
-        addParam<>(jo, QStringLiteral("m.homeserver"), pod.homeserver);
-        addParam<IfNotEmpty>(jo, QStringLiteral("m.identity_server"), pod.identityServer);
+        addParam<>(jo, "m.homeserver"_L1, pod.homeserver);
+        addParam<IfNotEmpty>(jo, "m.identity_server"_L1, pod.identityServer);
     }
     static void fillFrom(QJsonObject jo, DiscoveryInformation& pod)
     {
-        fillFromJson(jo.take("m.homeserver"_ls), pod.homeserver);
-        fillFromJson(jo.take("m.identity_server"_ls), pod.identityServer);
+        fillFromJson(jo.take("m.homeserver"_L1), pod.homeserver);
+        fillFromJson(jo.take("m.identity_server"_L1), pod.identityServer);
         fromJson(jo, pod.additionalProperties);
     }
 };

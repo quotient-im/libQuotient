@@ -26,7 +26,7 @@ public:
     // Result properties
 
     //! The backup version. This is an opaque string.
-    QString version() const { return loadFromJson<QString>("version"_ls); }
+    QString version() const { return loadFromJson<QString>("version"_L1); }
 };
 
 inline auto collectResponse(const PostRoomKeysVersionJob* job) { return job->version(); }
@@ -47,24 +47,24 @@ public:
     // Result properties
 
     //! The algorithm used for storing backups.
-    QString algorithm() const { return loadFromJson<QString>("algorithm"_ls); }
+    QString algorithm() const { return loadFromJson<QString>("algorithm"_L1); }
 
     //! Algorithm-dependent data. See the documentation for the backup
     //! algorithms in [Server-side key backups](/client-server-api/#server-side-key-backups) for
     //! more information on the expected format of the data.
-    QJsonObject authData() const { return loadFromJson<QJsonObject>("auth_data"_ls); }
+    QJsonObject authData() const { return loadFromJson<QJsonObject>("auth_data"_L1); }
 
     //! The number of keys stored in the backup.
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     //! An opaque string representing stored keys in the backup.
     //! Clients can compare it with the `etag` value they received
     //! in the request of their last key storage request.  If not
     //! equal, another client has modified the backup.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The backup version.
-    QString version() const { return loadFromJson<QString>("version"_ls); }
+    QString version() const { return loadFromJson<QString>("version"_L1); }
 
     struct Response {
         //! The algorithm used for storing backups.
@@ -117,24 +117,24 @@ public:
     // Result properties
 
     //! The algorithm used for storing backups.
-    QString algorithm() const { return loadFromJson<QString>("algorithm"_ls); }
+    QString algorithm() const { return loadFromJson<QString>("algorithm"_L1); }
 
     //! Algorithm-dependent data. See the documentation for the backup
     //! algorithms in [Server-side key backups](/client-server-api/#server-side-key-backups) for
     //! more information on the expected format of the data.
-    QJsonObject authData() const { return loadFromJson<QJsonObject>("auth_data"_ls); }
+    QJsonObject authData() const { return loadFromJson<QJsonObject>("auth_data"_L1); }
 
     //! The number of keys stored in the backup.
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     //! An opaque string representing stored keys in the backup.
     //! Clients can compare it with the `etag` value they received
     //! in the request of their last key storage request.  If not
     //! equal, another client has modified the backup.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The backup version.
-    QString version() const { return loadFromJson<QString>("version"_ls); }
+    QString version() const { return loadFromJson<QString>("version"_L1); }
 
     struct Response {
         //! The algorithm used for storing backups.
@@ -234,10 +234,10 @@ public:
 
     //! The new etag value representing stored keys in the backup.
     //! See `GET /room_keys/version/{version}` for more details.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The number of keys stored in the backup
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     struct Response {
         //! The new etag value representing stored keys in the backup.
@@ -311,10 +311,10 @@ public:
 
     //! The new etag value representing stored keys in the backup.
     //! See `GET /room_keys/version/{version}` for more details.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The number of keys stored in the backup
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     struct Response {
         //! The new etag value representing stored keys in the backup.
@@ -350,10 +350,10 @@ public:
 
     //! The new etag value representing stored keys in the backup.
     //! See `GET /room_keys/version/{version}` for more details.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The number of keys stored in the backup
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     struct Response {
         //! The new etag value representing stored keys in the backup.
@@ -420,10 +420,10 @@ public:
 
     //! The new etag value representing stored keys in the backup.
     //! See `GET /room_keys/version/{version}` for more details.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The number of keys stored in the backup
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     struct Response {
         //! The new etag value representing stored keys in the backup.
@@ -455,10 +455,10 @@ public:
 
     //! The new etag value representing stored keys in the backup.
     //! See `GET /room_keys/version/{version}` for more details.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The number of keys stored in the backup
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     struct Response {
         //! The new etag value representing stored keys in the backup.
@@ -494,7 +494,7 @@ public:
     //! A map of room IDs to room key backup data.
     QHash<RoomId, RoomKeyBackup> rooms() const
     {
-        return loadFromJson<QHash<RoomId, RoomKeyBackup>>("rooms"_ls);
+        return loadFromJson<QHash<RoomId, RoomKeyBackup>>("rooms"_L1);
     }
 };
 
@@ -519,10 +519,10 @@ public:
 
     //! The new etag value representing stored keys in the backup.
     //! See `GET /room_keys/version/{version}` for more details.
-    QString etag() const { return loadFromJson<QString>("etag"_ls); }
+    QString etag() const { return loadFromJson<QString>("etag"_L1); }
 
     //! The number of keys stored in the backup
-    int count() const { return loadFromJson<int>("count"_ls); }
+    int count() const { return loadFromJson<int>("count"_L1); }
 
     struct Response {
         //! The new etag value representing stored keys in the backup.

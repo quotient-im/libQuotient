@@ -40,7 +40,7 @@ public:
     // Result properties
 
     //! The user's display name if they have set one, otherwise not present.
-    QString displayname() const { return loadFromJson<QString>("displayname"_ls); }
+    QString displayname() const { return loadFromJson<QString>("displayname"_L1); }
 };
 
 inline auto collectResponse(const GetDisplayNameJob* job) { return job->displayname(); }
@@ -79,7 +79,7 @@ public:
     // Result properties
 
     //! The user's avatar URL if they have set one, otherwise not present.
-    QUrl avatarUrl() const { return loadFromJson<QUrl>("avatar_url"_ls); }
+    QUrl avatarUrl() const { return loadFromJson<QUrl>("avatar_url"_L1); }
 };
 
 inline auto collectResponse(const GetAvatarUrlJob* job) { return job->avatarUrl(); }
@@ -105,10 +105,10 @@ public:
     // Result properties
 
     //! The user's avatar URL if they have set one, otherwise not present.
-    QUrl avatarUrl() const { return loadFromJson<QUrl>("avatar_url"_ls); }
+    QUrl avatarUrl() const { return loadFromJson<QUrl>("avatar_url"_L1); }
 
     //! The user's display name if they have set one, otherwise not present.
-    QString displayname() const { return loadFromJson<QString>("displayname"_ls); }
+    QString displayname() const { return loadFromJson<QString>("displayname"_L1); }
 
     struct Response {
         //! The user's avatar URL if they have set one, otherwise not present.

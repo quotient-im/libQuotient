@@ -7,14 +7,14 @@ using namespace Quotient;
 auto queryToUploadContent(const QString& filename)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("filename"), filename);
+    addParam<IfNotEmpty>(_q, u"filename"_s, filename);
     return _q;
 }
 
 UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename,
                                    const QString& contentType)
-    : BaseJob(HttpVerb::Post, QStringLiteral("UploadContentJob"),
-              makePath("/_matrix", "/media/v3/upload"), queryToUploadContent(filename))
+    : BaseJob(HttpVerb::Post, u"UploadContentJob"_s, makePath("/_matrix", "/media/v3/upload"),
+              queryToUploadContent(filename))
 {
     setRequestHeader("Content-Type", contentType.toLatin1());
     setRequestData({ content });
@@ -24,14 +24,14 @@ UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename,
 auto queryToUploadContentToMXC(const QString& filename)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("filename"), filename);
+    addParam<IfNotEmpty>(_q, u"filename"_s, filename);
     return _q;
 }
 
 UploadContentToMXCJob::UploadContentToMXCJob(const QString& serverName, const QString& mediaId,
                                              QIODevice* content, const QString& filename,
                                              const QString& contentType)
-    : BaseJob(HttpVerb::Put, QStringLiteral("UploadContentToMXCJob"),
+    : BaseJob(HttpVerb::Put, u"UploadContentToMXCJob"_s,
               makePath("/_matrix", "/media/v3/upload/", serverName, "/", mediaId),
               queryToUploadContentToMXC(filename))
 {
@@ -45,8 +45,7 @@ QUrl CreateContentJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 CreateContentJob::CreateContentJob()
-    : BaseJob(HttpVerb::Post, QStringLiteral("CreateContentJob"),
-              makePath("/_matrix", "/media/v1/create"))
+    : BaseJob(HttpVerb::Post, u"CreateContentJob"_s, makePath("/_matrix", "/media/v1/create"))
 {
     addExpectedKey("content_uri");
 }
@@ -54,9 +53,9 @@ CreateContentJob::CreateContentJob()
 auto queryToGetContent(bool allowRemote, qint64 timeoutMs, bool allowRedirect)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("allow_remote"), allowRemote);
-    addParam<IfNotEmpty>(_q, QStringLiteral("timeout_ms"), timeoutMs);
-    addParam<IfNotEmpty>(_q, QStringLiteral("allow_redirect"), allowRedirect);
+    addParam<IfNotEmpty>(_q, u"allow_remote"_s, allowRemote);
+    addParam<IfNotEmpty>(_q, u"timeout_ms"_s, timeoutMs);
+    addParam<IfNotEmpty>(_q, u"allow_redirect"_s, allowRedirect);
     return _q;
 }
 
@@ -72,7 +71,7 @@ QUrl GetContentJob::makeRequestUrl(const HomeserverData& hsData, const QString& 
 
 GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId, bool allowRemote,
                              qint64 timeoutMs, bool allowRedirect)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetContentJob"),
+    : BaseJob(HttpVerb::Get, u"GetContentJob"_s,
               makePath("/_matrix", "/media/v3/download/", serverName, "/", mediaId),
               queryToGetContent(allowRemote, timeoutMs, allowRedirect), {}, false)
 {
@@ -82,9 +81,9 @@ GetContentJob::GetContentJob(const QString& serverName, const QString& mediaId, 
 auto queryToGetContentOverrideName(bool allowRemote, qint64 timeoutMs, bool allowRedirect)
 {
     QUrlQuery _q;
-    addParam<IfNotEmpty>(_q, QStringLiteral("allow_remote"), allowRemote);
-    addParam<IfNotEmpty>(_q, QStringLiteral("timeout_ms"), timeoutMs);
-    addParam<IfNotEmpty>(_q, QStringLiteral("allow_redirect"), allowRedirect);
+    addParam<IfNotEmpty>(_q, u"allow_remote"_s, allowRemote);
+    addParam<IfNotEmpty>(_q, u"timeout_ms"_s, timeoutMs);
+    addParam<IfNotEmpty>(_q, u"allow_redirect"_s, allowRedirect);
     return _q;
 }
 
@@ -102,7 +101,7 @@ GetContentOverrideNameJob::GetContentOverrideNameJob(const QString& serverName,
                                                      const QString& mediaId,
                                                      const QString& fileName, bool allowRemote,
                                                      qint64 timeoutMs, bool allowRedirect)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetContentOverrideNameJob"),
+    : BaseJob(HttpVerb::Get, u"GetContentOverrideNameJob"_s,
               makePath("/_matrix", "/media/v3/download/", serverName, "/", mediaId, "/", fileName),
               queryToGetContentOverrideName(allowRemote, timeoutMs, allowRedirect), {}, false)
 {
@@ -113,13 +112,13 @@ auto queryToGetContentThumbnail(int width, int height, const QString& method, bo
                                 qint64 timeoutMs, bool allowRedirect, std::optional<bool> animated)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("width"), width);
-    addParam<>(_q, QStringLiteral("height"), height);
-    addParam<IfNotEmpty>(_q, QStringLiteral("method"), method);
-    addParam<IfNotEmpty>(_q, QStringLiteral("allow_remote"), allowRemote);
-    addParam<IfNotEmpty>(_q, QStringLiteral("timeout_ms"), timeoutMs);
-    addParam<IfNotEmpty>(_q, QStringLiteral("allow_redirect"), allowRedirect);
-    addParam<IfNotEmpty>(_q, QStringLiteral("animated"), animated);
+    addParam<>(_q, u"width"_s, width);
+    addParam<>(_q, u"height"_s, height);
+    addParam<IfNotEmpty>(_q, u"method"_s, method);
+    addParam<IfNotEmpty>(_q, u"allow_remote"_s, allowRemote);
+    addParam<IfNotEmpty>(_q, u"timeout_ms"_s, timeoutMs);
+    addParam<IfNotEmpty>(_q, u"allow_redirect"_s, allowRedirect);
+    addParam<IfNotEmpty>(_q, u"animated"_s, animated);
     return _q;
 }
 
@@ -140,7 +139,7 @@ GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const 
                                                int width, int height, const QString& method,
                                                bool allowRemote, qint64 timeoutMs,
                                                bool allowRedirect, std::optional<bool> animated)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetContentThumbnailJob"),
+    : BaseJob(HttpVerb::Get, u"GetContentThumbnailJob"_s,
               makePath("/_matrix", "/media/v3/thumbnail/", serverName, "/", mediaId),
               queryToGetContentThumbnail(width, height, method, allowRemote, timeoutMs,
                                          allowRedirect, animated),
@@ -152,8 +151,8 @@ GetContentThumbnailJob::GetContentThumbnailJob(const QString& serverName, const 
 auto queryToGetUrlPreview(const QUrl& url, std::optional<qint64> ts)
 {
     QUrlQuery _q;
-    addParam<>(_q, QStringLiteral("url"), url);
-    addParam<IfNotEmpty>(_q, QStringLiteral("ts"), ts);
+    addParam<>(_q, u"url"_s, url);
+    addParam<IfNotEmpty>(_q, u"ts"_s, ts);
     return _q;
 }
 
@@ -165,8 +164,8 @@ QUrl GetUrlPreviewJob::makeRequestUrl(const HomeserverData& hsData, const QUrl& 
 }
 
 GetUrlPreviewJob::GetUrlPreviewJob(const QUrl& url, std::optional<qint64> ts)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetUrlPreviewJob"),
-              makePath("/_matrix", "/media/v3/preview_url"), queryToGetUrlPreview(url, ts))
+    : BaseJob(HttpVerb::Get, u"GetUrlPreviewJob"_s, makePath("/_matrix", "/media/v3/preview_url"),
+              queryToGetUrlPreview(url, ts))
 {}
 
 QUrl GetConfigJob::makeRequestUrl(const HomeserverData& hsData)
@@ -175,6 +174,5 @@ QUrl GetConfigJob::makeRequestUrl(const HomeserverData& hsData)
 }
 
 GetConfigJob::GetConfigJob()
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetConfigJob"),
-              makePath("/_matrix", "/media/v3/config"))
+    : BaseJob(HttpVerb::Get, u"GetConfigJob"_s, makePath("/_matrix", "/media/v3/config"))
 {}

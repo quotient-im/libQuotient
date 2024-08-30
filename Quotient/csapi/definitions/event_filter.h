@@ -34,19 +34,19 @@ template <>
 struct JsonObjectConverter<EventFilter> {
     static void dumpTo(QJsonObject& jo, const EventFilter& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("limit"), pod.limit);
-        addParam<IfNotEmpty>(jo, QStringLiteral("not_senders"), pod.notSenders);
-        addParam<IfNotEmpty>(jo, QStringLiteral("not_types"), pod.notTypes);
-        addParam<IfNotEmpty>(jo, QStringLiteral("senders"), pod.senders);
-        addParam<IfNotEmpty>(jo, QStringLiteral("types"), pod.types);
+        addParam<IfNotEmpty>(jo, "limit"_L1, pod.limit);
+        addParam<IfNotEmpty>(jo, "not_senders"_L1, pod.notSenders);
+        addParam<IfNotEmpty>(jo, "not_types"_L1, pod.notTypes);
+        addParam<IfNotEmpty>(jo, "senders"_L1, pod.senders);
+        addParam<IfNotEmpty>(jo, "types"_L1, pod.types);
     }
     static void fillFrom(const QJsonObject& jo, EventFilter& pod)
     {
-        fillFromJson(jo.value("limit"_ls), pod.limit);
-        fillFromJson(jo.value("not_senders"_ls), pod.notSenders);
-        fillFromJson(jo.value("not_types"_ls), pod.notTypes);
-        fillFromJson(jo.value("senders"_ls), pod.senders);
-        fillFromJson(jo.value("types"_ls), pod.types);
+        fillFromJson(jo.value("limit"_L1), pod.limit);
+        fillFromJson(jo.value("not_senders"_L1), pod.notSenders);
+        fillFromJson(jo.value("not_types"_L1), pod.notTypes);
+        fillFromJson(jo.value("senders"_L1), pod.senders);
+        fillFromJson(jo.value("types"_L1), pod.types);
     }
 };
 

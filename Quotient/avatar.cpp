@@ -179,7 +179,7 @@ bool Avatar::Private::checkUrl(const QUrl& url) const
 
     // FIXME: Make "mxc" a library-wide constant and maybe even make
     // the URL checker a Connection(?) method.
-    if (!url.isValid() || url.scheme() != "mxc"_ls || url.path().count(u'/') != 1) {
+    if (!url.isValid() || url.scheme() != "mxc"_L1 || url.path().count(u'/') != 1) {
         qCWarning(MAIN) << "Avatar URL is invalid or not mxc-based:"
                         << url.toDisplayString();
         _imageSource = Invalid;
@@ -189,8 +189,8 @@ bool Avatar::Private::checkUrl(const QUrl& url) const
 
 QString Avatar::Private::localFile() const
 {
-    static const auto cachePath = cacheLocation(QStringLiteral("avatars"));
-    return cachePath % _url.authority() % u'_' % _url.fileName() % ".png"_ls;
+    static const auto cachePath = cacheLocation(u"avatars");
+    return cachePath % _url.authority() % u'_' % _url.fileName() % ".png"_L1;
 }
 
 QUrl Avatar::url() const { return d->_url; }

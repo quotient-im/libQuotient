@@ -24,19 +24,19 @@ template <>
 struct JsonObjectConverter<PushRuleset> {
     static void dumpTo(QJsonObject& jo, const PushRuleset& pod)
     {
-        addParam<IfNotEmpty>(jo, QStringLiteral("content"), pod.content);
-        addParam<IfNotEmpty>(jo, QStringLiteral("override"), pod.override);
-        addParam<IfNotEmpty>(jo, QStringLiteral("room"), pod.room);
-        addParam<IfNotEmpty>(jo, QStringLiteral("sender"), pod.sender);
-        addParam<IfNotEmpty>(jo, QStringLiteral("underride"), pod.underride);
+        addParam<IfNotEmpty>(jo, "content"_L1, pod.content);
+        addParam<IfNotEmpty>(jo, "override"_L1, pod.override);
+        addParam<IfNotEmpty>(jo, "room"_L1, pod.room);
+        addParam<IfNotEmpty>(jo, "sender"_L1, pod.sender);
+        addParam<IfNotEmpty>(jo, "underride"_L1, pod.underride);
     }
     static void fillFrom(const QJsonObject& jo, PushRuleset& pod)
     {
-        fillFromJson(jo.value("content"_ls), pod.content);
-        fillFromJson(jo.value("override"_ls), pod.override);
-        fillFromJson(jo.value("room"_ls), pod.room);
-        fillFromJson(jo.value("sender"_ls), pod.sender);
-        fillFromJson(jo.value("underride"_ls), pod.underride);
+        fillFromJson(jo.value("content"_L1), pod.content);
+        fillFromJson(jo.value("override"_L1), pod.override);
+        fillFromJson(jo.value("room"_L1), pod.room);
+        fillFromJson(jo.value("sender"_L1), pod.sender);
+        fillFromJson(jo.value("underride"_L1), pod.underride);
     }
 };
 

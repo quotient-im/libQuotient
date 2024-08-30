@@ -29,7 +29,7 @@ public:
     // Result properties
 
     //! The global ruleset.
-    PushRuleset global() const { return loadFromJson<PushRuleset>("global"_ls); }
+    PushRuleset global() const { return loadFromJson<PushRuleset>("global"_L1); }
 };
 
 inline auto collectResponse(const GetPushRulesJob* job) { return job->global(); }
@@ -171,7 +171,7 @@ public:
     // Result properties
 
     //! Whether the push rule is enabled or not.
-    bool enabled() const { return loadFromJson<bool>("enabled"_ls); }
+    bool enabled() const { return loadFromJson<bool>("enabled"_L1); }
 };
 
 inline auto collectResponse(const IsPushRuleEnabledJob* job) { return job->enabled(); }
@@ -222,7 +222,7 @@ public:
     // Result properties
 
     //! The action(s) to perform for this rule.
-    QVector<QVariant> actions() const { return loadFromJson<QVector<QVariant>>("actions"_ls); }
+    QVector<QVariant> actions() const { return loadFromJson<QVector<QVariant>>("actions"_L1); }
 };
 
 inline auto collectResponse(const GetPushRuleActionsJob* job) { return job->actions(); }

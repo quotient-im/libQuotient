@@ -31,9 +31,9 @@ class QUOTIENT_API BaseJob : public QObject {
 
     static QByteArray encodeIfParam(const QString& paramPart);
     template <int N>
-    static auto encodeIfParam(const char (&constPart)[N])
+    static auto encodeIfParam(const char (&literalPart)[N])
     {
-        return constPart;
+        return literalPart;
     }
 
 public:
@@ -74,9 +74,9 @@ public:
     Q_ENUM(StatusCode)
 
     template <typename... StrTs>
-    static QByteArray makePath(StrTs&&... parts)
+    static QByteArray makePath(QByteArrayView base, StrTs&&... parts)
     {
-        return (QByteArray() % ... % encodeIfParam(parts));
+        return (base % ... % encodeIfParam(std::forward<StrTs>(parts)));
     }
 
     //! \brief The status of a job
@@ -173,12 +173,11 @@ public:
     //!
     //! If there's no top-level JSON object in the response or if there's
     //! no node with the key \p keyName, \p defaultValue is returned.
-    template <typename T, typename StrT>
-    T loadFromJson(const StrT& keyName, T&& defaultValue = {}) const
+    template <typename T>
+    T loadFromJson(auto keyName, T&& defaultValue = {}) const
     {
         const auto& jv = jsonData().value(keyName);
-        return jv.isUndefined() ? std::forward<T>(defaultValue)
-                                : fromJson<T>(jv);
+        return jv.isUndefined() ? std::forward<T>(defaultValue) : fromJson<T>(jv);
     }
 
     //! \brief Load the property from the JSON response and delete it from JSON
@@ -186,7 +185,7 @@ public:
     //! If there's no top-level JSON object in the response or if there's
     //! no node with the key \p keyName, \p defaultValue is returned.
     template <typename T>
-    T takeFromJson(const QString& key, T&& defaultValue = {})
+    T takeFromJson(auto key, T&& defaultValue = {})
     {
         if (const auto& jv = takeValueFromJson(key); !jv.isUndefined())
             return fromJson<T>(jv);
@@ -399,7 +398,7 @@ protected:
     //!         have \p key; the value for \p key otherwise.
     //!
     //! \sa takeFromJson
-    QJsonValue takeValueFromJson(const QString& key);
+    QJsonValue takeValueFromJson(QAnyStringView key);
 
     void setStatus(Status s);
     void setStatus(int code, QString message);

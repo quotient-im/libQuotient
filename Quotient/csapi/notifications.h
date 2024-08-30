@@ -66,12 +66,12 @@ public:
     //! The token to supply in the `from` param of the next
     //! `/notifications` request in order to request more
     //! events. If this is absent, there are no more results.
-    QString nextToken() const { return loadFromJson<QString>("next_token"_ls); }
+    QString nextToken() const { return loadFromJson<QString>("next_token"_L1); }
 
     //! The list of events that triggered notifications.
     std::vector<Notification> notifications()
     {
-        return takeFromJson<std::vector<Notification>>("notifications"_ls);
+        return takeFromJson<std::vector<Notification>>("notifications"_L1);
     }
 
     struct Response {
@@ -93,12 +93,12 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetNotificationsJob::Notification> {
     static void fillFrom(const QJsonObject& jo, GetNotificationsJob::Notification& result)
     {
-        fillFromJson(jo.value("actions"_ls), result.actions);
-        fillFromJson(jo.value("event"_ls), result.event);
-        fillFromJson(jo.value("read"_ls), result.read);
-        fillFromJson(jo.value("room_id"_ls), result.roomId);
-        fillFromJson(jo.value("ts"_ls), result.ts);
-        fillFromJson(jo.value("profile_tag"_ls), result.profileTag);
+        fillFromJson(jo.value("actions"_L1), result.actions);
+        fillFromJson(jo.value("event"_L1), result.event);
+        fillFromJson(jo.value("read"_L1), result.read);
+        fillFromJson(jo.value("room_id"_L1), result.roomId);
+        fillFromJson(jo.value("ts"_L1), result.ts);
+        fillFromJson(jo.value("profile_tag"_L1), result.profileTag);
     }
 };
 

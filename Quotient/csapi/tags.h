@@ -30,7 +30,7 @@ public:
 
     // Result properties
 
-    QHash<QString, Tag> tags() const { return loadFromJson<QHash<QString, Tag>>("tags"_ls); }
+    QHash<QString, Tag> tags() const { return loadFromJson<QHash<QString, Tag>>("tags"_L1); }
 };
 
 inline auto collectResponse(const GetRoomTagsJob* job) { return job->tags(); }

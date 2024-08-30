@@ -3,9 +3,6 @@
 
 #include "settings.h"
 
-#include "logging_categories_p.h"
-#include "util.h"
-
 #include <QtCore/QUrl>
 
 using namespace Quotient;
@@ -23,21 +20,21 @@ void Settings::setLegacyNames(const QString& organizationName,
 Settings::Settings(QObject* parent) : QSettings(parent)
 {}
 
-void Settings::setValue(const QString& key, const QVariant& value)
+void Settings::setValue(QAnyStringView key, const QVariant& value)
 {
     QSettings::setValue(key, value);
     if (legacySettings.contains(key))
         legacySettings.remove(key);
 }
 
-void Settings::remove(const QString& key)
+void Settings::remove(QAnyStringView key)
 {
     QSettings::remove(key);
     if (legacySettings.contains(key))
         legacySettings.remove(key);
 }
 
-QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
+QVariant Settings::value(QAnyStringView key, const QVariant& defaultValue) const
 {
     auto value = QSettings::value(key, legacySettings.value(key, defaultValue));
     // QML's Qt.labs.Settings stores boolean values as strings, which, if loaded
@@ -45,10 +42,10 @@ QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
     // (QVariant("false") == true in JavaScript). Since we have a mixed
     // environment where both QSettings and Qt.labs.Settings may potentially
     // work with same settings, better ensure compatibility.
-    return value.toString() == QStringLiteral("false") ? QVariant(false) : value;
+    return value.toString() == "false"_L1 ? QVariant(false) : value;
 }
 
-bool Settings::contains(const QString& key) const
+bool Settings::contains(QAnyStringView key) const
 {
     return QSettings::contains(key) || legacySettings.contains(key);
 }
@@ -63,20 +60,16 @@ QStringList Settings::childGroups() const
     return groups;
 }
 
-void SettingsGroup::setValue(const QString& key, const QVariant& value)
+void SettingsGroup::setValue(QAnyStringView key, const QVariant& value)
 {
-    Settings::setValue(groupPath + u'/' + key, value);
+    Settings::setValue(fullPath(key), value);
 }
 
-bool SettingsGroup::contains(const QString& key) const
-{
-    return Settings::contains(groupPath + u'/' + key);
-}
+bool SettingsGroup::contains(QAnyStringView key) const { return Settings::contains(fullPath(key)); }
 
-QVariant SettingsGroup::value(const QString& key,
-                              const QVariant& defaultValue) const
+QVariant SettingsGroup::value(QAnyStringView key, const QVariant& defaultValue) const
 {
-    return Settings::value(groupPath + u'/' + key, defaultValue);
+    return Settings::value(fullPath(key), defaultValue);
 }
 
 QString SettingsGroup::group() const { return groupPath; }
@@ -107,8 +100,8 @@ QUO_DEFINE_SETTING(AccountSettings, bool, keepLoggedIn, "keep_logged_in", false,
                    setKeepLoggedIn)
 
 namespace {
-constexpr auto HomeserverKey = "homeserver"_ls;
-constexpr auto EncryptionAccountPickleKey = "encryption_account_pickle"_ls;
+constexpr auto HomeserverKey = "homeserver"_L1;
+constexpr auto EncryptionAccountPickleKey = "encryption_account_pickle"_L1;
 }
 
 QUrl AccountSettings::homeserver() const
@@ -125,13 +118,13 @@ QString AccountSettings::userId() const { return group().section(u'/', -1); }
 
 QByteArray AccountSettings::encryptionAccountPickle()
 {
-    return value("encryption_account_pickle"_ls, QString()).toByteArray();
+    return value("encryption_account_pickle"_L1, QString()).toByteArray();
 }
 
 void AccountSettings::setEncryptionAccountPickle(
     const QByteArray& encryptionAccountPickle)
 {
-    setValue("encryption_account_pickle"_ls, encryptionAccountPickle);
+    setValue("encryption_account_pickle"_L1, encryptionAccountPickle);
 }
 
 void AccountSettings::clearEncryptionAccountPickle()

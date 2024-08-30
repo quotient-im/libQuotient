@@ -52,24 +52,24 @@ public:
     // Result properties
 
     //! A token that can be used to paginate backwards with.
-    QString begin() const { return loadFromJson<QString>("start"_ls); }
+    QString begin() const { return loadFromJson<QString>("start"_L1); }
 
     //! A token that can be used to paginate forwards with.
-    QString end() const { return loadFromJson<QString>("end"_ls); }
+    QString end() const { return loadFromJson<QString>("end"_L1); }
 
     //! A list of room events that happened just before the
     //! requested event, in reverse-chronological order.
-    RoomEvents eventsBefore() { return takeFromJson<RoomEvents>("events_before"_ls); }
+    RoomEvents eventsBefore() { return takeFromJson<RoomEvents>("events_before"_L1); }
 
     //! Details of the requested event.
-    RoomEventPtr event() { return takeFromJson<RoomEventPtr>("event"_ls); }
+    RoomEventPtr event() { return takeFromJson<RoomEventPtr>("event"_L1); }
 
     //! A list of room events that happened just after the
     //! requested event, in chronological order.
-    RoomEvents eventsAfter() { return takeFromJson<RoomEvents>("events_after"_ls); }
+    RoomEvents eventsAfter() { return takeFromJson<RoomEvents>("events_after"_L1); }
 
     //! The state of the room at the last event returned.
-    StateEvents state() { return takeFromJson<StateEvents>("state"_ls); }
+    StateEvents state() { return takeFromJson<StateEvents>("state"_L1); }
 
     struct Response {
         //! A token that can be used to paginate backwards with.

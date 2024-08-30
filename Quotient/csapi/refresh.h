@@ -34,19 +34,19 @@ public:
     // Result properties
 
     //! The new access token to use.
-    QString accessToken() const { return loadFromJson<QString>("access_token"_ls); }
+    QString accessToken() const { return loadFromJson<QString>("access_token"_L1); }
 
     //! The new refresh token to use when the access token needs to
     //! be refreshed again. If not given, the old refresh token can
     //! be re-used.
-    QString refreshToken() const { return loadFromJson<QString>("refresh_token"_ls); }
+    QString refreshToken() const { return loadFromJson<QString>("refresh_token"_L1); }
 
     //! The lifetime of the access token, in milliseconds. If not
     //! given, the client can assume that the access token will not
     //! expire.
     std::optional<int> expiresInMs() const
     {
-        return loadFromJson<std::optional<int>>("expires_in_ms"_ls);
+        return loadFromJson<std::optional<int>>("expires_in_ms"_L1);
     }
 
     struct Response {

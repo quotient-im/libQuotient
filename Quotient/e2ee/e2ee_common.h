@@ -19,20 +19,20 @@
 
 namespace Quotient {
 
-constexpr inline auto AlgorithmKeyL = "algorithm"_ls;
-constexpr inline auto RotationPeriodMsKeyL = "rotation_period_ms"_ls;
-constexpr inline auto RotationPeriodMsgsKeyL = "rotation_period_msgs"_ls;
+constexpr inline auto AlgorithmKeyL = "algorithm"_L1;
+constexpr inline auto RotationPeriodMsKeyL = "rotation_period_ms"_L1;
+constexpr inline auto RotationPeriodMsgsKeyL = "rotation_period_msgs"_L1;
 
-constexpr inline auto AlgorithmKey = "algorithm"_ls;
-constexpr inline auto RotationPeriodMsKey = "rotation_period_ms"_ls;
-constexpr inline auto RotationPeriodMsgsKey = "rotation_period_msgs"_ls;
+constexpr inline auto AlgorithmKey = "algorithm"_L1;
+constexpr inline auto RotationPeriodMsKey = "rotation_period_ms"_L1;
+constexpr inline auto RotationPeriodMsgsKey = "rotation_period_msgs"_L1;
 
-constexpr inline auto Ed25519Key = "ed25519"_ls;
-constexpr inline auto Curve25519Key = "curve25519"_ls;
-constexpr inline auto SignedCurve25519Key = "signed_curve25519"_ls;
+constexpr inline auto Ed25519Key = "ed25519"_L1;
+constexpr inline auto Curve25519Key = "curve25519"_L1;
+constexpr inline auto SignedCurve25519Key = "signed_curve25519"_L1;
 
-constexpr inline auto OlmV1Curve25519AesSha2AlgoKey = "m.olm.v1.curve25519-aes-sha2"_ls;
-constexpr inline auto MegolmV1AesSha2AlgoKey = "m.megolm.v1.aes-sha2"_ls;
+constexpr inline auto OlmV1Curve25519AesSha2AlgoKey = "m.olm.v1.curve25519-aes-sha2"_L1;
+constexpr inline auto MegolmV1AesSha2AlgoKey = "m.megolm.v1.aes-sha2"_L1;
 
 constexpr std::array SupportedAlgorithms { OlmV1Curve25519AesSha2AlgoKey,
                                            MegolmV1AesSha2AlgoKey };
@@ -308,10 +308,10 @@ public:
                               const QString& deviceId,
                               const QByteArray& signature)
         : payload{
-            { "key"_ls, unsignedKey },
-            { "signatures"_ls,
+            { "key"_L1, unsignedKey },
+            { "signatures"_L1,
               QJsonObject{
-                  { userId, QJsonObject{ { "ed25519:"_ls % deviceId,
+                  { userId, QJsonObject{ { "ed25519:"_L1 % deviceId,
                                            QString::fromUtf8(signature) } } } } }
         }
     {}
@@ -320,7 +320,7 @@ public:
     {}
 
     //! Unpadded Base64-encoded 32-byte Curve25519 public key
-    QByteArray key() const { return payload["key"_ls].toString().toLatin1(); }
+    QByteArray key() const { return payload["key"_L1].toString().toLatin1(); }
 
     //! \brief Signatures of the key object
     //!
@@ -329,24 +329,24 @@ public:
     auto signatures() const
     {
         return fromJson<QHash<QString, QHash<QString, QString>>>(
-            payload["signatures"_ls]);
+            payload["signatures"_L1]);
     }
 
     QByteArray signature(QStringView userId, QStringView deviceId) const
     {
-        return payload["signatures"_ls][userId]["ed25519:"_ls % deviceId]
+        return payload["signatures"_L1][userId]["ed25519:"_L1 % deviceId]
             .toString()
             .toLatin1();
     }
 
     //! Whether the key is a fallback key
-    bool isFallback() const { return payload["fallback"_ls].toBool(); }
+    bool isFallback() const { return payload["fallback"_L1].toBool(); }
     auto toJson() const { return payload; }
     auto toJsonForVerification() const
     {
         auto json = payload;
-        json.remove("signatures"_ls);
-        json.remove("unsigned"_ls);
+        json.remove("signatures"_L1);
+        json.remove("unsigned"_L1);
         return QJsonDocument(json).toJson(QJsonDocument::Compact);
     }
 

@@ -101,9 +101,14 @@ template <typename KeyT, typename ValT>
 using UnorderedMap
     [[deprecated("Use std::unordered_map directly")]] = std::unordered_map<KeyT, ValT, HashQ<KeyT>>;
 
-constexpr auto operator"" _ls(const char* s, std::size_t size)
+inline namespace Literals { using namespace Qt::Literals; }
+
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR > 9
+[[deprecated("Use operators from Qt::Literals (aka Quotient::Literals) instead")]]
+#endif
+constexpr auto operator""_ls(const char* s, std::size_t size)
 {
-    return QLatin1String(s, int(size));
+    return operator""_L1(s, size);
 }
 
 template <typename ArrayT>
@@ -322,7 +327,7 @@ QUOTIENT_API QString prettyPrint(const QString& plainText);
  * The returned path has a trailing slash, clients don't need to append it.
  * \param dirName path to cache directory relative to the standard cache path
  */
-QUOTIENT_API QString cacheLocation(const QString& dirName);
+QUOTIENT_API QString cacheLocation(QStringView dirName);
 
 /** Hue color component of based of the hash of the string.
  *

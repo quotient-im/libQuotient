@@ -28,17 +28,17 @@ template <>
 struct JsonObjectConverter<CrossSigningKey> {
     static void dumpTo(QJsonObject& jo, const CrossSigningKey& pod)
     {
-        addParam<>(jo, QStringLiteral("user_id"), pod.userId);
-        addParam<>(jo, QStringLiteral("usage"), pod.usage);
-        addParam<>(jo, QStringLiteral("keys"), pod.keys);
-        addParam<IfNotEmpty>(jo, QStringLiteral("signatures"), pod.signatures);
+        addParam<>(jo, "user_id"_L1, pod.userId);
+        addParam<>(jo, "usage"_L1, pod.usage);
+        addParam<>(jo, "keys"_L1, pod.keys);
+        addParam<IfNotEmpty>(jo, "signatures"_L1, pod.signatures);
     }
     static void fillFrom(const QJsonObject& jo, CrossSigningKey& pod)
     {
-        fillFromJson(jo.value("user_id"_ls), pod.userId);
-        fillFromJson(jo.value("usage"_ls), pod.usage);
-        fillFromJson(jo.value("keys"_ls), pod.keys);
-        fillFromJson(jo.value("signatures"_ls), pod.signatures);
+        fillFromJson(jo.value("user_id"_L1), pod.userId);
+        fillFromJson(jo.value("usage"_L1), pod.usage);
+        fillFromJson(jo.value("keys"_L1), pod.keys);
+        fillFromJson(jo.value("signatures"_L1), pod.signatures);
     }
 };
 

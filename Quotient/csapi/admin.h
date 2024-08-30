@@ -53,12 +53,12 @@ public:
     // Result properties
 
     //! The Matrix user ID of the user.
-    QString userId() const { return loadFromJson<QString>("user_id"_ls); }
+    QString userId() const { return loadFromJson<QString>("user_id"_L1); }
 
     //! Each key is an identifier for one of the user's devices.
     QHash<QString, DeviceInfo> devices() const
     {
-        return loadFromJson<QHash<QString, DeviceInfo>>("devices"_ls);
+        return loadFromJson<QHash<QString, DeviceInfo>>("devices"_L1);
     }
 
     struct Response {
@@ -78,9 +78,9 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::ConnectionInfo& result)
     {
-        fillFromJson(jo.value("ip"_ls), result.ip);
-        fillFromJson(jo.value("last_seen"_ls), result.lastSeen);
-        fillFromJson(jo.value("user_agent"_ls), result.userAgent);
+        fillFromJson(jo.value("ip"_L1), result.ip);
+        fillFromJson(jo.value("last_seen"_L1), result.lastSeen);
+        fillFromJson(jo.value("user_agent"_L1), result.userAgent);
     }
 };
 
@@ -88,7 +88,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::SessionInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
     {
-        fillFromJson(jo.value("connections"_ls), result.connections);
+        fillFromJson(jo.value("connections"_L1), result.connections);
     }
 };
 
@@ -96,7 +96,7 @@ template <>
 struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
     static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
     {
-        fillFromJson(jo.value("sessions"_ls), result.sessions);
+        fillFromJson(jo.value("sessions"_L1), result.sessions);
     }
 };
 

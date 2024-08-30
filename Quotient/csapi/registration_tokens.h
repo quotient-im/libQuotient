@@ -31,7 +31,7 @@ public:
     //! True if the token is still valid, false otherwise. This should
     //! additionally be false if the token is not a recognised token by
     //! the server.
-    bool valid() const { return loadFromJson<bool>("valid"_ls); }
+    bool valid() const { return loadFromJson<bool>("valid"_L1); }
 };
 
 inline auto collectResponse(const RegistrationTokenValidityJob* job) { return job->valid(); }

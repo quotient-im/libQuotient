@@ -55,13 +55,13 @@ public:
     // Result properties
 
     //! The ID of the event found
-    QString eventId() const { return loadFromJson<QString>("event_id"_ls); }
+    QString eventId() const { return loadFromJson<QString>("event_id"_L1); }
 
     //! The event's timestamp, in milliseconds since the Unix epoch.
     //! This makes it easy to do a quick comparison to see if the
     //! `event_id` fetched is too far out of range to be useful for your
     //! use case.
-    int originServerTimestamp() const { return loadFromJson<int>("origin_server_ts"_ls); }
+    int originServerTimestamp() const { return loadFromJson<int>("origin_server_ts"_L1); }
 
     struct Response {
         //! The ID of the event found

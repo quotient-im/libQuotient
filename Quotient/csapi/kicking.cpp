@@ -5,11 +5,11 @@
 using namespace Quotient;
 
 KickJob::KickJob(const QString& roomId, const QString& userId, const QString& reason)
-    : BaseJob(HttpVerb::Post, QStringLiteral("KickJob"),
+    : BaseJob(HttpVerb::Post, u"KickJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/kick"))
 {
     QJsonObject _dataJson;
-    addParam<>(_dataJson, QStringLiteral("user_id"), userId);
-    addParam<IfNotEmpty>(_dataJson, QStringLiteral("reason"), reason);
+    addParam<>(_dataJson, "user_id"_L1, userId);
+    addParam<IfNotEmpty>(_dataJson, "reason"_L1, reason);
     setRequestData({ _dataJson });
 }

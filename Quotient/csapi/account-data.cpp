@@ -6,7 +6,7 @@ using namespace Quotient;
 
 SetAccountDataJob::SetAccountDataJob(const QString& userId, const QString& type,
                                      const QJsonObject& content)
-    : BaseJob(HttpVerb::Put, QStringLiteral("SetAccountDataJob"),
+    : BaseJob(HttpVerb::Put, u"SetAccountDataJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/account_data/", type))
 {
     setRequestData({ toJson(content) });
@@ -20,13 +20,13 @@ QUrl GetAccountDataJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 }
 
 GetAccountDataJob::GetAccountDataJob(const QString& userId, const QString& type)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetAccountDataJob"),
+    : BaseJob(HttpVerb::Get, u"GetAccountDataJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/account_data/", type))
 {}
 
 SetAccountDataPerRoomJob::SetAccountDataPerRoomJob(const QString& userId, const QString& roomId,
                                                    const QString& type, const QJsonObject& content)
-    : BaseJob(HttpVerb::Put, QStringLiteral("SetAccountDataPerRoomJob"),
+    : BaseJob(HttpVerb::Put, u"SetAccountDataPerRoomJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/", roomId, "/account_data/",
                        type))
 {
@@ -42,7 +42,7 @@ QUrl GetAccountDataPerRoomJob::makeRequestUrl(const HomeserverData& hsData, cons
 
 GetAccountDataPerRoomJob::GetAccountDataPerRoomJob(const QString& userId, const QString& roomId,
                                                    const QString& type)
-    : BaseJob(HttpVerb::Get, QStringLiteral("GetAccountDataPerRoomJob"),
+    : BaseJob(HttpVerb::Get, u"GetAccountDataPerRoomJob"_s,
               makePath("/_matrix/client/v3", "/user/", userId, "/rooms/", roomId, "/account_data/",
                        type))
 {}

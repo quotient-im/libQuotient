@@ -29,13 +29,13 @@ template <>
 struct JsonObjectConverter<RequestTokenResponse> {
     static void dumpTo(QJsonObject& jo, const RequestTokenResponse& pod)
     {
-        addParam<>(jo, QStringLiteral("sid"), pod.sid);
-        addParam<IfNotEmpty>(jo, QStringLiteral("submit_url"), pod.submitUrl);
+        addParam<>(jo, "sid"_L1, pod.sid);
+        addParam<IfNotEmpty>(jo, "submit_url"_L1, pod.submitUrl);
     }
     static void fillFrom(const QJsonObject& jo, RequestTokenResponse& pod)
     {
-        fillFromJson(jo.value("sid"_ls), pod.sid);
-        fillFromJson(jo.value("submit_url"_ls), pod.submitUrl);
+        fillFromJson(jo.value("sid"_L1), pod.sid);
+        fillFromJson(jo.value("submit_url"_L1), pod.submitUrl);
     }
 };
 

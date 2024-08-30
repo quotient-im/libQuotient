@@ -19,7 +19,7 @@ public:
     explicit StickerEvent(const QJsonObject& obj)
         : RoomEvent(obj)
         , m_imageContent(
-              EventContent::ImageContent(obj["content"_ls].toObject()))
+              EventContent::ImageContent(obj["content"_L1].toObject()))
     {}
 
     /// \brief A textual representation or associated description of the

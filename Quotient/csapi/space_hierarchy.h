@@ -109,12 +109,12 @@ public:
     //! The rooms for the current page, with the current filters.
     std::vector<SpaceHierarchyRoomsChunk> rooms()
     {
-        return takeFromJson<std::vector<SpaceHierarchyRoomsChunk>>("rooms"_ls);
+        return takeFromJson<std::vector<SpaceHierarchyRoomsChunk>>("rooms"_L1);
     }
 
     //! A token to supply to `from` to keep paginating the responses. Not present when there are
     //! no further results.
-    QString nextBatch() const { return loadFromJson<QString>("next_batch"_ls); }
+    QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
     struct Response {
         //! The rooms for the current page, with the current filters.
@@ -135,17 +135,17 @@ struct QUOTIENT_API JsonObjectConverter<GetSpaceHierarchyJob::SpaceHierarchyRoom
     static void fillFrom(const QJsonObject& jo,
                          GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk& result)
     {
-        fillFromJson(jo.value("num_joined_members"_ls), result.numJoinedMembers);
-        fillFromJson(jo.value("room_id"_ls), result.roomId);
-        fillFromJson(jo.value("world_readable"_ls), result.worldReadable);
-        fillFromJson(jo.value("guest_can_join"_ls), result.guestCanJoin);
-        fillFromJson(jo.value("children_state"_ls), result.childrenState);
-        fillFromJson(jo.value("canonical_alias"_ls), result.canonicalAlias);
-        fillFromJson(jo.value("name"_ls), result.name);
-        fillFromJson(jo.value("topic"_ls), result.topic);
-        fillFromJson(jo.value("avatar_url"_ls), result.avatarUrl);
-        fillFromJson(jo.value("join_rule"_ls), result.joinRule);
-        fillFromJson(jo.value("room_type"_ls), result.roomType);
+        fillFromJson(jo.value("num_joined_members"_L1), result.numJoinedMembers);
+        fillFromJson(jo.value("room_id"_L1), result.roomId);
+        fillFromJson(jo.value("world_readable"_L1), result.worldReadable);
+        fillFromJson(jo.value("guest_can_join"_L1), result.guestCanJoin);
+        fillFromJson(jo.value("children_state"_L1), result.childrenState);
+        fillFromJson(jo.value("canonical_alias"_L1), result.canonicalAlias);
+        fillFromJson(jo.value("name"_L1), result.name);
+        fillFromJson(jo.value("topic"_L1), result.topic);
+        fillFromJson(jo.value("avatar_url"_L1), result.avatarUrl);
+        fillFromJson(jo.value("join_rule"_L1), result.joinRule);
+        fillFromJson(jo.value("room_type"_L1), result.roomType);
     }
 };
 

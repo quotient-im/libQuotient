@@ -18,16 +18,16 @@ template<>
 inline EventContent::AliasesEventContent fromJson(const QJsonObject& jo)
 {
     return EventContent::AliasesEventContent {
-        fromJson<QString>(jo["alias"_ls]),
-        fromJson<QStringList>(jo["alt_aliases"_ls])
+        fromJson<QString>(jo["alias"_L1]),
+        fromJson<QStringList>(jo["alt_aliases"_L1])
     };
 }
 template<>
 inline auto toJson(const EventContent::AliasesEventContent& c)
 {
     QJsonObject jo;
-    addParam<IfNotEmpty>(jo, QStringLiteral("alias"), c.canonicalAlias);
-    addParam<IfNotEmpty>(jo, QStringLiteral("alt_aliases"), c.altAliases);
+    addParam<IfNotEmpty>(jo, "alias"_L1, c.canonicalAlias);
+    addParam<IfNotEmpty>(jo, "alt_aliases"_L1, c.altAliases);
     return jo;
 }
 

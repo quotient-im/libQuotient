@@ -11,8 +11,8 @@ template <> struct JsonObjectConverter<{{name}}>
             {{/propertyMap}}{{#parents}}
         fillJson<{{name}}>(jo, pod);
             {{/parents}}{{#vars}}
-        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo,
-                QStringLiteral("{{baseName}}"), pod.{{nameCamelCase}});
+        addParam<{{^required?}}IfNotEmpty{{/required?}}>(jo, "{{baseName}}"_L1,
+                                                         pod.{{nameCamelCase}});
             {{/vars}}
         }
         {{/in?}}
@@ -21,7 +21,7 @@ template <> struct JsonObjectConverter<{{name}}>
     {       {{#parents}}
         fillFromJson<{{qualifiedName}}>(jo, pod);
             {{/parents}}{{#vars}}
-        fillFromJson(jo.{{>takeOrValue}}("{{baseName}}"_ls), pod.{{nameCamelCase}});
+        fillFromJson(jo.{{>takeOrValue}}("{{baseName}}"_L1), pod.{{nameCamelCase}});
             {{/vars}}{{#propertyMap}}
         fromJson(jo, pod.{{nameCamelCase}});
             {{/propertyMap}}
