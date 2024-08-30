@@ -153,7 +153,7 @@ jobs:
         cd ..
         git clone https://github.com/TobiasFella/vodozemac-cpp
         cmake -S vodozemac-cpp -B vodozemac/build $CMAKE_ARGS
-        cmake --build vodozemac/build-cpp --target install
+        cmake --build vodozemac-cpp/build --target install
 
     - name: Get CS API definitions; clone and build GTAD
       if: matrix.update-api
