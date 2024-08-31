@@ -39,13 +39,16 @@ QOlmAccount *QOlmAccount::newAccount(QObject *parent, const QString& userId, con
 }
 
 //TODO set user and device id
-QOlmAccount *QOlmAccount::unpickle(QByteArray&& pickled, const PicklingKey& key, QObject *parent)
+QOlmAccount *QOlmAccount::unpickle(QByteArray&& pickled, const PicklingKey& key, const QString& userId, const QString& deviceId, QObject *parent)
 {
     //TODO: This is terrible :(
     std::array<std::uint8_t, 32> _key;
     std::copy(key.data(), key.data() + 32, _key.begin());
-    auto account = olm::account_from_pickle(rust::String(pickled.data(), pickled.size()), _key);
-    return new QOlmAccount(std::move(account));
+    auto olmAccount = olm::account_from_pickle(rust::String(pickled.data(), pickled.size()), _key);
+    auto account = new QOlmAccount(std::move(olmAccount));
+    account->m_userId = userId;
+    account->m_deviceId = deviceId;
+    return account;
 }
 
 QByteArray QOlmAccount::pickle(const PicklingKey& key) const

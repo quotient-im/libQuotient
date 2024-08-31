@@ -42,7 +42,7 @@ public:
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     [[nodiscard]] static QOlmAccount *unpickle(QByteArray&& pickled,
-                                        const PicklingKey& key, QObject *parent);
+                                        const PicklingKey& key, const QString& userId, const QString& deviceId, QObject *parent);
 
     //! Serialises an OlmAccount to encrypted Base64.
     QByteArray pickle(const PicklingKey& key) const;

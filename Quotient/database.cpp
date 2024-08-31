@@ -367,7 +367,7 @@ std::pair<QOlmAccount*, bool> Database::setupOlmAccount(const QString& userId, c
     auto query = prepareQuery(u"SELECT pickle FROM accounts;"_s);
     execute(query);
     if (query.next())
-        return {QOlmAccount::unpickle(query.value(QStringLiteral("pickle")).toByteArray(), m_picklingKey, nullptr), false};
+        return {QOlmAccount::unpickle(query.value(QStringLiteral("pickle")).toByteArray(), m_picklingKey, userId, deviceId, nullptr), false};
     return {QOlmAccount::newAccount(nullptr/*TODO*/, userId, deviceId), true};
 }
 
