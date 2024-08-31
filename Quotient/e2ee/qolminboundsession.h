@@ -6,7 +6,7 @@
 
 #include <Quotient/e2ee/e2ee_common.h>
 
-#include <vodozemac/vodozemac.h>
+#include <vodozemac.h>
 
 namespace Quotient {
 

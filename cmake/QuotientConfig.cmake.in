@@ -5,6 +5,7 @@ find_dependency(@Qt@Network)
 find_dependency(@Qt@Keychain)
 find_dependency(OpenSSL)
 find_dependency(@Qt@Sql)
+find_dependency(VodozemacCpp)
 
 include("${CMAKE_CURRENT_LIST_DIR}/@QUOTIENT_LIB_NAME@Targets.cmake")
 

@@ -5,7 +5,6 @@
 #include "qolmoutboundsession.h"
 
 #include "../logging_categories_p.h"
-#include <vodozemac/vodozemac.h>
 
 using namespace Quotient;
 

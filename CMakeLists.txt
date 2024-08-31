@@ -97,7 +97,7 @@ find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
 find_package(${Qt}Keychain REQUIRED)
-find_package(Vodozemac REQUIRED)
+find_package(VodozemacCpp REQUIRED)
 
 find_package(OpenSSL 1.1.0 REQUIRED)
 set_package_properties(OpenSSL PROPERTIES
@@ -359,8 +359,8 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
 )
 
 target_link_libraries(${QUOTIENT_LIB_NAME}
-    PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain ${Qt}::Sql
-    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate Vodozemac)
+    PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain ${Qt}::Sql Vodozemac::vodozemac-cpp
+    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate)
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 

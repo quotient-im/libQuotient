@@ -7,7 +7,7 @@
 #include <Quotient/e2ee/e2ee_common.h>
 #include <Quotient/e2ee/qolmmessage.h>
 
-#include <vodozemac/vodozemac.h>
+#include <vodozemac.h>
 
 struct OlmSession;
 

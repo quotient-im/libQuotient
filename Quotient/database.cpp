@@ -18,7 +18,7 @@
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
 
-#include <vodozemac/vodozemac.h>
+#include <vodozemac.h>
 
 using namespace Qt::Literals::StringLiterals;
 

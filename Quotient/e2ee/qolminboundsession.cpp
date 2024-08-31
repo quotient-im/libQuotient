@@ -8,7 +8,6 @@
 #include "../logging_categories_p.h"
 
 #include <cstring>
-#include <vodozemac/vodozemac.h>
 
 using namespace Quotient;
 

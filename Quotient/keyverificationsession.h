@@ -9,7 +9,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
 
-#include <vodozemac/vodozemac.h>
+#include <vodozemac.h>
 
 struct OlmSAS;
 

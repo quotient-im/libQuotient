@@ -17,7 +17,7 @@
 
 #include <source_location>
 
-#include <vodozemac/vodozemac.h>
+#include <vodozemac.h>
 
 using namespace Quotient;
 

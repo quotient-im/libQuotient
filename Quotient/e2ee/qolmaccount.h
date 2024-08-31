@@ -12,7 +12,7 @@
 
 #include <QtCore/QObject>
 
-#include <vodozemac/vodozemac.h>
+#include <vodozemac.h>
 
 namespace olm
 {

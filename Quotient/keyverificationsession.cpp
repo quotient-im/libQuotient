@@ -20,7 +20,6 @@
 #include <QtCore/QUuid>
 
 #include <chrono>
-#include <vodozemac/vodozemac.h>
 
 using namespace Quotient;
 using namespace std::chrono;
