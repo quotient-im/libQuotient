@@ -21,11 +21,10 @@ using namespace Quotient;
 void TestOlmAccount::pickleUnpickledTest()
 {
     auto olmAccount = QOlmAccount::newAccount(this, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
+    auto picklingKey = PicklingKey::generate();
     auto identityKeys = olmAccount->identityKeys();
-    auto key = PicklingKey::generate();
-    auto pickled = olmAccount->pickle(key);
-    auto olmAccount2 = QOlmAccount::unpickle(std::move(pickled), key, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"), nullptr);
-
+    auto pickled = olmAccount->pickle(picklingKey);
+    auto olmAccount2 = QOlmAccount::unpickle(std::move(pickled), picklingKey, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"), nullptr);
     auto identityKeys2 = olmAccount2->identityKeys();
     QCOMPARE(identityKeys.curve25519, identityKeys2.curve25519);
     QCOMPARE(identityKeys.ed25519, identityKeys2.ed25519);
@@ -33,9 +32,6 @@ void TestOlmAccount::pickleUnpickledTest()
 
 void TestOlmAccount::identityKeysValid()
 {
-    QOlmAccount olmAccount(u"@foo:bar.com"_s, u"QuotientTestDevice"_s);
-    olmAccount.setupNewAccount();
-    const auto identityKeys = olmAccount.identityKeys();
     auto olmAccount = QOlmAccount::newAccount(this, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     const auto identityKeys = olmAccount->identityKeys();
     const auto curve25519 = identityKeys.curve25519;
@@ -65,8 +61,8 @@ void TestOlmAccount::signatureValid()
 void TestOlmAccount::oneTimeKeysValid()
 {
     auto olmAccount = QOlmAccount::newAccount(this, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
-    const auto maxNumberOfOneTimeKeys = olmAccount->maxNumberOfOneTimeKeys();
-    QCOMPARE(50, maxNumberOfOneTimeKeys);
+    const auto numberOfOneTimeKeysToGenerate = olmAccount->maxNumberOfOneTimeKeys();
+    QCOMPARE(50, numberOfOneTimeKeysToGenerate);
 
     const auto oneTimeKeysEmpty = olmAccount->oneTimeKeys();
     QVERIFY(oneTimeKeysEmpty.keys.isEmpty());
@@ -80,20 +76,20 @@ void TestOlmAccount::deviceKeys()
 {
     // copied from mtxclient
     DeviceKeys device1;
-    device1.userId = "@alice:example.com"_L1;
-    device1.deviceId = "JLAFKJWSCS"_L1;
-    device1.keys = {{"curve25519:JLAFKJWSCS"_L1, "3C5BFWi2Y8MaVvjM8M22DBmh24PmgR0nPvJOIArzgyI"_L1},
-                    {"ed25519:JLAFKJWSCS"_L1, "lEuiRJBit0IG6nUf5pUzWTUEsRVVe/HJkoKuEww9ULI"_L1}};
+    device1.userId = "@alice:example.com"_ls;
+    device1.deviceId = "JLAFKJWSCS"_ls;
+    device1.keys = {{"curve25519:JLAFKJWSCS"_ls, "3C5BFWi2Y8MaVvjM8M22DBmh24PmgR0nPvJOIArzgyI"_ls},
+                    {"ed25519:JLAFKJWSCS"_ls, "lEuiRJBit0IG6nUf5pUzWTUEsRVVe/HJkoKuEww9ULI"_ls}};
 
     // TODO that should be the default value
     device1.algorithms =
         QStringList { OlmV1Curve25519AesSha2AlgoKey, MegolmV1AesSha2AlgoKey };
 
     device1.signatures = {
-      {"@alice:example.com"_L1,
-       {{"ed25519:JLAFKJWSCS"_L1,
+      {"@alice:example.com"_ls,
+       {{"ed25519:JLAFKJWSCS"_ls,
          "dSO80A01XiigH3uBiDVx/EjzaoycHcjq9lfQX0uWsqxl2giMIiSPR8a4d291W1ihKJL/"
-         "a+myXS367WT6NAIcBA"_L1}}}};
+         "a+myXS367WT6NAIcBA"_ls}}}};
 
     QJsonObject j;
     JsonObjectConverter<DeviceKeys>::dumpTo(j, device1);
@@ -159,19 +155,19 @@ void TestOlmAccount::encryptedFile()
 
     const auto file = fromJson<EncryptedFileMetadata>(doc);
 
-    QCOMPARE(file.v, "v2"_L1);
-    QCOMPARE(file.iv, "w+sE15fzSc0AAAAAAAAAAA"_L1);
-    QCOMPARE(file.hashes["sha256"_L1], "fdSLu/YkRx3Wyh3KQabP3rd6+SFiKg5lsJZQHtkSAYA"_L1);
-    QCOMPARE(file.key.alg, "A256CTR"_L1);
+    QCOMPARE(file.v, "v2"_ls);
+    QCOMPARE(file.iv, "w+sE15fzSc0AAAAAAAAAAA"_ls);
+    QCOMPARE(file.hashes["sha256"_ls], "fdSLu/YkRx3Wyh3KQabP3rd6+SFiKg5lsJZQHtkSAYA"_ls);
+    QCOMPARE(file.key.alg, "A256CTR"_ls);
     QCOMPARE(file.key.ext, true);
-    QCOMPARE(file.key.k, "aWF6-32KGYaC3A_FEUCk1Bt0JA37zP0wrStgmdCaW-0"_L1);
+    QCOMPARE(file.key.k, "aWF6-32KGYaC3A_FEUCk1Bt0JA37zP0wrStgmdCaW-0"_ls);
     QCOMPARE(file.key.keyOps.size(), 2);
-    QCOMPARE(file.key.kty, "oct"_L1);
+    QCOMPARE(file.key.kty, "oct"_ls);
 }
 
 void TestOlmAccount::uploadIdentityKey()
 {
-    CREATE_CONNECTION(conn, "alice1"_L1, "secret"_L1, "AlicePhone"_L1)
+    CREATE_CONNECTION(conn, "alice1"_ls, "secret"_ls, "AlicePhone"_ls)
 
     auto olmAccount = conn->olmAccount();
     auto idKeys = olmAccount->identityKeys();
@@ -196,7 +192,7 @@ void TestOlmAccount::uploadIdentityKey()
 
 void TestOlmAccount::uploadOneTimeKeys()
 {
-    CREATE_CONNECTION(conn, "alice2"_L1, "secret"_L1, "AlicePhone"_L1)
+    CREATE_CONNECTION(conn, "alice2"_ls, "secret"_ls, "AlicePhone"_ls)
     auto olmAccount = conn->olmAccount();
 
     olmAccount->generateOneTimeKeys(5);
@@ -220,7 +216,7 @@ void TestOlmAccount::uploadOneTimeKeys()
 
 void TestOlmAccount::uploadSignedOneTimeKeys()
 {
-    CREATE_CONNECTION(conn, "alice3"_L1, "secret"_L1, "AlicePhone"_L1)
+    CREATE_CONNECTION(conn, "alice3"_ls, "secret"_ls, "AlicePhone"_ls)
     auto olmAccount = conn->olmAccount();
     olmAccount->generateOneTimeKeys(5);
 
@@ -239,7 +235,7 @@ void TestOlmAccount::uploadSignedOneTimeKeys()
 
 void TestOlmAccount::uploadKeys()
 {
-    CREATE_CONNECTION(conn, "alice4"_L1, "secret"_L1, "AlicePhone"_L1)
+    CREATE_CONNECTION(conn, "alice4"_ls, "secret"_ls, "AlicePhone"_ls)
     auto olmAccount = conn->olmAccount();
     auto idks = olmAccount->identityKeys();
     olmAccount->generateOneTimeKeys(1);
@@ -257,8 +253,8 @@ void TestOlmAccount::uploadKeys()
 
 void TestOlmAccount::queryTest()
 {
-    CREATE_CONNECTION(alice, "alice5"_L1, "secret"_L1, "AlicePhone"_L1)
-    CREATE_CONNECTION(bob, "bob1"_L1, "secret"_L1, "BobPhone"_L1)
+    CREATE_CONNECTION(alice, "alice5"_ls, "secret"_ls, "AlicePhone"_ls)
+    CREATE_CONNECTION(bob, "bob1"_ls, "secret"_ls, "BobPhone"_ls)
 
     // Create and upload keys for both users.
     auto aliceOlm = alice->olmAccount();
@@ -325,8 +321,8 @@ void TestOlmAccount::queryTest()
 
 void TestOlmAccount::claimKeys()
 {
-    CREATE_CONNECTION(alice, "alice6"_L1, "secret"_L1, "AlicePhone"_L1)
-    CREATE_CONNECTION(bob, "bob2"_L1, "secret"_L1, "BobPhone"_L1)
+    CREATE_CONNECTION(alice, "alice6"_ls, "secret"_ls, "AlicePhone"_ls)
+    CREATE_CONNECTION(bob, "bob2"_ls, "secret"_ls, "BobPhone"_ls)
 
     // Bob uploads his keys.
     auto *bobOlm = bob->olmAccount();
@@ -354,8 +350,8 @@ void TestOlmAccount::claimKeys()
                                     bob->deviceId(), bob->userId()));
 
     // Retrieve the identity key for the current device to check after claiming
-    const auto& bobEd25519 =
-        bobDevices.value(bob->deviceId()).keys.value("ed25519:"_L1 + bob->deviceId());
+    const auto& bobEd25519 = bobDevices.value(bob->deviceId())
+                                 .keys.value("ed25519:%1"_ls.arg(bob->deviceId()));
 
     const QHash<QString, QHash<QString, QString>> oneTimeKeys{
         { bob->userId(), { { bob->deviceId(), SignedCurve25519Key } } }
@@ -383,9 +379,9 @@ void TestOlmAccount::claimKeys()
 void TestOlmAccount::claimMultipleKeys()
 {
     // Login with alice multiple times
-    CREATE_CONNECTION(alice, "alice7"_L1, "secret"_L1, "AlicePhone"_L1)
-    CREATE_CONNECTION(alice1, "alice7"_L1, "secret"_L1, "AlicePhone"_L1)
-    CREATE_CONNECTION(alice2, "alice7"_L1, "secret"_L1, "AlicePhone"_L1)
+    CREATE_CONNECTION(alice, "alice7"_ls, "secret"_ls, "AlicePhone"_ls)
+    CREATE_CONNECTION(alice1, "alice7"_ls, "secret"_ls, "AlicePhone"_ls)
+    CREATE_CONNECTION(alice2, "alice7"_ls, "secret"_ls, "AlicePhone"_ls)
 
     auto olm = alice->olmAccount();
     olm->generateOneTimeKeys(10);
@@ -418,7 +414,7 @@ void TestOlmAccount::claimMultipleKeys()
     QVERIFY(spy2.wait(10000));
 
     // Bob will claim all keys from alice
-    CREATE_CONNECTION(bob, "bob3"_L1, "secret"_L1, "BobPhone"_L1)
+    CREATE_CONNECTION(bob, "bob3"_ls, "secret"_ls, "BobPhone"_ls)
 
     QStringList devices_;
     devices_ << alice->deviceId()
@@ -440,7 +436,7 @@ void TestOlmAccount::claimMultipleKeys()
 
 void TestOlmAccount::enableEncryption()
 {
-    CREATE_CONNECTION(alice, "alice9"_L1, "secret"_L1, "AlicePhone"_L1)
+    CREATE_CONNECTION(alice, "alice9"_ls, "secret"_ls, "AlicePhone"_ls)
 
     auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {}, {});
     QSignalSpy createRoomSpy(job, &BaseJob::success);

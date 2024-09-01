@@ -92,27 +92,6 @@ void TestOlmUtility::validUploadKeysRequest()
     auto idSig = alice->signIdentityKeys();
 
     const QJsonObject body{
-<<<<<<< HEAD
-        { "algorithms"_L1, toJson(SupportedAlgorithms) },
-        { "user_id"_L1, userId },
-        { "device_id"_L1, deviceId },
-        { "keys"_L1, QJsonObject{ { "curve25519:"_L1 + deviceId, alice.identityKeys().curve25519 },
-                                  { "ed25519:"_L1 + deviceId, alice.identityKeys().ed25519 } } },
-        { "signatures"_L1, QJsonObject{ { userId, QJsonObject{ { "ed25519:"_L1 + deviceId,
-                                                                 QString::fromLatin1(idSig) } } } } }
-||||||| parent of 4d89474e (libOlm is dead, long live vodozemac)
-        { "algorithms"_ls, toJson(SupportedAlgorithms) },
-        { "user_id"_ls, userId },
-        { "device_id"_ls, deviceId },
-        { "keys"_ls,
-          QJsonObject{
-              { "curve25519:"_ls + deviceId, alice.identityKeys().curve25519 },
-              { "ed25519:"_ls + deviceId, alice.identityKeys().ed25519 } } },
-        { "signatures"_ls,
-          QJsonObject{
-              { userId, QJsonObject{ { "ed25519:"_ls + deviceId,
-                                       QString::fromLatin1(idSig) } } } } }
-=======
         { "algorithms"_ls, toJson(SupportedAlgorithms) },
         { "user_id"_ls, userId },
         { "device_id"_ls, deviceId },
@@ -124,7 +103,6 @@ void TestOlmUtility::validUploadKeysRequest()
           QJsonObject{
               { userId, QJsonObject{ { "ed25519:"_ls + deviceId,
                                        QString::fromLatin1(idSig) } } } } }
->>>>>>> 4d89474e (libOlm is dead, long live vodozemac)
     };
 
     const auto deviceKeys = alice->deviceKeys();
