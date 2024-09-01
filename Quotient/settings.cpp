@@ -20,21 +20,21 @@ void Settings::setLegacyNames(const QString& organizationName,
 Settings::Settings(QObject* parent) : QSettings(parent)
 {}
 
-void Settings::setValue(QAnyStringView key, const QVariant& value)
+void Settings::setValue(const QString& key, const QVariant& value)
 {
     QSettings::setValue(key, value);
     if (legacySettings.contains(key))
         legacySettings.remove(key);
 }
 
-void Settings::remove(QAnyStringView key)
+void Settings::remove(const QString& key)
 {
     QSettings::remove(key);
     if (legacySettings.contains(key))
         legacySettings.remove(key);
 }
 
-QVariant Settings::value(QAnyStringView key, const QVariant& defaultValue) const
+QVariant Settings::value(const QString& key, const QVariant& defaultValue) const
 {
     auto value = QSettings::value(key, legacySettings.value(key, defaultValue));
     // QML's Qt.labs.Settings stores boolean values as strings, which, if loaded
@@ -45,7 +45,7 @@ QVariant Settings::value(QAnyStringView key, const QVariant& defaultValue) const
     return value.toString() == "false"_L1 ? QVariant(false) : value;
 }
 
-bool Settings::contains(QAnyStringView key) const
+bool Settings::contains(const QString& key) const
 {
     return QSettings::contains(key) || legacySettings.contains(key);
 }
@@ -60,14 +60,14 @@ QStringList Settings::childGroups() const
     return groups;
 }
 
-void SettingsGroup::setValue(QAnyStringView key, const QVariant& value)
+void SettingsGroup::setValue(const QString& key, const QVariant& value)
 {
     Settings::setValue(fullPath(key), value);
 }
 
-bool SettingsGroup::contains(QAnyStringView key) const { return Settings::contains(fullPath(key)); }
+bool SettingsGroup::contains(const QString& key) const { return Settings::contains(fullPath(key)); }
 
-QVariant SettingsGroup::value(QAnyStringView key, const QVariant& defaultValue) const
+QVariant SettingsGroup::value(const QString& key, const QVariant& defaultValue) const
 {
     return Settings::value(fullPath(key), defaultValue);
 }

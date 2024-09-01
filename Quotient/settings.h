@@ -31,10 +31,10 @@ public:
 
     /// Set the value for a given key
     /*! If the key exists in the legacy location, it is removed. */
-    Q_INVOKABLE void setValue(QAnyStringView key, const QVariant& value);
+    Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
 
     /// Remove the value from both the primary and legacy locations
-    Q_INVOKABLE void remove(QAnyStringView key);
+    Q_INVOKABLE void remove(const QString& key);
 
     /// Obtain a value for a given key
     /*!
@@ -47,7 +47,7 @@ public:
      *
      * \sa setLegacyNames, get
      */
-    Q_INVOKABLE QVariant value(QAnyStringView key, const QVariant& defaultValue = {}) const;
+    Q_INVOKABLE QVariant value(const QString& key, const QVariant& defaultValue = {}) const;
 
     /// Obtain a value for a given key, coerced to the given type
     /*!
@@ -62,11 +62,11 @@ public:
     template <typename T>
     T get(const QString& key, const T& defaultValue = {}) const
     {
-        const auto qv = value(key, QVariant());
+        const auto qv = value(key);
         return qv.isValid() && qv.canConvert<T>() ? qv.value<T>() : defaultValue;
     }
 
-    Q_INVOKABLE bool contains(QAnyStringView key) const;
+    Q_INVOKABLE bool contains(const QString& key) const;
     Q_INVOKABLE QStringList childGroups() const;
 
 private:
@@ -84,19 +84,19 @@ public:
         , groupPath(std::move(path))
     {}
 
-    Q_INVOKABLE bool contains(QAnyStringView key) const;
-    Q_INVOKABLE QVariant value(QAnyStringView key, const QVariant& defaultValue = {}) const;
+    Q_INVOKABLE bool contains(const QString& key) const;
+    Q_INVOKABLE QVariant value(const QString& key, const QVariant& defaultValue = {}) const;
 
     template <typename T>
-    T get(auto key, const T& defaultValue = {}) const
+    T get(const QString& key, const T& defaultValue = {}) const
     {
-        const auto qv = value(key, QVariant());
-        return qv.isValid() && qv.template canConvert<T>() ? qv.template value<T>() : defaultValue;
+        const auto qv = value(key);
+        return qv.isValid() && qv.canConvert<T>() ? qv.value<T>() : defaultValue;
     }
 
     Q_INVOKABLE QString group() const;
     Q_INVOKABLE QStringList childGroups() const;
-    Q_INVOKABLE void setValue(QAnyStringView key, const QVariant& value);
+    Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
 
     Q_INVOKABLE void remove(const QString& key);
 
