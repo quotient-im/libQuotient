@@ -15,10 +15,10 @@ void TestGroupSession::groupSessionPicklingValid()
     QVERIFY(QByteArray::fromBase64(ogsId).size() > 0);
     QCOMPARE(0, ogs.sessionMessageIndex());
 
-    auto&& ogsPickled = ogs.pickle(PicklingKey::mock());
+    auto picklingKey = PicklingKey::generate();
+    auto&& ogsPickled = ogs.pickle(picklingKey);
     auto ogs2 = QOlmOutboundGroupSession::unpickle(std::move(ogsPickled),
-                                                   PicklingKey::mock())
-                    .value();
+                                                   picklingKey).value();
     QCOMPARE(ogsId, ogs2.sessionId());
 
     auto igs = QOlmInboundGroupSession::create(ogs.sessionKey());
@@ -30,9 +30,9 @@ void TestGroupSession::groupSessionPicklingValid()
     //// no messages have been sent yet
     QCOMPARE(0, igs->firstKnownIndex());
 
-    auto igsPickled = igs->pickle(PicklingKey::mock());
+    auto igsPickled = igs->pickle(picklingKey);
     igs = QOlmInboundGroupSession::unpickle(std::move(igsPickled),
-                                            PicklingKey::mock()).value();
+                                            picklingKey).value();
     QVERIFY(igs.has_value());
     QCOMPARE(igsId, igs->sessionId());
 }
