@@ -22,10 +22,10 @@ void TestOlmAccount::pickleUnpickledTest()
 {
     auto olmAccount = QOlmAccount::newAccount(this, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     auto identityKeys = olmAccount->identityKeys();
-    auto pickled = olmAccount->pickle(PicklingKey::mock());
-    auto olmAccount2 = QOlmAccount::newAccount(this, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
-    //auto unpickleResult = olmAccount2->unpickle(std::move(pickled), PicklingKey::mock(), QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"), this);
-    //QCOMPARE(unpickleResult, 0);
+    auto key = PicklingKey::generate();
+    auto pickled = olmAccount->pickle(key);
+    auto olmAccount2 = QOlmAccount::unpickle(std::move(pickled), key, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"), nullptr);
+
     auto identityKeys2 = olmAccount2->identityKeys();
     QCOMPARE(identityKeys.curve25519, identityKeys2.curve25519);
     QCOMPARE(identityKeys.ed25519, identityKeys2.ed25519);
@@ -66,7 +66,7 @@ void TestOlmAccount::oneTimeKeysValid()
 {
     auto olmAccount = QOlmAccount::newAccount(this, QStringLiteral("@foo:bar.com"), QStringLiteral("QuotientTestDevice"));
     const auto maxNumberOfOneTimeKeys = olmAccount->maxNumberOfOneTimeKeys();
-    QCOMPARE(100, maxNumberOfOneTimeKeys);
+    QCOMPARE(50, maxNumberOfOneTimeKeys);
 
     const auto oneTimeKeysEmpty = olmAccount->oneTimeKeys();
     QVERIFY(oneTimeKeysEmpty.keys.isEmpty());
