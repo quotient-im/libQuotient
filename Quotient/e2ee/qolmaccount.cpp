@@ -157,7 +157,11 @@ std::pair<QOlmSession, QString> QOlmAccount::createInboundSession(
     const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage)
 {
     rust::Str theirIdentityKeyRS(theirIdentityKey.data(), theirIdentityKey.length());
-    olm::OlmMessageParts parts(preKeyMessage.type(), ::rust::String(preKeyMessage.data(), preKeyMessage.length()));
+    olm::OlmMessageParts parts {
+        .message_type = preKeyMessage.type(),
+        .ciphertext = rust::String(preKeyMessage.data(), preKeyMessage.length()),
+    };
+
     auto theirIdentityKeyResult = types::curve25519_public_key_from_base64(theirIdentityKeyRS);
     //TODO theirIdentityKeyResult error handling
     qWarning() << "Creating inbound session";
