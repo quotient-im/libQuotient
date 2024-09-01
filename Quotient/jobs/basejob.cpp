@@ -167,16 +167,10 @@ public:
     }
 };
 
-inline bool isHex(QChar c)
-{
-    return c.isDigit() || (c >= u'A' && c <= u'F') || (c >= u'a' && c <= u'f');
-}
-
 QByteArray BaseJob::encodeIfParam(const QString& paramPart)
 {
-    if (const auto percentIt = std::ranges::find(paramPart, u'%');
-        percentIt <= paramPart.end() - 3 && isHex(*(percentIt + 1)) && isHex(*(percentIt + 2))) {
-        qCWarning(JOBS) << "Developers, upfront percent-encoding of job paramParteters is "
+    if (static const QRegularExpression re{ "%[[:xdigit:]]{2}"_L1 }; paramPart.indexOf(re) != -1) {
+        qCWarning(JOBS) << "Developers, upfront percent-encoding of job parameters is "
                            "deprecated since libQuotient 0.7; the string involved is"
                         << paramPart;
         return QUrl(paramPart, QUrl::TolerantMode).toEncoded();
