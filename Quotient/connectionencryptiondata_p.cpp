@@ -775,19 +775,12 @@ std::pair<QByteArray, QByteArray> ConnectionEncryptionData::sessionDecryptMessag
         }
     }
 
-    //TODO new session
-
     qWarning() << "Creating new inbound session"; // Pre-key messages only
-    auto newSessionResult =
-        olmAccount->createInboundSession(senderKey, message);
-    auto&& newSession = std::move(newSessionResult);
-    auto result = newSession.tryDecrypt(message);
-    if (result.has_value()) {
-        saveSession(newSession, senderKey);
-        olmSessions[senderKey].push_back(std::move(newSession));
-        return std::make_pair(result.value(), newSession.sessionId());
-    }
-    return {};
+    auto newSessionResult = olmAccount->createInboundSession(senderKey, message);
+    auto&& newSession = std::move(newSessionResult.first);
+    saveSession(newSession, senderKey);
+    olmSessions[senderKey].push_back(std::move(newSession));
+    return std::make_pair(newSessionResult.second.toUtf8(), newSession.sessionId());
 }
 
 std::pair<EventPtr, QByteArray> ConnectionEncryptionData::sessionDecryptMessage(

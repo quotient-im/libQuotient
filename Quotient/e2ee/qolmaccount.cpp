@@ -153,7 +153,7 @@ UploadKeysJob* QOlmAccount::createUploadKeyRequest(
     return new UploadKeysJob(deviceKeys(), signOneTimeKeys(oneTimeKeys));
 }
 
-QOlmSession QOlmAccount::createInboundSession(
+std::pair<QOlmSession, QString> QOlmAccount::createInboundSession(
     const QByteArray& theirIdentityKey, const QOlmMessage& preKeyMessage)
 {
     rust::Str theirIdentityKeyRS(theirIdentityKey.data(), theirIdentityKey.length());
@@ -163,7 +163,7 @@ QOlmSession QOlmAccount::createInboundSession(
     qWarning() << "Creating inbound session";
     auto result = olmData->create_inbound_session(*types::curve25519_public_key_from_base64_result_value(std::move(theirIdentityKeyResult)), *olm_message_from_parts(parts));
 
-    return QOlmSession(std::move(result.session));
+    return {QOlmSession(std::move(result.session)), QString::fromUtf8({result.plaintext.data(), (int) result.plaintext.size()})};
 }
 
 

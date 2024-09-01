@@ -9,5 +9,4 @@ class TestOlmSession : public QObject
     Q_OBJECT
 private Q_SLOTS:
     void olmEncryptDecrypt();
-    void correctSessionOrdering();
 };

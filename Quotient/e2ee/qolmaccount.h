@@ -42,7 +42,7 @@ public:
 
     //! Deserialises from encrypted Base64 that was previously obtained by pickling a `QOlmAccount`.
     [[nodiscard]] static QOlmAccount *unpickle(QByteArray&& pickled,
-                                        const PicklingKey& key, const QString& userId, const QString& deviceId, QObject *parent);
+                                        const PicklingKey& key, const QString& userId, const QString& deviceId, QObject* parent);
 
     //! Serialises an OlmAccount to encrypted Base64.
     QByteArray pickle(const PicklingKey& key) const;
@@ -78,7 +78,7 @@ public:
     //!
     //! \param theirIdentityKey - The identity key of the Olm account that
     //! encrypted this Olm message.
-    QOlmSession createInboundSession(
+    std::pair<QOlmSession, QString> createInboundSession(
         const QByteArray& theirIdentityKey,
         const QOlmMessage& preKeyMessage);
 
