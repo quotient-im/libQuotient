@@ -133,12 +133,12 @@ int RoomMember::powerLevel() const
     return _room->memberEffectivePowerLevel(id());
 }
 
-QImage RoomMember::avatar(int width, int height, Avatar::get_callback_t callback)
+QImage RoomMember::avatar(int width, int height, Avatar::get_callback_t callback) const
 {
     return avatarObject().get(width, height, std::move(callback));
 }
 
-QImage RoomMember::avatar(int dimension, Avatar::get_callback_t callback)
+QImage RoomMember::avatar(int dimension, Avatar::get_callback_t callback) const
 {
     return avatar(dimension, dimension, std::move(callback));
 }

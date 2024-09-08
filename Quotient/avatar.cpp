@@ -44,7 +44,7 @@ public:
     mutable std::vector<get_callback_t> callbacks{};
 };
 
-Avatar::Avatar(Connection* c, QUrl url) : d(makeImpl<Private>(c))
+Avatar::Avatar(Connection* parent, const QUrl& url) : d(makeImpl<Private>(parent))
 {
     if (!url.isEmpty())
         updateUrl(url);

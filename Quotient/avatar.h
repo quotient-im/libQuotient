@@ -16,7 +16,7 @@ class Connection;
 
 class QUOTIENT_API Avatar {
 public:
-    explicit Avatar(Connection* parent, QUrl url = {});
+    explicit Avatar(Connection* parent, const QUrl& url = {});
 
 #ifdef __cpp_lib_move_only_function // AppleClang 15 doesn't have it
     using get_callback_t = std::move_only_function<void()>;
