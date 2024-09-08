@@ -18,8 +18,14 @@ class QUOTIENT_API Avatar {
 public:
     explicit Avatar(Connection* parent, QUrl url = {});
 
+#ifdef __cpp_lib_move_only_function // AppleClang 15 doesn't have it
     using get_callback_t = std::move_only_function<void()>;
     using upload_callback_t = std::move_only_function<void(QUrl)>;
+#else
+    using get_callback_t = std::function<void()>;
+    using upload_callback_t = std::function<void(QUrl)>;
+#endif
+
 
     QImage get(int dimension, get_callback_t callback) const;
     QImage get(int w, int h, get_callback_t callback) const;
