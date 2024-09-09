@@ -13,5 +13,5 @@ GetTokenOwnerJob::GetTokenOwnerJob()
     : BaseJob(HttpVerb::Get, u"GetTokenOwnerJob"_s,
               makePath("/_matrix/client/v3", "/account/whoami"))
 {
-    addExpectedKey("user_id");
+    addExpectedKey(u"user_id"_s);
 }

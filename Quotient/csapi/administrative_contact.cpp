@@ -55,7 +55,7 @@ Delete3pidFromAccountJob::Delete3pidFromAccountJob(const QString& medium, const 
     addParam<>(_dataJson, "medium"_L1, medium);
     addParam<>(_dataJson, "address"_L1, address);
     setRequestData({ _dataJson });
-    addExpectedKey("id_server_unbind_result");
+    addExpectedKey(u"id_server_unbind_result"_s);
 }
 
 Unbind3pidFromAccountJob::Unbind3pidFromAccountJob(const QString& medium, const QString& address,
@@ -68,7 +68,7 @@ Unbind3pidFromAccountJob::Unbind3pidFromAccountJob(const QString& medium, const 
     addParam<>(_dataJson, "medium"_L1, medium);
     addParam<>(_dataJson, "address"_L1, address);
     setRequestData({ _dataJson });
-    addExpectedKey("id_server_unbind_result");
+    addExpectedKey(u"id_server_unbind_result"_s);
 }
 
 RequestTokenTo3PIDEmailJob::RequestTokenTo3PIDEmailJob(const EmailValidationData& data)

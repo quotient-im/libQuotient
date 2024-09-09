@@ -32,5 +32,5 @@ GetSpaceHierarchyJob::GetSpaceHierarchyJob(const QString& roomId, std::optional<
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/hierarchy"),
               queryToGetSpaceHierarchy(suggestedOnly, limit, maxDepth, from))
 {
-    addExpectedKey("rooms");
+    addExpectedKey(u"rooms"_s);
 }

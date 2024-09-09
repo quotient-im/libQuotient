@@ -28,5 +28,5 @@ GetThreadRootsJob::GetThreadRootsJob(const QString& roomId, const QString& inclu
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/threads"),
               queryToGetThreadRoots(include, limit, from))
 {
-    addExpectedKey("chunk");
+    addExpectedKey(u"chunk"_s);
 }

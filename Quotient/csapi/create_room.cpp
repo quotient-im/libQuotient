@@ -27,5 +27,5 @@ CreateRoomJob::CreateRoomJob(const QString& visibility, const QString& roomAlias
     addParam<IfNotEmpty>(_dataJson, "is_direct"_L1, isDirect);
     addParam<IfNotEmpty>(_dataJson, "power_level_content_override"_L1, powerLevelContentOverride);
     setRequestData({ _dataJson });
-    addExpectedKey("room_id");
+    addExpectedKey(u"room_id"_s);
 }

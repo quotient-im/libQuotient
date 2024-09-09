@@ -12,5 +12,5 @@ QUrl GetVersionsJob::makeRequestUrl(const HomeserverData& hsData)
 GetVersionsJob::GetVersionsJob()
     : BaseJob(HttpVerb::Get, u"GetVersionsJob"_s, makePath("/_matrix/client", "/versions"))
 {
-    addExpectedKey("versions");
+    addExpectedKey(u"versions"_s);
 }

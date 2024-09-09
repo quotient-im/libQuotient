@@ -26,6 +26,6 @@ GetEventByTimestampJob::GetEventByTimestampJob(const QString& roomId, int ts, co
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/timestamp_to_event"),
               queryToGetEventByTimestamp(ts, dir))
 {
-    addExpectedKey("event_id");
-    addExpectedKey("origin_server_ts");
+    addExpectedKey(u"event_id"_s);
+    addExpectedKey(u"origin_server_ts"_s);
 }

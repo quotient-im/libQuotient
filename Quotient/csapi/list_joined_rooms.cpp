@@ -12,5 +12,5 @@ QUrl GetJoinedRoomsJob::makeRequestUrl(const HomeserverData& hsData)
 GetJoinedRoomsJob::GetJoinedRoomsJob()
     : BaseJob(HttpVerb::Get, u"GetJoinedRoomsJob"_s, makePath("/_matrix/client/v3", "/joined_rooms"))
 {
-    addExpectedKey("joined_rooms");
+    addExpectedKey(u"joined_rooms"_s);
 }

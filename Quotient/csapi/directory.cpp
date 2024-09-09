@@ -45,5 +45,5 @@ GetLocalAliasesJob::GetLocalAliasesJob(const QString& roomId)
     : BaseJob(HttpVerb::Get, u"GetLocalAliasesJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/aliases"))
 {
-    addExpectedKey("aliases");
+    addExpectedKey(u"aliases"_s);
 }

@@ -13,5 +13,5 @@ GetCapabilitiesJob::GetCapabilitiesJob()
     : BaseJob(HttpVerb::Get, u"GetCapabilitiesJob"_s,
               makePath("/_matrix/client/v3", "/capabilities"))
 {
-    addExpectedKey("capabilities");
+    addExpectedKey(u"capabilities"_s);
 }

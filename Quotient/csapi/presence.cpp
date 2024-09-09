@@ -25,5 +25,5 @@ GetPresenceJob::GetPresenceJob(const QString& userId)
     : BaseJob(HttpVerb::Get, u"GetPresenceJob"_s,
               makePath("/_matrix/client/v3", "/presence/", userId, "/status"))
 {
-    addExpectedKey("presence");
+    addExpectedKey(u"presence"_s);
 }

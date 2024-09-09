@@ -47,7 +47,7 @@ GetPublicRoomsJob::GetPublicRoomsJob(std::optional<int> limit, const QString& si
     : BaseJob(HttpVerb::Get, u"GetPublicRoomsJob"_s, makePath("/_matrix/client/v3", "/publicRooms"),
               queryToGetPublicRooms(limit, since, server), {}, false)
 {
-    addExpectedKey("chunk");
+    addExpectedKey(u"chunk"_s);
 }
 
 auto queryToQueryPublicRooms(const QString& server)
@@ -71,5 +71,5 @@ QueryPublicRoomsJob::QueryPublicRoomsJob(const QString& server, std::optional<in
     addParam<IfNotEmpty>(_dataJson, "include_all_networks"_L1, includeAllNetworks);
     addParam<IfNotEmpty>(_dataJson, "third_party_instance_id"_L1, thirdPartyInstanceId);
     setRequestData({ _dataJson });
-    addExpectedKey("chunk");
+    addExpectedKey(u"chunk"_s);
 }

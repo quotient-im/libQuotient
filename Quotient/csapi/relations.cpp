@@ -35,7 +35,7 @@ GetRelatingEventsJob::GetRelatingEventsJob(const QString& roomId, const QString&
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/", eventId),
               queryToGetRelatingEvents(from, to, limit, dir, recurse))
 {
-    addExpectedKey("chunk");
+    addExpectedKey(u"chunk"_s);
 }
 
 auto queryToGetRelatingEventsWithRelType(const QString& from, const QString& to,
@@ -71,7 +71,7 @@ GetRelatingEventsWithRelTypeJob::GetRelatingEventsWithRelTypeJob(
                        relType),
               queryToGetRelatingEventsWithRelType(from, to, limit, dir, recurse))
 {
-    addExpectedKey("chunk");
+    addExpectedKey(u"chunk"_s);
 }
 
 auto queryToGetRelatingEventsWithRelTypeAndEventType(const QString& from, const QString& to,
@@ -108,5 +108,5 @@ GetRelatingEventsWithRelTypeAndEventTypeJob::GetRelatingEventsWithRelTypeAndEven
                        relType, "/", eventType),
               queryToGetRelatingEventsWithRelTypeAndEventType(from, to, limit, dir, recurse))
 {
-    addExpectedKey("chunk");
+    addExpectedKey(u"chunk"_s);
 }
