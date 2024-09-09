@@ -322,9 +322,9 @@ protected:
     const QByteArrayList& expectedContentTypes() const;
     void addExpectedContentType(const QByteArray& contentType);
     void setExpectedContentTypes(const QByteArrayList& contentTypes);
-    QByteArrayList expectedKeys() const;
-    void addExpectedKey(const QByteArray &key);
-    void setExpectedKeys(const QByteArrayList &keys);
+    QStringList expectedKeys() const;
+    void addExpectedKey(QString key);
+    void setExpectedKeys(const QStringList& keys);
 
     const QNetworkReply* reply() const;
     QNetworkReply* reply();
