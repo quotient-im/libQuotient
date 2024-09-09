@@ -50,7 +50,7 @@ QUrl {{>titleCaseOperationId}}Job::makeRequestUrl(const HomeserverData& hsData{{
     setExpectedContentTypes({ {{#produces}}"{{_}}"{{>cjoin}}{{/produces}} });
     {{/producesNonJson?}}{{^producesNonJson?
         }}{{#responses}}{{#normalResponse?}}{{#properties}}{{#required?}}
-    addExpectedKey("{{baseName}}");
+    addExpectedKey(u"{{baseName}}"_s);
         {{/required?}}{{/properties}}{{/normalResponse?}}{{/responses
     }}{{/producesNonJson?}}
 }
