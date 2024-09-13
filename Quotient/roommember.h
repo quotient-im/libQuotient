@@ -5,6 +5,7 @@
 
 #include "quotient_common.h"
 #include "uri.h"
+#include "avatar.h"
 
 #include <QtCore/QObject>
 
@@ -186,6 +187,8 @@ public:
     //! for the methodology.
     QColor color() const;
 
+    const Avatar& avatarObject() const;
+
     //! \brief The mxc URL as a string for the user avatar in the room
     //!
     //! This can be empty if none set.
@@ -193,8 +196,12 @@ public:
 
     //! \brief The mxc URL for the user avatar in the room
     //!
-    //!This can be empty if none set.
+    //! This can be empty if none set.
     QUrl avatarUrl() const;
+
+    QImage avatar(int width, int height, Avatar::get_callback_t callback) const;
+
+    QImage avatar(int dimension, Avatar::get_callback_t callback) const;
 
     //! \brief The power level of the member.
     //!

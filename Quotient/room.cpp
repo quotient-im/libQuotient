@@ -85,6 +85,7 @@ public:
         : connection(c)
         , id(std::move(id_))
         , joinState(initialJoinState)
+        , avatar(c)
     {}
 
     Room* q = nullptr;
@@ -617,23 +618,24 @@ QString Room::avatarMediaId() const { return d->avatar.mediaId(); }
 
 QUrl Room::avatarUrl() const { return d->avatar.url(); }
 
-const Avatar& Room::avatarObject() const { return d->avatar; }
+const Avatar& Room::avatarObject() const
+{
+    // If the avatar is not empty use it; otherwise, try to use the first (excluding self) user's
+    // avatar for direct chats, or just return the empty room avatar if that doesn't work out
+    if (d->avatar.isEmpty())
+        for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
+            if (m != localMember())
+                return m.avatarObject();
+
+    return d->avatar;
+}
 
 QImage Room::avatar(int dimension) { return avatar(dimension, dimension); }
 
 QImage Room::avatar(int width, int height)
 {
-    if (!d->avatar.url().isEmpty())
-        return d->avatar.get(connection(), width, height,
-                             [this] { emit avatarChanged(); });
-
-    // Use the first (excluding self) user's avatar for direct chats
-    for (const auto dcMembers = directChatMembers(); const auto& m : dcMembers)
-        if (m != localMember())
-            return memberAvatar(m.id()).get(connection(), width, height,
-                                            [this] { emit avatarChanged(); });
-
-    return {};
+    return d->avatar.isEmpty() ? QImage()
+                               : d->avatar.get(width, height, [this] { emit avatarChanged(); });
 }
 
 RoomMember Room::localMember() const { return member(connection()->userId()); }
@@ -1754,13 +1756,24 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
     return Timeline::size_type(insertedSize);
 }
 
-const Avatar& Room::memberAvatar(const QString& memberId) const
+const Avatar& Room::memberAvatarObject(const QString& memberId) const
 {
     return connection()->userAvatar(member(memberId).avatarUrl());
 }
 
-Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data,
-                                                     bool fromCache)
+QImage Room::memberAvatar(const QString& memberId, int width, int height)
+{
+    return member(memberId).avatar(width, height, [this, memberId] {
+        emit memberAvatarUpdated(member(memberId));
+    });
+}
+
+QImage Room::memberAvatar(const QString& memberId, int dimension)
+{
+    return memberAvatar(memberId, dimension, dimension);
+}
+
+Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data, bool fromCache)
 {
     Changes changes {};
     if (fromCache) {

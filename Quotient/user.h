@@ -85,6 +85,8 @@ public:
     //! may not work with non-Synapse servers.
     bool isGuest() const;
 
+    Avatar& avatarObject();
+
     //! \brief The default mxc URL as a string for the user avatar
     //!
     //! This can be empty if none set.
@@ -104,6 +106,10 @@ public:
     //!
     //! \sa RoomMember
     QUrl avatarUrl() const;
+
+    QImage avatar(int width, int height, Avatar::get_callback_t callback);
+
+    QImage avatar(int dimension, Avatar::get_callback_t callback);
 
     //! Upload the file and use it as an avatar
     Q_INVOKABLE bool setAvatar(const QString& fileName);

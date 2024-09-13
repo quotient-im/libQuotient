@@ -113,11 +113,23 @@ void User::rename(const QString& newName, Room* r)
         << "Attempt to rename a non-member in a room context - ignored";
 }
 
+Avatar& User::avatarObject() { return connection()->userAvatar(avatarUrl()); }
+
+QImage User::avatar(int width, int height, Avatar::get_callback_t callback)
+{
+    return avatarObject().get(width, height, std::move(callback));
+}
+
+QImage User::avatar(int dimension, Avatar::get_callback_t callback)
+{
+    return avatar(dimension, dimension, std::move(callback));
+}
+
 void User::doSetAvatar(const QUrl& contentUri)
 {
     connection()->callApi<SetAvatarUrlJob>(id(), contentUri).then(this, [this, contentUri] {
         if (contentUri != d->defaultAvatarUrl) {
-            connection()->userAvatar(d->defaultAvatarUrl).updateUrl(contentUri);
+            avatarObject().updateUrl(contentUri);
             emit defaultAvatarChanged();
         } else
             qCWarning(MAIN) << "User" << id() << "already has avatar URL set to"
@@ -127,9 +139,8 @@ void User::doSetAvatar(const QUrl& contentUri)
 
 bool User::setAvatar(const QString& fileName)
 {
-    auto ft = connection()
-                  ->userAvatar(d->defaultAvatarUrl)
-                  .upload(connection(), fileName)
+    auto ft = avatarObject()
+                  .upload(fileName)
                   .then(std::bind_front(&User::doSetAvatar, this));
     // The return value only says whether the upload has started; the subsequent url setting job
     // will only start after the upload completes
@@ -138,9 +149,8 @@ bool User::setAvatar(const QString& fileName)
 
 bool User::setAvatar(QIODevice* source)
 {
-    auto ft = connection()
-                  ->userAvatar(d->defaultAvatarUrl)
-                  .upload(connection(), source)
+    auto ft = avatarObject()
+                  .upload(source)
                   .then(std::bind_front(&User::doSetAvatar, this));
     // The return value only says whether the upload has started; the subsequent url setting job
     // will only start after the upload completes

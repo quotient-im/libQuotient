@@ -16,30 +16,33 @@ class Connection;
 
 class QUOTIENT_API Avatar {
 public:
-    explicit Avatar();
-    explicit Avatar(QUrl url);
+    explicit Avatar(Connection* parent, const QUrl& url = {});
 
-    // TODO: use std::move_only_function once C++23 is here
+#ifdef __cpp_lib_move_only_function // AppleClang 15 doesn't have it
+    using get_callback_t = std::move_only_function<void()>;
+    using upload_callback_t = std::move_only_function<void(QUrl)>;
+#else
     using get_callback_t = std::function<void()>;
     using upload_callback_t = std::function<void(QUrl)>;
+#endif
 
-    QImage get(Connection* connection, int dimension,
-               get_callback_t callback) const;
-    QImage get(Connection* connection, int w, int h,
-               get_callback_t callback) const;
+
+    QImage get(int dimension, get_callback_t callback) const;
+    QImage get(int w, int h, get_callback_t callback) const;
 
     [[deprecated("Use the QFuture-returning overload instead")]]
-    bool upload(Connection* connection, const QString& fileName,
-                upload_callback_t callback) const;
+    bool upload(const QString& fileName, upload_callback_t callback) const;
     [[deprecated("Use the QFuture-returning overload instead")]]
-    bool upload(Connection* connection, QIODevice* source,
-                upload_callback_t callback) const;
-    QFuture<QUrl> upload(Connection* connection, const QString& fileName) const;
-    QFuture<QUrl> upload(Connection* connection, QIODevice* source) const;
+    bool upload(QIODevice* source, upload_callback_t callback) const;
+    QFuture<QUrl> upload(const QString& fileName) const;
+    QFuture<QUrl> upload(QIODevice* source) const;
 
+    bool isEmpty() const;
     QString mediaId() const;
     QUrl url() const;
     bool updateUrl(const QUrl& newUrl);
+
+    static bool isUrlValid(const QUrl& u);
 
 private:
     class Private;

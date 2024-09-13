@@ -93,44 +93,36 @@ QColor RoomMember::color() const
     return QColor::fromHslF(static_cast<float>(hueF()), 1.0f, -0.7f * lightness + 0.9f, 1.0f);
 }
 
+const Avatar& RoomMember::avatarObject() const
+{
+    return _room->connection()->userAvatar(avatarUrl());
+}
+
+namespace {
+QUrl getMediaId(const RoomMemberEvent* evt)
+{
+    // See https://github.com/matrix-org/matrix-spec/issues/322
+    QUrl baseUrl;
+    if (evt->newAvatarUrl())
+        baseUrl = *evt->newAvatarUrl();
+    else if (evt->prevContent() && evt->prevContent()->avatarUrl)
+        baseUrl = *evt->prevContent()->avatarUrl;
+
+    return Avatar::isUrlValid(baseUrl) ? baseUrl : QUrl();
+}
+}
+
 QString RoomMember::avatarMediaId() const
 {
-    if (_member == nullptr) {
-        return {};
-    }
-    // See https://github.com/matrix-org/matrix-doc/issues/1375
-    QUrl baseUrl;
-    if (_member->newAvatarUrl()) {
-        baseUrl = *_member->newAvatarUrl();
-    } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
-        baseUrl = *_member->prevContent()->avatarUrl;
-    }
-    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1) {
-        return {};
-    }
-    return baseUrl.toString();
+    return isEmpty() ? QString() : getMediaId(_member).toString();
 }
 
 QUrl RoomMember::avatarUrl() const {
-    if (_room == nullptr || _member == nullptr) {
+    if (isEmpty())
         return {};
-    }
-    // See https://github.com/matrix-org/matrix-doc/issues/1375
-    QUrl baseUrl;
-    if (_member->newAvatarUrl()) {
-        baseUrl = *_member->newAvatarUrl();
-    } else if (_member->prevContent() && _member->prevContent()->avatarUrl) {
-        baseUrl = *_member->prevContent()->avatarUrl;
-    }
-    if (baseUrl.isEmpty() || baseUrl.scheme() != "mxc"_L1) {
-        return {};
-    }
 
-    const auto mediaUrl = _room->connection()->makeMediaUrl(baseUrl);
-    if (mediaUrl.isValid() && mediaUrl.scheme() == "mxc"_L1) {
-        return mediaUrl;
-    }
-    return {};
+    const auto mediaId = getMediaId(_member);
+    return mediaId.isValid() ? _room->connection()->makeMediaUrl(mediaId) : QUrl();
 }
 
 int RoomMember::powerLevel() const
@@ -139,6 +131,16 @@ int RoomMember::powerLevel() const
         return std::numeric_limits<int>::min();
     }
     return _room->memberEffectivePowerLevel(id());
+}
+
+QImage RoomMember::avatar(int width, int height, Avatar::get_callback_t callback) const
+{
+    return avatarObject().get(width, height, std::move(callback));
+}
+
+QImage RoomMember::avatar(int dimension, Avatar::get_callback_t callback) const
+{
+    return avatar(dimension, dimension, std::move(callback));
 }
 
 namespace {
