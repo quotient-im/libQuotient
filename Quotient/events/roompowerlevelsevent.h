@@ -6,28 +6,33 @@
 #include "stateevent.h"
 
 namespace Quotient {
+
 struct QUOTIENT_API PowerLevelsEventContent {
+    // See https://spec.matrix.org/v1.11/client-server-api/#mroompower_levels for the defaults
+
+    int invite = 0;
+    int kick = 50;
+    int ban = 50;
+
+    int redact = 50;
+
+    QHash<QString, int> events{};
+    int eventsDefault = 0;
+    int stateDefault = 50;
+
+    QHash<QString, int> users{};
+    int usersDefault = 0;
+
     struct Notifications {
-        int room;
+        int room = 50;
     };
+    Notifications notifications{};
+};
 
-    explicit PowerLevelsEventContent(const QJsonObject& json);
-    QJsonObject toJson() const;
-
-    int invite;
-    int kick;
-    int ban;
-
-    int redact;
-
-    QHash<QString, int> events;
-    int eventsDefault;
-    int stateDefault;
-
-    QHash<QString, int> users;
-    int usersDefault;
-
-    Notifications notifications;
+template <>
+struct QUOTIENT_API JsonConverter<PowerLevelsEventContent> {
+    static PowerLevelsEventContent load(const QJsonValue& jv);
+    static QJsonObject dump(const PowerLevelsEventContent& c);
 };
 
 class QUOTIENT_API RoomPowerLevelsEvent
@@ -52,8 +57,37 @@ public:
 
     int roomNotification() const { return content().notifications.room; }
 
+    //! \brief Get the power level for message events of a given type
+    //!
+    //! \note You normally should not compare power levels returned from this
+    //!       and other powerLevelFor*() functions directly; use
+    //!       Room::canSendEvents() instead
     int powerLevelForEvent(const QString& eventTypeId) const;
+
+    //! \brief Get the power level for state events of a given type
+    //!
+    //! \note You normally should not compare power levels returned from this
+    //!       and other powerLevelFor*() functions directly; use
+    //!       Room::canSetState() instead
     int powerLevelForState(const QString& eventTypeId) const;
+
+    //! \brief Get the power level for a given user
+    //!
+    //! \note You normally should not directly use power levels returned by this
+    //!       and other powerLevelFor*() functions; use Room API instead
+    //! \sa Room::canSend, Room::canSendEvents, Room::canSetState,
+    //!     Room::effectivePowerLevel
     int powerLevelForUser(const QString& userId) const;
+
+    template <EventClass EvT>
+    int powerLevelForEventType() const
+    {
+        if constexpr (std::is_base_of_v<StateEvent, EvT>) {
+            return powerLevelForState(EvT::TypeId);
+        } else {
+            return powerLevelForEvent(EvT::TypeId);
+        }
+    }
 };
+
 } // namespace Quotient
