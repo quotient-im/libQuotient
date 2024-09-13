@@ -4,7 +4,7 @@
 #include "event.h"
 
 #include "../logging_categories_p.h"
-#include "stateevent.h"
+#include "../ranges_extras.h"
 
 #include <QtCore/QJsonDocument>
 
@@ -13,46 +13,31 @@ using namespace Quotient;
 void AbstractEventMetaType::addDerived(const AbstractEventMetaType* newType)
 {
     if (const auto existing =
-            std::find_if(derivedTypes.cbegin(), derivedTypes.cend(),
-                         [&newType](const AbstractEventMetaType* t) {
-                             return t->matrixId == newType->matrixId;
-                         });
-        existing != derivedTypes.cend())
-    {
+            findIndirect(_derivedTypes, newType->matrixId, &AbstractEventMetaType::matrixId);
+        existing != _derivedTypes.cend()) {
         if (*existing == newType)
             return;
         // Two different metatype objects claim the same Matrix type id; this
         // is not normal, so give as much information as possible to diagnose
         if ((*existing)->className == newType->className) {
-            qCritical(EVENTS)
-                << newType->className << "claims" << newType->matrixId
-                << "repeatedly; check that it's exported across translation "
-                   "units or shared objects";
+            qCritical(EVENTS) << newType->className << "claims" << newType->matrixId
+                              << "repeatedly; check that it's exported across translation "
+                                 "units or shared objects";
             Q_ASSERT(false); // That situation is plain wrong
             return; // So maybe std::terminate() even?
         }
-        qWarning(EVENTS).nospace()
-            << newType->matrixId << " is already mapped to "
-            << (*existing)->className << " before " << newType->className
-            << "; unless the two have different isValid() conditions, the "
-               "latter class will never be used";
+        qWarning(EVENTS).nospace() << newType->matrixId << " is already mapped to "
+                                   << (*existing)->className << " before " << newType->className
+                                   << "; unless the two have different isValid() conditions, the "
+                                      "latter class will never be used";
     }
-    derivedTypes.emplace_back(newType);
-    qDebug(EVENTS).nospace()
-        << newType->matrixId << " -> " << newType->className << "; "
-        << derivedTypes.size() << " derived type(s) registered for "
-        << className;
+    _derivedTypes.emplace_back(newType);
+    qDebug(EVENTS).nospace() << newType->matrixId << " -> " << newType->className << "; "
+                             << _derivedTypes.size() << " derived type(s) registered for "
+                             << className;
 }
 
-Event::Event(const QJsonObject& json)
-    : _json(json)
-{
-    if (!json.contains(ContentKey)
-        && !json.value(UnsignedKey).toObject().contains(RedactedCauseKey)) {
-        qCWarning(EVENTS) << "Event without 'content' node";
-        qCWarning(EVENTS) << formatJson << json;
-    }
-}
+Event::Event(const QJsonObject& json) : _json(json) {}
 
 Event::~Event() = default;
 

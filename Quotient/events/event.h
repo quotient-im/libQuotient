@@ -55,6 +55,7 @@ public:
     }
 
     void addDerived(const AbstractEventMetaType* newType);
+    const auto& derivedTypes() const { return _derivedTypes; }
 
     virtual ~AbstractEventMetaType() = default;
 
@@ -69,7 +70,7 @@ protected:
                             Event*& event) const = 0;
 
 private:
-    std::vector<const AbstractEventMetaType*> derivedTypes{};
+    std::vector<const AbstractEventMetaType*> _derivedTypes{};
     Q_DISABLE_COPY_MOVE(AbstractEventMetaType)
 };
 
@@ -146,7 +147,7 @@ private:
             if (EventT::TypeId != type)
                 return false;
         } else {
-            for (const auto& p : derivedTypes) {
+            for (const auto& p : _derivedTypes) {
                 p->doLoadFrom(fullJson, type, event);
                 if (event) {
                     Q_ASSERT(is<EventT>(*event));
