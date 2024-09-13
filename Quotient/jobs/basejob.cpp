@@ -416,13 +416,12 @@ void BaseJob::gotReply()
         d->rawResponse = reply()->readAll();
         statusSoFar = d->parseJson();
         if (statusSoFar.good()) {
+            auto filteredView =
+                std::views::filter(expectedKeys(), [responseObject = jsonData()](const QString& k) {
+                    return !responseObject.contains(k);
+                });
             if (const auto missingKeys =
-                    (std::views::filter(expectedKeys(),
-                                        [responseObject = jsonData()](const QString& k) {
-                                            return !responseObject.contains(k);
-                                        })
-                     | std::ranges::to<QStringList>())
-                        .join(u',');
+                    QStringList(filteredView.begin(), filteredView.end()).join(u',');
                 !missingKeys.isEmpty()) [[unlikely]]
                 statusSoFar = { IncorrectResponse,
                                 tr("Required JSON keys missing: ") + missingKeys };
