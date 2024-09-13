@@ -3078,8 +3078,7 @@ Room::Changes Room::processStateEvent(const RoomEvent& e)
     Q_ASSERT(result != Change::None);
     // Whatever the outcome, the relevant piece of state should stay valid
     // (the absense of event is a valid state, too)
-    Q_ASSERT(currentState().queryOr(e.matrixType(), e.stateKey(),
-                                    &Event::isStateEvent, true));
+    Q_ASSERT(currentState().queryOr(e.matrixType(), e.stateKey(), &RoomEvent::isStateEvent, true));
     return result;
 }
 

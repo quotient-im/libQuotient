@@ -8,6 +8,10 @@
 
 #include <QtCore/QJsonDocument>
 
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR <= 9
+#include "stateevent.h" // For deprecated isStateEvent(); remove, once Event::isStateEvent() is gone
+#endif
+
 using namespace Quotient;
 
 void AbstractEventMetaType::addDerived(const AbstractEventMetaType* newType)
@@ -53,7 +57,9 @@ const QJsonObject Event::unsignedJson() const
     return fullJson()[UnsignedKey].toObject();
 }
 
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR <= 9
 bool Event::isStateEvent() const { return is<StateEvent>(); }
+#endif
 
 void Event::dumpTo(QDebug dbg) const
 {

@@ -19,6 +19,7 @@ constexpr inline auto TypeKey = "type"_L1;
 constexpr inline auto BodyKey = "body"_L1;
 constexpr inline auto ContentKey = "content"_L1;
 constexpr inline auto SenderKey = "sender"_L1;
+constexpr inline auto UnsignedKey = "unsigned"_L1;
 
 using event_type_t = QLatin1String;
 
@@ -55,7 +56,7 @@ public:
     }
 
     void addDerived(const AbstractEventMetaType* newType);
-    const auto& derivedTypes() const { return _derivedTypes; }
+    auto derivedTypes() const { return std::span(_derivedTypes); }
 
     virtual ~AbstractEventMetaType() = default;
 
@@ -329,10 +330,9 @@ public:
         return dbg;
     }
 
-    // State events are quite special in Matrix; so isStateEvent() is here,
-    // as an exception. For other base events, Event::is<>() and
-    // Quotient::is<>() should be used; don't add is* methods here
-    bool isStateEvent() const;
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR <= 9
+    [[deprecated("isStateEvent() has moved to RoomEvent")]] bool isStateEvent() const;
+#endif
 
 protected:
     friend class EventMetaType<Event>; // To access the below constructor

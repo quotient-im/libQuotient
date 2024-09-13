@@ -14,7 +14,6 @@ constexpr inline auto RoomIdKey = "room_id"_L1;
 constexpr inline auto StateKeyKey = "state_key"_L1;
 constexpr inline auto RedactedCauseKey = "redacted_because"_L1;
 constexpr inline auto RelatesToKey = "m.relates_to"_L1;
-constexpr inline auto UnsignedKey = "unsigned"_L1;
 
 class RedactionEvent;
 class EncryptedEvent;
@@ -48,6 +47,12 @@ public:
 
     //! The transaction_id JSON value for the event.
     QString transactionId() const;
+
+    // State events are special in Matrix; so isStateEvent() and stateKey() are here,
+    // as an exception. For other event types (including base types), Event::is<>() and
+    // Quotient::is<>() should be used
+
+    bool isStateEvent() const;
 
     QString stateKey() const;
 
@@ -88,6 +93,9 @@ private:
 using RoomEventPtr = event_ptr_tt<RoomEvent>;
 using RoomEvents = EventsArray<RoomEvent>;
 using RoomEventsRange = std::ranges::subrange<RoomEvents::iterator>;
+
+//! \brief Determine whether a given event type is that of a state event
+QUOTIENT_API bool isStateEvent(const QString& eventTypeId);
 
 } // namespace Quotient
 Q_DECLARE_METATYPE(Quotient::RoomEvent*)
