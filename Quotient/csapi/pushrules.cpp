@@ -12,7 +12,7 @@ QUrl GetPushRulesJob::makeRequestUrl(const HomeserverData& hsData)
 GetPushRulesJob::GetPushRulesJob()
     : BaseJob(HttpVerb::Get, u"GetPushRulesJob"_s, makePath("/_matrix/client/v3", "/pushrules"))
 {
-    addExpectedKey("global");
+    addExpectedKey(u"global"_s);
 }
 
 QUrl GetPushRuleJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
@@ -76,7 +76,7 @@ IsPushRuleEnabledJob::IsPushRuleEnabledJob(const QString& scope, const QString& 
               makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId,
                        "/enabled"))
 {
-    addExpectedKey("enabled");
+    addExpectedKey(u"enabled"_s);
 }
 
 SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& scope, const QString& kind,
@@ -103,7 +103,7 @@ GetPushRuleActionsJob::GetPushRuleActionsJob(const QString& scope, const QString
               makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId,
                        "/actions"))
 {
-    addExpectedKey("actions");
+    addExpectedKey(u"actions"_s);
 }
 
 SetPushRuleActionsJob::SetPushRuleActionsJob(const QString& scope, const QString& kind,

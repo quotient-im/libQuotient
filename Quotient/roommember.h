@@ -13,20 +13,22 @@ namespace Quotient {
 class Room;
 class RoomMemberEvent;
 
-//! This class is for visualizing a user in a room context.
+//! \brief Representation of a user state in a room
 //!
-//! The class is intentionally a read-only data object that is effectively a wrapper
-//! around an m.room.member event for the desired user. This is designed provide the
-//! data in a format ready for visualizing a user (avatar or name) in the context
-//! of the room it was generated in. This means that if a user has set a unique
-//! name or avatar for a particular room that is what will be returned.
+//! The class is intentionally a read-only data object that is effectively a wrapper around an
+//! `m.room.member` event for the desired user. This is designed to provide the data in a format
+//! ready for visualizing a user (avatar or name) in the context of the room it was generated in.
+//! This means that if a user has set a unique name or avatar for a particular room that is what
+//! will be returned.
 //!
-//! \note The RoomMember class is not intended for interacting with a User's profile.
-//!       For that a Quotient::User object should be obtained from a
-//!       Quotient::Connection as that has the support functions for modifying profile
-//!       information.
-//!
-//! \sa Quotient::User
+//! \note The RoomMember class is not intended for interacting with the user's profile.
+//!       For that a Quotient::User object should be obtained from a Quotient::Connection as that
+//!       has the support functions for modifying profile information.
+//! \warning RoomMember is a gadget class and should not be kept between syncs. It does not track
+//!          changes of the member state therefore some member changes (i.e. leaving the room) may
+//!          render a RoomMember dangling, when calling any of its methods leads to undefined
+//!          behaviour.
+//! \sa User
 class QUOTIENT_API RoomMember {
     Q_GADGET
     Q_PROPERTY(bool isEmpty READ isEmpty CONSTANT)

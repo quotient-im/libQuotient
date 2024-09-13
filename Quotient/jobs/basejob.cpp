@@ -17,6 +17,8 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <ranges>
+
 using namespace Quotient;
 using std::chrono::seconds, std::chrono::milliseconds;
 using namespace std::chrono_literals;
@@ -122,7 +124,7 @@ public:
     // type QMimeType is of little help with MIME type globs (`text/*` etc.)
     QByteArrayList expectedContentTypes { "application/json" };
 
-    QByteArrayList expectedKeys;
+    QStringList expectedKeys;
 
     // When the QNetworkAccessManager is destroyed it destroys all pending replies.
     // Using QPointer allows us to know when that happend.
@@ -257,11 +259,11 @@ void BaseJob::setExpectedContentTypes(const QByteArrayList& contentTypes)
     d->expectedContentTypes = contentTypes;
 }
 
-QByteArrayList BaseJob::expectedKeys() const { return d->expectedKeys; }
+QStringList BaseJob::expectedKeys() const { return d->expectedKeys; }
 
-void BaseJob::addExpectedKey(const QByteArray& key) { d->expectedKeys << key; }
+void BaseJob::addExpectedKey(QString key) { d->expectedKeys << std::move(key); }
 
-void BaseJob::setExpectedKeys(const QByteArrayList& keys)
+void BaseJob::setExpectedKeys(const QStringList& keys)
 {
     d->expectedKeys = keys;
 }
@@ -410,21 +412,19 @@ void BaseJob::gotReply()
 {
     // Defer actually updating the status until it's finalised
     auto statusSoFar = checkReply(reply());
-    if (statusSoFar.good()
-        && d->expectedContentTypes == QByteArrayList { "application/json" }) //
-    {
+    if (statusSoFar.good() && d->expectedContentTypes == QByteArrayList{ "application/json"_ba }) {
         d->rawResponse = reply()->readAll();
         statusSoFar = d->parseJson();
-        if (statusSoFar.good() && !expectedKeys().empty()) {
-            const auto& responseObject = jsonData();
-            QByteArrayList missingKeys;
-            for (const auto& k: expectedKeys())
-                if (!responseObject.contains(QString::fromLatin1(k)))
-                    missingKeys.push_back(k);
-            if (!missingKeys.empty())
+        if (statusSoFar.good()) {
+            auto filteredView =
+                std::views::filter(expectedKeys(), [responseObject = jsonData()](const QString& k) {
+                    return !responseObject.contains(k);
+                });
+            if (const auto missingKeys =
+                    QStringList(filteredView.begin(), filteredView.end()).join(u',');
+                !missingKeys.isEmpty()) [[unlikely]]
                 statusSoFar = { IncorrectResponse,
-                                tr("Required JSON keys missing: ")
-                                    + QString::fromLatin1(missingKeys.join()) };
+                                tr("Required JSON keys missing: ") + missingKeys };
         }
         setStatus(statusSoFar);
         if (!status().good()) // Bad JSON in a "good" reply: bail out

@@ -26,5 +26,5 @@ GetNotificationsJob::GetNotificationsJob(const QString& from, std::optional<int>
               makePath("/_matrix/client/v3", "/notifications"),
               queryToGetNotifications(from, limit, only))
 {
-    addExpectedKey("notifications");
+    addExpectedKey(u"notifications"_s);
 }

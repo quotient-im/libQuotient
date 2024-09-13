@@ -27,7 +27,7 @@ RegisterJob::RegisterJob(const QString& kind, const std::optional<Authentication
     addParam<IfNotEmpty>(_dataJson, "inhibit_login"_L1, inhibitLogin);
     addParam<IfNotEmpty>(_dataJson, "refresh_token"_L1, refreshToken);
     setRequestData({ _dataJson });
-    addExpectedKey("user_id");
+    addExpectedKey(u"user_id"_s);
 }
 
 RequestTokenToRegisterEmailJob::RequestTokenToRegisterEmailJob(const EmailValidationData& data)
@@ -82,7 +82,7 @@ DeactivateAccountJob::DeactivateAccountJob(const std::optional<AuthenticationDat
     addParam<IfNotEmpty>(_dataJson, "id_server"_L1, idServer);
     addParam<IfNotEmpty>(_dataJson, "erase"_L1, erase);
     setRequestData({ _dataJson });
-    addExpectedKey("id_server_unbind_result");
+    addExpectedKey(u"id_server_unbind_result"_s);
 }
 
 auto queryToCheckUsernameAvailability(const QString& username)

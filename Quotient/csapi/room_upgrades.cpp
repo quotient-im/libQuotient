@@ -11,5 +11,5 @@ UpgradeRoomJob::UpgradeRoomJob(const QString& roomId, const QString& newVersion)
     QJsonObject _dataJson;
     addParam<>(_dataJson, "new_version"_L1, newVersion);
     setRequestData({ _dataJson });
-    addExpectedKey("replacement_room");
+    addExpectedKey(u"replacement_room"_s);
 }

@@ -11,6 +11,6 @@ GenerateLoginTokenJob::GenerateLoginTokenJob(const std::optional<AuthenticationD
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, "auth"_L1, auth);
     setRequestData({ _dataJson });
-    addExpectedKey("login_token");
-    addExpectedKey("expires_in_ms");
+    addExpectedKey(u"login_token"_s);
+    addExpectedKey(u"expires_in_ms"_s);
 }

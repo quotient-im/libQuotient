@@ -10,5 +10,5 @@ SetRoomStateWithKeyJob::SetRoomStateWithKeyJob(const QString& roomId, const QStr
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/state/", eventType, "/", stateKey))
 {
     setRequestData({ toJson(content) });
-    addExpectedKey("event_id");
+    addExpectedKey(u"event_id"_s);
 }

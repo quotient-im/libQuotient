@@ -126,25 +126,22 @@ to make the review easier.
 
 ### C++ feature set
 
-As of Quotient 0.8, the C++ standard for newly written code is C++20. Since none
-of the supported compilers (GCC 11, Clang 11, Apple Clang 12, MSVC 19.30 - see
-also the pre-requisites in [README](./README.md)) can handle the entire C++20
-feature set, we have to stick with a subset. Most notably:
+As of Quotient 0.9, the C++ standard for newly written code is C++20, save for a few exceptions
+that the currently supported toolchains still don't have, most notably:
+- template parameteres for type aliases and aggregates still cannot be deduced yet, you have
+  to explicitly specify those;
+- modules support, while formally there, is missing standard library header units; sticking with
+  good old `#include`s in this cycle.
 
-- `std::bind_front`, ranges, `std::format`, `std::source_location` can't be used
-  yet;
-- while concepts and constraints as a language feature are there, most library
-  concepts are not available as of Apple Clang 12;
-- No `constexpr` containers except `std::array` (but you can, and should,
-  use `QLatin1String` and `Quotient::operator""_ls` that creates it, for
-  constexpr Latin-1 strings).
-
-The [compiler support page](https://en.cppreference.com/w/cpp/compiler_support#cpp20),
-of cppreference.com, combined with the list of compiler versions above, can be
-used to check whether a given feature is there. Be mindful that Clang build
-configuration on Linux does not use Clang libc++ but rather the GNU standard
-library (i.e. you should look at Clang column for core language features but
-GCC libstdc++ for library features).
+You can also try to use some C++23 library features; libQuotient is compiled with C++23 flags. The
+[compiler support page at cppreference](https://en.cppreference.com/w/cpp/compiler_support#cpp23)
+is a nice tool to check whether you can try using a specific language or library feature; refer
+to the list of toolchain versions in [README](./README.md) for the compatibility baseline.
+Be mindful that Clang build configuration on Linux does not use LLVM project's libc++ but rather
+the GNU C++ standard library (i.e. you should look at Clang column for core language features
+but GCC libstdc++ for library features). Most of the limitations, however, are due to Apple's
+standard library - they have their own spin of libc++ that is constantly behind vanilla and, as 
+of now, the poorest in terms of features.
 
 ### Code style and formatting
 

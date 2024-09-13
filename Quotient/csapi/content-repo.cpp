@@ -18,7 +18,7 @@ UploadContentJob::UploadContentJob(QIODevice* content, const QString& filename,
 {
     setRequestHeader("Content-Type", contentType.toLatin1());
     setRequestData({ content });
-    addExpectedKey("content_uri");
+    addExpectedKey(u"content_uri"_s);
 }
 
 auto queryToUploadContentToMXC(const QString& filename)
@@ -47,7 +47,7 @@ QUrl CreateContentJob::makeRequestUrl(const HomeserverData& hsData)
 CreateContentJob::CreateContentJob()
     : BaseJob(HttpVerb::Post, u"CreateContentJob"_s, makePath("/_matrix", "/media/v1/create"))
 {
-    addExpectedKey("content_uri");
+    addExpectedKey(u"content_uri"_s);
 }
 
 auto queryToGetContent(bool allowRemote, qint64 timeoutMs, bool allowRedirect)

@@ -707,17 +707,8 @@ public:
 
     //! \brief Set a state event of the given type with the given arguments
     //!
-    //! This typesafe overload attempts to send a state event with the type
-    //! \p EvT and the content defined by \p args. Specifically, the function
-    //! constructs a temporary object of type \p EvT with its content
-    //! list-initialised from \p args, and sends a request to the homeserver
-    //! using the Matrix event type defined by \p EvT and the event content
-    //! produced via EvT::contentJson().
-    //!
-    //! \note This call is not suitable for events that assume non-empty
-    //!       stateKey, such as member events; for those you have to create
-    //!       a temporary event object yourself and use the setState() overload
-    //!       that accepts StateEvent const-ref.
+    //! This type-safe overload attempts to send a state event of the type \p EvT constructed from
+    //! \p args.
     template <typename EvT, typename... ArgTs>
     auto setState(ArgTs&&... args)
     {

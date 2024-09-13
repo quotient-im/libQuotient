@@ -32,6 +32,6 @@ GetRoomEventsJob::GetRoomEventsJob(const QString& roomId, const QString& dir, co
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/messages"),
               queryToGetRoomEvents(from, to, dir, limit, filter))
 {
-    addExpectedKey("start");
-    addExpectedKey("chunk");
+    addExpectedKey(u"start"_s);
+    addExpectedKey(u"chunk"_s);
 }

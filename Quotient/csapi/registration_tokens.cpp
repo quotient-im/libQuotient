@@ -24,5 +24,5 @@ RegistrationTokenValidityJob::RegistrationTokenValidityJob(const QString& token)
               makePath("/_matrix/client/v1", "/register/m.login.registration_token/validity"),
               queryToRegistrationTokenValidity(token), {}, false)
 {
-    addExpectedKey("valid");
+    addExpectedKey(u"valid"_s);
 }

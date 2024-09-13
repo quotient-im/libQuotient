@@ -9,7 +9,7 @@ DefineFilterJob::DefineFilterJob(const QString& userId, const Filter& filter)
               makePath("/_matrix/client/v3", "/user/", userId, "/filter"))
 {
     setRequestData({ toJson(filter) });
-    addExpectedKey("filter_id");
+    addExpectedKey(u"filter_id"_s);
 }
 
 QUrl GetFilterJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId,
