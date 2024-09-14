@@ -140,6 +140,12 @@ jobs:
         sh rustup-init.sh -y --default-toolchain none
         rustup target add "x86_64-apple-darwin"
 
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      if: startsWith(matrix.os, 'windows')
+      with:
+        arch: x64
+
     - name: Set up Sonar Cloud tools
       id: sonar
       if: matrix.static-analysis == 'sonar'
