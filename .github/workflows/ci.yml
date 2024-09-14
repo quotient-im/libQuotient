@@ -5,10 +5,6 @@ on:
   pull_request:
     types: [opened, reopened]
 
-defaults:
-  run:
-    shell: bash
-
 concurrency: quotient-ci
 
 jobs:
@@ -69,6 +65,7 @@ jobs:
                 ${{ startsWith(matrix.os, 'windows') && 'tools_opensslv3_x64' || '' }}"
 
     - name: Setup build environment
+      shell: bash
       run: |
         if [ '${{ matrix.override-compiler }}' == 'GCC' ]; then
             echo "CC=gcc$GCC_VERSION" >>$GITHUB_ENV
@@ -123,22 +120,17 @@ jobs:
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
 
-    - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      if: startsWith(matrix.os, 'windows')
-      with:
-        arch: x64
-
     - name: Install Rustup using win.rustup.rs
       if: startsWith(matrix.os, 'windows')
       run: |
         # Disable the download progress bar which can cause perf issues
         $ProgressPreference = "SilentlyContinue"
         Invoke-WebRequest https://win.rustup.rs/ -OutFile rustup-init.exe
-        .\rustup-init.exe -y --default-host=x86_64-pc-windows-msvc --default-toolchain=none
+        .\rustup-init.exe -y --default-host=x86_64-pc-windows-msvc --default-toolchain=nightly-x86_64-pc-windows-msvc
         del rustup-init.exe
         rustup target add x86_64-pc-windows-msvc
         rustup override add nightly
+        rustup --version
       shell: powershell
 
     - name: Install Rustup
@@ -154,6 +146,7 @@ jobs:
       uses: sonarsource/sonarcloud-github-c-cpp@v2
 
     - name: Build and install QtKeychain
+      shell: bash
       run: |
         cd ..
         git clone -b 0.14.3 https://github.com/frankosterfeld/qtkeychain.git
@@ -168,10 +161,15 @@ jobs:
         cmake --build corrosion/build --target install
 
     - name: Build and install Vodozemac-cpp
+      shell: pwsh
       run: |
         cd ..
         git clone https://github.com/TobiasFella/vodozemac-cpp
-        cmake -S vodozemac-cpp -B vodozemac-cpp/build $CMAKE_ARGS
+        cd vodozemac-cpp
+        rustup override add nightly
+        rustup --version
+        cd ..
+        cmake -S vodozemac-cpp -B vodozemac-cpp/build $CMAKE_ARGS -DCI_BUILD=true
         cmake --build vodozemac-cpp/build --target install
 
     - name: Get CS API definitions; clone and build GTAD
@@ -197,6 +195,7 @@ jobs:
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
     - name: Configure libQuotient
+      shell: bash
       run: |
         cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS -DQuotient_INSTALL_TESTS=ON
 
@@ -238,6 +237,7 @@ jobs:
       uses: github/codeql-action/analyze@v3
 
     - name: Run sonar-scanner
+      shell: bash
       if: matrix.static-analysis == 'sonar'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
