@@ -175,7 +175,7 @@ jobs:
         rustup override add nightly
         rustup --version
         cd ..
-        cmake -S vodozemac-cpp -B vodozemac-cpp/build $CMAKE_ARGS -DCI_BUILD=true
+        cmake -S vodozemac-cpp -B vodozemac-cpp/build $CMAKE_ARGS -DCI_BUILD=true -DCMAKE_PREFIX_PATH=~/.local -DCMAKE_INSTALL_PREFIX=~/.local
         cmake --build vodozemac-cpp/build --target install
 
     - name: Get CS API definitions; clone and build GTAD
@@ -210,6 +210,7 @@ jobs:
       run: cmake --build ../build/libQuotient --target update-api
 
     - name: Build and install libQuotient
+      shell: bash
       run: |
         if [[ '${{ matrix.static-analysis }}' == 'sonar' ]]; then
             BUILD_WRAPPER="${{ steps.sonar.outputs.build-wrapper-binary }} --out-dir $BUILD_PATH/sonar"
