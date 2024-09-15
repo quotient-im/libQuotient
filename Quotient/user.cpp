@@ -99,6 +99,10 @@ void User::rename(const QString& newName, Room* r)
         rename(newName);
         return;
     }
+    if (!r->canSetState(RoomMemberEvent::TypeId, id())) {
+        qCWarning(MAIN) << "You do not have permission is rename" << id();
+        return;
+    }
     // #481: take the current state and update it with the new name
     if (const auto& maybeEvt = r->currentState().get<RoomMemberEvent>(id())) {
         auto content = maybeEvt->content();

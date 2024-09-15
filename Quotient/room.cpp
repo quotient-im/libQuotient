@@ -2212,6 +2212,32 @@ QString Room::postJson(const QString& matrixType, const QJsonObject& eventConten
     return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent))->transactionId();
 }
 
+bool Room::canSendEvent(const QString &eventTypeId, const QString& memberId) const
+{
+    int eventPowerLevel;
+    auto plEvent = currentState().get<RoomPowerLevelsEvent>();
+    if (plEvent == nullptr) {
+        eventPowerLevel = 0;
+    } else {
+        eventPowerLevel = plEvent->powerLevelForEvent(eventTypeId);
+    }
+
+    return memberEffectivePowerLevel(memberId) >= eventPowerLevel;
+}
+
+bool Room::canSetState(const QString &eventTypeId, const QString& memberId) const
+{
+    int statePowerLevel;
+    const auto plEvent = currentState().get<RoomPowerLevelsEvent>();
+    if (plEvent == nullptr) {
+        statePowerLevel = 50;
+    } else {
+        statePowerLevel = plEvent->powerLevelForState(eventTypeId);
+    }
+    qWarning() <<statePowerLevel << memberEffectivePowerLevel(memberId);
+    return memberEffectivePowerLevel(memberId) >= statePowerLevel;
+}
+
 SetRoomStateWithKeyJob* Room::setState(const StateEvent& evt)
 {
     return setState(evt.matrixType(), evt.stateKey(), evt.contentJson());
@@ -2226,25 +2252,40 @@ SetRoomStateWithKeyJob* Room::setState(const QString& evtType,
 
 void Room::setName(const QString& newName)
 {
+    if (!canSetState(RoomNameEvent::TypeId)) {
+        qCWarning(EVENTS) << "You do not have permission to rename the room";
+    }
     setState<RoomNameEvent>(newName);
 }
 
 void Room::setCanonicalAlias(const QString& newAlias)
 {
+    if (!canSetState(RoomCanonicalAliasEvent::TypeId)) {
+        qCWarning(EVENTS) << "You do not have permission to set the room canonical alias";
+    }
     setState<RoomCanonicalAliasEvent>(newAlias, altAliases());
 }
 
 void Room::setPinnedEvents(const QStringList& events)
 {
+    if (canSetState(RoomPinnedEventsEvent::TypeId)) {
+        qCWarning(EVENTS) << "You do not have permission to pin an event in the room";
+    }
     setState<RoomPinnedEventsEvent>(events);
 }
 void Room::setLocalAliases(const QStringList& aliases)
 {
+    if (canSetState(RoomCanonicalAliasEvent::TypeId)) {
+        qCWarning(EVENTS) << "You do not have permission to set room local aliases";
+    }
     setState<RoomCanonicalAliasEvent>(canonicalAlias(), aliases);
 }
 
 void Room::setTopic(const QString& newTopic)
 {
+    if (canSetState(RoomTopicEvent::TypeId)) {
+        qCWarning(EVENTS) << "You do not have permission to set the room topic";
+    }
     setState<RoomTopicEvent>(newTopic);
 }
 
@@ -3455,6 +3496,10 @@ void Room::activateEncryption()
 {
     if(usesEncryption()) {
         qCWarning(E2EE) << "Room" << objectName() << "is already encrypted";
+        return;
+    }
+    if (!canSetState(EncryptionEvent::TypeId)) {
+        qCWarning(E2EE) << "You do not have permission to encrypt the room";
         return;
     }
     setState<EncryptionEvent>(EncryptionType::MegolmV1AesSha2);

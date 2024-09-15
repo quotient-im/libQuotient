@@ -48,3 +48,13 @@ int RoomPowerLevelsEvent::powerLevelForUser(const QString& userId) const
 {
     return users().value(userId, usersDefault());
 }
+
+bool RoomPowerLevelsEvent::canSendEvent(const QString& eventTypeId, const QString& memberId) const
+{
+    return powerLevelForUser(memberId) >= powerLevelForEvent(eventTypeId);
+}
+
+bool RoomPowerLevelsEvent::canSetState(const QString& eventTypeId, const QString& memberId) const
+{
+    return powerLevelForUser(memberId) >= powerLevelForState(eventTypeId);
+}

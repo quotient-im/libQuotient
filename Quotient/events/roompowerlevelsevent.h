@@ -55,5 +55,11 @@ public:
     int powerLevelForEvent(const QString& eventTypeId) const;
     int powerLevelForState(const QString& eventTypeId) const;
     int powerLevelForUser(const QString& userId) const;
+
+    //! Convenience function to check if the given member ID can set the given event type
+    bool canSendEvent(const QString& eventTypeId, const QString& memberId) const;
+
+    //! Convenience function to check if the given member ID can set the given state event type
+    bool canSetState(const QString& eventTypeId, const QString& memberId) const;
 };
 } // namespace Quotient

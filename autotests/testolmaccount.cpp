@@ -457,6 +457,7 @@ void TestOlmAccount::enableEncryption()
         QThread::sleep(100);
     }
     auto room = alice->rooms(JoinState::Join)[0];
+    qWarning() << room->memberEffectivePowerLevel(alice->userId());
     room->activateEncryption();
     QSignalSpy encryptionSpy(room, &Room::encryption);
     QVERIFY(encryptionSpy.wait(10000));
