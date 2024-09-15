@@ -702,6 +702,18 @@ public:
 
     PendingEventItem::future_type whenMessageMerged(QString txnId) const;
 
+    //! True if the given user can send the given event type
+    //!
+    //! \param eventTypedId the Matrix type for the event.
+    //! \param memberId the Matrix ID of the member to check. If blank the local member is used.
+    Q_INVOKABLE bool canSendEvent(const QString &eventTypeId, const QString& memberId = {}) const;
+
+    //! True if the given user can send the given state event type
+    //!
+    //! \param eventTypedId the Matrix type for the event.
+    //! \param memberId the Matrix ID of the member to check. If blank the local member is used.
+    Q_INVOKABLE bool canSetState(const QString &eventTypeId, const QString& memberId = {}) const;
+
     //! Send a request to update the room state with the given event
     SetRoomStateWithKeyJob* setState(const StateEvent& evt);
 
