@@ -205,6 +205,7 @@ public:
     }
 
 private:
-    friend class Room;
+    friend class Room; // Factory class for RoomStateView
+    using QHash<StateEventKey, const StateEvent*>::QHash;
 };
 } // namespace Quotient

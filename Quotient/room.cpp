@@ -94,13 +94,18 @@ public:
     QString id;
     JoinState joinState;
     RoomSummary summary = { {}, 0, {} };
-    /// The state of the room at timeline position before-0
+    // TODO: remove the below when Room becomes constructed from the first sync batch; a synthetic
+    //       default power levels event would be constructed in baseState then, if needed
+    //! Fallback when/while the real event is not available
+    std::unique_ptr<const RoomPowerLevelsEvent> defaultPowerLevels =
+        std::make_unique<const RoomPowerLevelsEvent>();
+    //! The state of the room at timeline position before-0
     std::unordered_map<StateEventKey, StateEventPtr> baseState;
-    /// The state of the room at syncEdge()
-    /// \sa syncEdge
-    RoomStateView currentState;
-    /// Servers with aliases for this room except the one of the local user
-    /// \sa Room::remoteAliases
+    //! The state of the room at syncEdge()
+    //! \sa syncEdge
+    RoomStateView currentState{ { { RoomPowerLevelsEvent::TypeId, {} }, defaultPowerLevels.get() } };
+    //! Servers with aliases for this room except the one of the local user
+    //! \sa Room::remoteAliases
     QSet<QString> aliasServers;
 
     Timeline timeline;
@@ -1522,20 +1527,17 @@ RoomStateView Room::currentState() const
     return d->currentState;
 }
 
-int Room::memberEffectivePowerLevel(const QString& memberId) const
+int Room::memberEffectivePowerLevel(const UserId& memberId) const
 {
-    if (!successorId().isEmpty()) {
-        return 0; // No one can upgrade a room that's already upgraded
-    }
+    return currentState().get<RoomPowerLevelsEvent>()->powerLevelForUser(
+        memberId.isEmpty() ? connection()->userId() : memberId);
+}
 
-    const auto& mId = memberId.isEmpty() ? connection()->userId() :memberId;
-    if (const auto* plEvent = currentState().get<RoomPowerLevelsEvent>()) {
-        return plEvent->powerLevelForUser(mId);
-    }
-    if (const auto* createEvent = creation()) {
-        return createEvent->senderId() == mId ? 100 : 0;
-    }
-    return 0; // That's rather weird but may happen, according to rvdh
+int Room::powerLevelFor(const QString& eventTypeId, bool forceStateEvent) const
+{
+    const auto& ple = currentState().get<RoomPowerLevelsEvent>();
+    return forceStateEvent || isStateEvent(eventTypeId) ? ple->powerLevelForState(eventTypeId)
+                                                        : ple->powerLevelForEvent(eventTypeId);
 }
 
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
@@ -1841,7 +1843,8 @@ Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data, b
 void Room::updateData(SyncRoomData&& data, bool fromCache)
 {
     qCDebug(MAIN) << "--- Updating room" << id() << "/" << objectName();
-    bool firstUpdate = d->baseState.empty();
+    const bool firstUpdate = d->baseState.empty();
+    const bool createEventPreviouslyMissing = creation() == nullptr;
 
     if (d->prevBatch && d->prevBatch->isEmpty())
         *d->prevBatch = data.timelinePrevBatch;
@@ -1862,6 +1865,20 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     roomChanges |= d->updateStatsFromSyncData(data, fromCache);
 
     if (roomChanges != 0) {
+        if (createEventPreviouslyMissing && creation()
+            && currentState().get<RoomPowerLevelsEvent>() == d->defaultPowerLevels.get()) {
+            // Handle a special case when RoomCreateEvent just arrived but RoomPowerLevelsEvent
+            // did not. Usually that means that a power levels event is not in the room at all,
+            // which is a somewhat extreme but still valid situation. In such a case the spec says
+            // to rely on the default power levels save for the room creator who is effectively
+            // allowed to do everything.
+            // The entire defaultPowerLevels event gets replaced in order to maintain its constness
+            // everywhere else.
+            std::exchange(d->defaultPowerLevels,
+                          std::make_unique<const RoomPowerLevelsEvent>(PowerLevelsEventContent{
+                              .users = { { creation()->senderId(), 100 } } }));
+        }
+
         // First test for changes that can only come from /sync calls and not
         // other interactions (/members, /messages etc.)
         if ((roomChanges & Change::Topic) > 0)
