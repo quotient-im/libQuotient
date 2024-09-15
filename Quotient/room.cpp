@@ -2234,7 +2234,7 @@ bool Room::canSetState(const QString &eventTypeId, const QString& memberId) cons
     } else {
         statePowerLevel = plEvent->powerLevelForState(eventTypeId);
     }
-
+    qWarning() <<statePowerLevel << memberEffectivePowerLevel(memberId);
     return memberEffectivePowerLevel(memberId) >= statePowerLevel;
 }
 
