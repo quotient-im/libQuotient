@@ -451,9 +451,6 @@ void TestOlmAccount::enableEncryption()
     auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {}, {});
     QVERIFY(createRoomSpy.wait(10000));
 
-    while(alice->roomsCount(JoinState::Join) == 0) {
-        QThread::sleep(100);
-    }
     auto room = alice->rooms(JoinState::Join)[0];
     QSignalSpy encryptionSpy(room, &Room::encryption);
     room->activateEncryption();
