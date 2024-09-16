@@ -445,20 +445,15 @@ void TestOlmAccount::claimMultipleKeys()
 void TestOlmAccount::enableEncryption()
 {
     CREATE_CONNECTION(alice, "alice9"_L1, "secret"_L1, "AlicePhone"_L1)
+    alice->syncLoop();
 
+    QSignalSpy createRoomSpy(alice.get(), &Connection::loadedRoomState);
     auto job = alice->createRoom(Connection::PublishRoom, {}, {}, {}, {});
-    QSignalSpy createRoomSpy(job, &BaseJob::success);
     QVERIFY(createRoomSpy.wait(10000));
-    alice->sync();
-    connect(alice.get(), &Connection::syncDone, this, [alice](){
-        alice->sync();
-    });
-    while(alice->roomsCount(JoinState::Join) == 0) {
-        QThread::sleep(100);
-    }
+
     auto room = alice->rooms(JoinState::Join)[0];
-    room->activateEncryption();
     QSignalSpy encryptionSpy(room, &Room::encryption);
+    room->activateEncryption();
     QVERIFY(encryptionSpy.wait(10000));
     QVERIFY(room->usesEncryption());
 }
