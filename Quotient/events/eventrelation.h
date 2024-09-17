@@ -19,7 +19,7 @@ struct QUOTIENT_API EventRelation {
     bool isFallingBack = false;
     // Only used for m.thread to provide the reply event fallback for non-threaded clients
     // or to allow a reply within the thread.
-    QString fallbackEventId = {};
+    QString inThreadReplyEventId = {};
 
     static constexpr auto ReplyType = "m.in_reply_to"_L1;
     static constexpr auto AnnotationType = "m.annotation"_L1;
@@ -38,9 +38,9 @@ struct QUOTIENT_API EventRelation {
     {
         return { ReplacementType, std::move(eventId) };
     }
-    static EventRelation replyThread(QString threadRoot, bool isFallingBack, QString fallbackEventId)
+    static EventRelation replyInThread(QString threadRootId, bool isFallingBack, QString inThreadReplyEventId)
     {
-        return { ThreadType, std::move(threadRoot), {}, std::move(isFallingBack), std::move(fallbackEventId) };
+        return { ThreadType, std::move(threadRootId), {}, std::move(isFallingBack), std::move(inThreadReplyEventId) };
     }
 };
 

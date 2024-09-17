@@ -100,31 +100,25 @@ public:
 
     //! \brief Determine whether the event is a reply to another message.
     //!
+    //! \param includeFallbacks include thread fallback replies for non-threaded clients.
+    //!
     //! \return true if this event is a reply, i.e. it has `"m.in_reply_to"`
-    //!         event ID and is not a thread fallback; false otherwise.
+    //!         event ID and is not a thread fallback (except where \p includeFallbacks is true);
+    //!         false otherwise.
     //!
     //! \note It's possible to reply to another message in a thread so this function
     //!       will return true for a `"rel_type"` of `"m.thread"` if `"is_falling_back"`
     //!       is false.
-    bool isReply() const;
-
-    //! \brief Determine whether the event is a reply to another message including fallbacks.
-    //!
-    //! \return true if this event is a reply, i.e. it has `"m.in_reply_to"`
-    //!         event ID, this includes thread fallback; false otherwise.
-    bool isReplyIncludingFallbacks() const;
+    bool isReply(bool includeFallbacks = false) const;
 
     //! \brief The ID for the event being replied to.
+    //!
+    //! \param includeFallbacks include thread fallback replies for non-threaded clients.
+    //!
     //!
     //! \return The event ID for a reply, this includes threaded replies where `"rel_type"`
-    //!         is `"m.thread"` and `"is_falling_back"` is false.
-    QString replyEventId()const;
-
-    //! \brief The ID for the event being replied to.
-    //!
-    //! \return The event ID for a reply or the fallback event ID for a threaded message,
-    //!         an empty string otherwise.
-    QString replyEventIdIncludingFallbacks()const;
+    //!         is `"m.thread"` and `"is_falling_back"` is false (except where \p includeFallbacks is true).
+    QString replyEventId(bool includeFallbacks = false)const;
 
     //! \brief Determine whether the event is part of a thread.
     //!

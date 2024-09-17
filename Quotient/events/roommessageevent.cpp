@@ -226,40 +226,24 @@ QString RoomMessageEvent::replacedBy() const
     return unsignedPart<QJsonObject>("m.relations"_L1)["m.replace"_L1][EventIdKey].toString();
 }
 
-bool RoomMessageEvent::isReply() const
+bool RoomMessageEvent::isReply(bool includeFallbacks) const
 {
     const auto relation = relatesTo();
-    return relation.has_value() && (relation.value().type == EventRelation::ReplyType || (relation.value().type == EventRelation::ThreadType && relation.value().isFallingBack == false));
+    return relation.has_value() &&
+            (relation.value().type == EventRelation::ReplyType ||
+            (relation.value().type == EventRelation::ThreadType &&
+            (relation.value().isFallingBack == false || includeFallbacks)));
 }
 
-bool RoomMessageEvent::isReplyIncludingFallbacks() const
-{
-    const auto relation = relatesTo();
-    // If we are not thread aware a thread relationship should be treated as a reply
-    return relation.has_value() && (relation.value().type == EventRelation::ReplyType || relation.value().type == EventRelation::ThreadType);
-}
-
-QString RoomMessageEvent::replyEventId() const
+QString RoomMessageEvent::replyEventId(bool includeFallbacks) const
 {
     const auto relation = relatesTo();
     if (relation.has_value()) {
         if (relation.value().type == EventRelation::ReplyType) {
             return relation.value().eventId;
-        } else if (relation.value().type == EventRelation::ThreadType && relation.value().isFallingBack == false) {
-            return relation.value().fallbackEventId;
-        }
-    }
-    return {};
-}
-
-QString RoomMessageEvent::replyEventIdIncludingFallbacks()const
-{
-    const auto relation = relatesTo();
-    if (relation.has_value()) {
-        if (relation.value().type == EventRelation::ReplyType) {
-            return relation.value().eventId;
-        } else if (relation.value().type == EventRelation::ThreadType) {
-            return relation.value().fallbackEventId;
+        } else if (relation.value().type == EventRelation::ThreadType &&
+                (relation.value().isFallingBack == false || includeFallbacks)) {
+            return relation.value().inThreadReplyEventId;
         }
     }
     return {};
@@ -277,10 +261,9 @@ QString RoomMessageEvent::threadRootEventId() const
     const auto relation = relatesTo();
     if (relation && relation.value().type == EventRelation::ThreadType) {
         return relation.value().eventId;
-    } else if (unsignedPart<QJsonObject>("m.relations"_ls).contains(EventRelation::ThreadType)) {
+    } else {
         return unsignedPart<QJsonObject>("m.relations"_ls)[EventRelation::ThreadType].toString();
     }
-    return {};
 }
 
 namespace {
