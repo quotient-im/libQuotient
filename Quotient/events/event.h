@@ -3,9 +3,12 @@
 
 #pragma once
 
+#include "single_key_value.h"
+
 #include <Quotient/converters.h>
 #include <Quotient/function_traits.h>
-#include "single_key_value.h"
+
+#include <span>
 
 namespace Quotient {
 // === event_ptr_tt<> and basic type casting facilities ===
