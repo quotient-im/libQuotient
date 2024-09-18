@@ -196,6 +196,17 @@ bool RoomMessageEvent::hasThumbnail() const
     return content() && content()->thumbnailInfo();
 }
 
+std::optional<EventRelation> RoomMessageEvent::relatesTo() const
+{
+    return content() && hasTextContent() ? static_cast<const TextContent*>(content())->relatesTo : std::nullopt;
+}
+
+QString RoomMessageEvent::upstreamEventId() const
+{
+    const auto relation = relatesTo();
+    return relation ? relation.value().eventId : QString();
+}
+
 QString RoomMessageEvent::replacedEvent() const
 {
     if (!content() || !hasTextContent())
@@ -213,6 +224,46 @@ bool RoomMessageEvent::isReplaced() const
 QString RoomMessageEvent::replacedBy() const
 {
     return unsignedPart<QJsonObject>("m.relations"_L1)["m.replace"_L1][EventIdKey].toString();
+}
+
+bool RoomMessageEvent::isReply(bool includeFallbacks) const
+{
+    const auto relation = relatesTo();
+    return relation.has_value() &&
+            (relation.value().type == EventRelation::ReplyType ||
+            (relation.value().type == EventRelation::ThreadType &&
+            (relation.value().isFallingBack == false || includeFallbacks)));
+}
+
+QString RoomMessageEvent::replyEventId(bool includeFallbacks) const
+{
+    const auto relation = relatesTo();
+    if (relation.has_value()) {
+        if (relation.value().type == EventRelation::ReplyType) {
+            return relation.value().eventId;
+        } else if (relation.value().type == EventRelation::ThreadType &&
+                (relation.value().isFallingBack == false || includeFallbacks)) {
+            return relation.value().inThreadReplyEventId;
+        }
+    }
+    return {};
+}
+
+bool RoomMessageEvent::isThreaded() const
+{
+    const auto relation = relatesTo();
+    return (relation && relation.value().type == EventRelation::ThreadType)
+            || unsignedPart<QJsonObject>("m.relations"_ls).contains(EventRelation::ThreadType);
+}
+
+QString RoomMessageEvent::threadRootEventId() const
+{
+    const auto relation = relatesTo();
+    if (relation && relation.value().type == EventRelation::ThreadType) {
+        return relation.value().eventId;
+    } else {
+        return unsignedPart<QJsonObject>("m.relations"_ls)[EventRelation::ThreadType].toString();
+    }
 }
 
 namespace {
