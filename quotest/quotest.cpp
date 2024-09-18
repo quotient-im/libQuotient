@@ -913,7 +913,7 @@ void TestManager::conclude()
 
 void TestManager::finalize(const QString& lastWords)
 {
-    if (!c->isUsable() || !c->isLoggedIn()) {
+    if (!c->isLoggedIn()) {
         clog << "No usable connection reached" << endl;
         QCoreApplication::exit(-2);
         return; // NB: QCoreApplication::exit() does return to the caller

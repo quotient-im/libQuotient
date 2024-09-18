@@ -293,6 +293,7 @@ public:
     //! Get the domain name used for ids/aliases on the server
     QString domain() const;
     //! Check if the homeserver is known to be reachable and working
+    [[deprecated("Check the result returned by Connection::loginFlows() instead")]]
     bool isUsable() const;
     //! Get the list of supported login flows
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows() const;
