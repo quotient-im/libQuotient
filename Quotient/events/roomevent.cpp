@@ -3,10 +3,11 @@
 
 #include "roomevent.h"
 
-#include "../logging_categories_p.h"
-#include "redactionevent.h"
-
 #include "encryptedevent.h"
+#include "redactionevent.h"
+#include "stateevent.h"
+
+#include "../logging_categories_p.h"
 
 using namespace Quotient;
 
@@ -47,6 +48,8 @@ QString RoomEvent::transactionId() const
 {
     return unsignedPart<QString>("transaction_id"_L1);
 }
+
+bool RoomEvent::isStateEvent() const { return is<StateEvent>(); }
 
 QString RoomEvent::stateKey() const
 {
@@ -97,4 +100,18 @@ const QJsonObject RoomEvent::encryptedJson() const
         return {};
     }
     return _originalEvent->fullJson();
+}
+
+namespace {
+bool containsEventType(const auto& haystack, const auto& needle)
+{
+    return std::ranges::any_of(haystack, [needle](const AbstractEventMetaType* candidate) {
+        return candidate->matrixId == needle || containsEventType(candidate->derivedTypes(), needle);
+    });
+}
+}
+
+bool Quotient::isStateEvent(const QString& eventTypeId)
+{
+    return containsEventType(StateEvent::BaseMetaType.derivedTypes(), eventTypeId);
 }

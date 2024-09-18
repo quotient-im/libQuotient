@@ -3,9 +3,12 @@
 
 #pragma once
 
+#include "single_key_value.h"
+
 #include <Quotient/converters.h>
 #include <Quotient/function_traits.h>
-#include "single_key_value.h"
+
+#include <span>
 
 namespace Quotient {
 // === event_ptr_tt<> and basic type casting facilities ===
@@ -19,6 +22,7 @@ constexpr inline auto TypeKey = "type"_L1;
 constexpr inline auto BodyKey = "body"_L1;
 constexpr inline auto ContentKey = "content"_L1;
 constexpr inline auto SenderKey = "sender"_L1;
+constexpr inline auto UnsignedKey = "unsigned"_L1;
 
 using event_type_t = QLatin1String;
 
@@ -55,6 +59,7 @@ public:
     }
 
     void addDerived(const AbstractEventMetaType* newType);
+    auto derivedTypes() const { return std::span(_derivedTypes); }
 
     virtual ~AbstractEventMetaType() = default;
 
@@ -69,7 +74,7 @@ protected:
                             Event*& event) const = 0;
 
 private:
-    std::vector<const AbstractEventMetaType*> derivedTypes{};
+    std::vector<const AbstractEventMetaType*> _derivedTypes{};
     Q_DISABLE_COPY_MOVE(AbstractEventMetaType)
 };
 
@@ -146,7 +151,7 @@ private:
             if (EventT::TypeId != type)
                 return false;
         } else {
-            for (const auto& p : derivedTypes) {
+            for (const auto& p : _derivedTypes) {
                 p->doLoadFrom(fullJson, type, event);
                 if (event) {
                     Q_ASSERT(is<EventT>(*event));
@@ -328,10 +333,9 @@ public:
         return dbg;
     }
 
-    // State events are quite special in Matrix; so isStateEvent() is here,
-    // as an exception. For other base events, Event::is<>() and
-    // Quotient::is<>() should be used; don't add is* methods here
-    bool isStateEvent() const;
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR <= 9
+    [[deprecated("isStateEvent() has moved to RoomEvent")]] bool isStateEvent() const;
+#endif
 
 protected:
     friend class EventMetaType<Event>; // To access the below constructor

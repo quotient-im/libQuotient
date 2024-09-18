@@ -19,11 +19,12 @@
 
 #include "events/accountdataevents.h"
 #include "events/encryptedevent.h"
+#include "events/eventrelation.h"
+#include "events/roomcreateevent.h"
 #include "events/roomkeyevent.h"
 #include "events/roommessageevent.h"
-#include "events/roomcreateevent.h"
+#include "events/roompowerlevelsevent.h"
 #include "events/roomtombstoneevent.h"
-#include "events/eventrelation.h"
 
 #include <QtCore/QJsonObject>
 #include <QtGui/QImage>
@@ -671,19 +672,39 @@ public:
     /// \brief Get the current room state
     RoomStateView currentState() const;
 
-    //! \brief The effective power level of the given member in the room.
+    //! \brief The effective power level of the given member in the room
     //!
-    //! Since a RoomPowerLevels state event may not always be available the following
-    //! is taken into account in line with the Matrix spec
-    //! https://spec.matrix.org/v1.8/client-server-api/#mroompower_levels:
-    //!     - The users_default is assumed to be 0.
-    //!     - The room creator is assumed to be 100.
-    //!
-    //! If \p memberId is empty the power level of the local user will be returned.
-    //! If the room has been upgraded 0 will be returned to prevent further upgrade attempts.
-    //!
-    //! \sa RoomPowerLevelsEvent
+    //! This is normally the same as calling `RoomPowerLevelEvent::powerLevelForUser(userId)` but
+    //! takes into account the room context and works even if the room state has no power levels
+    //! event. It is THE recommended way to get a room member's power level to display in the UI.
+    //! \param memberId The room member ID to check; if empty, the local user will be checked
+    //! \sa RoomPowerLevelsEvent, https://spec.matrix.org/v1.11/client-server-api/#mroompower_levels
     Q_INVOKABLE int memberEffectivePowerLevel(const QString& memberId = {}) const;
+
+    //! \brief Get the power level required to send events of the given type
+    //!
+    //! \note This is a generic method that only gets the power level to send events with a given
+    //!       type. Some operations have additional restrictions or enablers though: e.g.,
+    //!       room member changes (kicks, invites) have special power levels; on the other hand,
+    //!       redactions of one's own messages are allowed regardless of the power level. To check
+    //!       effective ability to perform an operation, use Room's can*() methods instead of
+    //!       comparing the power levels (those are also slightly more efficient).
+    //! \note Unlike the template version below, this method determines at runtime whether an event
+    //!       type is that of a state event, assuming unknown event types to be non-state; pass
+    //!       `true` as the second parameter to override that.
+    //! \sa canSend, canRedact, canSwitchVersions
+    Q_INVOKABLE int powerLevelFor(const QString& eventTypeId, bool forceStateEvent = false) const;
+
+    //! \brief Get the power level required to send events of the given type
+    //!
+    //! This is an optimised version of non-template powerLevelFor() (with the same caveat about
+    //! operations based on some event types) for cases when the event type is known at build time.
+    //! \tparam EvT the event type to get the power level for
+    template <EventClass EvT>
+    int powerLevelFor() const
+    {
+        return currentState().get<RoomPowerLevelsEvent>()->powerLevelForEventType<EvT>();
+    }
 
     //! \brief Post a pre-created room message event
     //!
