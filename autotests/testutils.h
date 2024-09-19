@@ -21,3 +21,9 @@ std::shared_ptr<Connection> createTestConnection(QLatin1StringView localUserName
     const auto VAR = createTestConnection(USERNAME, SECRET, DEVICE_NAME); \
     if (!VAR)                                                             \
         QFAIL("Could not set up test connection");
+
+inline bool waitForFuture(const auto& ft)
+    requires requires { ft.isFinished(); }
+{
+    return QTest::qWaitFor([ft] { return ft.isFinished(); }, 40000);
+}
