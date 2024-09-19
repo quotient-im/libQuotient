@@ -32,12 +32,14 @@ public:
     Quotient::NetworkAccessManager *nam() const;
 
     void setBaseUrl(QUrl baseUrl);
+    [[deprecated("Use setAccessToken() or setIdentity() instead")]]
     void setToken(QByteArray accessToken);
     [[deprecated("Use setIdentity() instead")]]
     void setDeviceId(const QString& deviceId);
     [[deprecated("Use setIdentity() instead")]]
     void setUserId(const QString& userId);
-    void setIdentity(const QString& userId, const QString& deviceId);
+    void setIdentity(const QString& userId, const QString& deviceId, QByteArray accessToken = {});
+    void setAccessToken(QByteArray accessToken);
     void setSupportedSpecVersions(QStringList versions);
 
     QString lastEvent() const;
