@@ -16,8 +16,9 @@ struct DevicesList;
 namespace _impl {
     class ConnectionEncryptionData {
     public:
-        static QFuture<bool> setup(Connection* connection, bool mock,
-                                   std::unique_ptr<ConnectionEncryptionData>& result);
+        static QFuture<bool> setup(Connection* connection,
+                                   std::unique_ptr<ConnectionEncryptionData>& result,
+                                   bool clearDatabase = false);
 
         Connection* q;
         QOlmAccount olmAccount;
