@@ -126,8 +126,8 @@ to make the review easier.
 
 ### C++ feature set
 
-As of Quotient 0.9, the C++ standard for newly written code is C++20, save for a few exceptions
-that the currently supported toolchains still don't have, most notably:
+As of Quotient 0.9, the C++ standard for new code is C++20, except a few features that currently
+supported toolchains still don't have, most notably:
 - template parameteres for type aliases and aggregates still cannot be deduced yet, you have
   to explicitly specify those;
 - modules support, while formally there, is missing standard library header units; sticking with
@@ -151,22 +151,20 @@ use `// clang-format off` and `// clang-format on` to protect them.
 
 Most fundamental things from `.clang-format`:
 * We (mostly) use Webkit style: 4-space indents, no tabs, no trailing spaces, no last empty lines.
-  If you spot code that doesn't follow this, fix it on the spot, thank you.
+  If you see code that doesn't follow this, fix it on the spot, thank you.
 * Prefer keeping lines within 100 characters. Slight overflows are ok if that
   helps readability. Ideally, just use `clang-format` to format lines.
 
 ### API conventions
 
-All non-inline symbols (functions, classes/structs, even namespace-level static
-variables) that are intended for use in client code must be declared with
-`QUOTIENT_API` macro (the macro itself is defined in the dedicated
-`quotient_export.h` file). This is concerned with symbols visibility in
-dynamic/shared libraries: the macro marks these symbols for exporting in
-the library symbol table. If you forget to use this macro where needed you will 
-get linkage errors if you're lucky, obscure runtime errors otherwise (such as
-split-brained singleton instances). You only need to use the macro on the 
-namespace level; inner symbols (member functions, e.g.) are exported if 
-their class is exported.
+All non-inline symbols (functions, classes/structs, even namespace-level static variables) that are
+intended for use in client code must be declared with `QUOTIENT_API` macro (the macro itself is
+defined in the dedicated `quotient_export.h` file) in order to export them in the library symbol
+table when it is compiled as dynamic/shared. If you forget to use this macro and a client
+application uses the symbol there will be linkage errors in a lucky case and obscure runtime errors
+(such as split-brained singleton instances) otherwise. You only need to use the macro
+on the namespace level; nested symbols (member functions, e.g.) are exported if their class is
+exported.
 
 Some header files of the library are not intended to be (directly) included by
 clients - these header files have names ending with `_p.h` (e.g. 
@@ -183,17 +181,14 @@ so tread carefully).
 
 ### Generated C++ code for CS API
 
-The code in `Quotient/csapi`, `Quotient/identity` and
-`Quotient/application-service`, although stored in Git, is actually generated
-from the official Matrix Client-Server API definition files. Make sure to read
-[CODE_GENERATION.md](./CODE_GENERATION.md) before trying to change anything
-there.
+The code in `Quotient/csapi`, `Quotient/identity` and `Quotient/application-service`, although
+stored in Git, is actually generated from the official Matrix Client-Server API definition files.
+Make sure to read [CODE_GENERATION.md](./CODE_GENERATION.md) before trying to change anything there.
 
 
 ## Documentation changes
 
-Most of the documentation is in Markdown format. All Markdown files use the 
-`.md` filename extension.
+Most of the documentation is in Markdown format; the file names use the `.md` extension.
 
 Where reasonable, limit yourself to Markdown that will be accepted by different
 markdown processors (e.g., what is specified by CommonMark or the original
@@ -210,12 +205,10 @@ by GitHub when it renders issue or pull comments; in those cases
 unfortunately this other algorithm is *also* called GitHub-flavoured markdown.
 (Yes, it would be better if there were different names for different things.)
 
-In your markdown, please don't use tab characters and avoid "bare" URLs.
-In a hyperlink, the link text and URL should be on the same line.
-Both in C/C++ code comments and Markdown documents, try to keep your lines
-within the 100-character limit _except hyperlinks_ (wrapping breaks them). Some
-historical text may not follow that rule - feel free to reformat those parts
-when you edit them.
+Don't use tab characters and avoid "bare" URLs. In a hyperlink, the link text and URL should be 
+on the same line. Both in C/C++ code comments and Markdown documents, try to keep your lines
+within the 100-character limit _except hyperlinks_ (wrapping breaks them). Some historical text 
+may not follow that rule - feel free to reformat those parts when you edit them.
 
 Do not use trailing two spaces for line breaks, since these cannot be seen
 and may be silently removed by some tools. If, for whatever reason, a blank line
@@ -232,11 +225,11 @@ Further sections are for those who's going to actively hack on the library code.
 
 ### More on code style and formatting
 
-* Do not use `struct` when you have protected or private members; only use it
-  to define plain-old-data structures, with maybe just a function or two among 
-  public members but no substantial behaviour. If you need access control or 
-  specific logic tightly coupled to the data structure, make it a `class`
-  instead and consider if you still want to keep its member variables public.
+* Prefer `class` over `struct` when you have protected or private members in the type; `struct` is
+  meant for plain-old-data structures, with maybe just a function or two among public members 
+  but no substantial behaviour. If you need access control or specific logic tightly coupled to
+  the data structure, make it a `class` and consider if you still want to keep its member variables
+  public.
 
 * For newly created classes, keep to
   [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three).
@@ -250,57 +243,44 @@ Further sections are for those who's going to actively hack on the library code.
     Classes without a default constructor are a problem too. Examples of that
     are `SyncRoomData` and `EventsArray<>`. Again, you can use STL containers 
     for structures having those but consider the implications.
-  * So, the implications. Because QML doesn't know about most of STL containers and cannot pull data
-    out of them, you're only free to use STL containers in backend code (in the simplest case,
-    within one .cpp file). The API exposing these containers can only be used from C++ code, with
-    `std::vector` being a notable exception that QML knows about (but you still can't read
-    uncopyable vectors such as `EventsArray<>`, as the previous bullet already said). For these
-    cases you have to provide external means to iterate through the container and consume data
-    from it; exposing a Qt item model is most natural to Qt code. If you don't provide such other
-    means, expect questions at your pull request.
-  * Notwithstanding the above (you're not going to use smart pointers with QML 
-    anyway), prefer `std::unique_ptr<>` over `QScopedPointer<>` as it gives
-    stronger guarantees; also, some features of `QScopedPointer` are deprecated
-    in Qt 6.
-
-* Always use `QVector` instead of `QList` unless Qt's own API uses it - see the
-  [great article by Marc Mutz on Qt containers](https://marcmutz.wordpress.com/effective-qt/containers/)
-  for details. With Qt 6, these two become the same type matching what used
-  to be `QVector` in Qt 5.
-
-  (Note: unfortunately, `QVector` is a type alias in Qt 6 and that breaks
-  templated code because type deduction doesn't work with aliases. This breakage
-  will go away as compilers adopt C++23 sufficiently but it may take a 
-  couple more years, as of this writing; in the meantime, the fix boils down
-  to specifying the template parameter of `QVector` explicitly.)
+  * So, the implications. QML doesn't know about most of STL containers and in any case requires
+    data types passed to it (let alone from it) to be default-constructible and copyable. For that
+    reason, STL containers can only be used in backend code that is not meant for consumption by 
+    QML. The only STL container mapped to QML as of Qt 6.6 is `std::vector`; and even then you 
+    still can't expose uncopyable vectors such as `EventsArray<>` to QML. For these cases you have
+    to provide external means to iterate through the container and consume data from it; exposing
+    a Qt item model is most natural to Qt code. If you don't provide such other means, expect
+    questions at your pull request.
+* Prefer `std::unique_ptr<>` over `QScopedPointer<>`; `std::as_const()` to `qAsConst()`; 
+  `std::swap()` to `qSwap()` etc.; basically, do not use compat facilities provided by Qt if the 
+  standard library provides an _equivalent_ facility.
 
 * When you write logs within the library always use logging categories defined in
   `logging_categories_p.h` instead of plain `qDebug()`, to avoid a log line being assigned
   the default category. `qCDebug(CATEGORY)` is the preferred form; `qDebug(CATEGORY)` (without `C`)
   is accepted as well. Do not add new logging categories without necessity; if you do, make sure
   to add the new category to `logging_categories_p.h`, so that there's a central reference for all
-  of them (mentioned in README.md, by the way).
+  of them (also listed in README.md, by the way).
 
 ### Comments
 
-Whenever you add a new call to the library API that you expect to be used
-from client code, make sure to supply a proper doc-comment along with the call.
-Quotient uses the Doxygen C++-styled doc-comments (`//!`, `\brief`); some legacy
-code may use Javadoc (`/** ... */`, `@brief`) or C-styled Doxygen (`/*! ... */`)
-but that is not encouraged any more. Some parts are not documented at all;
-adding doc-comments to them and/or converting the existing ones to the assumed
-style is highly encouraged; it's also a nice and easy first-time contribution.
+Whenever you add or change the library API, make sure to supply a proper doc-comment along with
+the call. Quotient uses the Doxygen C++-styled doc-comments (`//!`, `\brief`); some legacy code 
+may use Javadoc (`/** ... */`, `@brief`) or C-styled Doxygen (`/*! ... */`) but that is
+not encouraged any more. Some parts are not documented at all; adding doc-comments to them 
+and/or converting the existing ones to the assumed style is highly encouraged; it's also a nice 
+and easy first-time contribution.
 
-Use `\brief` for the summary, and follow with details after
-an empty doc-comment line, using `\param`, `\return` etc. as necessary.
+Use `\brief` for the summary, and follow with details after an empty doc-comment line, using 
+`\param`, `\return` etc. as necessary. Adding `\since` to indicate the first version when a 
+symbol is introduce is nice, too.
 
 When commenting in-code:
-* Don't restate what's happening in the code unless it's not really obvious.
-  We assume the readers to have some command of C++ and Qt. If your code is
-  not obvious, consider making it clearer itself before commenting.
+* Don't restate what's happening in the code. We assume the readers to have some command of C++ 
+  and Qt. If your code is not obvious, consider making it clearer itself before commenting.
 * That said, both C++ and Qt have their arcane/novel features and dark corners, and education of
   code readers is a great thing. Use your experience to figure what might be not that well-known,
-  and comment such cases: leave references to web pages, Quotient wiki etc. Do not comment `std::`
+  and comment such cases: add references to web pages, Quotient wiki etc. Do not comment `std::`
   calls just because they are less known - readers are expected to know about cppreference.com and
   look it up.
 * More important than everything above - make sure to document not so much "what" but more "why"
@@ -316,17 +296,19 @@ have just started adding those to the new code (you guessed it; adding more
 tests to the old code is very welcome and also is a good exercise to get to
 know the library).
 
-On top of that, libQuotient comes with a command-line end-to-end test suite
-called Quotest. Any significant addition to the library API should be
-accompanied by a respective test in `autotests/` and/or in Quotest.
+On top of autotests, libQuotient comes with a command-line end-to-end test suite called Quotest.
+Any significant addition to the library API should be accompanied by a respective test
+in `autotests/` and/or in Quotest.
 
 To add a test to autotests:
+
 - In a new `.cpp` file in `autotests/` (you don't need a header file), define a test class derived
   from `QObject` and write tests as member functions in its `private slots:` section. See other
   autotests to get an idea of what it should look like.
 - Add a `quotient_add_test` macro call with your test to `autotests/CMakeLists.txt`
 
 To add a test to Quotest:
+
 - In `quotest.cpp`, add a new test to the `TestSuite` class. Similar to Qt Test,
   each test in Quotest is a private slot; unlike Qt Test, you should use
   special macros, `TEST_DECL()` and `TEST_IMPL()`, to declare and define
@@ -348,8 +330,7 @@ from it).
 
 ### Security and privacy
 
-Pay attention to security, and work *with*, not against, the usual security
-hardening practices.
+Pay attention to security, and work *with*, not against, the good security practices.
 
 `char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers
 (`QString`/`QLatin1String` for strings, in particular) or `std::array<>`/`std::span<>` instead
@@ -429,7 +410,7 @@ If you want the IDE to be _really_ picky about your code you can use
 the following line for the Clang analyzer code model to enable most compiler
 warnings while keeping the number of false positives at bay (that does not
 include `clang-tidy`/`clazy` warnings - see the next section on those):
-`-Weverything -Werror=return-type -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-c++20-compat -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-shadow-uncaptured-local -Wno-switch-enum -Wno-pragma-once-outside-header -Wno-range-loop-bind-reference -Wno-unsafe-buffer-usage`
+`-Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-c++20-compat -Wno-unused-macros -Wno-newline-eof -Wno-exit-time-destructors -Wno-global-constructors -Wno-gnu-zero-variadic-macro-arguments -Wno-documentation -Wno-missing-prototypes -Wno-shadow-field-in-constructor -Wno-padded -Wno-weak-vtables -Wno-unknown-attributes -Wno-comma -Wno-shadow-uncaptured-local -Wno-switch-enum -Wno-pragma-once-outside-header -Wno-range-loop-bind-reference -Wno-unsafe-buffer-usage`
 
 ### Static analysis tools
 
