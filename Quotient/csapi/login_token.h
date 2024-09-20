@@ -23,10 +23,10 @@ namespace Quotient {
 //!
 //! Clients, both authenticated and unauthenticated, might wish to hide user interface which exposes
 //! this feature if the server is not offering it. Authenticated clients can check for support on
-//! a per-user basis with the `m.get_login_token`
-//! [capability](/client-server-api/#capabilities-negotiation), while unauthenticated clients can
-//! detect server support by looking for an `m.login.token` login flow with `get_login_token: true`
-//! on [`GET /login`](/client-server-api/#post_matrixclientv3login).
+//! a per-user basis with the [`m.get_login_token`](/client-server-api/#mget_login_token-capability)
+//! capability, while unauthenticated clients can detect server support by looking for an
+//! `m.login.token` login flow with `get_login_token: true` on [`GET
+//! /login`](/client-server-api/#post_matrixclientv3login).
 //!
 //! In v1.7 of the specification, transmission of the generated token to an unauthenticated client
 //! is left as an implementation detail. Future MSCs such as

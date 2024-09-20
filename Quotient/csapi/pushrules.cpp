@@ -15,29 +15,38 @@ GetPushRulesJob::GetPushRulesJob()
     addExpectedKey(u"global"_s);
 }
 
-QUrl GetPushRuleJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                                    const QString& kind, const QString& ruleId)
+QUrl GetPushRulesGlobalJob::makeRequestUrl(const HomeserverData& hsData)
 {
-    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
-                                                    kind, "/", ruleId));
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/global"));
 }
 
-GetPushRuleJob::GetPushRuleJob(const QString& scope, const QString& kind, const QString& ruleId)
-    : BaseJob(HttpVerb::Get, u"GetPushRuleJob"_s,
-              makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId))
+GetPushRulesGlobalJob::GetPushRulesGlobalJob()
+    : BaseJob(HttpVerb::Get, u"GetPushRulesGlobalJob"_s,
+              makePath("/_matrix/client/v3", "/pushrules/global"))
 {}
 
-QUrl DeletePushRuleJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                                       const QString& kind, const QString& ruleId)
+QUrl GetPushRuleJob::makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                                    const QString& ruleId)
 {
-    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/global/",
                                                     kind, "/", ruleId));
 }
 
-DeletePushRuleJob::DeletePushRuleJob(const QString& scope, const QString& kind,
-                                     const QString& ruleId)
+GetPushRuleJob::GetPushRuleJob(const QString& kind, const QString& ruleId)
+    : BaseJob(HttpVerb::Get, u"GetPushRuleJob"_s,
+              makePath("/_matrix/client/v3", "/pushrules/global/", kind, "/", ruleId))
+{}
+
+QUrl DeletePushRuleJob::makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                                       const QString& ruleId)
+{
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/global/",
+                                                    kind, "/", ruleId));
+}
+
+DeletePushRuleJob::DeletePushRuleJob(const QString& kind, const QString& ruleId)
     : BaseJob(HttpVerb::Delete, u"DeletePushRuleJob"_s,
-              makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId))
+              makePath("/_matrix/client/v3", "/pushrules/global/", kind, "/", ruleId))
 {}
 
 auto queryToSetPushRule(const QString& before, const QString& after)
@@ -48,12 +57,12 @@ auto queryToSetPushRule(const QString& before, const QString& after)
     return _q;
 }
 
-SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind, const QString& ruleId,
+SetPushRuleJob::SetPushRuleJob(const QString& kind, const QString& ruleId,
                                const QVector<QVariant>& actions, const QString& before,
                                const QString& after, const QVector<PushCondition>& conditions,
                                const QString& pattern)
     : BaseJob(HttpVerb::Put, u"SetPushRuleJob"_s,
-              makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId),
+              makePath("/_matrix/client/v3", "/pushrules/global/", kind, "/", ruleId),
               queryToSetPushRule(before, after))
 {
     QJsonObject _dataJson;
@@ -63,54 +72,48 @@ SetPushRuleJob::SetPushRuleJob(const QString& scope, const QString& kind, const 
     setRequestData({ _dataJson });
 }
 
-QUrl IsPushRuleEnabledJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                                          const QString& kind, const QString& ruleId)
+QUrl IsPushRuleEnabledJob::makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                                          const QString& ruleId)
 {
-    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/global/",
                                                     kind, "/", ruleId, "/enabled"));
 }
 
-IsPushRuleEnabledJob::IsPushRuleEnabledJob(const QString& scope, const QString& kind,
-                                           const QString& ruleId)
+IsPushRuleEnabledJob::IsPushRuleEnabledJob(const QString& kind, const QString& ruleId)
     : BaseJob(HttpVerb::Get, u"IsPushRuleEnabledJob"_s,
-              makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId,
-                       "/enabled"))
+              makePath("/_matrix/client/v3", "/pushrules/global/", kind, "/", ruleId, "/enabled"))
 {
     addExpectedKey(u"enabled"_s);
 }
 
-SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& scope, const QString& kind,
-                                             const QString& ruleId, bool enabled)
+SetPushRuleEnabledJob::SetPushRuleEnabledJob(const QString& kind, const QString& ruleId,
+                                             bool enabled)
     : BaseJob(HttpVerb::Put, u"SetPushRuleEnabledJob"_s,
-              makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId,
-                       "/enabled"))
+              makePath("/_matrix/client/v3", "/pushrules/global/", kind, "/", ruleId, "/enabled"))
 {
     QJsonObject _dataJson;
     addParam<>(_dataJson, "enabled"_L1, enabled);
     setRequestData({ _dataJson });
 }
 
-QUrl GetPushRuleActionsJob::makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                                           const QString& kind, const QString& ruleId)
+QUrl GetPushRuleActionsJob::makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                                           const QString& ruleId)
 {
-    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/", scope, "/",
+    return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushrules/global/",
                                                     kind, "/", ruleId, "/actions"));
 }
 
-GetPushRuleActionsJob::GetPushRuleActionsJob(const QString& scope, const QString& kind,
-                                             const QString& ruleId)
+GetPushRuleActionsJob::GetPushRuleActionsJob(const QString& kind, const QString& ruleId)
     : BaseJob(HttpVerb::Get, u"GetPushRuleActionsJob"_s,
-              makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId,
-                       "/actions"))
+              makePath("/_matrix/client/v3", "/pushrules/global/", kind, "/", ruleId, "/actions"))
 {
     addExpectedKey(u"actions"_s);
 }
 
-SetPushRuleActionsJob::SetPushRuleActionsJob(const QString& scope, const QString& kind,
-                                             const QString& ruleId, const QVector<QVariant>& actions)
+SetPushRuleActionsJob::SetPushRuleActionsJob(const QString& kind, const QString& ruleId,
+                                             const QVector<QVariant>& actions)
     : BaseJob(HttpVerb::Put, u"SetPushRuleActionsJob"_s,
-              makePath("/_matrix/client/v3", "/pushrules/", scope, "/", kind, "/", ruleId,
-                       "/actions"))
+              makePath("/_matrix/client/v3", "/pushrules/global/", kind, "/", ruleId, "/actions"))
 {
     QJsonObject _dataJson;
     addParam<>(_dataJson, "actions"_L1, actions);

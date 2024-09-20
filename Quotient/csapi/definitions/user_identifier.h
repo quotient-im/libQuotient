@@ -7,10 +7,11 @@
 namespace Quotient {
 //! Identification information for a user
 struct QUOTIENT_API UserIdentifier {
-    //! The type of identification.  See [Identifier types](/client-server-api/#identifier-types)
+    //! The type of identification. See [Identifier types](/client-server-api/#identifier-types)
     //! for supported values and additional property descriptions.
     QString type;
 
+    //! Keys dependent on the identification type.
     QVariantHash additionalProperties{};
 };
 
