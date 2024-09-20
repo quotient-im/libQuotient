@@ -104,7 +104,7 @@ QUrl ConnectionData::baseUrl() const { return d->baseUrl; }
 
 HomeserverData ConnectionData::homeserverData() const
 {
-    return { d->baseUrl, d->supportedSpecVersions, d->accessToken };
+    return { d->baseUrl, d->accessToken, d->supportedSpecVersions };
 }
 
 NetworkAccessManager* ConnectionData::nam() const
@@ -124,11 +124,13 @@ void ConnectionData::setBaseUrl(QUrl baseUrl)
     }
 }
 
-void ConnectionData::setToken(QByteArray token)
+void ConnectionData::setAccessToken(QByteArray token)
 {
     d->accessToken = std::move(token);
     NetworkAccessManager::setAccessToken(d->userId, d->accessToken);
 }
+
+void ConnectionData::setToken(QByteArray accessToken) { setAccessToken(std::move(accessToken)); }
 
 const QString& ConnectionData::deviceId() const { return d->deviceId; }
 
@@ -138,18 +140,19 @@ void ConnectionData::setDeviceId(const QString& deviceId) { d->deviceId = device
 
 void ConnectionData::setUserId(const QString& userId) { setIdentity(userId, d->deviceId); }
 
-void ConnectionData::setIdentity(const QString& userId, const QString& deviceId)
+void ConnectionData::setIdentity(const QString& userId, const QString& deviceId,
+                                 QByteArray accessToken)
 {
     if (d->baseUrl.isValid()) {
         if (d->userId != userId)
             NetworkAccessManager::dropAccount(d->userId);
         if (!userId.isEmpty()) {
-            NetworkAccessManager::addAccount(userId, d->baseUrl);
-            NetworkAccessManager::setAccessToken(userId, d->accessToken);
+            NetworkAccessManager::addAccount(userId, d->baseUrl, accessToken);
         }
     }
     d->userId = userId;
     d->deviceId = deviceId;
+    d->accessToken = std::move(accessToken);
 }
 
 void ConnectionData::setSupportedSpecVersions(QStringList versions)

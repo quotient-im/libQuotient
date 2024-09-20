@@ -198,7 +198,33 @@ TestManager::TestManager(int& argc, char** argv)
     clog.flush();
     // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-    connect(c, &Connection::connected, this, &TestManager::setupAndRun);
+    connect(c, &Connection::connected, this, [this] {
+        if (QUO_ALARM(c->homeserver().isEmpty() || !c->homeserver().isValid())
+            || QUO_ALARM(c->domain() != c->userId().section(u':', 1))) {
+            clog << "Connection information doesn't look right, check the parameters passed to "
+                    "quotest\n";
+            QCoreApplication::exit(-2);
+            return;
+        }
+        clog << "Connected, server: " << c->homeserver().toDisplayString().toStdString() << '\n'
+             << "Access token: " << c->accessToken().toStdString() << endl;
+
+        // Test Connection::assumeIdentity() while we can replace connection objects
+        auto* newC = new Connection(c->homeserver(), this);
+        newC->assumeIdentity(c->userId(), c->deviceId(), QString::fromLatin1(c->accessToken()));
+        // NB: this will need to change when we switch E2EE on in quotest because encryption
+        //     data is initialised asynchronously
+        if (QUO_ALARM(newC->homeserver() != c->homeserver())
+            || QUO_ALARM(newC->userId() != c->userId()) || QUO_ALARM(!newC->isLoggedIn())) {
+            clog << "Connection::assumeIdentity() failed to do its job\n";
+            QCoreApplication::exit(-2);
+            return;
+        }
+
+        c->deleteLater();
+        c = newC;
+        setupAndRun();
+    });
     connect(c, &Connection::resolveError, this,
         [](const QString& error) {
             clog << "Failed to resolve the server: " << error.toStdString() << endl;
@@ -213,7 +239,6 @@ TestManager::TestManager(int& argc, char** argv)
             QCoreApplication::exit(-2);
         },
         Qt::QueuedConnection);
-    connect(c, &Connection::loadedRoomState, this, &TestManager::onNewRoom);
 
     // Big countdown watchdog
     QTimer::singleShot(180000, this, [this] {
@@ -231,6 +256,8 @@ void TestManager::setupAndRun()
     Q_ASSERT(c->domain() == c->userId().section(u':', 1));
     clog << "Connected, server: " << c->homeserver().toDisplayString().toStdString() << '\n'
          << "Access token: " << c->accessToken().toStdString() << endl;
+
+    connect(c, &Connection::loadedRoomState, this, &TestManager::onNewRoom);
 
     c->setLazyLoading(true);
 
@@ -913,7 +940,7 @@ void TestManager::conclude()
 
 void TestManager::finalize(const QString& lastWords)
 {
-    if (!c->isUsable() || !c->isLoggedIn()) {
+    if (!c->isLoggedIn()) {
         clog << "No usable connection reached" << endl;
         QCoreApplication::exit(-2);
         return; // NB: QCoreApplication::exit() does return to the caller

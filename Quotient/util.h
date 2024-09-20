@@ -64,7 +64,7 @@ inline bool alarmX(bool alarmCondition, const auto& msg,
                    [[maybe_unused]] std::source_location loc = std::source_location::current())
 {
     if (alarmCondition) [[unlikely]] {
-        Q_ASSERT_X(false, loc.function_name(), QUO_CSTR(msg));
+        qt_assert_x(loc.function_name(), QUO_CSTR(msg), loc.file_name(), loc.line());
         qCritical() << msg;
     }
     return alarmCondition;
@@ -454,8 +454,8 @@ QUOTIENT_API bool isGuestUserId(const UserId& uId);
 
 struct QUOTIENT_API HomeserverData {
     QUrl baseUrl;
-    QStringList supportedSpecVersions;
-    QByteArray accessToken;
+    QByteArray accessToken = {};
+    QStringList supportedSpecVersions = {};
 
     bool checkMatrixSpecVersion(QStringView targetVersion) const;
 };

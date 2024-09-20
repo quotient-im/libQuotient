@@ -27,20 +27,19 @@ public:
         HomeserverData hsData;
     };
 
-    void addConnection(QString accountId, QUrl baseUrl)
+    void addConnection(const QString& accountId, HomeserverData hsData)
     {
-        if (baseUrl.isEmpty())
+        if (hsData.baseUrl.isEmpty())
             return;
 
         const QWriteLocker _(&namLock);
         if (auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
-            it != connectionData.end()) {
-            it->hsData.baseUrl = std::move(baseUrl);
-        } else
-            connectionData.push_back(
-                { std::move(accountId), HomeserverData{ std::move(baseUrl), {}, {}} });
+            it != connectionData.end())
+            it->hsData = std::move(hsData);
+        else // Xcode doesn't like emplace_back() below for some reason (anon class?..)
+            connectionData.push_back({ accountId, std::move(hsData) });
     }
-    void addSpecVersions(QStringView accountId, QStringList versions)
+    void addSpecVersions(QStringView accountId, const QStringList& versions)
     {
         if (versions.isEmpty())
             return;
@@ -51,7 +50,7 @@ public:
                                                     "versions on an inexistent account"))
             return;
 
-        it->hsData.supportedSpecVersions = std::move(versions);
+        it->hsData.supportedSpecVersions = versions;
     }
     void dropConnection(QStringView accountId)
     {
@@ -63,7 +62,7 @@ public:
     {
         const QReadLocker _(&namLock);
         auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
-        return it == connectionData.cend() ? HomeserverData{ } : it->hsData;
+        return it == connectionData.cend() ? HomeserverData{} : it->hsData;
     }
     void addIgnoredSslError(const QSslError& error)
     {
@@ -97,16 +96,23 @@ private:
 
 } // anonymous namespace
 
-void NetworkAccessManager::addAccount(QString accountId, QUrl homeserver)
+void NetworkAccessManager::addAccount(const QString& accountId, const QUrl& homeserver,
+                                      const QByteArray& accessToken)
 {
     Q_ASSERT(!accountId.isEmpty());
-    d.addConnection( accountId, std::move(homeserver) );
+    d.addConnection(accountId, { homeserver, accessToken });
 }
 
-void NetworkAccessManager::updateAccountSpecVersions(QStringView accountId, QStringList versions)
+void NetworkAccessManager::setAccessToken(const QString& userId, const QByteArray& token)
+{
+    d.setAccessToken(userId, token);
+}
+
+void NetworkAccessManager::updateAccountSpecVersions(QStringView accountId,
+                                                     const QStringList& versions)
 {
     Q_ASSERT(!accountId.isEmpty());
-    d.addSpecVersions(accountId, std::move(versions));
+    d.addSpecVersions(accountId, versions);
 }
 
 void NetworkAccessManager::dropAccount(QStringView accountId)
@@ -191,9 +197,4 @@ QNetworkReply* NetworkAccessManager::createRequest(
 QStringList NetworkAccessManager::supportedSchemesImplementation() const
 {
     return QNetworkAccessManager::supportedSchemesImplementation() << u"mxc"_s;
-}
-
-void NetworkAccessManager::setAccessToken(const QString& userId, const QByteArray& token)
-{
-    d.setAccessToken(userId, token);
 }

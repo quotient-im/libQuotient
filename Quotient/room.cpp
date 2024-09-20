@@ -1874,9 +1874,9 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
             // allowed to do everything.
             // The entire defaultPowerLevels event gets replaced in order to maintain its constness
             // everywhere else.
-            std::exchange(d->defaultPowerLevels,
-                          std::make_unique<const RoomPowerLevelsEvent>(PowerLevelsEventContent{
-                              .users = { { creation()->senderId(), 100 } } }));
+            d->defaultPowerLevels = std::make_unique<const RoomPowerLevelsEvent>(
+                PowerLevelsEventContent{ .users = { { creation()->senderId(), 100 } } });
+            d->currentState[{ RoomPowerLevelsEvent::TypeId, {} }] = d->defaultPowerLevels.get();
         }
 
         // First test for changes that can only come from /sync calls and not
@@ -3174,6 +3174,7 @@ Room::Change Room::Private::processStateEvent(const RoomEvent& curEvent,
         [this](const EncryptionEvent&) {
             // As encryption can only be switched on once, emit the signal here
             // instead of aggregating and emitting in updateData()
+            qCInfo(MAIN) << "E2EE switched on in" << q->objectName();
             emit q->encryption();
             return Change::Other;
         },

@@ -293,6 +293,7 @@ public:
     //! Get the domain name used for ids/aliases on the server
     QString domain() const;
     //! Check if the homeserver is known to be reachable and working
+    [[deprecated("Check the result returned by Connection::loginFlows() instead")]]
     bool isUsable() const;
     //! Get the list of supported login flows
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows() const;
@@ -495,8 +496,21 @@ public:
     void setLazyLoading(bool newValue);
 
     //! Start a pre-created job object on this connection
-    Q_INVOKABLE BaseJob* run(BaseJob* job,
-                             RunningPolicy runningPolicy = ForegroundRequest);
+    Q_INVOKABLE BaseJob* run(BaseJob* job, RunningPolicy runningPolicy = ForegroundRequest);
+
+    //! \brief Start a pre-created job on this connection and get a job handle to it
+    //!
+    //! This is a template overload for run(BaseJob*, RunningPolicy) - if you call run() on any
+    //! derived job (99% of the cases when you're going to call it), this overload will be chosen
+    //! as a more type-safe and feature-rich version. It's not Q_INVOKABLE though.
+    template <std::derived_from<BaseJob> JobT>
+        requires (!std::same_as<JobT, BaseJob>)
+    JobHandle<JobT> run(JobT* job, RunningPolicy runningPolicy = ForegroundRequest)
+    {
+        JobHandle jh { job };
+        run(static_cast<BaseJob*>(job), runningPolicy);
+        return jh;
+    }
 
     //! \brief Start a job of a given type with specified arguments and policy
     //!
@@ -512,9 +526,7 @@ public:
     template <typename JobT, typename... JobArgTs>
     JobHandle<JobT> callApi(RunningPolicy runningPolicy, JobArgTs&&... jobArgs)
     {
-        auto job = new JobT(std::forward<JobArgTs>(jobArgs)...);
-        run(job, runningPolicy);
-        return job;
+        return run(new JobT(std::forward<JobArgTs>(jobArgs)...), runningPolicy);
     }
 
     //! \brief Start a job of a specified type with specified arguments

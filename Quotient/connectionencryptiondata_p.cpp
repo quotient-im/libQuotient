@@ -34,16 +34,9 @@ inline QFuture<QKeychain::Job*> runKeychainJob(QKeychain::Job* j, const QString&
     return ft;
 }
 
-QFuture<void> setupPicklingKey(Connection* connection, bool mock,
+QFuture<void> setupPicklingKey(Connection* connection,
                                std::unique_ptr<ConnectionEncryptionData>& encryptionData)
 {
-    if (mock) {
-        qInfo(E2EE) << "Using a mock pickling key";
-        encryptionData =
-            std::make_unique<ConnectionEncryptionData>(connection, PicklingKey::generate());
-        return QtFuture::makeReadyFuture<void>();
-    }
-
     using namespace QKeychain;
     const auto keychainId = connection->userId() + "-Pickle"_L1;
     qCInfo(MAIN) << "Keychain request: app" << qAppName() << "id" << keychainId;
@@ -94,15 +87,15 @@ QFuture<void> setupPicklingKey(Connection* connection, bool mock,
         });
 }
 
-QFuture<bool> ConnectionEncryptionData::setup(Connection* connection, bool mock,
-                                              std::unique_ptr<ConnectionEncryptionData>& result)
+QFuture<bool> ConnectionEncryptionData::setup(Connection* connection,
+                                              std::unique_ptr<ConnectionEncryptionData>& result,
+                                              bool clearDatabase)
 {
-    return setupPicklingKey(connection, mock, result)
-        .then([connection, mock, &result] {
-            if (mock) {
+    return setupPicklingKey(connection, result)
+        .then([connection, &result, clearDatabase] {
+            if (clearDatabase) {
+                qCInfo(E2EE) << "Clearing the database for account" << connection->objectName();
                 result->database.clear();
-                result->olmAccount.setupNewAccount();
-                return true;
             }
             if (const auto outcome = result->database.setupOlmAccount(result->olmAccount)) {
                 if (outcome == OLM_SUCCESS) {

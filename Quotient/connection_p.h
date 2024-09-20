@@ -93,7 +93,9 @@ public:
     QFuture<void> ensureHomeserver(const QString& userId, const std::optional<LoginFlow>& flow = {});
     template <typename... LoginArgTs>
     void loginToServer(LoginArgTs&&... loginArgs);
-    void completeSetup(const QString& mxId, const QString& deviceId, bool mock = false);
+    void completeSetup(const QString& mxId, bool newLogin = true,
+                       const std::optional<QString>& deviceId = {},
+                       const std::optional<QString>& accessToken = {});
     void removeRoom(const QString& roomId);
 
     void consumeRoomData(SyncDataList&& roomDataList, bool fromCache);

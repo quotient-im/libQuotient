@@ -69,7 +69,6 @@ Connection::Connection(const QUrl& server, QObject* parent)
     : QObject(parent)
     , d(makeImpl<Private>(std::make_unique<ConnectionData>(server)))
 {
-    //connect(qApp, &QCoreApplication::aboutToQuit, this, &Connection::saveOlmAccount);
     d->q = this; // All d initialization should occur before this line
     setObjectName(server.toString());
 }
@@ -168,11 +167,11 @@ void Connection::loginWithToken(const QString& loginToken,
                      QString() /*password*/, loginToken, deviceId, initialDeviceName);
 }
 
-void Connection::assumeIdentity(const QString& mxId, const QString& deviceId, const QString& accessToken)
+void Connection::assumeIdentity(const QString& mxId, const QString& deviceId,
+                                const QString& accessToken)
 {
-    d->completeSetup(mxId, deviceId);
-    d->ensureHomeserver(mxId).then([this, mxId, accessToken] {
-        d->data->setToken(accessToken.toLatin1());
+    d->completeSetup(mxId, false, deviceId, accessToken);
+    d->ensureHomeserver(mxId).then([this, mxId] {
         callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
             switch (job->error()) {
             case BaseJob::Success:
@@ -280,7 +279,7 @@ void Connection::Private::dropAccessToken()
             << qUtf8Printable(job->errorString());
     });
 
-    data->setToken({});
+    data->setAccessToken({});
 }
 
 template <typename... LoginArgTs>
@@ -289,26 +288,26 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
     q->callApi<LoginJob>(std::forward<LoginArgTs>(loginArgs)...)
         .onResult([this](const LoginJob* loginJob) {
             if (loginJob->status().good()) {
-                data->setToken(loginJob->accessToken().toLatin1());
-                completeSetup(loginJob->userId(), loginJob->deviceId());
                 saveAccessTokenToKeychain();
-                if (encryptionData)
-                    encryptionData->database.clear();
+                completeSetup(loginJob->userId(), true, loginJob->deviceId(),
+                              loginJob->accessToken());
             } else
                 emit q->loginError(loginJob->errorString(), loginJob->rawDataSample());
         });
 }
 
-void Connection::Private::completeSetup(const QString& mxId, const QString& deviceId, bool mock)
+void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
+                                        const std::optional<QString>& deviceId,
+                                        const std::optional<QString>& accessToken)
 {
-    data->setIdentity(mxId, deviceId);
+    data->setIdentity(mxId, deviceId.value_or(u""_s), accessToken.value_or(u""_s).toLatin1());
     q->setObjectName(data->userId() % u'/' % data->deviceId());
     qCDebug(MAIN) << "Using server" << data->baseUrl().toDisplayString()
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
 
-    if (!mock) {
+    if (accessToken.has_value()) {
         q->loadVersions();
         q->loadCapabilities();
         q->user()->load(); // Load the local user's profile
@@ -318,21 +317,27 @@ void Connection::Private::completeSetup(const QString& mxId, const QString& devi
 
     if (useEncryption) {
         using _impl::ConnectionEncryptionData;
-        ConnectionEncryptionData::setup(q, mock, encryptionData).then([this](bool successful) {
-            if (!successful || !encryptionData)
-                useEncryption = false;
+        if (!accessToken) {
+            // Mock connection; initialise bare bones necessary for testing
+            qInfo(E2EE) << "Using a mock pickling key";
+            encryptionData = std::make_unique<ConnectionEncryptionData>(q, PicklingKey::generate());
+            encryptionData->database.clear();
+            encryptionData->olmAccount.setupNewAccount();
+        } else
+            ConnectionEncryptionData::setup(q, encryptionData, newLogin).then([this](bool successful) {
+                if (!successful || !encryptionData)
+                    useEncryption = false;
 
-            emit q->encryptionChanged(useEncryption);
-            emit q->stateChanged();
-            emit q->ready();
-            emit q->connected();
-        });
+                emit q->encryptionChanged(useEncryption);
+                emit q->stateChanged();
+                emit q->ready();
+                emit q->connected();
+            });
     } else {
         qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
         emit q->ready();
         emit q->connected();
     }
-
 }
 
 QFuture<void> Connection::Private::ensureHomeserver(const QString& userId,
@@ -1898,12 +1903,11 @@ void Connection::reloadDevices()
     }
 }
 
-Connection* Connection::makeMockConnection(const QString& mxId,
-                                           bool enableEncryption)
+Connection* Connection::makeMockConnection(const QString& mxId, bool enableEncryption)
 {
     auto* c = new Connection;
     c->enableEncryption(enableEncryption);
-    c->d->completeSetup(mxId, {}, true);
+    c->d->completeSetup(mxId);
     return c;
 }
 
