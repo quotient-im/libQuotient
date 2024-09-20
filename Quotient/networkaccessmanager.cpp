@@ -27,18 +27,17 @@ public:
         HomeserverData hsData;
     };
 
-    void addConnection(const QString& accountId, const QUrl& baseUrl, const QByteArray& accessToken)
+    void addConnection(const QString& accountId, HomeserverData hsData)
     {
-        if (baseUrl.isEmpty())
+        if (hsData.baseUrl.isEmpty())
             return;
 
         const QWriteLocker _(&namLock);
         if (auto it = std::ranges::find(connectionData, accountId, &ConnectionData::accountId);
-            it != connectionData.end()) {
-            it->hsData.baseUrl = baseUrl;
-            it->hsData.accessToken = accessToken;
-        } else
-            connectionData.emplace_back(accountId, HomeserverData{ baseUrl, accessToken });
+            it != connectionData.end())
+            it->hsData = std::move(hsData);
+        else // Xcode doesn't like emplace_back() below for some reason (anon class?..)
+            connectionData.push_back({ accountId, std::move(hsData) });
     }
     void addSpecVersions(QStringView accountId, const QStringList& versions)
     {
@@ -101,7 +100,7 @@ void NetworkAccessManager::addAccount(const QString& accountId, const QUrl& home
                                       const QByteArray& accessToken)
 {
     Q_ASSERT(!accountId.isEmpty());
-    d.addConnection(accountId, homeserver, accessToken);
+    d.addConnection(accountId, { homeserver, accessToken });
 }
 
 void NetworkAccessManager::setAccessToken(const QString& userId, const QByteArray& token)
