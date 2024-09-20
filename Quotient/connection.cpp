@@ -171,7 +171,7 @@ void Connection::assumeIdentity(const QString& mxId, const QString& deviceId,
                                 const QString& accessToken)
 {
     d->completeSetup(mxId, false, deviceId, accessToken);
-    d->ensureHomeserver(mxId).then([this, mxId, accessToken] {
+    d->ensureHomeserver(mxId).then([this, mxId] {
         callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
             switch (job->error()) {
             case BaseJob::Success:
