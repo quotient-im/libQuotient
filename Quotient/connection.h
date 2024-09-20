@@ -498,7 +498,7 @@ public:
     //! Start a pre-created job object on this connection
     Q_INVOKABLE BaseJob* run(BaseJob* job, RunningPolicy runningPolicy = ForegroundRequest);
 
-    //! \brief Start a pre-created job on this connection and get a job handler to it
+    //! \brief Start a pre-created job on this connection and get a job handle to it
     //!
     //! This is a template overload for run(BaseJob*, RunningPolicy) - if you call run() on any
     //! derived job (99% of the cases when you're going to call it), this overload will be chosen
