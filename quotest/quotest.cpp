@@ -201,8 +201,8 @@ TestManager::TestManager(int& argc, char** argv)
     connect(c, &Connection::connected, this, [this] {
         if (QUO_ALARM(c->homeserver().isEmpty() || !c->homeserver().isValid())
             || QUO_ALARM(c->domain() != c->userId().section(u':', 1))) {
-            clog << "Connection information doesn't look right, check the parameters passed to "
-                    "quotest\n";
+            clog << "Connection information doesn't look right, "
+                 << "check the parameters passed to quotest" << endl;
             QCoreApplication::exit(-2);
             return;
         }
@@ -216,7 +216,7 @@ TestManager::TestManager(int& argc, char** argv)
         //     data is initialised asynchronously
         if (QUO_ALARM(newC->homeserver() != c->homeserver())
             || QUO_ALARM(newC->userId() != c->userId()) || QUO_ALARM(!newC->isLoggedIn())) {
-            clog << "Connection::assumeIdentity() failed to do its job\n";
+            clog << "Connection::assumeIdentity() is broken" << endl;
             QCoreApplication::exit(-2);
             return;
         }
@@ -227,7 +227,7 @@ TestManager::TestManager(int& argc, char** argv)
     });
     connect(c, &Connection::resolveError, this,
         [](const QString& error) {
-            clog << "Failed to resolve the server: " << error.toStdString() << endl;
+            clog << "Could not start testing: " << error.toStdString() << endl;
             QCoreApplication::exit(-2);
         },
         Qt::QueuedConnection);
