@@ -660,16 +660,14 @@ JobHandle<JoinRoomJob> Connection::joinRoom(const QString& roomAlias, const QStr
     // Upon completion, ensure a room object is created in case it hasn't come with a sync yet.
     // If the room object is not there, provideRoom() will create it in Join state. Using
     // the continuation ensures that the room is provided before any client connections.
-    return callApi<JoinRoomJob>(roomAlias, serverNames).then([this](const QString& roomId) {
-        provideRoom(roomId);
-    });
+    return callApi<JoinRoomJob>(roomAlias, serverNames, serverNames)
+        .then([this](const QString& roomId) { provideRoom(roomId); });
 }
 
 QFuture<Room*> Connection::joinAndGetRoom(const QString& roomAlias, const QStringList& serverNames)
 {
-    return callApi<JoinRoomJob>(roomAlias, serverNames).then([this](const QString& roomId) {
-        return provideRoom(roomId);
-    });
+    return callApi<JoinRoomJob>(roomAlias, serverNames, serverNames)
+        .then([this](const QString& roomId) { return provideRoom(roomId); });
 }
 
 LeaveRoomJob* Connection::leaveRoom(Room* room)
