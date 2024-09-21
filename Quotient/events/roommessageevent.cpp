@@ -6,7 +6,9 @@
 #include "roommessageevent.h"
 
 #include "../logging_categories_p.h"
+#include <Quotient/converters.h>
 #include "eventrelation.h"
+#include <Quotient/events/event.h>
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
@@ -86,49 +88,47 @@ inline bool isReplacement(const std::optional<EventRelation>& rel)
 
 QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                                                   const QString& jsonMsgType,
-                                                  TypedBase* content)
+                                                  TypedBase* content,
+                                                  std::optional<EventRelation> relatesTo)
 {
     QJsonObject json;
     if (content) {
         // TODO: replace with content->fillJson(json) when it starts working
         json = content->toJson();
-        if (jsonMsgType != TextTypeKey && jsonMsgType != NoticeTypeKey
-            && jsonMsgType != EmoteTypeKey) {
-            if (json.contains(RelatesToKey)) {
-                json.remove(RelatesToKey);
-                qCWarning(EVENTS)
-                    << RelatesToKey << "cannot be used in" << jsonMsgType
-                    << "messages; the relation has been stripped off";
-            }
-        } else if (auto* textContent = static_cast<const TextContent*>(content);
-                   textContent->relatesTo
-                   && textContent->relatesTo->type
-                          == EventRelation::ReplacementType) {
-            auto newContentJson = json.take("m.new_content"_L1).toObject();
-            newContentJson.insert(BodyKey, plainBody);
-            newContentJson.insert(MsgTypeKey, jsonMsgType);
-            json.insert("m.new_content"_L1, newContentJson);
-            json[MsgTypeKey] = jsonMsgType;
-            json[BodyKey] = "* "_L1 + plainBody;
-            return json;
-        }
     }
     json.insert(MsgTypeKey, jsonMsgType);
     json.insert(BodyKey, plainBody);
+    if (relatesTo.has_value()) {
+        json.insert(RelatesToKey, toJson<EventRelation>(relatesTo.value()));
+        // JsonObjectConverter<EventRelation>::dumpTo(json, relatesTo.value());
+        if (auto* textContent = static_cast<const TextContent*>(content); relatesTo->type == EventRelation::ReplacementType) {
+            QJsonObject newContentJson;
+            if (content && textContent->mimeType.inherits("text/html"_L1)) {
+                newContentJson.insert("format"_L1, HtmlContentTypeId);
+                newContentJson.insert(FormattedBodyKey, textContent->body);
+            }
+            newContentJson.insert(BodyKey, plainBody);
+            newContentJson.insert(MsgTypeKey, jsonMsgType);
+            json.insert("m.new_content"_L1, newContentJson);
+            json.insert(BodyKey, "* "_L1 + plainBody);
+        }
+    }
     return json;
 }
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
                                    const QString& jsonMsgType,
-                                   TypedBase* content)
+                                   TypedBase* content,
+                                   std::optional<EventRelation> relatesTo)
     : RoomEvent(
-        basicJson(TypeId, assembleContentJson(plainBody, jsonMsgType, content)))
+        basicJson(TypeId, assembleContentJson(plainBody, jsonMsgType, content, relatesTo)))
     , _content(content)
+    , _relatesTo(relatesTo)
 {}
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody, MsgType msgType,
-                                   TypedBase* content)
-    : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content)
+                                   TypedBase* content, std::optional<EventRelation> relatesTo)
+    : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content, relatesTo)
 {}
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
@@ -140,16 +140,22 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     if (content.contains(MsgTypeKey) && content.contains(BodyKey)) {
         auto msgtype = content[MsgTypeKey].toString();
         bool msgTypeFound = false;
-        for (const auto& mt : msgTypes)
+        for (const auto& mt : msgTypes) {
             if (mt.matrixType == msgtype) {
                 _content = mt.maker(content);
                 msgTypeFound = true;
             }
+        }
 
         if (!msgTypeFound) {
             qCWarning(EVENTS) << "RoomMessageEvent: unknown msg_type,"
                               << " full content dump follows";
             qCWarning(EVENTS) << formatJson << content;
+            return;
+        }
+
+        if (content.contains(RelatesToKey)) {
+            _relatesTo = fromJson<std::optional<EventRelation>>(content[RelatesToKey]);
         }
     } else {
         qCWarning(EVENTS) << "No body or msgtype in room message event";
@@ -198,7 +204,7 @@ bool RoomMessageEvent::hasThumbnail() const
 
 std::optional<EventRelation> RoomMessageEvent::relatesTo() const
 {
-    return content() && hasTextContent() ? static_cast<const TextContent*>(content())->relatesTo : std::nullopt;
+    return _relatesTo;
 }
 
 QString RoomMessageEvent::upstreamEventId() const
@@ -212,8 +218,7 @@ QString RoomMessageEvent::replacedEvent() const
     if (!content() || !hasTextContent())
         return {};
 
-    const auto& rel = static_cast<const TextContent*>(content())->relatesTo;
-    return isReplacement(rel) ? rel->eventId : QString();
+    return isReplacement(_relatesTo) ? _relatesTo->eventId : QString();
 }
 
 bool RoomMessageEvent::isReplaced() const
@@ -319,22 +324,21 @@ QString RoomMessageEvent::rawMsgTypeForFile(const QFileInfo& fi)
     return rawMsgTypeForMimeType(QMimeDatabase().mimeTypeForFile(fi));
 }
 
-TextContent::TextContent(QString text, const QString& contentType,
-                         std::optional<EventRelation> relatesTo)
+TextContent::TextContent(QString text, const QString& contentType)
     : mimeType(QMimeDatabase().mimeTypeForName(contentType))
     , body(std::move(text))
-    , relatesTo(std::move(relatesTo))
 {
     if (contentType == HtmlContentTypeId)
         mimeType = QMimeDatabase().mimeTypeForName("text/html"_L1);
 }
 
 TextContent::TextContent(const QJsonObject& json)
-    : relatesTo(fromJson<std::optional<EventRelation>>(json[RelatesToKey]))
 {
     QMimeDatabase db;
     static const auto PlainTextMimeType = db.mimeTypeForName("text/plain"_L1);
     static const auto HtmlMimeType = db.mimeTypeForName("text/html"_L1);
+
+    const auto relatesTo = fromJson<std::optional<EventRelation>>(json[RelatesToKey]);
 
     const auto actualJson = isReplacement(relatesTo)
                                 ? json.value("m.new_content"_L1).toObject()
@@ -354,27 +358,9 @@ TextContent::TextContent(const QJsonObject& json)
 
 void TextContent::fillJson(QJsonObject &json) const
 {
-    static const auto FormatKey = "format"_L1;
-
     if (mimeType.inherits("text/html"_L1)) {
-        json.insert(FormatKey, HtmlContentTypeId);
+        json.insert("format"_L1, HtmlContentTypeId);
         json.insert(FormattedBodyKey, body);
-    }
-    if (relatesTo) {
-        json.insert("m.relates_to"_L1,
-                    relatesTo->type == EventRelation::ReplyType
-                        ? QJsonObject{ { relatesTo->type,
-                                         QJsonObject{ { EventIdKey, relatesTo->eventId } } } }
-                        : QJsonObject{ { RelTypeKey, relatesTo->type },
-                                       { EventIdKey, relatesTo->eventId } });
-        if (relatesTo->type == EventRelation::ReplacementType) {
-            QJsonObject newContentJson;
-            if (mimeType.inherits("text/html"_L1)) {
-                newContentJson.insert(FormatKey, HtmlContentTypeId);
-                newContentJson.insert(FormattedBodyKey, body);
-            }
-            json.insert("m.new_content"_L1, newContentJson);
-        }
     }
 }
 

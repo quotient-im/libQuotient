@@ -34,10 +34,12 @@ public:
     };
 
     RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
-                     EventContent::TypedBase* content = nullptr);
+                     EventContent::TypedBase* content = nullptr,
+                     std::optional<EventRelation> relatesTo = std:: nullopt);
     explicit RoomMessageEvent(const QString& plainBody,
                               MsgType msgType = MsgType::Text,
-                              EventContent::TypedBase* content = nullptr);
+                              EventContent::TypedBase* content = nullptr,
+                              std::optional<EventRelation> relatesTo = std:: nullopt);
 
     explicit RoomMessageEvent(const QJsonObject& obj);
 
@@ -48,7 +50,7 @@ public:
     void editContent(auto visitor)
     {
         visitor(*_content);
-        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), _content.get());
+        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), _content.get(), _relatesTo);
     }
     QMimeType mimeType() const;
     //! \brief Determine whether the message has text content
@@ -141,11 +143,13 @@ public:
 
 private:
     std::unique_ptr<EventContent::TypedBase> _content;
+    std::optional<EventRelation> _relatesTo;
 
     // FIXME: should it really be static?
     static QJsonObject assembleContentJson(const QString& plainBody,
                                            const QString& jsonMsgType,
-                                           EventContent::TypedBase* content);
+                                           EventContent::TypedBase* content,
+                                           std::optional<EventRelation> relatesTo);
 
     Q_ENUM(MsgType)
 };
@@ -164,15 +168,13 @@ namespace EventContent {
      */
     class QUOTIENT_API TextContent : public TypedBase {
     public:
-        TextContent(QString text, const QString& contentType,
-                    std::optional<EventRelation> relatesTo = {});
+        TextContent(QString text, const QString& contentType);
         explicit TextContent(const QJsonObject& json);
 
         QMimeType type() const override { return mimeType; }
 
         QMimeType mimeType;
         QString body;
-        std::optional<EventRelation> relatesTo;
 
     protected:
         void fillJson(QJsonObject& json) const override;
