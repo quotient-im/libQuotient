@@ -38,9 +38,12 @@ struct QUOTIENT_API EventRelation {
     {
         return { ReplacementType, std::move(eventId) };
     }
-    static EventRelation replyInThread(QString threadRootId, bool isFallingBack, QString inThreadReplyEventId)
+    static EventRelation replyInThread(QString threadRootId, bool isFallingBack,
+                                       QString inThreadReplyEventId)
     {
-        return { ThreadType, std::move(threadRootId), {}, std::move(isFallingBack), std::move(inThreadReplyEventId) };
+        return {
+            ThreadType, std::move(threadRootId), {}, isFallingBack, std::move(inThreadReplyEventId)
+        };
     }
 };
 
