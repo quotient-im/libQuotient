@@ -67,6 +67,10 @@ public:
     //!   The servers to attempt to join the room through. One of the servers
     //!   must be participating in the room.
     //!
+    //! \param via
+    //!   The servers to attempt to join the room through. One of the servers
+    //!   must be participating in the room.
+    //!
     //! \param thirdPartySigned
     //!   If a `third_party_signed` was supplied, the homeserver must verify
     //!   that it matches a pending `m.room.third_party_invite` event in the
@@ -76,6 +80,7 @@ public:
     //!   Optional reason to be included as the `reason` on the subsequent
     //!   membership event.
     explicit JoinRoomJob(const QString& roomIdOrAlias, const QStringList& serverName = {},
+                         const QStringList& via = {},
                          const std::optional<ThirdPartySigned>& thirdPartySigned = std::nullopt,
                          const QString& reason = {});
 

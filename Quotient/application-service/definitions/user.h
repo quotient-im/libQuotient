@@ -7,7 +7,7 @@
 namespace Quotient {
 
 struct QUOTIENT_API ThirdPartyUser {
-    //! A Matrix User ID represting a third-party user.
+    //! A Matrix User ID representing a third-party user.
     QString userid;
 
     //! The protocol ID that the third-party location is a part of.

@@ -88,8 +88,7 @@ inline auto collectResponse(const GetAvatarUrlJob* job) { return job->avatarUrl(
 //!
 //! Get the combined profile information for this user. This API may be used
 //! to fetch the user's own profile information or other users; either
-//! locally or on remote homeservers. This API may return keys which are not
-//! limited to `displayname` or `avatar_url`.
+//! locally or on remote homeservers.
 class QUOTIENT_API GetUserProfileJob : public BaseJob {
 public:
     //! \param userId

@@ -32,11 +32,15 @@ public:
     //!   The servers to attempt to knock on the room through. One of the servers
     //!   must be participating in the room.
     //!
+    //! \param via
+    //!   The servers to attempt to knock on the room through. One of the servers
+    //!   must be participating in the room.
+    //!
     //! \param reason
     //!   Optional reason to be included as the `reason` on the subsequent
     //!   membership event.
     explicit KnockRoomJob(const QString& roomIdOrAlias, const QStringList& serverName = {},
-                          const QString& reason = {});
+                          const QStringList& via = {}, const QString& reason = {});
 
     // Result properties
 

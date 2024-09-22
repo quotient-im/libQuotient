@@ -17,7 +17,11 @@ public:
     //!   The name of the file being uploaded
     //!
     //! \param contentType
-    //!   The content type of the file being uploaded
+    //!   **Optional.** The content type of the file being uploaded.
+    //!
+    //!   Clients SHOULD always supply this header.
+    //!
+    //!   Defaults to `application/octet-stream` if it is not set.
     explicit UploadContentJob(QIODevice* content, const QString& filename = {},
                               const QString& contentType = {});
 
@@ -46,7 +50,11 @@ public:
     //!   The name of the file being uploaded
     //!
     //! \param contentType
-    //!   The content type of the file being uploaded
+    //!   **Optional.** The content type of the file being uploaded.
+    //!
+    //!   Clients SHOULD always supply this header.
+    //!
+    //!   Defaults to `application/octet-stream` if it is not set.
     explicit UploadContentToMXCJob(const QString& serverName, const QString& mediaId,
                                    QIODevice* content, const QString& filename = {},
                                    const QString& contentType = {});
@@ -166,9 +174,41 @@ public:
     // Result properties
 
     //! The content type of the file that was previously uploaded.
+    //!
+    //! The server MUST return a `Content-Type` which is either exactly the same
+    //! as the original upload, or reasonably close. The bounds of "reasonable"
+    //! are:
+    //!
+    //! * Adding a charset to `text/*` content types.
+    //! * Detecting HTML and using `text/html` instead of `text/plain`.
+    //! * Using `application/octet-stream` when the server determines the
+    //!   content type is obviously wrong. For example, an encrypted file being
+    //!   claimed as `image/png`.
+    //! * Returning `application/octet-stream` when the media has an
+    //!   unknown/unprovided `Content-Type`. For example, being uploaded before
+    //!   the server tracked content types or when the remote server is
+    //!   non-compliantly omitting the header entirely.
+    //!
+    //! Actions not in the spirit of the above are not considered "reasonable".
     QString contentType() const { return QString::fromUtf8(reply()->rawHeader("Content-Type")); }
 
-    //! The name of the file that was previously uploaded, if set.
+    //! The
+    //! [disposition](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition)
+    //! of the returned content. MUST be one of `inline` or `attachment`,
+    //! and SHOULD contain a file name.
+    //!
+    //! If the `Content-Type` is allowed in the [restrictions for serving
+    //! inline content](/client-server-api/#serving-inline-content),
+    //! servers SHOULD use `inline`, otherwise they SHOULD use
+    //! `attachment`.
+    //!
+    //! If the upload was made with a `filename`, this header MUST
+    //! contain the same `filename`. Otherwise, `filename` is excluded
+    //! from the header. If the media being downloaded is remote, the
+    //! remote server's `filename` in the `Content-Disposition` header
+    //! is used as the `filename` instead. When the header is not
+    //! supplied, or does not supply a `filename`, the local download
+    //! response does not include a `filename`.
     QString contentDisposition() const
     {
         return QString::fromUtf8(reply()->rawHeader("Content-Disposition"));
@@ -240,10 +280,33 @@ public:
     // Result properties
 
     //! The content type of the file that was previously uploaded.
+    //!
+    //! The server MUST return a `Content-Type` which is either exactly the same
+    //! as the original upload, or reasonably close. The bounds of "reasonable"
+    //! are:
+    //!
+    //! * Adding a charset to `text/*` content types.
+    //! * Detecting HTML and using `text/html` instead of `text/plain`.
+    //! * Using `application/octet-stream` when the server determines the
+    //!   content type is obviously wrong. For example, an encrypted file being
+    //!   claimed as `image/png`.
+    //! * Returning `application/octet-stream` when the media has an
+    //!   unknown/unprovided `Content-Type`. For example, being uploaded before
+    //!   the server tracked content types or when the remote server is
+    //!   non-compliantly omitting the header entirely.
+    //!
+    //! Actions not in the spirit of the above are not considered "reasonable".
     QString contentType() const { return QString::fromUtf8(reply()->rawHeader("Content-Type")); }
 
-    //! The `fileName` requested or the name of the file that was previously
-    //! uploaded, if set.
+    //! The
+    //! [disposition](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition)
+    //! of the returned content. MUST be one of `inline` or `attachment`,
+    //! and MUST contain the file name requested in the path.
+    //!
+    //! If the `Content-Type` is allowed in the [restrictions for serving
+    //! inline content](/client-server-api/#serving-inline-content),
+    //! servers SHOULD use `inline`, otherwise they SHOULD use
+    //! `attachment`.
     QString contentDisposition() const
     {
         return QString::fromUtf8(reply()->rawHeader("Content-Disposition"));
@@ -339,6 +402,19 @@ public:
                                std::optional<bool> animated = std::nullopt);
 
     // Result properties
+
+    //! The
+    //! [disposition](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition)
+    //! of the returned content. MUST be `inline`, and SHOULD contain a file name (e.g.
+    //! `thumbnail.png`).
+    //!
+    //! Servers should note the [Content-Type restrictions for serving inline
+    //! content](/client-server-api/#serving-inline-content), as these limitations imply which
+    //! formats should be used for thumbnail generation.
+    QString contentDisposition() const
+    {
+        return QString::fromUtf8(reply()->rawHeader("Content-Disposition"));
+    }
 
     //! The content type of the thumbnail.
     QString contentType() const { return QString::fromUtf8(reply()->rawHeader("Content-Type")); }

@@ -237,8 +237,7 @@ bool RoomMessageEvent::isReply(bool includeFallbacks) const
 
 QString RoomMessageEvent::replyEventId(bool includeFallbacks) const
 {
-    const auto relation = relatesTo();
-    if (relation.has_value()) {
+    if (const auto relation = relatesTo()) {
         if (relation.value().type == EventRelation::ReplyType) {
             return relation.value().eventId;
         } else if (relation.value().type == EventRelation::ThreadType &&

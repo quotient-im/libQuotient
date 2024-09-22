@@ -131,7 +131,7 @@ void ConnectionEncryptionData::saveDevicesList()
     auto query = database.prepareQuery(u"DELETE FROM tracked_users"_s);
     database.execute(query);
     query.prepare(u"INSERT INTO tracked_users(matrixId) VALUES(:matrixId);"_s);
-    for (const auto& user : trackedUsers) {
+    for (const auto& user : std::as_const(trackedUsers)) {
         query.bindValue(u":matrixId"_s, user);
         database.execute(query);
     }
@@ -139,7 +139,7 @@ void ConnectionEncryptionData::saveDevicesList()
     query.prepare(u"DELETE FROM outdated_users"_s);
     database.execute(query);
     query.prepare(u"INSERT INTO outdated_users(matrixId) VALUES(:matrixId);"_s);
-    for (const auto& user : outdatedUsers) {
+    for (const auto& user : std::as_const(outdatedUsers)) {
         query.bindValue(u":matrixId"_s, user);
         database.execute(query);
     }
@@ -153,7 +153,7 @@ void ConnectionEncryptionData::saveDevicesList()
             database.prepareQuery(u"DELETE FROM tracked_devices WHERE matrixId=:matrixId;"_s);
         deleteQuery.bindValue(u":matrixId"_s, user);
         database.execute(deleteQuery);
-        for (const auto& device : devices) {
+        for (const auto& device : std::as_const(devices)) {
             const auto keys = device.keys.asKeyValueRange();
             deleteQuery.prepare(
                 u"DELETE FROM tracked_devices WHERE matrixId=:matrixId AND deviceId=:deviceId;"_s);
@@ -161,14 +161,20 @@ void ConnectionEncryptionData::saveDevicesList()
             deleteQuery.bindValue(u":deviceId"_s, device.deviceId);
             database.execute(deleteQuery);
 
+            if (device.deviceId.isEmpty()) {
+                qCCritical(E2EE) << "Clearing an invalid tracked device record with empty deviceId";
+                continue;
+            }
             const auto curveKeyIt = std::ranges::find_if(keys, [](const auto& p) {
                 return p.first.startsWith("curve"_L1);
             });
-            Q_ASSERT(curveKeyIt != keys.end());
             const auto edKeyIt = std::ranges::find_if(keys, [](const auto& p) {
                 return p.first.startsWith("ed"_L1);
             });
-            Q_ASSERT(edKeyIt != keys.end());
+            if (curveKeyIt == keys.end() || edKeyIt == keys.end()) {
+                qCCritical(E2EE) << "Clearing an invalid tracked device record due to keys missing";
+                continue;
+            }
 
             query.bindValue(u":matrixId"_s, user);
             query.bindValue(u":deviceId"_s, device.deviceId);

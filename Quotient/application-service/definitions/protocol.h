@@ -12,7 +12,7 @@ struct QUOTIENT_API FieldType {
     //! may apply additional validation or filtering.
     QString regexp;
 
-    //! An placeholder serving as a valid example of the field value.
+    //! A placeholder serving as a valid example of the field value.
     QString placeholder;
 };
 
@@ -79,9 +79,9 @@ struct QUOTIENT_API ThirdPartyProtocol {
     //! A content URI representing an icon for the third-party protocol.
     QString icon;
 
-    //! The type definitions for the fields defined in the `user_fields` and
-    //! `location_fields`. Each entry in those arrays MUST have an entry here. The
-    //! `string` key for this object is field name itself.
+    //! The type definitions for the fields defined in `user_fields` and
+    //! `location_fields`. Each entry in those arrays MUST have an entry here.
+    //! The `string` key for this object is the field name itself.
     //!
     //! May be an empty object if no fields are defined.
     QHash<QString, FieldType> fieldTypes;

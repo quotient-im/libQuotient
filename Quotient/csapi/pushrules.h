@@ -12,10 +12,8 @@ namespace Quotient {
 
 //! \brief Retrieve all push rulesets.
 //!
-//! Retrieve all push rulesets for this user. Clients can "drill-down" on
-//! the rulesets by suffixing a `scope` to this path e.g.
-//! `/pushrules/global/`. This will return a subset of this data under the
-//! specified key e.g. the `global` key.
+//! Retrieve all push rulesets for this user. Currently the only push ruleset
+//! defined is `global`.
 class QUOTIENT_API GetPushRulesJob : public BaseJob {
 public:
     explicit GetPushRulesJob();
@@ -34,27 +32,45 @@ public:
 
 inline auto collectResponse(const GetPushRulesJob* job) { return job->global(); }
 
+//! \brief Retrieve all push rules.
+//!
+//! Retrieve all push rules for this user.
+class QUOTIENT_API GetPushRulesGlobalJob : public BaseJob {
+public:
+    explicit GetPushRulesGlobalJob();
+
+    //! \brief Construct a URL without creating a full-fledged job object
+    //!
+    //! This function can be used when a URL for GetPushRulesGlobalJob
+    //! is necessary but the job itself isn't.
+    static QUrl makeRequestUrl(const HomeserverData& hsData);
+
+    // Result properties
+
+    //! All the push rules for this user.
+    PushRuleset data() const { return fromJson<PushRuleset>(jsonData()); }
+};
+
+inline auto collectResponse(const GetPushRulesGlobalJob* job) { return job->data(); }
+
 //! \brief Retrieve a push rule.
 //!
 //! Retrieve a single specified push rule.
 class QUOTIENT_API GetPushRuleJob : public BaseJob {
 public:
-    //! \param scope
-    //!   `global` to specify global rules.
-    //!
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit GetPushRuleJob(const QString& scope, const QString& kind, const QString& ruleId);
+    explicit GetPushRuleJob(const QString& kind, const QString& ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetPushRuleJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                               const QString& kind, const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                               const QString& ruleId);
 
     // Result properties
 
@@ -70,22 +86,19 @@ inline auto collectResponse(const GetPushRuleJob* job) { return job->pushRule();
 //! This endpoint removes the push rule defined in the path.
 class QUOTIENT_API DeletePushRuleJob : public BaseJob {
 public:
-    //! \param scope
-    //!   `global` to specify global rules.
-    //!
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit DeletePushRuleJob(const QString& scope, const QString& kind, const QString& ruleId);
+    explicit DeletePushRuleJob(const QString& kind, const QString& ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for DeletePushRuleJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                               const QString& kind, const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                               const QString& ruleId);
 };
 
 //! \brief Add or change a push rule.
@@ -108,9 +121,6 @@ public:
 //! When creating push rules, they MUST be enabled by default.
 class QUOTIENT_API SetPushRuleJob : public BaseJob {
 public:
-    //! \param scope
-    //!   `global` to specify global rules.
-    //!
     //! \param kind
     //!   The kind of rule
     //!
@@ -139,7 +149,7 @@ public:
     //!
     //! \param pattern
     //!   Only applicable to `content` rules. The glob-style pattern to match against.
-    explicit SetPushRuleJob(const QString& scope, const QString& kind, const QString& ruleId,
+    explicit SetPushRuleJob(const QString& kind, const QString& ruleId,
                             const QVector<QVariant>& actions, const QString& before = {},
                             const QString& after = {}, const QVector<PushCondition>& conditions = {},
                             const QString& pattern = {});
@@ -150,23 +160,19 @@ public:
 //! This endpoint gets whether the specified push rule is enabled.
 class QUOTIENT_API IsPushRuleEnabledJob : public BaseJob {
 public:
-    //! \param scope
-    //!   Either `global` or `device/<profile_tag>` to specify global
-    //!   rules or device rules for the given `profile_tag`.
-    //!
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit IsPushRuleEnabledJob(const QString& scope, const QString& kind, const QString& ruleId);
+    explicit IsPushRuleEnabledJob(const QString& kind, const QString& ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for IsPushRuleEnabledJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                               const QString& kind, const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                               const QString& ruleId);
 
     // Result properties
 
@@ -181,9 +187,6 @@ inline auto collectResponse(const IsPushRuleEnabledJob* job) { return job->enabl
 //! This endpoint allows clients to enable or disable the specified push rule.
 class QUOTIENT_API SetPushRuleEnabledJob : public BaseJob {
 public:
-    //! \param scope
-    //!   `global` to specify global rules.
-    //!
     //! \param kind
     //!   The kind of rule
     //!
@@ -192,8 +195,7 @@ public:
     //!
     //! \param enabled
     //!   Whether the push rule is enabled or not.
-    explicit SetPushRuleEnabledJob(const QString& scope, const QString& kind, const QString& ruleId,
-                                   bool enabled);
+    explicit SetPushRuleEnabledJob(const QString& kind, const QString& ruleId, bool enabled);
 };
 
 //! \brief The actions for a push rule
@@ -201,23 +203,19 @@ public:
 //! This endpoint get the actions for the specified push rule.
 class QUOTIENT_API GetPushRuleActionsJob : public BaseJob {
 public:
-    //! \param scope
-    //!   Either `global` or `device/<profile_tag>` to specify global
-    //!   rules or device rules for the given `profile_tag`.
-    //!
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit GetPushRuleActionsJob(const QString& scope, const QString& kind, const QString& ruleId);
+    explicit GetPushRuleActionsJob(const QString& kind, const QString& ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetPushRuleActionsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& scope,
-                               const QString& kind, const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
+                               const QString& ruleId);
 
     // Result properties
 
@@ -233,9 +231,6 @@ inline auto collectResponse(const GetPushRuleActionsJob* job) { return job->acti
 //! This can be used to change the actions of builtin rules.
 class QUOTIENT_API SetPushRuleActionsJob : public BaseJob {
 public:
-    //! \param scope
-    //!   `global` to specify global rules.
-    //!
     //! \param kind
     //!   The kind of rule
     //!
@@ -244,7 +239,7 @@ public:
     //!
     //! \param actions
     //!   The action(s) to perform for this rule.
-    explicit SetPushRuleActionsJob(const QString& scope, const QString& kind, const QString& ruleId,
+    explicit SetPushRuleActionsJob(const QString& kind, const QString& ruleId,
                                    const QVector<QVariant>& actions);
 };
 

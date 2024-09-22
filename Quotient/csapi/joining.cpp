@@ -17,18 +17,21 @@ JoinRoomByIdJob::JoinRoomByIdJob(const QString& roomId,
     addExpectedKey(u"room_id"_s);
 }
 
-auto queryToJoinRoom(const QStringList& serverName)
+auto queryToJoinRoom(const QStringList& serverName, const QStringList& via)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, u"server_name"_s, serverName);
+    addParam<IfNotEmpty>(_q, u"via"_s, via);
     return _q;
 }
 
 JoinRoomJob::JoinRoomJob(const QString& roomIdOrAlias, const QStringList& serverName,
+                         const QStringList& via,
                          const std::optional<ThirdPartySigned>& thirdPartySigned,
                          const QString& reason)
     : BaseJob(HttpVerb::Post, u"JoinRoomJob"_s,
-              makePath("/_matrix/client/v3", "/join/", roomIdOrAlias), queryToJoinRoom(serverName))
+              makePath("/_matrix/client/v3", "/join/", roomIdOrAlias),
+              queryToJoinRoom(serverName, via))
 {
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, "third_party_signed"_L1, thirdPartySigned);

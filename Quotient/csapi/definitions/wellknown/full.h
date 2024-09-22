@@ -16,7 +16,7 @@ struct QUOTIENT_API DiscoveryInformation {
     std::optional<IdentityServerInformation> identityServer{};
 
     //! Application-dependent keys using Java package naming convention.
-    QHash<QString, QJsonObject> additionalProperties{};
+    QVariantHash additionalProperties{};
 };
 
 template <>

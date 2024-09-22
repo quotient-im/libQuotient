@@ -42,6 +42,7 @@ MediaThumbnailJob::MediaThumbnailJob(QString serverName, QString mediaId, QSize 
     , animated(animated)
 {
     setLoggingCategory(THUMBNAILJOB);
+    setExpectedContentTypes({ "image/jpeg", "image/png", "image/apng", "image/gif", "image/webp" });
 }
 
 MediaThumbnailJob::MediaThumbnailJob(const QUrl& mxcUri, QSize requestedSize,
