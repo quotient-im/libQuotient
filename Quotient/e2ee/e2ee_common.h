@@ -15,8 +15,6 @@
 #include <span>
 #include <variant>
 
-#include <olm/error.h>
-
 namespace Quotient {
 
 constexpr inline auto AlgorithmKeyL = "algorithm"_L1;
@@ -60,8 +58,8 @@ inline bool isSupportedAlgorithm(const QString& algorithm)
 #define QOLM_FAIL_OR_LOG(InternalFailureValue_, Message_)                      \
     QOLM_FAIL_OR_LOG_X(lastErrorCode() == (InternalFailureValue_), (Message_), lastError())
 
-template <typename T>
-using QOlmExpected = Expected<T, OlmErrorCode>;
+// template <typename T>
+// using QOlmExpected = Expected<T, OlmErrorCode>;
 
 //! \brief Initialise a buffer object for use with Olm calls
 //!

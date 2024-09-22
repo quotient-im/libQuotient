@@ -23,7 +23,6 @@ QUO_LOGGING_CATEGORY(SYNCJOB, "quotient.jobs.sync")
 QUO_LOGGING_CATEGORY(THUMBNAILJOB, "quotient.jobs.thumbnail")
 QUO_LOGGING_CATEGORY(NETWORK, "quotient.network")
 QUO_LOGGING_CATEGORY(PROFILER, "quotient.profiler")
-QUO_LOGGING_CATEGORY(DATABASE, "quotient.database")
 
 } // namespace Quotient
 

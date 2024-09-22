@@ -49,7 +49,7 @@ jobs:
     - name: Install dependencies (Linux)
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        COMMON_PKGS="libolm-dev ninja-build gnome-keyring g++$GCC_VERSION clang$CLANG_VERSION"
+        COMMON_PKGS="libolm-dev ninja-build gnome-keyring rustc cargo g++$GCC_VERSION clang$CLANG_VERSION"
         # See https://github.com/actions/runner-images/issues/9679
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         # Add LLVM repo for newer Clang
@@ -123,6 +123,25 @@ jobs:
         cmake -E make_directory ${{ runner.workspace }}/build
         echo "BUILD_PATH=${{ runner.workspace }}/build/libQuotient" >>$GITHUB_ENV
 
+    - name: Install Rustup using win.rustup.rs
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        # Disable the download progress bar which can cause perf issues
+        $ProgressPreference = "SilentlyContinue"
+        Invoke-WebRequest https://win.rustup.rs/ -OutFile rustup-init.exe
+        .\rustup-init.exe -y --default-host=x86_64-pc-windows-msvc
+        del rustup-init.exe
+        rustup target add x86_64-pc-windows-msvc
+        rustup --version
+      shell: powershell
+
+    - name: Install Rustup
+      if: startsWith(matrix.os, 'macos')
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
+        sh rustup-init.sh -y --default-toolchain none
+        rustup target add "x86_64-apple-darwin"
+
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
       if: startsWith(matrix.os, 'windows')
@@ -141,12 +160,12 @@ jobs:
         cmake -S qtkeychain -B qtkeychain/build -DBUILD_WITH_QT6=ON $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
 
-    - name: Build and install Olm
+    - name: Build and install Corrosion
       run: |
         cd ..
-        git clone https://gitlab.matrix.org/matrix-org/olm.git
-        cmake -S olm -B olm/build $CMAKE_ARGS
-        cmake --build olm/build --target install
+        git clone https://github.com/corrosion-rs/corrosion
+        cmake -S corrosion -B corrosion/build $CMAKE_ARGS
+        cmake --build corrosion/build --target install
 
     - name: Get CS API definitions; clone and build GTAD
       if: matrix.update-api
@@ -172,20 +191,20 @@ jobs:
 
     - name: Configure libQuotient
       run: |
-        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS -DQuotient_INSTALL_TESTS=ON
+        cmake -S $GITHUB_WORKSPACE -B build $CMAKE_ARGS -DQuotient_INSTALL_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 
     - name: Regenerate API code
       if: matrix.update-api
-      run: cmake --build ../build/libQuotient --target update-api
+      run: cmake --build build --target update-api
 
     - name: Build and install libQuotient
+      shell: pwsh
       run: |
-        if [[ '${{ matrix.static-analysis }}' == 'sonar' ]]; then
-            BUILD_WRAPPER="${{ steps.sonar.outputs.build-wrapper-binary }} --out-dir $BUILD_PATH/sonar"
-        fi
-        $BUILD_WRAPPER cmake --build $BUILD_PATH --target all
-        cmake --build $BUILD_PATH --target install
-        ls ~/.local$BIN_DIR/quotest
+        # if [[ '${{ matrix.static-analysis }}' == 'sonar' ]]; then
+        #     BUILD_WRAPPER="${{ steps.sonar.outputs.build-wrapper-binary }} --out-dir build/sonar"
+        # fi
+        cmake --build build --target all
+        cmake --build build --target install
 
     - name: Run tests
       env:
@@ -195,7 +214,7 @@ jobs:
         QT_LOGGING_RULES: 'quotient.*.debug=true;quotient.jobs.sync.debug=false;quotient.events.ephemeral.debug=false;quotient.events.state.debug=false;quotient.events.members.debug=false'
         QT_MESSAGE_PATTERN: '%{time h:mm:ss.zzz}|%{category}|%{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}|%{message}'
       run: |
-        CTEST_ARGS="--test-dir $BUILD_PATH --output-on-failure"
+        CTEST_ARGS="--test-dir build --output-on-failure"
         if [[ '${{ runner.os }}' != 'Linux' ]]; then
             CTEST_ARGS="$CTEST_ARGS -E testolmaccount"
         else
@@ -219,7 +238,7 @@ jobs:
         SONAR_SERVER_URL: 'https://sonarcloud.io'
       run: |
         mkdir .coverage && pushd .coverage
-        find $BUILD_PATH -name '*.gcda' -print0 \
+        find ../build -name '*.gcda' -print0 \
             | xargs -0 gcov$GCC_VERSION -s $GITHUB_WORKSPACE -pr
         # Coverage of the test source code is not tracked, as it is always 100%
         # (if not, some tests failed and broke the build at an earlier stage)
@@ -227,6 +246,6 @@ jobs:
         popd
         ${{ steps.sonar.outputs.sonar-scanner-binary }} \
             -Dsonar.host.url="$SONAR_SERVER_URL" \
-            -Dsonar.cfamily.compile-commands="$BUILD_PATH/sonar/compile_commands.json" \
+            -Dsonar.cfamily.compile-commands="build/compile_commands.json" \
             -Dsonar.cfamily.threads=2 \
             -Dsonar.cfamily.gcov.reportsPath=.coverage

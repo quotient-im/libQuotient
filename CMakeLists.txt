@@ -95,20 +95,14 @@ find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
 find_package(${Qt}Keychain REQUIRED)
+find_package(Corrosion REQUIRED)
 
-find_package(Olm 3.2.5 REQUIRED)
-set_package_properties(Olm PROPERTIES
-    DESCRIPTION "Implementation of the Olm and Megolm cryptographic ratchets"
-    URL "https://gitlab.matrix.org/matrix-org/olm"
-    TYPE REQUIRED
-)
+if(NOT WIN32)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SQLITE sqlite3 REQUIRED IMPORTED_TARGET)
+endif()
 
-find_package(OpenSSL 1.1.0 REQUIRED)
-set_package_properties(OpenSSL PROPERTIES
-    DESCRIPTION "Open source SSL and TLS implementation and cryptographic library"
-    URL "https://www.openssl.org/"
-    TYPE REQUIRED
-)
+corrosion_import_crate(MANIFEST_PATH matrix-rust-sdk-crypto/Cargo.toml)
 
 add_library(${QUOTIENT_LIB_NAME})
 
@@ -174,19 +168,8 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/jobs/syncjob.h
         Quotient/jobs/mediathumbnailjob.h
         Quotient/jobs/downloadfilejob.h
-        Quotient/database.h
-        Quotient/connectionencryptiondata_p.h
         Quotient/keyverificationsession.h
         Quotient/e2ee/e2ee_common.h
-        Quotient/e2ee/qolmaccount.h
-        Quotient/e2ee/qolmsession.h
-        Quotient/e2ee/qolminboundsession.h
-        Quotient/e2ee/qolmoutboundsession.h
-        Quotient/e2ee/qolmutility.h
-        Quotient/e2ee/qolmsession.h
-        Quotient/e2ee/qolmmessage.h
-        Quotient/e2ee/cryptoutils.h
-        Quotient/e2ee/sssshandler.h
         Quotient/events/keyverificationevent.h
         Quotient/keyimport.h
         Quotient/qt_connection_util.h
@@ -233,19 +216,8 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
         Quotient/jobs/syncjob.cpp
         Quotient/jobs/mediathumbnailjob.cpp
         Quotient/jobs/downloadfilejob.cpp
-        Quotient/database.cpp
-        Quotient/connectionencryptiondata_p.cpp
         Quotient/keyverificationsession.cpp
         Quotient/e2ee/e2ee_common.cpp
-        Quotient/e2ee/qolmaccount.cpp
-        Quotient/e2ee/qolmsession.cpp
-        Quotient/e2ee/qolminboundsession.cpp
-        Quotient/e2ee/qolmoutboundsession.cpp
-        Quotient/e2ee/qolmutility.cpp
-        Quotient/e2ee/qolmsession.cpp
-        Quotient/e2ee/qolmmessage.cpp
-        Quotient/e2ee/cryptoutils.cpp
-        Quotient/e2ee/sssshandler.cpp
         Quotient/keyimport.cpp
         libquotientemojis.qrc
 )
@@ -363,8 +335,19 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
 )
 
 target_link_libraries(${QUOTIENT_LIB_NAME}
-    PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain Olm::Olm ${Qt}::Sql
-    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate)
+    PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain ${Qt}::Sql
+    PRIVATE ${Qt}::CorePrivate matrix_rust_sdk_crypto_cpp)
+
+if(NOT WIN32)
+    target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE PkgConfig::SQLITE)
+else()
+    target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE Bcrypt.lib)
+endif()
+
+target_include_directories(${QUOTIENT_LIB_NAME} PRIVATE
+    ${CMAKE_BINARY_DIR}/cargo/build/${Rust_CARGO_TARGET}/cxxbridge/matrix-rust-sdk-crypto/src/)
+
+
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
@@ -389,6 +372,7 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
+install(TARGETS matrix_rust_sdk_crypto_cpp EXPORT ${QUOTIENT_LIB_NAME}Targets)
 export(PACKAGE ${QUOTIENT_LIB_NAME})
 export(EXPORT ${QUOTIENT_LIB_NAME}Targets
        FILE "${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}/${QUOTIENT_LIB_NAME}Targets.cmake")
@@ -432,8 +416,6 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "  Header files install prefix: ${CMAKE_INSTALL_PREFIX}/${${PROJECT_NAME}_INSTALL_INCLUDEDIR}")
 message(STATUS "Using Qt ${${Qt}_VERSION} at ${Qt_Prefix}")
 message(STATUS "Using QtKeychain ${${Qt}Keychain_VERSION} at ${${Qt}Keychain_DIR}")
-message(STATUS "Using libOlm ${Olm_VERSION} at ${Olm_DIR}")
-message(STATUS "Using OpenSSL libcrypto ${OPENSSL_VERSION} at ${OPENSSL_CRYPTO_LIBRARY}")
 message(STATUS)
 feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES
                 FATAL_ON_MISSING_REQUIRED_PACKAGES)

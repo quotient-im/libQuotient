@@ -7,7 +7,6 @@
 #include "avatar.h"
 #include "connection.h"
 #include "connectiondata.h"
-#include "connectionencryptiondata_p.h"
 #include "settings.h"
 #include "syncdata.h"
 
@@ -18,6 +17,8 @@
 #include "csapi/wellknown.h"
 
 #include <QtCore/QCoreApplication>
+
+#include <lib.rs.h>
 
 namespace Quotient {
 
@@ -51,6 +52,8 @@ public:
     std::unordered_map<QString, EventPtr> accountData;
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
+    std::optional<rust::Box<crypto::CryptoMachine>> cryptoMachine;
+    QStringList requestsInFlight;
 
     GetVersionsJob::Response apiVersions{};
     GetCapabilitiesJob::Capabilities capabilities{};
@@ -61,7 +64,6 @@ public:
     bool useEncryption = encryptionDefault;
     static inline bool directChatEncryptionDefault = false;
     bool encryptDirectChats = directChatEncryptionDefault;
-    std::unique_ptr<_impl::ConnectionEncryptionData> encryptionData;
 
     JobHandle<GetWellknownJob> resolverJob = nullptr;
     JobHandle<GetLoginFlowsJob> loginFlowsJob = nullptr;
@@ -125,5 +127,38 @@ public:
 
     void saveAccessTokenToKeychain() const;
     void dropAccessToken();
+    void processOutgoingRequests();
+
+    //! \brief Send an m.key.verification.accept event to the session
+    //! \param session The session to send the event to
+    void acceptKeyVerification(KeyVerificationSession* session);
+
+    //! \brief Send an m.key.verification.start event to the session
+    //! This does not start a new verification session
+    //! \param session The session to send the event to
+    void startKeyVerification(KeyVerificationSession* session);
+
+    //! \brief Send an m.key.verification.mac event to the session
+    //! This is sent after the user confirms that the sas emoji match
+    //! \param session The session to send the event to
+    void confirmKeyVerification(KeyVerificationSession* session);
+
+    void acceptSas(KeyVerificationSession* session);
+
+    //! \brief Query the state of a key verification session
+    //! \param session The session to query the state for
+    KeyVerificationSession::State keyVerificationSessionState(KeyVerificationSession* session);
+
+    //! \brief Query the state of a sas verification
+    //! \param session The session to query the state for
+    KeyVerificationSession::SasState sasState(KeyVerificationSession* session);
+
+    //! \brief Query the sas emoji of a session
+    //! If the session is not in a state to show emoji, the return value
+    //! \param session The session to query the emoji for
+    QList<std::pair<QString, QString>> keyVerificationSasEmoji(KeyVerificationSession* session);
+
+    void requestDeviceVerification(KeyVerificationSession* session);
+    void requestUserVerification(KeyVerificationSession* session);
 };
 } // namespace Quotient

@@ -14,8 +14,6 @@
 #include "csapi/login.h"
 #include "csapi/content-repo.h"
 
-#include "e2ee/qolmoutboundsession.h"
-
 #include "events/accountdataevents.h"
 #include "jobs/jobhandle.h"
 
@@ -51,11 +49,7 @@ class DownloadFileJob;
 class SendToDeviceJob;
 class SendMessageJob;
 class LeaveRoomJob;
-class Database;
 struct EncryptedFileMetadata;
-
-class QOlmAccount;
-class QOlmInboundGroupSession;
 
 using LoginFlow = GetLoginFlowsJob::LoginFlow;
 
@@ -332,53 +326,36 @@ public:
     QString deviceId() const;
     QByteArray accessToken() const;
     bool isLoggedIn() const;
-    QOlmAccount* olmAccount() const;
-    Database* database() const;
-
-    std::unordered_map<QByteArray, QOlmInboundGroupSession> loadRoomMegolmSessions(
-        const Room* room) const;
-    void saveMegolmSession(const Room* room,
-                           const QOlmInboundGroupSession& session, const QByteArray &senderKey, const QByteArray& senderEdKey) const;
-
-    QString edKeyForUserDevice(const QString& userId,
-                               const QString& deviceId) const;
-    QString curveKeyForUserDevice(const QString& userId,
-                                const QString& device) const;
-    bool hasOlmSession(const QString& user, const QString& deviceId) const;
 
     // This assumes that an olm session already exists. If it doesn't, no message is sent.
     void sendToDevice(const QString& targetUserId, const QString& targetDeviceId,
                       const Event& event, bool encrypted);
 
-    //! Returns true if this megolm session comes from a verified device
-    bool isVerifiedSession(const QByteArray& megolmSessionId) const;
 
-    //! Returns whether the device is verified
-    bool isVerifiedDevice(const QString& userId, const QString& deviceId) const;
+    //! \brief Returns whether this event comes from a verified device
+    bool isVerifiedEvent(const QString& eventId, Room* room);
 
-    //! \brief Returns whether the device is known and supports end-to-end encryption.
-    //!
-    //! This might give unexpected results for users we're not tracking,
-    //! i.e., users that we don't share an encrypted room with
-    bool isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const;
+    // //! Returns whether the device is verified
+    // bool isVerifiedDevice(const QString& userId, const QString& deviceId) const;
 
+    // //! \brief Returns whether the device is known and supports end-to-end encryption.
+    // //!
+    // //! This might give unexpected results for users we're not tracking,
+    // //! i.e., users that we don't share an encrypted room with
+    // bool isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const;
+    //
 
-    void sendSessionKeyToDevices(const QString& roomId,
-                                 const QOlmOutboundGroupSession& outboundSession,
-                                 const QMultiHash<QString, QString>& devices);
+    //TODO
+    // void sendSessionKeyToDevices(const QString& roomId,
+    //                              const QOlmOutboundGroupSession& outboundSession,
+    //                              const QMultiHash<QString, QString>& devices);
 
     QJsonObject decryptNotification(const QJsonObject &notification);
     QStringList devicesForUser(const QString& userId) const;
-    Q_INVOKABLE bool isQueryingKeys() const;
 
-    QFuture<QByteArray> requestKeyFromDevices(event_type_t name);
 
-    QString masterKeyForUser(const QString& userId) const;
-    Q_INVOKABLE bool isUserVerified(const QString& userId) const;
+    // Q_INVOKABLE bool isUserVerified(const QString& userId) const;
     Q_INVOKABLE bool allSessionsSelfVerified(const QString& userId) const;
-    bool hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId);
-
-    void reloadDevices();
 
     Q_INVOKABLE Quotient::SyncJob* syncJob() const;
     Q_INVOKABLE QString nextBatchToken() const;
@@ -760,11 +737,18 @@ public Q_SLOTS:
     Quotient::KeyVerificationSession* startKeyVerificationSession(const QString& userId,
                                                                   const QString& deviceId);
 
+    Quotient::KeyVerificationSession* requestUserVerification(Room* room);
+
     Q_INVOKABLE void startSelfVerification();
-    void encryptionUpdate(const Room* room, const QStringList& invitedIds = {});
 
     static Connection* makeMockConnection(const QString& mxId,
                                           bool enableEncryption = true);
+
+    QFuture<void> shareRoomKey(Room* room);
+    QString encryptRoomEvent(Room* room, const QByteArray& content, const QString& type);
+    QString decryptRoomEvent(Room* room, const QByteArray& event);
+
+    void receiveVerificationEvent(const QByteArray& fullJson);
 
 Q_SIGNALS:
     //! \brief Initial server resolution has failed
@@ -914,20 +898,15 @@ Q_SIGNALS:
     void cacheStateChanged();
     void lazyLoadingChanged();
     void turnServersChanged(const QJsonObject& servers);
-    void devicesListLoaded();
 
     //! Encryption has been enabled or disabled
     void encryptionChanged(bool enabled);
     void directChatsEncryptionChanged(bool enabled);
 
     void newKeyVerificationSession(Quotient::KeyVerificationSession* session);
-    void keyVerificationStateChanged(
-        const Quotient::KeyVerificationSession* session,
-        Quotient::KeyVerificationSession::State state);
-    void sessionVerified(const QString& userId, const QString& deviceId);
-    void finishedQueryingKeys();
-    void secretReceived(const QString& requestId, const QString& secret);
 
+    // TODO: make sure these still work
+    void sessionVerified(const QString& userId, const QString& deviceId);
     void userVerified(const QString& userId);
 
     //! The account does not yet have cross-signing keys. The client should ask the user
@@ -938,7 +917,12 @@ Q_SIGNALS:
     //! This does not mean that the server was reached, a sync was performed, or the state cache was loaded.
     void ready();
 
+    //! \brief Emitted after the crypto machine has processed the verification events for a sync.
+    //! Usually not relevant to clients.
+    void verificationEventProcessed();
+
     friend class ::TestCrossSigning;
+    friend class KeyVerificationSession;
 protected:
     //! Access the underlying ConnectionData class
     const ConnectionData* connectionData() const;

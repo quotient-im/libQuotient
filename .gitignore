@@ -32,3 +32,6 @@ compile_commands.json
 # Created by doxygen
 html/
 latex/
+
+matrix-rust-sdk-crypto/target
+.kateproject.build

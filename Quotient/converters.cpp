@@ -10,8 +10,8 @@
 void Quotient::_impl::warnUnknownEnumValue(const QString& stringValue,
                                            const char* enumTypeName)
 {
-    qWarning(EVENTS).noquote()
-        << "Unknown" << enumTypeName << "value:" << stringValue;
+    // qWarning(EVENTS).noquote()
+    //     << "Unknown" << enumTypeName << "value:" << stringValue;
 }
 
 void Quotient::_impl::reportEnumOutOfBounds(uint32_t v, const char* enumTypeName)

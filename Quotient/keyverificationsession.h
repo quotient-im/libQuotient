@@ -3,27 +3,28 @@
 
 #pragma once
 
-#include "events/keyverificationevent.h"
-#include "events/roommessageevent.h"
+#include "quotient_export.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
 
-struct OlmSAS;
+class QTimer;
 
 namespace Quotient {
 class Connection;
 class Room;
 
 struct QUOTIENT_API EmojiEntry {
-    QString emoji;
-    QString description;
-
     Q_GADGET
+    //! \brief Unicode of the emoji
     Q_PROPERTY(QString emoji MEMBER emoji CONSTANT)
+    //! \brief Textual description of the emoji
+    //! This follows https://spec.matrix.org/v1.11/client-server-api/#sas-method-emoji
     Q_PROPERTY(QString description MEMBER description CONSTANT)
 
 public:
+    QString emoji;
+    QString description;
     friend bool operator==(const EmojiEntry&, const EmojiEntry&) = default;
 };
 
@@ -34,152 +35,95 @@ public:
 class QUOTIENT_API KeyVerificationSession : public QObject
 {
     Q_OBJECT
-
 public:
     enum State {
-        INCOMING, ///< There is a request for verification incoming
-        //! We sent a request for verification and are waiting for ready
-        WAITINGFORREADY,
-        //! Either party sent a ready as a response to a request; the user
-        //! selects a method
-        READY,
-        WAITINGFORACCEPT, ///< We sent a start and are waiting for an accept
-        ACCEPTED, ///< The other party sent an accept and is waiting for a key
-        WAITINGFORKEY, ///< We're waiting for a key
-        //! We're waiting for the *user* to verify the emojis
-        WAITINGFORVERIFICATION,
-        WAITINGFORMAC, ///< We're waiting for the mac
-        CANCELED, ///< The session has been canceled
-        DONE, ///< The verification is done
+        CREATED, //! The verification request has been newly created by us.
+        REQUESTED, //! The verification request was received from the other party.
+        READY, //! The verification request is ready to start a verification flow.
+        TRANSITIONED, //! The verification request has transitioned into a concrete verification flow. For example it transitioned into the emoji based SAS verification.
+        DONE, //! The verification flow that was started with this request has finished.
+        CANCELLED, //! The verification process has been cancelled.
+        NOTFOUND,
     };
     Q_ENUM(State)
 
-    enum Error {
-        NONE,
-        TIMEOUT,
-        REMOTE_TIMEOUT,
-        USER,
-        REMOTE_USER,
-        UNEXPECTED_MESSAGE,
-        REMOTE_UNEXPECTED_MESSAGE,
-        UNKNOWN_TRANSACTION,
-        REMOTE_UNKNOWN_TRANSACTION,
-        UNKNOWN_METHOD,
-        REMOTE_UNKNOWN_METHOD,
-        KEY_MISMATCH,
-        REMOTE_KEY_MISMATCH,
-        USER_MISMATCH,
-        REMOTE_USER_MISMATCH,
-        INVALID_MESSAGE,
-        REMOTE_INVALID_MESSAGE,
-        SESSION_ACCEPTED,
-        REMOTE_SESSION_ACCEPTED,
-        MISMATCHED_COMMITMENT,
-        REMOTE_MISMATCHED_COMMITMENT,
-        MISMATCHED_SAS,
-        REMOTE_MISMATCHED_SAS,
+    enum SasState {
+        STARTED, //! The verification has been started, the protocols that should be used have been proposed and can be accepted.
+        ACCEPTED, //! The verification has been accepted and both sides agreed to a set of protocols that will be used for the verification process.
+        KEYSEXCHANGED, //! The public keys have been exchanged and the short auth string can be presented to the user.
+        CONFIRMED, //! The verification process has been confirmed from our side, we’re waiting for the other side to confirm as well.
+        SASDONE, //! The verification process has been successfully concluded.
+        SASCANCELLED, //! The verification process has been cancelled.
+        SASNOTFOUND,
     };
-    Q_ENUM(Error)
+    Q_ENUM(SasState)
 
-    Q_PROPERTY(QString remoteDeviceId MEMBER m_remoteDeviceId CONSTANT)
+    //! \brief The matrix id of the user we're verifying.
+    //! For device verification this is our own id.
     Q_PROPERTY(QString remoteUserId MEMBER m_remoteUserId CONSTANT)
+
+    //! \brief The device id of the device we're verifying
+    //! Does not have a specified value when verifying a different user
+    Q_PROPERTY(QString remoteDeviceId MEMBER m_remoteDeviceId CONSTANT)
+
+    //! \brief The current state of the verification session
+    //! Clients should use this to adapt their UI to the current stage of the verification
+    Q_PROPERTY(State state MEMBER m_state NOTIFY stateChanged)
+
+    //! \brief The current state of the sas verification
+    //! Clients should use this to adapt their UI to the current stage of the verification
+    Q_PROPERTY(SasState sasState MEMBER m_sasState NOTIFY sasStateChanged)
+
+    //! \brief The sas emoji that should be shown to the user.
+    //! Only has a specified value when the session is in TRANSITIONED state
     Q_PROPERTY(QVector<EmojiEntry> sasEmojis READ sasEmojis NOTIFY sasEmojisChanged)
-    Q_PROPERTY(State state READ state NOTIFY stateChanged)
-    Q_PROPERTY(Error error READ error NOTIFY errorChanged)
-    // Whether this is a user verification (in contrast to a device verification)
-    Q_PROPERTY(bool userVerification READ userVerification CONSTANT)
 
-    // Incoming device verification
-    KeyVerificationSession(QString remoteUserId,
-                           const KeyVerificationRequestEvent& event,
-                           Connection* connection, bool encrypted);
+    KeyVerificationSession(const QString& remoteUserId, const QString& verificationId, const QString& remoteDeviceId, Quotient::Connection* connection);
+    KeyVerificationSession(Room* room, Quotient::Connection* connection, const QString& verificationId = {});
 
-    // Outgoing device verification
-    KeyVerificationSession(QString userId, QString deviceId,
-                           Connection* connection);
+    //! \brief Accept an incoming verification session
+    Q_INVOKABLE void accept();
 
-    // Incoming user verification
-    KeyVerificationSession(const RoomMessageEvent *event, Room *room);
+    //! \brief Confirm that the emojis shown to the user match
+    //! This will mark the remote session / user as verified and send an m.key.verification.mac event
+    //! Only call this after the user has confirmed the correctness of the emoji!
+    Q_INVOKABLE void confirm();
 
-    // Outgoing user verification
-    explicit KeyVerificationSession(Room *room);
+    //! \brief Start a SAS verification
+    Q_INVOKABLE void startSas();
 
-    void handleEvent(const KeyVerificationEvent& baseEvent);
+    QVector<EmojiEntry> sasEmojis();
+    QString remoteUser() const;
+    QString remoteDevice() const;
+    QString verificationId() const;
 
-    QVector<EmojiEntry> sasEmojis() const;
-    State state() const;
+    static KeyVerificationSession* requestDeviceVerification(const QString& userId, const QString& deviceId, Connection* connection);
+    static KeyVerificationSession* requestUserVerification(Room* room, Connection* connection);
 
-    Error error() const;
+    static KeyVerificationSession* processIncomingUserVerification(Room* room, const QString& eventId);
 
-    QString remoteDeviceId() const;
-    QString transactionId() const;
-    bool userVerification() const;
-
-    void setRequestEventId(const QString &eventId);
-
-public Q_SLOTS:
-    void sendRequest();
-    void sendReady();
-    void sendMac();
-    void sendStartSas();
-    void sendKey();
-    void sendDone();
-    void cancelVerification(Error error);
-
-Q_SIGNALS:
-    void keyReceived();
-    void sasEmojisChanged();
-    void stateChanged();
-    void errorChanged();
-    void finished();
+    Quotient::Room* room() const;
 
 private:
-    // Internal delegating constructors
-
-    KeyVerificationSession(QString remoteUserId, Connection* connection, QString remoteDeviceId,
-                           bool encrypted, QStringList methods, QDateTime startTimestamp,
-                           QString transactionId, Room* room = nullptr, QString requestEventId = {});
-    KeyVerificationSession(QString remoteUserId, Connection* connection, Room* room,
-                           QString remoteDeviceId = {}, QString transactionId = {});
-
-    Connection* const m_connection;
-    QPointer<Room> m_room;
-    const QString m_remoteUserId;
+    QString m_remoteUserId;
+    QString m_verificationId;
     QString m_remoteDeviceId;
-    QString m_transactionId;
-    bool m_encrypted = false;
-    QStringList m_remoteSupportedMethods{};
-    QStringList m_commonMacCodes{};
+    QPointer<Quotient::Connection> m_connection;
+    QPointer<Quotient::Room> m_room;
+    State m_state = REQUESTED;
+    SasState m_sasState = SASNOTFOUND;
+    bool weStarted = false;
+    QTimer *m_processTimer = nullptr;
 
-    CStructPtr<OlmSAS> olmDataHolder = makeOlmData();
-    OlmSAS* olmData = olmDataHolder.get();
-    QVector<EmojiEntry> m_sasEmojis;
-    bool startSentByUs = false;
-    State m_state = INCOMING;
-    Error m_error = NONE;
-    QString m_startEvent{};
-    QString m_commitment{};
-    bool macReceived = false;
-    bool m_verified = false;
-    QString m_pendingEdKeyId{};
-    QString m_pendingMasterKey{};
-    QString m_requestEventId{};
-
-    static CStructPtr<OlmSAS> makeOlmData();
-    void handleReady(const KeyVerificationReadyEvent& event);
-    void handleStart(const KeyVerificationStartEvent& event);
-    void handleKey(const KeyVerificationKeyEvent& event);
-    void handleMac(const KeyVerificationMacEvent& event);
-    void setupTimeout(std::chrono::milliseconds timeout);
     void setState(State state);
-    void setError(Error error);
-    static QString errorToString(Error error);
-    static Error stringToError(const QString& error);
-    void trustKeys();
-    void sendEvent(const QString &userId, const QString &deviceId, const KeyVerificationEvent &event, bool encrypted);
+    void setSasState(SasState state);
+    void setVerificationId(const QString& verificationId);
 
-    QByteArray macInfo(bool verifying, const QString& key = "KEY_IDS"_L1);
-    QString calculateMac(const QString& input, bool verifying, const QString& keyId= "KEY_IDS"_L1);
+    friend class Quotient::Connection;
+Q_SIGNALS:
+    void stateChanged();
+    void sasStateChanged();
+    void sasEmojisChanged();
 };
 
 } // namespace Quotient

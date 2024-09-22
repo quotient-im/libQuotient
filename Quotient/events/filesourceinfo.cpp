@@ -4,7 +4,6 @@
 
 #include "filesourceinfo.h"
 
-#include "../e2ee/cryptoutils.h"
 #include "../e2ee/e2ee_common.h"
 #include "../logging_categories_p.h"
 #include "../util.h"
@@ -24,44 +23,46 @@ QByteArray Quotient::decryptFile(const QByteArray& ciphertext,
     }
     const auto key = QByteArray::fromBase64(metadata.key.k.toLatin1(),
                                             QByteArray::Base64UrlEncoding);
-    if (key.size() < Aes256KeySize) {
-        qCWarning(E2EE) << "Decoded key is too short for AES, need"
-                        << Aes256KeySize << "bytes, got" << key.size();
-        return {};
-    }
-    const auto iv = QByteArray::fromBase64(metadata.iv.toLatin1());
-    if (iv.size() < AesBlockSize) {
-        qCWarning(E2EE) << "Decoded iv is too short for AES, need"
-                        << AesBlockSize << "bytes, got" << iv.size();
-        return {};
-    }
-
-    return aesCtr256Decrypt(ciphertext, asCBytes<32>(key), asCBytes<16>(iv))
-        .move_value_or({});
+    // if (key.size() < Aes256KeySize) {
+    //     qCWarning(E2EE) << "Decoded key is too short for AES, need"
+    //                     << Aes256KeySize << "bytes, got" << key.size();
+    //     return {};
+    // }
+    // const auto iv = QByteArray::fromBase64(metadata.iv.toLatin1());
+    // if (iv.size() < AesBlockSize) {
+    //     qCWarning(E2EE) << "Decoded iv is too short for AES, need"
+    //                     << AesBlockSize << "bytes, got" << iv.size();
+    //     return {};
+    // }
+    //
+    // return aesCtr256Decrypt(ciphertext, asCBytes<32>(key), asCBytes<16>(iv))
+    //     .move_value_or({});
+    return {};
 }
 
 std::pair<EncryptedFileMetadata, QByteArray> Quotient::encryptFile(
     const QByteArray& plainText)
 {
-    auto k = getRandom<Aes256KeySize>();
-    auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
-                              | QByteArray::OmitTrailingEquals);
-    auto iv = getRandom<AesBlockSize>();
-    const JWK key = {
-        "oct"_L1, { "encrypt"_L1, "decrypt"_L1 }, "A256CTR"_L1, QString::fromLatin1(kBase64), true
-    };
-    auto result = aesCtr256Encrypt(plainText, k, iv);
-    if (!result.has_value())
-        return {};
-
-    auto hash = QCryptographicHash::hash(result.value(), QCryptographicHash::Sha256)
-                    .toBase64(QByteArray::OmitTrailingEquals);
-    auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
-    const EncryptedFileMetadata efm = {
-        {}, key, QString::fromLatin1(ivBase64),
-        { { "sha256"_L1, QString::fromLatin1(hash) } }, "v2"_L1
-    };
-    return { efm, result.value() };
+    // auto k = getRandom<Aes256KeySize>();
+    // auto kBase64 = k.toBase64(QByteArray::Base64UrlEncoding
+    //                           | QByteArray::OmitTrailingEquals);
+    // auto iv = getRandom<AesBlockSize>();
+    // const JWK key = {
+    //     "oct"_L1, { "encrypt"_L1, "decrypt"_L1 }, "A256CTR"_L1, QString::fromLatin1(kBase64), true
+    // };
+    // auto result = aesCtr256Encrypt(plainText, k, iv);
+    // if (!result.has_value())
+    //     return {};
+    //
+    // auto hash = QCryptographicHash::hash(result.value(), QCryptographicHash::Sha256)
+    //                 .toBase64(QByteArray::OmitTrailingEquals);
+    // auto ivBase64 = iv.toBase64(QByteArray::OmitTrailingEquals);
+    // const EncryptedFileMetadata efm = {
+    //     {}, key, QString::fromLatin1(ivBase64),
+    //     { { "sha256"_L1, QString::fromLatin1(hash) } }, "v2"_L1
+    // };
+    // return { efm, result.value() };
+    return {};
 }
 
 void JsonObjectConverter<EncryptedFileMetadata>::dumpTo(

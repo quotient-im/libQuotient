@@ -8,8 +8,6 @@
 
 #include "connection_p.h"
 #include "connectiondata.h"
-#include "connectionencryptiondata_p.h"
-#include "database.h"
 #include "logging_categories_p.h"
 #include "qt_connection_util.h"
 #include "room.h"
@@ -17,6 +15,7 @@
 #include "user.h"
 
 #include "csapi/account-data.h"
+#include "csapi/cross_signing.h"
 #include "csapi/joining.h"
 #include "csapi/leaving.h"
 #include "csapi/logout.h"
@@ -25,8 +24,8 @@
 #include "csapi/voip.h"
 #include "csapi/wellknown.h"
 #include "csapi/whoami.h"
-
-#include "e2ee/qolminboundsession.h"
+#include "csapi/keys.h"
+#include <lib.rs.h>
 
 #include "events/directchatevent.h"
 #include "events/encryptionevent.h"
@@ -49,6 +48,28 @@
 #include <qt6keychain/keychain.h>
 
 using namespace Quotient;
+
+static QByteArray bytesFromRust(const rust::String &bytes) {
+    return {bytes.data(), (int) bytes.size()};
+}
+
+static QString stringFromRust(const rust::String& string) {
+    return QString::fromUtf8(bytesFromRust(string));
+}
+
+static QJsonObject jsonFromRust(const rust::String& string) {
+    return QJsonDocument::fromJson(bytesFromRust(string)).object();
+}
+
+static rust::String bytesToRust(const QByteArray& bytes)
+{
+    return rust::String(bytes.data(), bytes.size());
+}
+
+static rust::String stringToRust(const QString& string)
+{
+    return bytesToRust(string.toUtf8());
+}
 
 // This is very much Qt-specific; STL iterators don't have key() and value()
 template <typename HashT, typename Pred>
@@ -171,6 +192,8 @@ void Connection::assumeIdentity(const QString& mxId, const QString& deviceId,
                                 const QString& accessToken)
 {
     d->completeSetup(mxId, false, deviceId, accessToken);
+    d->processOutgoingRequests();
+
     d->ensureHomeserver(mxId).then([this, mxId] {
         callApi<GetTokenOwnerJob>().onResult([this, mxId](const GetTokenOwnerJob* job) {
             switch (job->error()) {
@@ -306,6 +329,10 @@ void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
+    auto mxIdForDb = mxId;
+    mxIdForDb.replace(u':', u'_');
+    const QString databasePath{ QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb % u'/' % *deviceId };
+    cryptoMachine = crypto::init(stringToRust(mxId), stringToRust(*deviceId), stringToRust(databasePath));
 
     if (accessToken.has_value()) {
         q->loadVersions();
@@ -316,23 +343,10 @@ void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
     emit q->stateChanged(); // Technically connected to the homeserver but no E2EE yet
 
     if (useEncryption) {
-        using _impl::ConnectionEncryptionData;
-        if (!accessToken) {
-            // Mock connection; initialise bare bones necessary for testing
-            qInfo(E2EE) << "Using a mock pickling key";
-            encryptionData = std::make_unique<ConnectionEncryptionData>(q, PicklingKey::generate());
-            encryptionData->database.clear();
-            encryptionData->olmAccount.setupNewAccount();
-        } else
-            ConnectionEncryptionData::setup(q, encryptionData, newLogin).then([this](bool successful) {
-                if (!successful || !encryptionData)
-                    useEncryption = false;
-
-                emit q->encryptionChanged(useEncryption);
-                emit q->stateChanged();
-                emit q->ready();
-                emit q->connected();
-            });
+        emit q->encryptionChanged(useEncryption);
+        emit q->stateChanged();
+        emit q->ready();
+        emit q->connected();
     } else {
         qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
         emit q->ready();
@@ -431,6 +445,13 @@ void Connection::sync(int timeout)
         callApi<SyncJob>(BackgroundRequest, d->data->lastEvent(), filter,
                          timeout);
     connect(job, &SyncJob::success, this, [this, job] {
+        auto verificationSessions = (*d->cryptoMachine)->receive_sync_changes(bytesToRust(job->rawData()));
+
+        for (auto &session : verificationSessions) {
+            auto keyVerificationSession = new KeyVerificationSession(stringFromRust(session.remote_user_id()), stringFromRust(session.verification_id()), stringFromRust(session.remote_device_id()), this);
+            emit newKeyVerificationSession(keyVerificationSession);
+
+        }
         onSyncSuccess(job->takeData());
         d->syncJob = nullptr;
         emit syncDone();
@@ -495,19 +516,79 @@ QJsonObject toJson(const DirectChatsMap& directChats)
 
 void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 {
-    if (d->encryptionData) {
-        d->encryptionData->onSyncSuccess(data);
-    }
-    d->consumeToDeviceEvents(data.takeToDeviceEvents());
     d->data->setLastEvent(data.nextBatch());
     d->consumeRoomData(data.takeRoomData(), fromCache);
     d->consumeAccountData(data.takeAccountData());
     d->consumePresenceData(data.takePresenceData());
-    if(d->encryptionData && d->encryptionData->encryptionUpdateRequired) {
-        d->encryptionData->loadOutdatedUserDevices();
-        d->encryptionData->encryptionUpdateRequired = false;
-    }
+
     Q_UNUSED(std::move(data)) // Tell static analysers `data` is consumed now
+
+    d->processOutgoingRequests();
+}
+
+void Connection::Private::processOutgoingRequests()
+{
+    auto requests = (*cryptoMachine)->outgoing_requests();
+    for (const auto &request : requests) {
+        auto id = stringFromRust(request.id());
+        if (requestsInFlight.contains(id)) {
+            continue;
+        }
+        requestsInFlight += id;
+        if (request.request_type() == 0) { // Keys upload
+            q->callApi<UploadKeysJob>(fromJson<DeviceKeys>(jsonFromRust(request.keys_upload_device_keys())), fromJson<OneTimeKeys>(jsonFromRust(request.keys_upload_one_time_keys())), fromJson<OneTimeKeys>(jsonFromRust(request.keys_upload_fallback_keys()))).then([id, this](const auto& job) {
+                (*cryptoMachine)->mark_keys_upload_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                requestsInFlight.removeAll(id);
+            }, [this, id](const auto& job){
+                requestsInFlight.removeAll(id);
+            });
+        } else if (request.request_type() == 1) { // Keys query
+            q->callApi<QueryKeysJob>(fromJson<QHash<UserId, QStringList>>(jsonFromRust(request.keys_query_device_keys())), request.keys_query_timeout() /*TODO check correctness*/).then([id, this](const auto &job){
+                (*cryptoMachine)->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                requestsInFlight.removeAll(id);
+            }, [this, id](const auto& job){
+                requestsInFlight.removeAll(id);
+            });
+        } else if (request.request_type() == 2) { // keys claim
+            q->callApi<ClaimKeysJob>(fromJson<QHash<UserId, QHash<QString, QString>>>(jsonFromRust(request.keys_claim_one_time_keys())), std::nullopt /*TODO: timeout */).then([id, this](const auto& job){
+                (*cryptoMachine)->mark_keys_claim_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                requestsInFlight.removeAll(id);
+            }, [this, id](const auto& job){
+                requestsInFlight.removeAll(id);
+            });
+        } else if (request.request_type() == 3) { // to device
+            q->callApi<SendToDeviceJob>(stringFromRust(request.to_device_event_type()), stringFromRust(request.to_device_txn_id()), fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(request.to_device_messages()))).then([id, this](const auto& job){
+                (*cryptoMachine)->mark_to_device_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                requestsInFlight.removeAll(id);
+            }, [this, id](const auto& job){
+                requestsInFlight.removeAll(id);
+            });
+        } else if (request.request_type() == 4) { // signature upload
+            q->callApi<UploadCrossSigningSignaturesJob>(fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(request.upload_signature_signed_keys()))).then([this, id](const auto& job) {
+                (*cryptoMachine)->mark_signature_upload_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                requestsInFlight.removeAll(id);
+            }, [this, id](){
+                requestsInFlight.removeAll(id);
+            });
+        } else if (request.request_type() == 5) { // room message
+            auto room = q->room(stringFromRust(request.room_msg_room_id()));
+            auto json = jsonFromRust(request.room_msg_content());
+            auto transactionId = stringFromRust(request.room_msg_txn_id());
+            //TODO: this is wrong (content <-> full), but i also think we don't need it json[u"unsigned"_s] = QJsonObject { {u"transaction_id"_s, transactionId} };
+            auto actualTransactionId = room->postJson(stringFromRust(request.room_msg_matrix_type()), json);
+            connectUntil(room, &Room::messageSent, q, [this, actualTransactionId, id](const auto& txnId, const auto &event) {
+                if (txnId != actualTransactionId) {
+                    return false;
+                }
+                requestsInFlight.removeAll(id);
+                (*cryptoMachine)->mark_room_message_as_sent(stringToRust(event), stringToRust(id));
+                return true;
+            });
+        } else if (request.request_type() == 6) { // keys backup
+            qWarning() << "keys";// << stringFromRust(request.json());
+            //TODO
+        }
+    }
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -533,8 +614,16 @@ void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
             // Update rooms one by one, giving time to update the UI.
             QMetaObject::invokeMethod(
                 r,
-                [r, rd = std::move(roomData), fromCache] () mutable {
+                [r, rd = std::move(roomData), fromCache, this] () mutable {
                     r->updateData(std::move(rd), fromCache);
+                    if (r->usesEncryption()) {
+                        rust::Vec<rust::String> userIds;
+                        const auto ids = r->memberIds();
+                        for (const auto &id : ids) {
+                            userIds.push_back(stringToRust(id));
+                        }
+                        (*cryptoMachine)->update_tracked_users(userIds);
+                    }
                 },
                 Qt::QueuedConnection);
         }
@@ -627,18 +716,6 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
 void Connection::Private::consumePresenceData(Events&& presenceData)
 {
     // To be implemented
-}
-
-void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
-{
-    if (toDeviceEvents.empty())
-        return;
-
-    qCDebug(E2EE) << "Consuming" << toDeviceEvents.size() << "to-device events";
-    for (auto&& tdEvt : std::move(toDeviceEvents)) {
-        if (encryptionData)
-            encryptionData->consumeToDeviceEvent(std::move(tdEvt));
-    }
 }
 
 void Connection::stopSync()
@@ -1099,11 +1176,6 @@ QByteArray Connection::accessToken() const
 
 bool Connection::isLoggedIn() const { return !accessToken().isEmpty(); }
 
-QOlmAccount* Connection::olmAccount() const
-{
-    return d->encryptionData ? &d->encryptionData->olmAccount : nullptr;
-}
-
 SyncJob* Connection::syncJob() const { return d->syncJob; }
 
 int Connection::millisToReconnect() const
@@ -1502,11 +1574,6 @@ void Connection::saveState() const
         rootObj.insert("account_data"_L1, QJsonObject{ { u"events"_s, accountDataEvents } });
     }
 
-    if (d->encryptionData) {
-        QJsonObject keysJson = toJson(d->encryptionData->oneTimeKeysCount);
-        rootObj.insert("device_one_time_keys_count"_L1, keysJson);
-    }
-
     const auto data =
         d->cacheToBinary ? QCborValue::fromJsonValue(rootObj).toCbor()
                          : QJsonDocument(rootObj).toJson(QJsonDocument::Compact);
@@ -1680,51 +1747,6 @@ QVector<Connection::SupportedRoomVersion> Connection::availableRoomVersions() co
     return result;
 }
 
-bool Connection::isQueryingKeys() const
-{
-    return d->encryptionData
-           && d->encryptionData->currentQueryKeysJob != nullptr;
-}
-
-void Connection::encryptionUpdate(const Room* room, const QStringList& invitedIds)
-{
-    if (d->encryptionData) {
-        d->encryptionData->encryptionUpdate(room->joinedMemberIds() + invitedIds);
-    }
-}
-
-QFuture<QByteArray> Connection::requestKeyFromDevices(event_type_t name)
-{
-    QPromise<QByteArray> keyPromise;
-    keyPromise.setProgressRange(0, 10);
-    keyPromise.start();
-
-    UsersToDevicesToContent content;
-    const auto& requestId = generateTxnId();
-    const QJsonObject eventContent{ { "action"_L1, "request"_L1 },
-                                    { "name"_L1, name },
-                                    { "request_id"_L1, requestId },
-                                    { "requesting_device_id"_L1, deviceId() } };
-    for (const auto& deviceId : devicesForUser(userId())) {
-        content[userId()][deviceId] = eventContent;
-    }
-    sendToDevices("m.secret.request"_L1, content);
-    auto futureKey = keyPromise.future();
-    keyPromise.setProgressValue(5); // Already sent the request, now it's only to get the result
-    connectUntil(this, &Connection::secretReceived, this,
-                 [this, requestId, name, kp = std::move(keyPromise)](
-                     const QString& receivedRequestId, const QString& secret) mutable {
-                     if (requestId != receivedRequestId) {
-                         return false;
-                     }
-                     const auto& key = QByteArray::fromBase64(secret.toLatin1());
-                     database()->storeEncrypted(name, key);
-                     kp.addResult(key);
-                     kp.finish();
-                     return true;
-                 });
-    return futureKey;
-}
 
 QJsonObject Connection::decryptNotification(const QJsonObject& notification)
 {
@@ -1736,169 +1758,18 @@ QJsonObject Connection::decryptNotification(const QJsonObject& notification)
     return {};
 }
 
-Database* Connection::database() const
-{
-    return d->encryptionData ? &d->encryptionData->database : nullptr;
-}
-
-std::unordered_map<QByteArray, QOlmInboundGroupSession> Connection::loadRoomMegolmSessions(const Room* room) const
-{
-    return database()->loadMegolmSessions(room->id());
-}
-
-void Connection::saveMegolmSession(const Room* room,
-                                   const QOlmInboundGroupSession& session, const QByteArray& senderKey, const QByteArray& senderEdKey) const
-{
-    database()->saveMegolmSession(room->id(), session, senderKey, senderEdKey);
-}
-
-QStringList Connection::devicesForUser(const QString& userId) const
-{
-    return d->encryptionData->deviceKeys.value(userId).keys();
-}
-
-QString Connection::edKeyForUserDevice(const QString& userId,
-                                       const QString& deviceId) const
-{
-    return d->encryptionData->deviceKeys[userId][deviceId]
-        .keys["ed25519:"_L1 + deviceId];
-}
-
-QString Connection::curveKeyForUserDevice(
-    const QString& userId, const QString& device) const
-{
-    return d->encryptionData->curveKeyForUserDevice(userId, device);
-}
-
-bool Connection::hasOlmSession(const QString& user,
-                               const QString& deviceId) const
-{
-    return d->encryptionData && d->encryptionData->hasOlmSession(user, deviceId);
-}
-
-void Connection::sendSessionKeyToDevices(
-    const QString& roomId, const QOlmOutboundGroupSession& outboundSession,
-    const QMultiHash<QString, QString>& devices)
-{
-    Q_ASSERT(d->encryptionData != nullptr);
-    d->encryptionData->sendSessionKeyToDevices(roomId, outboundSession, devices);
-}
-
-KeyVerificationSession* Connection::startKeyVerificationSession(const QString& userId,
-                                                                const QString& deviceId)
-{
-    if (!d->encryptionData) {
-        qWarning(E2EE) << "E2EE is switched off on" << objectName()
-                       << "- you can't start a verification session on it";
-        return nullptr;
-    }
-    return d->encryptionData->setupKeyVerificationSession(userId, deviceId,
-                                                          this);
-}
-
 void Connection::sendToDevice(const QString& targetUserId,
                               const QString& targetDeviceId, const Event& event,
                               bool encrypted)
 {
-    if (encrypted && !d->encryptionData) {
-        qWarning(E2EE) << "E2EE is off for" << objectName()
-                       << "- no encrypted to-device message will be sent";
-        return;
-    }
-
-    const auto contentJson =
-        encrypted
-            ? d->encryptionData->assembleEncryptedContent(event.fullJson(),
-                                                          targetUserId,
-                                                          targetDeviceId)
-            : event.contentJson();
-    sendToDevices(encrypted ? EncryptedEvent::TypeId : event.matrixType(),
-                  { { targetUserId, { { targetDeviceId, contentJson } } } });
 }
 
-bool Connection::isVerifiedSession(const QByteArray& megolmSessionId) const
+Quotient::KeyVerificationSession* Connection::startKeyVerificationSession(const QString& userId,
+                                                                const QString& deviceId)
 {
-    auto query = database()->prepareQuery("SELECT olmSessionId FROM inbound_megolm_sessions WHERE sessionId=:sessionId;"_L1);
-    query.bindValue(":sessionId"_L1, megolmSessionId);
-    database()->execute(query);
-    if (!query.next()) {
-        return false;
-    }
-    const auto olmSessionId = query.value("olmSessionId"_L1).toString();
-    if (olmSessionId == "BACKUP_VERIFIED"_L1) {
-        return true;
-    }
-    if (olmSessionId == "SELF"_L1) {
-        return true;
-    }
-    query.prepare("SELECT senderKey FROM olm_sessions WHERE sessionId=:sessionId;"_L1);
-    query.bindValue(":sessionId"_L1, olmSessionId.toLatin1());
-    database()->execute(query);
-    if (!query.next()) {
-        return false;
-    }
-    const auto curveKey = query.value("senderKey"_L1).toString();
-
-    query.prepare("SELECT matrixId, selfVerified, verified FROM tracked_devices WHERE curveKey=:curveKey;"_L1);
-    query.bindValue(":curveKey"_L1, curveKey);
-    database()->execute(query);
-    if (!query.next()) {
-        return false;
-    }
-    const auto userId = query.value("matrixId"_L1).toString();
-    return query.value("verified"_L1).toBool() || (isUserVerified(userId) && query.value("selfVerified"_L1).toBool());
-}
-
-QString Connection::masterKeyForUser(const QString& userId) const
-{
-    auto query = database()->prepareQuery("SELECT key FROM master_keys WHERE userId=:userId"_L1);
-    query.bindValue(":userId"_L1, userId);
-    database()->execute(query);
-    return query.next() ? query.value("key"_L1).toString() : QString();
-}
-
-bool Connection::isUserVerified(const QString& userId) const
-{
-    auto query = database()->prepareQuery("SELECT verified FROM master_keys WHERE userId=:userId"_L1);
-    query.bindValue(":userId"_L1, userId);
-    database()->execute(query);
-    return query.next() && query.value("verified"_L1).toBool();
-}
-
-bool Connection::isVerifiedDevice(const QString& userId, const QString& deviceId) const
-{
-    auto query = database()->prepareQuery("SELECT verified, selfVerified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_L1);
-    query.bindValue(":deviceId"_L1, deviceId);
-    query.bindValue(":matrixId"_L1, userId);
-    database()->execute(query);
-    if (!query.next()) {
-        return false;
-    }
-    return query.value("verified"_L1).toBool() || (isUserVerified(userId) && query.value("selfVerified"_L1).toBool());
-}
-
-bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const
-{
-    auto query = database()->prepareQuery("SELECT verified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_L1);
-    query.bindValue(":deviceId"_L1, deviceId);
-    query.bindValue(":matrixId"_L1, userId);
-    database()->execute(query);
-    return query.next();
-}
-
-bool Connection::hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId)
-{
-    if (d->encryptionData) {
-        return d->encryptionData->hasConflictingDeviceIdsAndCrossSigningKeys(userId);
-    }
-    return true;
-}
-
-void Connection::reloadDevices()
-{
-    if (d->encryptionData) {
-        d->encryptionData->reloadDevices();
-    }
+    auto session = KeyVerificationSession::requestDeviceVerification(userId, deviceId, this);
+    Q_EMIT newKeyVerificationSession(session);
+    return session;
 }
 
 Connection* Connection::makeMockConnection(const QString& mxId, bool enableEncryption)
@@ -1921,36 +1792,201 @@ QStringList Connection::accountDataEventTypes() const
 
 void Connection::startSelfVerification()
 {
-    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=1;"_L1);
-    query.bindValue(":matrixId"_L1, userId());
-    database()->execute(query);
-    QStringList devices;
-    while(query.next()) {
-        auto id = query.value("deviceId"_L1).toString();
-        if (id != deviceId()) {
-            devices += id;
-        }
-    }
-    for (const auto &device : devices) {
-        auto session = new KeyVerificationSession(userId(), device, this);
-        d->encryptionData->verificationSessions[session->transactionId()] = session;
-        connect(session, &QObject::destroyed, this, [this, session] {
-            d->encryptionData->verificationSessions.remove(session->transactionId());
-        });
-        connectUntil(this, &Connection::keyVerificationStateChanged, this, [session, this](const auto &changedSession, const auto state){
-            if (changedSession->transactionId() == session->transactionId() && state != KeyVerificationSession::CANCELED) {
-                emit newKeyVerificationSession(session);
-                return true;
-            }
-            return state == KeyVerificationSession::CANCELED;
-        });
-    }
+    //TODO
 }
 
 bool Connection::allSessionsSelfVerified(const QString& userId) const
 {
-    auto query = database()->prepareQuery("SELECT deviceId FROM tracked_devices WHERE matrixId=:matrixId AND selfVerified=0;"_L1);
-    query.bindValue(":matrixId"_L1, userId);
-    database()->execute(query);
-    return !query.next();
+    //TODO
+    return false;
 }
+
+QFuture<void> Connection::shareRoomKey(Room* room)
+{
+    QPromise<void> promise;
+    auto result = promise.future();
+    promise.start();
+
+    rust::Vec<rust::String> ids;
+    for (const auto& id : room->joinedMemberIds()) { //TODO + invited
+        ids.push_back(stringToRust(id));
+    }
+
+    auto missing = (*d->cryptoMachine)->get_missing_sessions(ids);
+    auto id = missing->id();
+    callApi<ClaimKeysJob>(fromJson<QHash<UserId, QHash<QString, QString>>>(jsonFromRust(missing->one_time_keys()))).then([this, id, room, ids, p = std::move(promise)](const auto& job) mutable {
+        (*d->cryptoMachine)->mark_keys_claim_as_sent(bytesToRust(job->rawData()), id);
+        auto requests = (*d->cryptoMachine)->share_room_key(stringToRust(room->id()), ids);
+        p.finish();
+        for (const auto& request : requests) {
+            auto id = request.txn_id();
+
+            //TODO type from event
+            callApi<SendToDeviceJob>(u"m.room.encrypted"_s, stringFromRust(id), fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(request.messages()))).then([this, id](const auto& job) {
+                (*d->cryptoMachine)->mark_to_device_as_sent(bytesToRust(job->rawData()), id);
+            }, [=](const auto& job){});
+        }
+    }, [=](const auto& job){});
+
+    return result;
+}
+
+QString Connection::encryptRoomEvent(Room* room, const QByteArray& content, const QString& type)
+{
+    return stringFromRust((*d->cryptoMachine)->encrypt_room_event(stringToRust(room->id()), bytesToRust(content), stringToRust(type)));
+}
+
+QString Connection::decryptRoomEvent(Room* room, const QByteArray& event)
+{
+    return stringFromRust((*d->cryptoMachine)->decrypt_room_event(stringToRust(room->id()), bytesToRust(event)));
+}
+
+void Connection::Private::acceptKeyVerification(KeyVerificationSession* session)
+{
+    auto outgoing = (*cryptoMachine)->accept_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
+    if (!session->room()) {
+        q->callApi<SendToDeviceJob>(stringFromRust(outgoing->to_device_event_type()), stringFromRust(outgoing->to_device_txn_id()), fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(outgoing->to_device_messages())));
+    } else {
+        auto json = jsonFromRust(outgoing->in_room_content());
+        auto transactionId = stringFromRust(outgoing->in_room_txn_id());
+        //TODO: this is wrong (content <-> full), but i also think we don't need it json[u"unsigned"_s] = QJsonObject { {u"transaction_id"_s, transactionId} };
+        session->room()->postJson(u"m.key.verification.ready"_s, json);
+    }
+    session->setState(keyVerificationSessionState(session));
+    session->setSasState(sasState(session));
+}
+
+void Connection::Private::startKeyVerification(KeyVerificationSession* session)
+{
+    auto startSas = (*cryptoMachine)->start_sas(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
+    if (!session->room()) {
+        q->callApi<SendToDeviceJob>(stringFromRust(startSas->to_device_event_type()), stringFromRust(startSas->to_device_txn_id()), fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(startSas->to_device_messages())));
+    } else {
+        auto json = jsonFromRust(startSas->in_room_content());
+        auto transactionId = stringFromRust(startSas->in_room_txn_id());
+        //TODO: this is wrong (content <-> full), but i also think we don't need it json[u"unsigned"_s] = QJsonObject { {u"transaction_id"_s, transactionId} };
+        session->room()->postJson(u"m.key.verification.start"_s, json);
+    }
+}
+
+void Connection::Private::confirmKeyVerification(KeyVerificationSession* session)
+{
+    for (const auto& request : (*cryptoMachine)->confirm_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()))) {
+        if (!session->room()) {
+            const auto& type = stringFromRust(request.to_device_event_type());
+            q->callApi<SendToDeviceJob>(type, stringFromRust(request.to_device_txn_id()), fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(request.to_device_messages())));
+            if (type == u"m.key.verification.done"_s) {
+                session->setState(KeyVerificationSession::DONE);
+            }
+            if (type == u"m.key.verification.cancel"_s) {
+                session->setState(KeyVerificationSession::CANCELLED);
+            }
+        } else {
+            const auto& type = stringFromRust(request.in_room_event_type());
+            session->room()->postJson(stringFromRust(request.in_room_event_type()), jsonFromRust(request.in_room_content()));
+            if (type == u"m.key.verification.done"_s) {
+                session->setState(KeyVerificationSession::DONE);
+            }
+            if (type == u"m.key.verification.cancel"_s) {
+                session->setState(KeyVerificationSession::CANCELLED);
+            }
+        }
+    }
+    session->setSasState(sasState(session));
+}
+
+void Connection::Private::acceptSas(KeyVerificationSession* session)
+{
+    const auto& request = (*cryptoMachine)->accept_sas(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
+    if (!session->room()) {
+        q->callApi<SendToDeviceJob>(stringFromRust(request->to_device_event_type()), stringFromRust(request->to_device_txn_id()), fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(request->to_device_messages())));
+    } else {
+        session->room()->postJson(u"m.key.verification.accept"_s, jsonFromRust(request->in_room_content()));
+    }
+    session->setSasState(sasState(session));
+}
+
+
+KeyVerificationSession::State Connection::Private::keyVerificationSessionState(KeyVerificationSession* session)
+{
+    return (KeyVerificationSession::State) (*cryptoMachine)->verification_get_state(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
+}
+
+KeyVerificationSession::SasState Connection::Private::sasState(KeyVerificationSession* session)
+{
+    return (KeyVerificationSession::SasState) (*cryptoMachine)->sas_get_state(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
+}
+
+QList<std::pair<QString, QString>> Connection::Private::keyVerificationSasEmoji(KeyVerificationSession* session)
+{
+    auto e = (*cryptoMachine)->sas_emoji(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
+
+    QList<std::pair<QString, QString>> out;
+
+    for (const auto& emoji : e) {
+        out += {stringFromRust(emoji.symbol()), stringFromRust(emoji.description())};
+    }
+    return out;
+}
+
+void Connection::Private::requestDeviceVerification(KeyVerificationSession* session)
+{
+    auto request = (*cryptoMachine)->request_device_verification(stringToRust(session->remoteUser()), stringToRust(session->remoteDevice()));
+    q->callApi<SendToDeviceJob>(stringFromRust(request->to_device_event_type()), stringFromRust(request->to_device_txn_id()), fromJson<QHash<UserId, QHash<QString, QJsonObject>>>(jsonFromRust(request->to_device_messages())));
+    session->setVerificationId(stringFromRust(request->verification_id()));
+}
+
+bool Connection::isVerifiedEvent(const QString& eventId, Room* room)
+{
+    if (eventId.isEmpty()) {
+        return false;
+    }
+
+    const auto timelineIt = room->findInTimeline(eventId);
+    if (timelineIt == room->historyEdge()) {
+        return false;
+    }
+
+    auto event = timelineIt->get();
+
+    QJsonObject json;
+
+    if (event->is<EncryptedEvent>()) {
+        json = event->fullJson();
+    } else if (const auto& originalEvent = event->originalEvent()) {
+        json = originalEvent->fullJson();
+    }
+    auto rustJson = bytesToRust(QJsonDocument(json).toJson(QJsonDocument::Compact));
+    auto info = (*d->cryptoMachine)->get_room_event_encryption_info(rustJson, stringToRust(room->id()));
+    return info->is_verified();
+}
+
+Quotient::KeyVerificationSession* Connection::requestUserVerification(Room* room)
+{
+    auto session = KeyVerificationSession::requestUserVerification(room, this);
+    Q_EMIT newKeyVerificationSession(session);
+    return session;
+}
+
+void Connection::Private::requestUserVerification(KeyVerificationSession* session)
+{
+    auto request = (*cryptoMachine)->request_user_verification_content(stringToRust(session->remoteUser()));
+    auto transactionId = session->room()->postJson(u"m.room.message"_s, jsonFromRust(request));
+    connectUntil(session->room(), &Room::pendingEventAboutToMerge, q, [this, transactionId, session](const auto &event) {
+        if (event->transactionId() != transactionId) {
+            return false;
+        }
+
+        auto rustSession = (*cryptoMachine)->request_user_verification(stringToRust(session->remoteUser()), stringToRust(session->room()->id()), stringToRust(event->id()));
+        session->setVerificationId(stringFromRust(rustSession->verification_id()));
+        return true;
+    });
+}
+
+void Connection::receiveVerificationEvent(const QByteArray& fullJson)
+{
+    (*d->cryptoMachine)->receive_verification_event(bytesToRust(fullJson));
+    Q_EMIT verificationEventProcessed();
+}
+
+//TODO limit query key jobs to 1
