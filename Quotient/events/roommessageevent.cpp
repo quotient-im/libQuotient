@@ -154,9 +154,7 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
             return;
         }
 
-        if (content.contains(RelatesToKey)) {
-            _relatesTo = fromJson<std::optional<EventRelation>>(content[RelatesToKey]);
-        }
+        fromJson(content[RelatesToKey], _relatesTo);
     } else {
         qCWarning(EVENTS) << "No body or msgtype in room message event";
         qCWarning(EVENTS) << formatJson << obj;
