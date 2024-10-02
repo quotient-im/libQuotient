@@ -6,9 +6,7 @@
 #include "roommessageevent.h"
 
 #include "../logging_categories_p.h"
-#include <Quotient/converters.h>
 #include "eventrelation.h"
-#include <Quotient/events/event.h>
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
@@ -24,6 +22,7 @@ namespace { // Supporting internal definitions
 constexpr auto RelatesToKey = "m.relates_to"_L1;
 constexpr auto MsgTypeKey = "msgtype"_L1;
 constexpr auto FormattedBodyKey = "formatted_body"_L1;
+constexpr auto FormatKey = "format"_L1;
 constexpr auto TextTypeKey = "m.text"_L1;
 constexpr auto EmoteTypeKey = "m.emote"_L1;
 constexpr auto NoticeTypeKey = "m.notice"_L1;
@@ -99,12 +98,12 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
     json.insert(MsgTypeKey, jsonMsgType);
     json.insert(BodyKey, plainBody);
     if (relatesTo.has_value()) {
-        json.insert(RelatesToKey, toJson<EventRelation>(relatesTo.value()));
-        // JsonObjectConverter<EventRelation>::dumpTo(json, relatesTo.value());
-        if (auto* textContent = static_cast<const TextContent*>(content); relatesTo->type == EventRelation::ReplacementType) {
+        json.insert(RelatesToKey, toJson(relatesTo.value()));
+        if (relatesTo->type == EventRelation::ReplacementType) {
             QJsonObject newContentJson;
-            if (content && textContent->mimeType.inherits("text/html"_L1)) {
-                newContentJson.insert("format"_L1, HtmlContentTypeId);
+            if (auto* textContent = static_cast<const TextContent*>(content);
+                    textContent && textContent->mimeType.inherits("text/html"_L1)) {
+                newContentJson.insert(FormatKey, HtmlContentTypeId);
                 newContentJson.insert(FormattedBodyKey, textContent->body);
             }
             newContentJson.insert(BodyKey, plainBody);
@@ -221,7 +220,7 @@ QString RoomMessageEvent::replacedEvent() const
 
 bool RoomMessageEvent::isReplaced() const
 {
-    return unsignedPart<QJsonObject>("m.relations"_L1).contains("m.replace"_L1);
+    return unsignedPart<QJsonObject>("m.relations"_L1).contains("m.replace"_L1);"format"_L1
 }
 
 QString RoomMessageEvent::replacedBy() const
@@ -357,7 +356,7 @@ TextContent::TextContent(const QJsonObject& json)
 void TextContent::fillJson(QJsonObject &json) const
 {
     if (mimeType.inherits("text/html"_L1)) {
-        json.insert("format"_L1, HtmlContentTypeId);
+        json.insert(FormatKey, HtmlContentTypeId);
         json.insert(FormattedBodyKey, body);
     }
 }
