@@ -220,7 +220,7 @@ QString RoomMessageEvent::replacedEvent() const
 
 bool RoomMessageEvent::isReplaced() const
 {
-    return unsignedPart<QJsonObject>("m.relations"_L1).contains("m.replace"_L1);"format"_L1
+    return unsignedPart<QJsonObject>("m.relations"_L1).contains("m.replace"_L1);
 }
 
 QString RoomMessageEvent::replacedBy() const
