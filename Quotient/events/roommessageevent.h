@@ -46,24 +46,45 @@ public:
     MsgType msgtype() const;
     QString rawMsgtype() const;
     QString plainBody() const;
-    const EventContent::TypedBase* content() const { return _content.get(); }
+
+    //! \brief The EventContent for this event.
+    //!
+    //! \warning The result must be checked for nullptr as an event with just a plainBody
+    //!          will not have a content object.
+    //!
+    //! \return an EventContent object if the event has content, nullptr otherwise.
+    std::unique_ptr<EventContent::TypedBase> content() const;
+
     void editContent(auto visitor)
     {
-        visitor(*_content);
-        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), _content.get(), _relatesTo);
+        visitor(*content());
+        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), content().get(), relatesTo());
     }
     QMimeType mimeType() const;
+
     //! \brief Determine whether the message has text content
     //!
     //! \return true, if the message type is one of m.text, m.notice, m.emote,
     //!         or the message type is unspecified (in which case plainBody()
     //!         can still be examined); false otherwise
     bool hasTextContent() const;
+
+    //! \brief Get the TextContent object for the event
+    //!
+    //! \return A TextContent object if the message has one; std::nullopt otherwise.
+    std::optional<EventContent::TextContent> textContent() const;
+
     //! \brief Determine whether the message has a file/attachment
     //!
     //! \return true, if the message has a data structure corresponding to
     //!         a file (such as m.file or m.audio); false otherwise
     bool hasFileContent() const;
+
+    //! \brief Get the FileContent object for the event
+    //!
+    //! \return A FileContent object if the message has one; std::nullopt otherwise.
+    std::optional<EventContent::FileContent> fileContent() const;
+
     //! \brief Determine whether the message has a thumbnail
     //!
     //! \return true, if the message has a data structure corresponding to
@@ -71,6 +92,17 @@ public:
     //!         such as m.image, or generic binary content, i.e. m.file);
     //!         false otherwise
     bool hasThumbnail() const;
+
+    //! \brief Determine whether the message has a location
+    //!
+    //! \return true, if the message has a data structure corresponding to
+    //!         a location; false otherwise
+    bool hasLocationContent() const;
+
+    //! \brief Get the LocationContent object for the event
+    //!
+    //! \return A LocationContent object if the message has one; std::nullopt otherwise.
+    std::optional<EventContent::LocationContent> locationContent() const;
 
     //! \brief The EventRelation for this event.
     //!
@@ -142,9 +174,6 @@ public:
     static QString rawMsgTypeForFile(const QFileInfo& fi);
 
 private:
-    std::unique_ptr<EventContent::TypedBase> _content;
-    std::optional<EventRelation> _relatesTo;
-
     // FIXME: should it really be static?
     static QJsonObject assembleContentJson(const QString& plainBody,
                                            const QString& jsonMsgType,
@@ -155,120 +184,4 @@ private:
 };
 
 using MessageEventType = RoomMessageEvent::MsgType;
-
-namespace EventContent {
-
-    // Additional event content types
-
-    /**
-     * Rich text content for m.text, m.emote, m.notice
-     *
-     * Available fields: mimeType, body. The body can be either rich text
-     * or plain text, depending on what mimeType specifies.
-     */
-    class QUOTIENT_API TextContent : public TypedBase {
-    public:
-        TextContent(QString text, const QString& contentType);
-        explicit TextContent(const QJsonObject& json);
-
-        QMimeType type() const override { return mimeType; }
-
-        QMimeType mimeType;
-        QString body;
-
-    protected:
-        void fillJson(QJsonObject& json) const override;
-    };
-
-    /**
-     * Content class for m.location
-     *
-     * Available fields:
-     * - corresponding to the top-level JSON:
-     *   - geoUri ("geo_uri" in JSON)
-     * - corresponding to the "info" subobject:
-     *   - thumbnail.url ("thumbnail_url" in JSON)
-     * - corresponding to the "info/thumbnail_info" subobject:
-     *   - thumbnail.payloadSize
-     *   - thumbnail.mimeType
-     *   - thumbnail.imageSize
-     */
-    class QUOTIENT_API LocationContent : public TypedBase {
-    public:
-        LocationContent(const QString& geoUri, const Thumbnail& thumbnail = {});
-        explicit LocationContent(const QJsonObject& json);
-
-        QMimeType type() const override;
-
-    public:
-        QString geoUri;
-        Thumbnail thumbnail;
-
-    protected:
-        void fillJson(QJsonObject& o) const override;
-    };
-
-    /**
-     * A base class for info types that include duration: audio and video
-     */
-    template <typename InfoT>
-    class PlayableContent : public UrlBasedContent<InfoT> {
-    public:
-        using UrlBasedContent<InfoT>::UrlBasedContent;
-        PlayableContent(const QJsonObject& json)
-            : UrlBasedContent<InfoT>(json)
-            , duration(FileInfo::originalInfoJson["duration"_L1].toInt())
-        {}
-
-    protected:
-        void fillInfoJson(QJsonObject& infoJson) const override
-        {
-            infoJson.insert("duration"_L1, duration);
-        }
-
-    public:
-        int duration;
-    };
-
-    /**
-     * Content class for m.video
-     *
-     * Available fields:
-     * - corresponding to the top-level JSON:
-     *   - url
-     *   - filename (extension to the CS API spec)
-     * - corresponding to the "info" subobject:
-     *   - payloadSize ("size" in JSON)
-     *   - mimeType ("mimetype" in JSON)
-     *   - duration
-     *   - imageSize (QSize for a combination of "h" and "w" in JSON)
-     *   - thumbnail.url ("thumbnail_url" in JSON)
-     * - corresponding to the "info/thumbnail_info" subobject: contents of
-     *   thumbnail field, in the same vein as for "info":
-     *   - payloadSize
-     *   - mimeType
-     *   - imageSize
-     */
-    using VideoContent = PlayableContent<ImageInfo>;
-
-    /**
-     * Content class for m.audio
-     *
-     * Available fields:
-     * - corresponding to the top-level JSON:
-     *   - url
-     *   - filename (extension to the CS API spec)
-     * - corresponding to the "info" subobject:
-     *   - payloadSize ("size" in JSON)
-     *   - mimeType ("mimetype" in JSON)
-     *   - duration
-     *   - thumbnail.url ("thumbnail_url" in JSON - extension to the spec)
-     * - corresponding to the "info/thumbnail_info" subobject: contents of
-     *   thumbnail field (extension to the spec):
-     *   - payloadSize
-     *   - mimeType
-     *   - imageSize
-     */
-    using AudioContent = PlayableContent<FileInfo>;
-} // namespace EventContent
 } // namespace Quotient

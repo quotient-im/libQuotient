@@ -1743,7 +1743,7 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
         eventsIndex.insert(eId, index);
         if (usesEncryption)
             if (auto* const rme = ti.viewAs<RoomMessageEvent>())
-                if (auto* const content = rme->content())
+                if (const auto content = rme->content())
                     if (auto* const fileInfo = content->fileInfo())
                         if (auto* const efm = std::get_if<EncryptedFileMetadata>(
                                 &fileInfo->source))

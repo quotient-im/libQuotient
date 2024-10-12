@@ -8,8 +8,6 @@
 
 #include "filesourceinfo.h"
 
-#include "../util.h"
-
 #include <QtCore/QJsonObject>
 #include <QtCore/QMetaType>
 #include <QtCore/QMimeType>
@@ -163,6 +161,50 @@ protected:
     using Base::Base;
 };
 
+//! \brief Rich text content for m.text, m.emote, m.notice
+//!
+//! Available fields: mimeType, body. The body can be either rich text
+//! or plain text, depending on what mimeType specifies.
+class QUOTIENT_API TextContent : public TypedBase {
+public:
+    TextContent(QString text, const QString& contentType);
+    explicit TextContent(const QJsonObject& json);
+
+    QMimeType type() const override { return mimeType; }
+
+    QMimeType mimeType;
+    QString body;
+
+protected:
+    void fillJson(QJsonObject& json) const override;
+};
+
+//! \brief Content class for m.location
+//!
+//! Available fields:
+//!     - corresponding to the top-level JSON:
+//!         - geoUri ("geo_uri" in JSON)
+//!     - corresponding to the "info" subobject:
+//!         - thumbnail.url ("thumbnail_url" in JSON)
+//!     - corresponding to the "info/thumbnail_info" subobject:
+//!         - thumbnail.payloadSize
+//!         - thumbnail.mimeType
+//!         - thumbnail.imageSize
+class QUOTIENT_API LocationContent : public TypedBase {
+public:
+    LocationContent(const QString& geoUri, const Thumbnail& thumbnail = {});
+    explicit LocationContent(const QJsonObject& json);
+
+    QMimeType type() const override;
+
+public:
+    QString geoUri;
+    Thumbnail thumbnail;
+
+protected:
+    void fillJson(QJsonObject& o) const override;
+};
+
 //! \brief A template class for content types with a URL and additional info
 //!
 //! Types that derive from this class template take `url` (or, if the file
@@ -246,5 +288,62 @@ using ImageContent = UrlBasedContent<ImageInfo>;
 //!   - thumbnail.mimeType
 //!   - thumbnail.imageSize (QSize for `h` and `w` in JSON)
 using FileContent = UrlBasedContent<FileInfo>;
+
+//! A base class for info types that include duration: audio and video
+template <typename InfoT>
+class PlayableContent : public UrlBasedContent<InfoT> {
+public:
+using UrlBasedContent<InfoT>::UrlBasedContent;
+PlayableContent(const QJsonObject& json)
+    : UrlBasedContent<InfoT>(json)
+    , duration(FileInfo::originalInfoJson["duration"_L1].toInt())
+{}
+
+protected:
+void fillInfoJson(QJsonObject& infoJson) const override
+{
+    infoJson.insert("duration"_L1, duration);
+}
+
+public:
+int duration;
+};
+
+//! \brief Content class for m.video
+//!
+//! Available fields:
+//!     - corresponding to the top-level JSON:
+//!         - url
+//!         - filename (extension to the CS API spec)
+//!     - corresponding to the "info" subobject:
+//!         - payloadSize ("size" in JSON)
+//!         - mimeType ("mimetype" in JSON)
+//!         - duration
+//!         - imageSize (QSize for a combination of "h" and "w" in JSON)
+//!         - thumbnail.url ("thumbnail_url" in JSON)
+//!     - corresponding to the "info/thumbnail_info" subobject: contents of
+//!       thumbnail field, in the same vein as for "info":
+//!         - payloadSize
+//!         - mimeType
+//!         - imageSize
+using VideoContent = PlayableContent<ImageInfo>;
+
+//! \brief Content class for m.audio
+//!
+//! Available fields:
+//!     - corresponding to the top-level JSON:
+//!         - url
+//!         - filename (extension to the CS API spec)
+//!     - corresponding to the "info" subobject:
+//!         - payloadSize ("size" in JSON)
+//!         - mimeType ("mimetype" in JSON)
+//!         - duration
+//!         - thumbnail.url ("thumbnail_url" in JSON)
+//!     - corresponding to the "info/thumbnail_info" subobject: contents of
+//!       thumbnail field, in the same vein as for "info":
+//!         - payloadSize
+//!         - mimeType
+//!         - imageSize
+using AudioContent = PlayableContent<FileInfo>;
 } // namespace Quotient::EventContent
 Q_DECLARE_METATYPE(const Quotient::EventContent::TypedBase*)
