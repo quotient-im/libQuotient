@@ -7,13 +7,11 @@
 
 #include "../logging_categories_p.h"
 #include "eventrelation.h"
-#include <Quotient/events/eventcontent.h>
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QImageReader>
 #include <QtCore/QStringBuilder>
-#include <optional>
 
 using namespace Quotient;
 using namespace EventContent;
@@ -136,25 +134,17 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
     if (isRedacted())
         return;
     const QJsonObject content = contentJson();
-    if (content.contains(MsgTypeKey) && content.contains(BodyKey)) {
-        auto msgtype = content[MsgTypeKey].toString();
-        bool msgTypeFound = false;
-        for (const auto& mt : msgTypes) {
-            if (mt.matrixType == msgtype) {
-                msgTypeFound = true;
-            }
-        }
-
-        if (!msgTypeFound) {
-            qCWarning(EVENTS) << "RoomMessageEvent: unknown msg_type,"
-                              << " full content dump follows";
-            qCWarning(EVENTS) << formatJson << content;
-            return;
-        }
-    } else {
+    if (!content.contains(MsgTypeKey) || !content.contains(BodyKey)) {
         qCWarning(EVENTS) << "No body or msgtype in room message event";
-        qCWarning(EVENTS) << formatJson << obj;
+        qCWarning(EVENTS) << formatJson << fullJson();
+        return;
     }
+
+    if (auto it = std::ranges::find(msgTypes, content[MsgTypeKey].toString(), &MsgTypeDesc::matrixType); it != msgTypes.cend()) {
+        return;
+    }
+    qCWarning(EVENTS) << "RoomMessageEvent: unknown msgtype, full content dump follows";
+    qCWarning(EVENTS) << formatJson << content;
 }
 
 RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
@@ -179,31 +169,26 @@ QMimeType RoomMessageEvent::mimeType() const
     return content() ? content()->type() : PlainTextMimeType;
 }
 
-std::unique_ptr<EventContent::TypedBase> RoomMessageEvent::content() const
+std::unique_ptr<TypedBase> RoomMessageEvent::content() const
 {
     const QJsonObject content = contentJson();
-    if (content.contains(MsgTypeKey) && content.contains(BodyKey)) {
-        auto msgtype = content[MsgTypeKey].toString();
-        bool msgTypeFound = false;
-        std::unique_ptr<EventContent::TypedBase> eventContent = nullptr;
-        for (const auto& mt : msgTypes) {
-            if (mt.matrixType == msgtype) {
-                eventContent = mt.maker(content);
-                msgTypeFound = true;
-            }
-        }
-
-        if (!msgTypeFound) {
-            qCWarning(EVENTS) << "RoomMessageEvent: unknown msg_type,"
-                              << " full content dump follows";
-            qCWarning(EVENTS) << formatJson << content;
-        }
-        return eventContent;
-    } else {
+    if (!content.contains(MsgTypeKey) || !content.contains(BodyKey)) {
         qCWarning(EVENTS) << "No body or msgtype in room message event";
         qCWarning(EVENTS) << formatJson << fullJson();
-        return nullptr;
+        return {};
     }
+
+    if (auto it = std::ranges::find(msgTypes, content[MsgTypeKey].toString(), &MsgTypeDesc::matrixType); it != msgTypes.cend()) {
+        return it->maker(content);
+    }
+    qCWarning(EVENTS) << "RoomMessageEvent: unknown msgtype, full content dump follows";
+    qCWarning(EVENTS) << formatJson << content;
+    return {};
+}
+
+void RoomMessageEvent::setContent(std::unique_ptr<EventContent::TypedBase> content)
+{
+    editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), content.get(), relatesTo());
 }
 
 bool RoomMessageEvent::hasTextContent() const
@@ -213,13 +198,13 @@ bool RoomMessageEvent::hasTextContent() const
                || msgtype() == MsgType::Notice);
 }
 
-std::optional<EventContent::TextContent> RoomMessageEvent::textContent() const
+std::unique_ptr<TextContent> RoomMessageEvent::textContent() const
 {
     if (!hasTextContent() || !content()) {
-        return std::nullopt;
+        return {};
     }
 
-    return TextContent(contentJson());
+    return std::make_unique<TextContent>(contentJson());
 }
 
 bool RoomMessageEvent::hasFileContent() const
@@ -227,13 +212,13 @@ bool RoomMessageEvent::hasFileContent() const
     return content() && content()->fileInfo();
 }
 
-std::optional<EventContent::FileContent> RoomMessageEvent::fileContent() const
+std::unique_ptr<FileContent> RoomMessageEvent::fileContent() const
 {
     if (!hasFileContent()) {
-        return std::nullopt;
+        return {};
     }
 
-    return FileContent(contentJson());
+    return std::make_unique<FileContent>(contentJson());
 }
 
 bool RoomMessageEvent::hasThumbnail() const
@@ -246,20 +231,18 @@ bool RoomMessageEvent::hasLocationContent() const
     return content() && msgtype() == MsgType::Location;
 }
 
-std::optional<EventContent::LocationContent> RoomMessageEvent::locationContent() const
+std::unique_ptr<LocationContent> RoomMessageEvent::locationContent() const
 {
     if (!hasLocationContent()) {
-        return std::nullopt;
+        return {};
     }
 
-    return LocationContent(contentJson());
+    return std::make_unique<LocationContent>(contentJson());
 }
 
 std::optional<EventRelation> RoomMessageEvent::relatesTo() const
 {
-    std::optional<EventRelation> relatesTo;
-    fromJson(contentJson()[RelatesToKey], relatesTo);
-    return relatesTo;
+    return contentPart<std::optional<EventRelation>>(RelatesToKey);
 }
 
 QString RoomMessageEvent::upstreamEventId() const

@@ -55,11 +55,9 @@ public:
     //! \return an EventContent object if the event has content, nullptr otherwise.
     std::unique_ptr<EventContent::TypedBase> content() const;
 
-    void editContent(auto visitor)
-    {
-        visitor(*content());
-        editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), content().get(), relatesTo());
-    }
+    //! Update the message JSON with the given content.
+    void setContent(std::unique_ptr<EventContent::TypedBase> content);
+
     QMimeType mimeType() const;
 
     //! \brief Determine whether the message has text content
@@ -72,7 +70,7 @@ public:
     //! \brief Get the TextContent object for the event
     //!
     //! \return A TextContent object if the message has one; std::nullopt otherwise.
-    std::optional<EventContent::TextContent> textContent() const;
+    std::unique_ptr<EventContent::TextContent> textContent() const;
 
     //! \brief Determine whether the message has a file/attachment
     //!
@@ -83,7 +81,7 @@ public:
     //! \brief Get the FileContent object for the event
     //!
     //! \return A FileContent object if the message has one; std::nullopt otherwise.
-    std::optional<EventContent::FileContent> fileContent() const;
+    std::unique_ptr<EventContent::FileContent> fileContent() const;
 
     //! \brief Determine whether the message has a thumbnail
     //!
@@ -102,7 +100,7 @@ public:
     //! \brief Get the LocationContent object for the event
     //!
     //! \return A LocationContent object if the message has one; std::nullopt otherwise.
-    std::optional<EventContent::LocationContent> locationContent() const;
+    std::unique_ptr<EventContent::LocationContent> locationContent() const;
 
     //! \brief The EventRelation for this event.
     //!

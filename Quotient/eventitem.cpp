@@ -14,9 +14,9 @@ void PendingEventItem::setFileUploaded(const FileSourceInfo& uploadedFileData)
     // and unify the code below.
     if (auto* rme = getAs<RoomMessageEvent>()) {
         Q_ASSERT(rme->hasFileContent());
-        rme->editContent([&uploadedFileData](EventContent::TypedBase& ec) {
-            ec.fileInfo()->source = uploadedFileData;
-        });
+        auto fc = rme->fileContent();
+        fc->source = uploadedFileData;
+        rme->setContent(std::move(fc));
     }
     if (auto* rae = getAs<RoomAvatarEvent>()) {
         Q_ASSERT(rae->content().fileInfo());
