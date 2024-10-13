@@ -70,7 +70,7 @@ public:
     //! \brief Get the TextContent object for the event
     //!
     //! \return A TextContent object if the message has one; std::nullopt otherwise.
-    std::unique_ptr<EventContent::TextContent> textContent() const;
+    std::unique_ptr<EventContent::TextContent> richTextContent() const;
 
     //! \brief Determine whether the message has a file/attachment
     //!

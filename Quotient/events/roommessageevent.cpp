@@ -140,11 +140,10 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
         return;
     }
 
-    if (auto it = std::ranges::find(msgTypes, content[MsgTypeKey].toString(), &MsgTypeDesc::matrixType); it != msgTypes.cend()) {
-        return;
+    if (auto it = std::ranges::find(msgTypes, content[MsgTypeKey].toString(), &MsgTypeDesc::matrixType); it == msgTypes.cend()) {
+        qCWarning(EVENTS) << "RoomMessageEvent: unknown msgtype, full content dump follows";
+        qCWarning(EVENTS) << formatJson << content;
     }
-    qCWarning(EVENTS) << "RoomMessageEvent: unknown msgtype, full content dump follows";
-    qCWarning(EVENTS) << formatJson << content;
 }
 
 RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
@@ -198,7 +197,7 @@ bool RoomMessageEvent::hasTextContent() const
                || msgtype() == MsgType::Notice);
 }
 
-std::unique_ptr<TextContent> RoomMessageEvent::textContent() const
+std::unique_ptr<TextContent> RoomMessageEvent::richTextContent() const
 {
     if (!hasTextContent() || !content()) {
         return {};
@@ -256,7 +255,8 @@ QString RoomMessageEvent::replacedEvent() const
     if (!content() || !hasTextContent())
         return {};
 
-    return isReplacement(relatesTo()) ? relatesTo()->eventId : QString();
+    const auto er = relatesTo();
+    return isReplacement(er) ? er->eventId : QString();
 }
 
 bool RoomMessageEvent::isReplaced() const
