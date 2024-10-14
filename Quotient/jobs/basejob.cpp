@@ -548,8 +548,11 @@ BaseJob::Status BaseJob::prepareError(Status currentStatus)
     if (errCode == "M_CANNOT_LEAVE_SERVER_NOTICE_ROOM"_L1)
         return { CannotLeaveRoom,
                  tr("It's not allowed to leave a server notices room") };
+
     if (errCode == "M_USER_DEACTIVATED"_L1)
-        return { UserDeactivated };
+        currentStatus = { UserDeactivated };
+    if (errCode == "M_ACCOUNT_LOCKED"_L1)
+        currentStatus = { AccountLocked };
 
     // Not localisable on the client side
     if (errorJson.contains("error"_L1)) // Keep the code, update the message

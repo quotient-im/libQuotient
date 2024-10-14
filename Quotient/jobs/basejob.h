@@ -69,6 +69,7 @@ public:
         CannotLeaveRoom,
         UserDeactivated,
         FileError,
+        AccountLocked,
         UserDefinedError = 256
     };
     Q_ENUM(StatusCode)
