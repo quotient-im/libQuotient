@@ -2121,27 +2121,28 @@ void Room::discardMessage(const QString& txnId)
     emit pendingEventDiscarded();
 }
 
-QString Room::postMessage(const QString& plainText, MessageEventType type)
+QString Room::postMessage(const QString& plainText, MessageEventType type, std::optional<EventRelation> relatesTo)
 {
-    return post<RoomMessageEvent>(plainText, type)->transactionId();
+    return post<RoomMessageEvent>(plainText, type, nullptr, relatesTo)->transactionId();
 }
 
-QString Room::postPlainText(const QString& plainText)
+QString Room::postPlainText(const QString& plainText, std::optional<EventRelation> relatesTo)
 {
-    return postMessage(plainText, MessageEventType::Text);
+    return postMessage(plainText, MessageEventType::Text, relatesTo);
 }
 
 QString Room::postHtmlMessage(const QString& plainText, const QString& html,
-                              MessageEventType type)
+                              MessageEventType type, std::optional<EventRelation> relatesTo)
 {
     return post<RoomMessageEvent>(plainText, type,
-                                  new EventContent::TextContent(html, u"text/html"_s))
+                                  new EventContent::TextContent(html, u"text/html"_s),
+                                  relatesTo)
         ->transactionId();
 }
 
-QString Room::postHtmlText(const QString& plainText, const QString& html)
+QString Room::postHtmlText(const QString& plainText, const QString& html, std::optional<EventRelation> relatesTo)
 {
-    return postHtmlMessage(plainText, html);
+    return postHtmlMessage(plainText, html, MessageEventType::Text, relatesTo);
 }
 
 QString Room::postReaction(const QString& eventId, const QString& key)
@@ -2198,7 +2199,8 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
 }
 
 QString Room::postFile(const QString& plainText,
-                       EventContent::TypedBase* content)
+                       EventContent::TypedBase* content,
+                       std::optional<EventRelation> relatesTo)
 {
     Q_ASSERT(content != nullptr && content->fileInfo() != nullptr);
     const auto* const fileInfo = content->fileInfo();
@@ -2210,7 +2212,7 @@ QString Room::postFile(const QString& plainText,
 
     return d->doPostFile(
         makeEvent<RoomMessageEvent>(
-            plainText, RoomMessageEvent::rawMsgTypeForFile(localFile), content),
+            plainText, RoomMessageEvent::rawMsgTypeForFile(localFile), content, relatesTo),
         fileInfo->url());
 }
 

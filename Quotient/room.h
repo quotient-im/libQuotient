@@ -746,15 +746,16 @@ public Q_SLOTS:
     /** Check whether the room should be upgraded */
     void checkVersion();
 
-    QString postMessage(const QString& plainText, MessageEventType type);
-    QString postPlainText(const QString& plainText);
+    QString postMessage(const QString& plainText, MessageEventType type, std::optional<EventRelation> relatesTo = std::nullopt);
+    QString postPlainText(const QString& plainText, std::optional<EventRelation> relatesTo = std::nullopt);
     QString postHtmlMessage(const QString& plainText, const QString& html,
-                            MessageEventType type = MessageEventType::Text);
-    QString postHtmlText(const QString& plainText, const QString& html);
+                            MessageEventType type = MessageEventType::Text,
+                            std::optional<EventRelation> relatesTo = std::nullopt);
+    QString postHtmlText(const QString& plainText, const QString& html, std::optional<EventRelation> relatesTo = std::nullopt);
     /// Send a reaction on a given event with a given key
     QString postReaction(const QString& eventId, const QString& key);
 
-    QString postFile(const QString& plainText, EventContent::TypedBase* content);
+    QString postFile(const QString& plainText, EventContent::TypedBase* content, std::optional<EventRelation> relatesTo = std::nullopt);
 
     /** Post a pre-created room message event
      *
