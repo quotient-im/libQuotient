@@ -21,7 +21,7 @@ QUrl GetDisplayNameJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 
 GetDisplayNameJob::GetDisplayNameJob(const QString& userId)
     : BaseJob(HttpVerb::Get, u"GetDisplayNameJob"_s,
-              makePath("/_matrix/client/v3", "/profile/", userId, "/displayname"), false)
+              makePath("/_matrix/client/v3", "/profile/", userId, "/displayname"))
 {}
 
 SetAvatarUrlJob::SetAvatarUrlJob(const QString& userId, const QUrl& avatarUrl)
@@ -41,7 +41,7 @@ QUrl GetAvatarUrlJob::makeRequestUrl(const HomeserverData& hsData, const QString
 
 GetAvatarUrlJob::GetAvatarUrlJob(const QString& userId)
     : BaseJob(HttpVerb::Get, u"GetAvatarUrlJob"_s,
-              makePath("/_matrix/client/v3", "/profile/", userId, "/avatar_url"), false)
+              makePath("/_matrix/client/v3", "/profile/", userId, "/avatar_url"))
 {}
 
 QUrl GetUserProfileJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId)
@@ -51,5 +51,5 @@ QUrl GetUserProfileJob::makeRequestUrl(const HomeserverData& hsData, const QStri
 
 GetUserProfileJob::GetUserProfileJob(const QString& userId)
     : BaseJob(HttpVerb::Get, u"GetUserProfileJob"_s,
-              makePath("/_matrix/client/v3", "/profile/", userId), false)
+              makePath("/_matrix/client/v3", "/profile/", userId))
 {}

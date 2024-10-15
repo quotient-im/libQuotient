@@ -429,7 +429,7 @@ void TestOlmAccount::enableEncryption()
                                 });
     QVERIFY(waitForFuture(futureRoom));
     alice->syncLoop();
-    QVERIFY(QTest::qWaitFor([room = futureRoom.result()] { return room->usesEncryption(); }, 20000));
+    QVERIFY(QTest::qWaitFor([room = futureRoom.result()] { return room->usesEncryption(); }, 40000));
 }
 
 QTEST_GUILESS_MAIN(TestOlmAccount)

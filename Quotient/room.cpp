@@ -293,7 +293,7 @@ public:
 
     const PendingEventItem& sendEvent(RoomEventPtr&& event);
 
-    QString doPostFile(RoomEventPtr &&msgEvent, const QUrl &localUrl);
+    QString doPostFile(event_ptr_tt<RoomMessageEvent> fileEvent, const QUrl& localUrl);
 
     PendingEvents::iterator addAsPending(RoomEventPtr&& event);
 
@@ -1431,23 +1431,19 @@ Room::Private::getEventWithFile(const QString& eventId) const
 
 QUrl Room::urlToThumbnail(const QString& eventId) const
 {
-    if (auto* event = d->getEventWithFile(eventId))
-        if (event->hasThumbnail()) {
-            auto* thumbnail = event->content()->thumbnailInfo();
-            Q_ASSERT(thumbnail != nullptr);
-            return connection()->getUrlForApi<MediaThumbnailJob>(
-                thumbnail->url(), thumbnail->imageSize);
-        }
+    if (auto* event = d->getEventWithFile(eventId); event && event->hasThumbnail()) {
+        const auto thumbnail = event->fileContent()->thumbnail;
+        return connection()->getUrlForApi<MediaThumbnailJob>(thumbnail.url(), thumbnail.imageSize);
+    }
     qCDebug(MAIN) << "Event" << eventId << "has no thumbnail";
     return {};
 }
 
 QUrl Room::urlToDownload(const QString& eventId) const
 {
-    if (auto* event = d->getEventWithFile(eventId)) {
-        auto* fileInfo = event->content()->fileInfo();
-        Q_ASSERT(fileInfo != nullptr);
-        return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url());
+    if (const auto* const event = d->getEventWithFile(eventId)) {
+        if (const auto fileInfo = event->fileContent(); QUO_CHECK(fileInfo != nullptr))
+            return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url());
     }
     return {};
 }
@@ -2135,7 +2131,7 @@ QString Room::postHtmlMessage(const QString& plainText, const QString& html,
                               MessageEventType type)
 {
     return post<RoomMessageEvent>(plainText, type,
-                                  new EventContent::TextContent(html, u"text/html"_s))
+                                  std::make_unique<EventContent::TextContent>(html, u"text/html"_s))
         ->transactionId();
 }
 
@@ -2149,9 +2145,9 @@ QString Room::postReaction(const QString& eventId, const QString& key)
     return post<ReactionEvent>(eventId, key)->transactionId();
 }
 
-QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
+QString Room::Private::doPostFile(event_ptr_tt<RoomMessageEvent> fileEvent, const QUrl& localUrl)
 {
-    const auto txnId = addAsPending(std::move(msgEvent))->event()->transactionId();
+    const auto txnId = addAsPending(std::move(fileEvent))->event()->transactionId();
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
     q->uploadFile(txnId, localUrl);
@@ -2198,20 +2194,18 @@ QString Room::Private::doPostFile(RoomEventPtr&& msgEvent, const QUrl& localUrl)
 }
 
 QString Room::postFile(const QString& plainText,
-                       EventContent::TypedBase* content)
+                       std::unique_ptr<EventContent::FileContentBase> fileContent)
 {
-    Q_ASSERT(content != nullptr && content->fileInfo() != nullptr);
-    const auto* const fileInfo = content->fileInfo();
-    Q_ASSERT(fileInfo != nullptr);
-    // This is required because toLocalFile doesn't work on android and toString doesn't work on the desktop
-    auto url = fileInfo->url().isLocalFile() ? fileInfo->url().toLocalFile() : fileInfo->url().toString();
-    QFileInfo localFile { url };
+    Q_ASSERT(fileContent != nullptr);
+    const auto url = fileContent->url();
+    // toLocalFile() doesn't work on Android and toString() doesn't work on the desktop
+    QFileInfo localFile(url.isLocalFile() ? url.toLocalFile() : url.toString());
     Q_ASSERT(localFile.isFile());
 
-    return d->doPostFile(
-        makeEvent<RoomMessageEvent>(
-            plainText, RoomMessageEvent::rawMsgTypeForFile(localFile), content),
-        fileInfo->url());
+    return d->doPostFile(makeEvent<RoomMessageEvent>(plainText,
+                                                     RoomMessageEvent::rawMsgTypeForFile(localFile),
+                                                     std::move(fileContent)),
+                         url);
 }
 
 QString Room::postEvent(RoomEvent* event)
@@ -2462,7 +2456,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         Q_ASSERT(false);
         return;
     }
-    const auto* const fileInfo = event->content()->fileInfo();
+    const auto fileInfo = event->fileContent();
     if (!fileInfo->isValid()) {
         qCWarning(MAIN) << "Event" << eventId
                         << "has an empty or malformed mxc URL; won't download";

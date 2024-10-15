@@ -522,9 +522,9 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
                     // TODO: check #366 once #368 is implemented
                     FINISH_TEST(!e.id().isEmpty() && evt.transactionId() == txnId
                                 && e.hasFileContent()
-                                && e.content()->fileInfo()->originalName == fileName
+                                && e.fileContent()->originalName == fileName
                                 && testDownload(targetRoom->connection()->makeMediaUrl(
-                                    e.content()->fileInfo()->url())));
+                                    e.fileContent()->url())));
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });

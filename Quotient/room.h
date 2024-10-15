@@ -721,6 +721,9 @@ public:
         return post(makeEvent<EvT>(std::forward<ArgTs>(args)...));
     }
 
+    QString postFile(const QString& plainText,
+                     std::unique_ptr<EventContent::FileContentBase> fileContent);
+
     PendingEventItem::future_type whenMessageMerged(QString txnId) const;
 
     //! Send a request to update the room state with the given event
@@ -753,8 +756,6 @@ public Q_SLOTS:
     QString postHtmlText(const QString& plainText, const QString& html);
     /// Send a reaction on a given event with a given key
     QString postReaction(const QString& eventId, const QString& key);
-
-    QString postFile(const QString& plainText, EventContent::TypedBase* content);
 
     /** Post a pre-created room message event
      *

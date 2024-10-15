@@ -31,6 +31,8 @@ public:
 
     QJsonObject toJson() const;
 
+    virtual QMimeType type() const = 0;
+
 public:
     QJsonObject originalJson;
 
@@ -50,8 +52,7 @@ protected:
 // but specific aggregation structure is altered. See doc comments to
 // each type for the list of available attributes.
 
-// A quick classes inheritance structure follows (the definitions are
-// spread across eventcontent.h and roommessageevent.h):
+// A quick class inheritance structure follows:
 // UrlBasedContent<InfoT> : InfoT + thumbnail data
 //   PlayableContent<InfoT> : + duration attribute
 // FileInfo
@@ -63,27 +64,22 @@ protected:
 
 //! \brief Mix-in class representing `info` subobject in content JSON
 //!
-//! This is one of base classes for content types that deal with files or
-//! URLs. It stores the file metadata attributes, such as size, MIME type
-//! etc. found in the `content/info` subobject of event JSON payloads.
-//! Actual content classes derive from this class _and_ TypedBase that
-//! provides a polymorphic interface to access data in the mix-in. FileInfo
-//! (as well as ImageInfo, that adds image size to the metadata) is NOT
-//! polymorphic and is used in a non-polymorphic way to store thumbnail
-//! metadata (in a separate instance), next to the metadata on the file
-//! itself.
+//! This is one of base classes for content types that deal with files or URLs. It stores
+//! file metadata attributes, such as size, MIME type etc. found in the `content/info` subobject of
+//! event JSON payloads. Actual content classes derive from this class _and_ Base that provides
+//! a polymorphic interface to access data in the mix-in. FileInfo (as well as ImageInfo, that adds
+//! image size to the metadata) is NOT polymorphic and is used in a non-polymorphic way to store
+//! thumbnail metadata (in a separate instance), next to the metadata on the file itself.
 //!
-//! If you need to make a new _content_ (not info) class based on files/URLs
-//! take UrlBasedContent as the example, i.e.:
-//! 1. Double-inherit from this class (or ImageInfo) and TypedBase.
-//! 2. Provide a constructor from QJsonObject that will pass the `info`
-//!    subobject (not the whole content JSON) down to FileInfo/ImageInfo.
-//! 3. Override fillJson() to customise the JSON export logic. Make sure
-//!    to call toInfoJson() from it to produce the payload for the `info`
-//!    subobject in the JSON payload.
+//! If you need to make a new _content_ (not info) class based on files/URLs take UrlBasedContent
+//! as the example, i.e.:
+//! 1. Double-inherit from this class (or ImageInfo) and Base.
+//! 2. Provide a constructor from QJsonObject that will pass the `info` subobject (not the whole
+//!    content JSON) down to FileInfo/ImageInfo.
+//! 3. Override fillJson() to customise the JSON export logic. Make sure to call toInfoJson()
+//!    from it to produce the payload for the `info` subobject in the JSON payload.
 //!
-//! \sa ImageInfo, FileContent, ImageContent, AudioContent, VideoContent,
-//!     UrlBasedContent
+//! \sa ImageInfo, FileContent, ImageContent, AudioContent, VideoContent, UrlBasedContent
 struct QUOTIENT_API FileInfo {
     FileInfo() = default;
     //! \brief Construct from a QFileInfo object
@@ -149,23 +145,18 @@ struct QUOTIENT_API Thumbnail : public ImageInfo {
     void dumpTo(QJsonObject& infoJson) const;
 };
 
-class QUOTIENT_API TypedBase : public Base {
+//! The base for all file-based content classes
+class QUOTIENT_API FileContentBase : public Base {
 public:
-    virtual QMimeType type() const = 0;
-    virtual const FileInfo* fileInfo() const { return nullptr; }
-    virtual FileInfo* fileInfo() { return nullptr; }
-    virtual const Thumbnail* thumbnailInfo() const { return nullptr; }
-
-protected:
-    explicit TypedBase(QJsonObject o = {}) : Base(std::move(o)) {}
     using Base::Base;
+    virtual QUrl url() const = 0;
 };
 
 //! \brief Rich text content for m.text, m.emote, m.notice
 //!
 //! Available fields: mimeType, body. The body can be either rich text
 //! or plain text, depending on what mimeType specifies.
-class QUOTIENT_API TextContent : public TypedBase {
+class QUOTIENT_API TextContent : public Base {
 public:
     TextContent(QString text, const QString& contentType);
     explicit TextContent(const QJsonObject& json);
@@ -190,7 +181,7 @@ protected:
 //!         - thumbnail.payloadSize
 //!         - thumbnail.mimeType
 //!         - thumbnail.imageSize
-class QUOTIENT_API LocationContent : public TypedBase {
+class QUOTIENT_API LocationContent : public Base {
 public:
     LocationContent(const QString& geoUri, const Thumbnail& thumbnail = {});
     explicit LocationContent(const QJsonObject& json);
@@ -212,13 +203,13 @@ protected:
 //! the top-level JSON object and the rest of information from the `info`
 //! subobject, as defined by the parameter type.
 //! \tparam InfoT base info class - FileInfo or ImageInfo
-template <class InfoT>
-class UrlBasedContent : public TypedBase, public InfoT {
+template <std::derived_from<FileInfo> InfoT>
+class UrlBasedContent : public FileContentBase, public InfoT {
 public:
     using InfoT::InfoT;
     explicit UrlBasedContent(const QJsonObject& json)
-        : TypedBase(json)
-        , InfoT(QUrl(json["url"_L1].toString()), json["info"_L1].toObject(),
+        : FileContentBase(json)
+        , InfoT(fromJson<QUrl>(json["url"_L1]), json["info"_L1].toObject(),
                 json["filename"_L1].toString())
         , thumbnail(FileInfo::originalInfoJson)
     {
@@ -231,9 +222,7 @@ public:
     }
 
     QMimeType type() const override { return InfoT::mimeType; }
-    const FileInfo* fileInfo() const override { return this; }
-    FileInfo* fileInfo() override { return this; }
-    const Thumbnail* thumbnailInfo() const override { return &thumbnail; }
+    QUrl url() const override { return InfoT::url(); }
 
 public:
     Thumbnail thumbnail;
@@ -346,4 +335,4 @@ using VideoContent = PlayableContent<ImageInfo>;
 //!         - imageSize
 using AudioContent = PlayableContent<FileInfo>;
 } // namespace Quotient::EventContent
-Q_DECLARE_METATYPE(const Quotient::EventContent::TypedBase*)
+Q_DECLARE_METATYPE(const Quotient::EventContent::Base*)

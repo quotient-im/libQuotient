@@ -34,12 +34,11 @@ public:
     };
 
     RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
-                     EventContent::TypedBase* content = nullptr,
-                     std::optional<EventRelation> relatesTo = std:: nullopt);
-    explicit RoomMessageEvent(const QString& plainBody,
-                              MsgType msgType = MsgType::Text,
-                              EventContent::TypedBase* content = nullptr,
-                              std::optional<EventRelation> relatesTo = std:: nullopt);
+                     std::unique_ptr<EventContent::Base> content = nullptr,
+                     std::optional<EventRelation> relatesTo = std::nullopt);
+    explicit RoomMessageEvent(const QString& plainBody, MsgType msgType = MsgType::Text,
+                              std::unique_ptr<EventContent::Base> content = nullptr,
+                              std::optional<EventRelation> relatesTo = std::nullopt);
 
     explicit RoomMessageEvent(const QJsonObject& obj);
 
@@ -47,16 +46,21 @@ public:
     QString rawMsgtype() const;
     QString plainBody() const;
 
-    //! \brief The EventContent for this event.
+    //! \brief Load event content from the event JSON
     //!
     //! \warning The result must be checked for nullptr as an event with just a plainBody
     //!          will not have a content object.
+    //! \warning Since libQuotient 0.9, the returned value has changed from a C pointer (TypedBase*)
+    //!          to `std::unique_ptr<>` because the deserialised content object is no more stored
+    //!          inside the event. The calling code must either store the entire returned value
+    //!          in a variable or copy/move away the needed field from the returned value;
+    //!          a reference or a pointer to a field will become dangling at the statement end.
     //!
-    //! \return an EventContent object if the event has content, nullptr otherwise.
-    std::unique_ptr<EventContent::TypedBase> content() const;
+    //! \return an event content object if the event has content, nullptr otherwise.
+    std::unique_ptr<EventContent::Base> content() const;
 
-    //! Update the message JSON with the given content.
-    void setContent(std::unique_ptr<EventContent::TypedBase> content);
+    //! Update the message JSON with the given content
+    void setContent(std::unique_ptr<EventContent::Base> content);
 
     QMimeType mimeType() const;
 
@@ -173,9 +177,8 @@ public:
 
 private:
     // FIXME: should it really be static?
-    static QJsonObject assembleContentJson(const QString& plainBody,
-                                           const QString& jsonMsgType,
-                                           EventContent::TypedBase* content,
+    static QJsonObject assembleContentJson(const QString& plainBody, const QString& jsonMsgType,
+                                           std::unique_ptr<EventContent::Base> content,
                                            std::optional<EventRelation> relatesTo);
 
     Q_ENUM(MsgType)

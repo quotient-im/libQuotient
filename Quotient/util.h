@@ -58,7 +58,7 @@ namespace _impl {
 //! input was QChar/u16-based, it creates a temporary buffer to store the UTF-8 representation that
 //! is destroyed once the statement containing QUO_CSTR() is done (therefore, ALWAYS copy the result
 //! based on QUO_CSTR() contents if you need to store it).
-#define QUO_CSTR(StringConvertible_) std::data(_impl::toUtf8(StringConvertible_))
+#define QUO_CSTR(StringConvertible_) std::data(::Quotient::_impl::toUtf8(StringConvertible_))
 
 inline bool alarmX(bool alarmCondition, const auto& msg,
                    [[maybe_unused]] std::source_location loc = std::source_location::current())
@@ -80,12 +80,13 @@ inline bool alarmX(bool alarmCondition, const auto& msg,
 //! if \p AlarmCondition holds, not the other way around.
 //!
 //! This macro is a trivial wrapper around alarmX(), provided for API uniformity with QUO_ALARM()
-#define QUO_ALARM_X(...) alarmX(__VA_ARGS__)
+#define QUO_ALARM_X(...) ::Quotient::alarmX(__VA_ARGS__)
 
-#define QUO_ALARM(...) alarmX((__VA_ARGS__) ? true : false, "Alarm: " #__VA_ARGS__)
+#define QUO_ALARM(...) ::Quotient::alarmX((__VA_ARGS__) ? true : false, "Alarm: " #__VA_ARGS__)
 
 //! Evaluate the boolean expression and, in Debug mode, assert it to be true
-#define QUO_CHECK(...) !alarmX(!(__VA_ARGS__) ? true : false, "Failing expression: " #__VA_ARGS__)
+#define QUO_CHECK(...) \
+    !::Quotient::alarmX(!(__VA_ARGS__) ? true : false, "Failing expression: " #__VA_ARGS__)
 
 #if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR < 10
 /// This is only to make UnorderedMap alias work until we get rid of it
