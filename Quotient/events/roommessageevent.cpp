@@ -29,13 +29,13 @@ constexpr auto NoticeTypeKey = "m.notice"_L1;
 constexpr auto HtmlContentTypeId = "org.matrix.custom.html"_L1;
 
 template <typename ContentT>
-std::unique_ptr<TypedBase> make(const QJsonObject& json)
+std::unique_ptr<Base> make(const QJsonObject& json)
 {
-    return std::make_unique<ContentT>(json);
+    return !json.isEmpty() ? std::make_unique<ContentT>(json) : nullptr;
 }
 
 template <>
-std::unique_ptr<TypedBase> make<TextContent>(const QJsonObject& json)
+std::unique_ptr<Base> make<TextContent>(const QJsonObject& json)
 {
     return json.contains(FormattedBodyKey) || json.contains(RelatesToKey)
                ? std::make_unique<TextContent>(json)
@@ -45,19 +45,20 @@ std::unique_ptr<TypedBase> make<TextContent>(const QJsonObject& json)
 struct MsgTypeDesc {
     QLatin1String matrixType;
     MsgType enumType;
-    std::unique_ptr<TypedBase> (*maker)(const QJsonObject&);
+    bool fileBased;
+    std::unique_ptr<Base> (*maker)(const QJsonObject&);
 };
 
 constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
-    { TextTypeKey, MsgType::Text, make<TextContent> },
-    { EmoteTypeKey, MsgType::Emote, make<TextContent> },
-    { NoticeTypeKey, MsgType::Notice, make<TextContent> },
-    { "m.image"_L1, MsgType::Image, make<ImageContent> },
-    { "m.file"_L1, MsgType::File, make<FileContent> },
-    { "m.location"_L1, MsgType::Location, make<LocationContent> },
-    { "m.video"_L1, MsgType::Video, make<VideoContent> },
-    { "m.audio"_L1, MsgType::Audio, make<AudioContent> },
-    { "m.key.verification.request"_L1 , MsgType::Text, make<TextContent> },
+    { TextTypeKey, MsgType::Text, false, make<TextContent> },
+    { EmoteTypeKey, MsgType::Emote, false, make<TextContent> },
+    { NoticeTypeKey, MsgType::Notice, false, make<TextContent> },
+    { "m.image"_L1, MsgType::Image, true, make<ImageContent> },
+    { "m.file"_L1, MsgType::File, true, make<FileContent> },
+    { "m.location"_L1, MsgType::Location, false, make<LocationContent> },
+    { "m.video"_L1, MsgType::Video, true, make<VideoContent> },
+    { "m.audio"_L1, MsgType::Audio, true, make<AudioContent> },
+    { "m.key.verification.request"_L1, MsgType::Text, false, make<TextContent> },
 });
 
 QString msgTypeToJson(MsgType enumType)
@@ -69,13 +70,13 @@ QString msgTypeToJson(MsgType enumType)
     return {};
 }
 
-MsgType jsonToMsgType(const QString& matrixType)
+MsgTypeDesc jsonToMsgTypeDesc(const QString& matrixType)
 {
     if (auto it = std::ranges::find(msgTypes, matrixType, &MsgTypeDesc::matrixType);
         it != msgTypes.end())
-        return it->enumType;
+        return *it;
 
-    return MsgType::Unknown;
+    return { {}, MsgType::Unknown, false, nullptr };
 }
 
 inline bool isReplacement(const std::optional<EventRelation>& rel)
@@ -87,7 +88,7 @@ inline bool isReplacement(const std::optional<EventRelation>& rel)
 
 QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                                                   const QString& jsonMsgType,
-                                                  TypedBase* content,
+                                                  std::unique_ptr<Base> content,
                                                   std::optional<EventRelation> relatesTo)
 {
     QJsonObject json;
@@ -101,7 +102,7 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
         json.insert(RelatesToKey, toJson(relatesTo.value()));
         if (relatesTo->type == EventRelation::ReplacementType) {
             QJsonObject newContentJson;
-            if (auto* textContent = static_cast<const TextContent*>(content);
+            if (auto* textContent = static_cast<const TextContent*>(content.get());
                     textContent && textContent->mimeType.inherits("text/html"_L1)) {
                 newContentJson.insert(FormatKey, HtmlContentTypeId);
                 newContentJson.insert(FormattedBodyKey, textContent->body);
@@ -115,17 +116,17 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
     return json;
 }
 
-RoomMessageEvent::RoomMessageEvent(const QString& plainBody,
-                                   const QString& jsonMsgType,
-                                   TypedBase* content,
+RoomMessageEvent::RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
+                                   std::unique_ptr<Base> content,
                                    std::optional<EventRelation> relatesTo)
-    : RoomEvent(
-        basicJson(TypeId, assembleContentJson(plainBody, jsonMsgType, content, relatesTo)))
+    : RoomEvent(basicJson(TypeId, assembleContentJson(plainBody, jsonMsgType, std::move(content),
+                                                      relatesTo)))
 {}
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody, MsgType msgType,
-                                   TypedBase* content, std::optional<EventRelation> relatesTo)
-    : RoomMessageEvent(plainBody, msgTypeToJson(msgType), content, relatesTo)
+                                   std::unique_ptr<Base> content,
+                                   std::optional<EventRelation> relatesTo)
+    : RoomMessageEvent(plainBody, msgTypeToJson(msgType), std::move(content), relatesTo)
 {}
 
 RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
@@ -148,7 +149,7 @@ RoomMessageEvent::RoomMessageEvent(const QJsonObject& obj)
 
 RoomMessageEvent::MsgType RoomMessageEvent::msgtype() const
 {
-    return jsonToMsgType(rawMsgtype());
+    return jsonToMsgTypeDesc(rawMsgtype()).enumType;
 }
 
 QString RoomMessageEvent::rawMsgtype() const
@@ -168,26 +169,29 @@ QMimeType RoomMessageEvent::mimeType() const
     return content() ? content()->type() : PlainTextMimeType;
 }
 
-std::unique_ptr<TypedBase> RoomMessageEvent::content() const
+std::unique_ptr<Base> RoomMessageEvent::content() const
 {
-    const QJsonObject content = contentJson();
+    const auto content = contentJson();
     if (!content.contains(MsgTypeKey) || !content.contains(BodyKey)) {
         qCWarning(EVENTS) << "No body or msgtype in room message event";
         qCWarning(EVENTS) << formatJson << fullJson();
         return {};
     }
 
-    if (auto it = std::ranges::find(msgTypes, content[MsgTypeKey].toString(), &MsgTypeDesc::matrixType); it != msgTypes.cend()) {
+    if (const auto it =
+            std::ranges::find(msgTypes, content[MsgTypeKey].toString(), &MsgTypeDesc::matrixType);
+        it != msgTypes.cend())
         return it->maker(content);
-    }
+
     qCWarning(EVENTS) << "RoomMessageEvent: unknown msgtype, full content dump follows";
     qCWarning(EVENTS) << formatJson << content;
     return {};
 }
 
-void RoomMessageEvent::setContent(std::unique_ptr<EventContent::TypedBase> content)
+void RoomMessageEvent::setContent(std::unique_ptr<Base> content)
 {
-    editJson()[ContentKey] = assembleContentJson(plainBody(), rawMsgtype(), content.get(), relatesTo());
+    editJson()[ContentKey] =
+        assembleContentJson(plainBody(), rawMsgtype(), std::move(content), relatesTo());
 }
 
 bool RoomMessageEvent::hasTextContent() const
@@ -208,35 +212,27 @@ std::unique_ptr<TextContent> RoomMessageEvent::richTextContent() const
 
 bool RoomMessageEvent::hasFileContent() const
 {
-    return content() && content()->fileInfo();
+    return jsonToMsgTypeDesc(rawMsgtype()).fileBased;
 }
 
 std::unique_ptr<FileContent> RoomMessageEvent::fileContent() const
 {
-    if (!hasFileContent()) {
-        return {};
-    }
-
-    return std::make_unique<FileContent>(contentJson());
+    return hasFileContent() ? std::make_unique<FileContent>(contentJson()) : nullptr;
 }
 
 bool RoomMessageEvent::hasThumbnail() const
 {
-    return content() && content()->thumbnailInfo();
+    return contentJson().contains("thumbnail_url"_L1);
 }
 
 bool RoomMessageEvent::hasLocationContent() const
 {
-    return content() && msgtype() == MsgType::Location;
+    return msgtype() == MsgType::Location;
 }
 
 std::unique_ptr<LocationContent> RoomMessageEvent::locationContent() const
 {
-    if (!hasLocationContent()) {
-        return {};
-    }
-
-    return std::make_unique<LocationContent>(contentJson());
+    return hasLocationContent() ? std::make_unique<LocationContent>(contentJson()) : nullptr;
 }
 
 std::optional<EventRelation> RoomMessageEvent::relatesTo() const
@@ -261,12 +257,13 @@ QString RoomMessageEvent::replacedEvent() const
 
 bool RoomMessageEvent::isReplaced() const
 {
-    return unsignedPart<QJsonObject>("m.relations"_L1).contains("m.replace"_L1);
+    return unsignedPart<QJsonObject>("m.relations"_L1).contains(EventRelation::ReplacementType);
 }
 
 QString RoomMessageEvent::replacedBy() const
 {
-    return unsignedPart<QJsonObject>("m.relations"_L1)["m.replace"_L1][EventIdKey].toString();
+    return unsignedPart<QJsonObject>("m.relations"_L1)[EventRelation::ReplacementType][EventIdKey]
+        .toString();
 }
 
 bool RoomMessageEvent::isReply(bool includeFallbacks) const
@@ -318,8 +315,10 @@ QString safeFileName(QString rawName)
 
 QString RoomMessageEvent::fileNameToDownload() const
 {
-    Q_ASSERT(hasFileContent());
-    const auto* fileInfo = content()->fileInfo();
+    const auto fileInfo = fileContent();
+    if (QUO_ALARM(fileInfo == nullptr))
+        return {};
+
     QString fileName;
     if (!fileInfo->originalName.isEmpty())
         fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
@@ -408,7 +407,7 @@ LocationContent::LocationContent(const QString& geoUri,
 {}
 
 LocationContent::LocationContent(const QJsonObject& json)
-    : TypedBase(json)
+    : Base(json)
     , geoUri(json["geo_uri"_L1].toString())
     , thumbnail(json["info"_L1].toObject())
 {}
