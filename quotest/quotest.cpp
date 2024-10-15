@@ -438,7 +438,7 @@ TEST_IMPL(sendFile)
     const auto tfName = tfi.fileName();
     clog << "Sending file " << tfName.toStdString() << endl;
     const auto txnId = targetRoom->postFile(
-        "Test file"_L1, new EventContent::FileContent(tfi));
+        "Test file"_L1, std::make_unique<EventContent::FileContent>(tfi));
     if (!validatePendingEvent<RoomMessageEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         tf->deleteLater();
