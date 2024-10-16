@@ -106,10 +106,10 @@ namespace {
 template <typename FsiT>
 auto& getUrl(FsiT& fsi)
 {
-    return std::visit( // std::variant_alternative_t<> applies const from FsiT if it's there
-        Overloads{ [](std::variant_alternative_t<0, FsiT>& url) -> auto& { return url; },
-                   [](std::variant_alternative_t<1, FsiT>& efm) -> auto& { return efm.url; } },
-        fsi);
+    return Visitor{ // std::variant_alternative_t<> applies const from FsiT if it's there
+                    [](std::variant_alternative_t<0, FsiT>& url) -> auto& { return url; },
+                    [](std::variant_alternative_t<1, FsiT>& efm) -> auto& { return efm.url; }
+    }.invokeWith(fsi);
 }
 }
 

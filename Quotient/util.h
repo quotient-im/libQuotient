@@ -295,18 +295,31 @@ inline auto makeCStruct(T* (*constructor)(void*), size_t (*sizeFn)(),
     return CStructPtr<T>{ constructor(new std::byte[sizeFn()]), { destructor } };
 }
 
-//! \brief Multiplex several functors in one
-//!
-//! This is a well-known trick to wrap several lambdas into a single functor
-//! class that can be passed to std::visit.
-//! \sa  https://en.cppreference.com/w/cpp/utility/variant/visit
 template <typename... FunctorTs>
-struct Overloads : FunctorTs... {
+struct [[deprecated("Use Visitor instead")]] Overloads : FunctorTs... {
     using FunctorTs::operator()...;
 };
 
 template <typename... FunctorTs>
 Overloads(FunctorTs&&...) -> Overloads<FunctorTs...>;
+
+//! \brief Multiplex several functors to visit std::variant(s)
+//!
+//! Based on a well-known trick to wrap several lambdas into a single functor class that can
+//! be passed to std::visit.
+//! \sa  https://en.cppreference.com/w/cpp/utility/variant/visit
+template <typename... FunctorTs>
+struct Visitor : FunctorTs... {
+    using FunctorTs::operator()...;
+    template <class... VariantTs>
+    decltype(auto) invokeWith(VariantTs&&... variants)
+    {
+        return std::visit(*this, std::forward<VariantTs>(variants)...);
+    }
+};
+
+template <typename... FunctorTs>
+Visitor(FunctorTs&&...) -> Visitor<FunctorTs...>;
 
 /** Convert what looks like a URL or a Matrix ID to an HTML hyperlink */
 QUOTIENT_API void linkifyUrls(QString& htmlEscapedText);
