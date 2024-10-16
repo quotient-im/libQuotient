@@ -282,20 +282,19 @@ using FileContent = UrlBasedContent<FileInfo>;
 template <typename InfoT>
 class PlayableContent : public UrlBasedContent<InfoT> {
 public:
-using UrlBasedContent<InfoT>::UrlBasedContent;
-PlayableContent(const QJsonObject& json)
-    : UrlBasedContent<InfoT>(json)
-    , duration(FileInfo::originalInfoJson["duration"_L1].toInt())
-{}
+    using UrlBasedContent<InfoT>::UrlBasedContent;
+    explicit PlayableContent(const QJsonObject& json)
+        : UrlBasedContent<InfoT>(json), duration(FileInfo::originalInfoJson["duration"_L1].toInt())
+    {}
 
 protected:
-void fillInfoJson(QJsonObject& infoJson) const override
-{
-    infoJson.insert("duration"_L1, duration);
+    void fillInfoJson(QJsonObject& infoJson) const override
+    {
+        infoJson.insert("duration"_L1, duration);
 }
 
 public:
-int duration;
+    int duration;
 };
 
 //! \brief Content class for m.video

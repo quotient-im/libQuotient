@@ -35,10 +35,10 @@ public:
 
     RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
                      std::unique_ptr<EventContent::Base> content = nullptr,
-                     std::optional<EventRelation> relatesTo = std::nullopt);
+                     const std::optional<EventRelation>& relatesTo = std::nullopt);
     explicit RoomMessageEvent(const QString& plainBody, MsgType msgType = MsgType::Text,
                               std::unique_ptr<EventContent::Base> content = nullptr,
-                              std::optional<EventRelation> relatesTo = std::nullopt);
+                              const std::optional<EventRelation>& relatesTo = std::nullopt);
 
     explicit RoomMessageEvent(const QJsonObject& obj);
 
@@ -179,7 +179,7 @@ private:
     // FIXME: should it really be static?
     static QJsonObject assembleContentJson(const QString& plainBody, const QString& jsonMsgType,
                                            std::unique_ptr<EventContent::Base> content,
-                                           std::optional<EventRelation> relatesTo);
+                                           const std::optional<EventRelation>& relatesTo);
 
     Q_ENUM(MsgType)
 };

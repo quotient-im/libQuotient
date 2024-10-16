@@ -89,7 +89,7 @@ inline bool isReplacement(const std::optional<EventRelation>& rel)
 QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
                                                   const QString& jsonMsgType,
                                                   std::unique_ptr<Base> content,
-                                                  std::optional<EventRelation> relatesTo)
+                                                  const std::optional<EventRelation>& relatesTo)
 {
     QJsonObject json;
     if (content) {
@@ -118,14 +118,14 @@ QJsonObject RoomMessageEvent::assembleContentJson(const QString& plainBody,
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody, const QString& jsonMsgType,
                                    std::unique_ptr<Base> content,
-                                   std::optional<EventRelation> relatesTo)
+                                   const std::optional<EventRelation>& relatesTo)
     : RoomEvent(basicJson(TypeId, assembleContentJson(plainBody, jsonMsgType, std::move(content),
                                                       relatesTo)))
 {}
 
 RoomMessageEvent::RoomMessageEvent(const QString& plainBody, MsgType msgType,
                                    std::unique_ptr<Base> content,
-                                   std::optional<EventRelation> relatesTo)
+                                   const std::optional<EventRelation>& relatesTo)
     : RoomMessageEvent(plainBody, msgTypeToJson(msgType), std::move(content), relatesTo)
 {}
 
