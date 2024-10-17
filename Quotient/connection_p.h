@@ -9,6 +9,7 @@
 #include "connectiondata.h"
 #include "settings.h"
 #include "syncdata.h"
+#include "e2ee/e2ee_common.h"
 
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
@@ -160,5 +161,8 @@ public:
 
     void requestDeviceVerification(KeyVerificationSession* session);
     void requestUserVerification(KeyVerificationSession* session);
+
+    QFuture<void> setupPicklingKey();
+    void setupCryptoMachine(const QByteArray& picklingKey);
 };
 } // namespace Quotient

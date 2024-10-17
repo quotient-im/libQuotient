@@ -319,6 +319,73 @@ void Connection::Private::loginToServer(LoginArgTs&&... loginArgs)
         });
 }
 
+inline QFuture<QKeychain::Job*> runKeychainJob(QKeychain::Job* j, const QString& keychainId)
+{
+    j->setAutoDelete(true);
+    j->setKey(keychainId);
+    auto ft = QtFuture::connect(j, &QKeychain::Job::finished);
+    j->start();
+    return ft;
+}
+
+QFuture<void> Connection::Private::setupPicklingKey()
+{
+    using namespace QKeychain;
+    const auto keychainId = q->userId() + "-Pickle"_L1;
+    qCInfo(MAIN) << "Keychain request: app" << qAppName() << "id" << keychainId;
+
+    return runKeychainJob(new ReadPasswordJob(qAppName()), keychainId)
+        .then([keychainId, this](const Job* j) -> QFuture<Job*> {
+            // The future will hold nullptr if the existing pickling key was found and no write is
+            // pending; a pointer to the write job if if a new key was made and is being written;
+            // be cancelled in case of an error.
+            switch (const auto readJob = static_cast<const ReadPasswordJob*>(j); readJob->error()) {
+            case Error::NoError: {
+                auto&& data = readJob->binaryData();
+                qDebug(E2EE) << "Successfully loaded pickling key from keychain";
+
+                setupCryptoMachine(data);
+                return QtFuture::makeReadyFuture<Job*>(nullptr);
+                qCritical(E2EE)
+                    << "The pickling key loaded from" << keychainId << "has length"
+                    << data.size() << "but the library expected" << PicklingKey::extent;
+                return {};
+            }
+            case Error::EntryNotFound: {
+                auto&& picklingKey = PicklingKey::generate();
+                auto writeJob = new WritePasswordJob(qAppName());
+                setupCryptoMachine(picklingKey.viewAsByteArray().toBase64());
+                writeJob->setBinaryData(picklingKey.viewAsByteArray().toBase64());
+                qDebug(E2EE) << "Saving a new pickling key to the keychain";
+                return runKeychainJob(writeJob, keychainId);
+            }
+            default:
+                qWarning(E2EE) << "Error loading pickling key - please fix your keychain:"
+                               << readJob->errorString();
+                //TODO: We probably want to fail entirely here.
+            }
+            return {};
+        })
+        .unwrap()
+        .then([](QFuture<Job*> writeFuture) {
+            if (const Job* const writeJob = writeFuture.result();
+                writeJob && writeJob->error() != Error::NoError) //
+            {
+                qCritical(E2EE) << "Could not save pickling key to keychain: "
+                                << writeJob->errorString();
+                writeFuture.cancel();
+            }
+        });
+}
+
+void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
+{
+    auto mxIdForDb = q->userId();
+    mxIdForDb.replace(u':', u'_');
+    const QString databasePath{ QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb % u'/' % q->deviceId() };
+    cryptoMachine = crypto::init(stringToRust(q->userId()), stringToRust(q->deviceId()), stringToRust(databasePath), bytesToRust(picklingKey));
+}
+
 void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
                                         const std::optional<QString>& deviceId,
                                         const std::optional<QString>& accessToken)
@@ -329,10 +396,7 @@ void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
                   << "by user" << data->userId()
                   << "from device" << data->deviceId();
     connect(qApp, &QCoreApplication::aboutToQuit, q, &Connection::saveState);
-    auto mxIdForDb = mxId;
-    mxIdForDb.replace(u':', u'_');
-    const QString databasePath{ QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb % u'/' % *deviceId };
-    cryptoMachine = crypto::init(stringToRust(mxId), stringToRust(*deviceId), stringToRust(databasePath));
+    setupPicklingKey();
 
     if (accessToken.has_value()) {
         q->loadVersions();
@@ -528,6 +592,10 @@ void Connection::onSyncSuccess(SyncData&& data, bool fromCache)
 
 void Connection::Private::processOutgoingRequests()
 {
+    if (!cryptoMachine) {
+        qWarning() << "Crypto machine not loaded yet";
+        return;
+    }
     auto requests = (*cryptoMachine)->outgoing_requests();
     for (const auto &request : requests) {
         auto id = stringFromRust(request.id());
@@ -622,7 +690,9 @@ void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
                         for (const auto &id : ids) {
                             userIds.push_back(stringToRust(id));
                         }
-                        (*cryptoMachine)->update_tracked_users(userIds);
+                        if (cryptoMachine) {
+                            (*cryptoMachine)->update_tracked_users(userIds);
+                        }
                     }
                 },
                 Qt::QueuedConnection);

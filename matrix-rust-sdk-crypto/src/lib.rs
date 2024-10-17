@@ -34,7 +34,7 @@ impl Drop for CryptoMachine {
     }
 }
 
-fn init(user_id: String, device_id: String, path: String) -> Box<CryptoMachine> {
+fn init(user_id: String, device_id: String, path: String, pickle_key: String) -> Box<CryptoMachine> {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let _ = rt.enter();
 
@@ -42,9 +42,7 @@ fn init(user_id: String, device_id: String, path: String) -> Box<CryptoMachine> 
         let user_id = UserId::parse(user_id).unwrap();
         let device_id: Box<DeviceId> = device_id.into();
 
-        //TODO: use real pickle key
-        println!("path: {path}");
-        let store = SqliteCryptoStore::open(Path::new(&path), "123123123".into()).await.unwrap();
+        let store = SqliteCryptoStore::open(Path::new(&path), Some(&pickle_key)).await.unwrap();
 
         OlmMachine::with_store(&user_id, &device_id, store)
             .await
@@ -845,7 +843,7 @@ mod ffi {
         type EncryptionInfo;
 
         // General CryptoMachine functions
-        fn init(user_id: String, device_id: String, path: String) -> Box<CryptoMachine>;
+        fn init(user_id: String, device_id: String, path: String, pickle_key: String) -> Box<CryptoMachine>;
         fn outgoing_requests(self: &CryptoMachine) -> Vec<OutgoingRequest>;
         fn receive_sync_changes(self: &mut CryptoMachine, sync_json: String) -> Vec<KeyVerificationRequest>;
         fn receive_verification_event(self: &mut CryptoMachine, full_json: String);

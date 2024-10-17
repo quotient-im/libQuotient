@@ -334,9 +334,11 @@ target_include_directories(${QUOTIENT_LIB_NAME} PUBLIC
     $<BUILD_INTERFACE:$<$<NOT:$<BOOL:${QUOTIENT_FORCE_NAMESPACED_INCLUDES}>>:${CMAKE_CURRENT_SOURCE_DIR}/Quotient>>
 )
 
+find_package(OpenSSL REQUIRED)
+
 target_link_libraries(${QUOTIENT_LIB_NAME}
     PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain ${Qt}::Sql
-    PRIVATE ${Qt}::CorePrivate matrix_rust_sdk_crypto_cpp)
+    PRIVATE ${Qt}::CorePrivate matrix_rust_sdk_crypto_cpp OpenSSL::Crypto)
 
 if(NOT WIN32)
     target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE PkgConfig::SQLITE)
