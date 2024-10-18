@@ -517,14 +517,15 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
     targetRoom->whenMessageMerged(txnId).then(
         this, [this, thisTest, txnId, fileName](const RoomEvent& evt) {
             clog << "File event " << txnId.toStdString() << " arrived in the timeline" << endl;
+            using EventContent::FileContent;
             evt.switchOnType(
                 [&](const RoomMessageEvent& e) {
                     // TODO: check #366 once #368 is implemented
                     FINISH_TEST(!e.id().isEmpty() && evt.transactionId() == txnId
-                                && e.hasFileContent()
-                                && e.fileContent()->originalName == fileName
+                                && e.has<FileContent>()
+                                && e.get<FileContent>()->originalName == fileName
                                 && testDownload(targetRoom->connection()->makeMediaUrl(
-                                    e.fileContent()->url())));
+                                    e.get<FileContent>()->url())));
                 },
                 [this, thisTest](const RoomEvent&) { FAIL_TEST(); });
         });

@@ -11,8 +11,8 @@ using namespace Quotient;
 void PendingEventItem::setFileUploaded(const FileSourceInfo& uploadedFileData)
 {
     if (auto* rme = getAs<RoomMessageEvent>()) {
-        Q_ASSERT(rme->hasFileContent());
-        auto fc = rme->fileContent();
+        auto fc = rme->get<EventContent::FileContent>();
+        Q_ASSERT(fc != nullptr);
         fc->source = uploadedFileData;
         rme->setContent(std::move(fc));
     }
