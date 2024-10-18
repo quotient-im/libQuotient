@@ -23,9 +23,13 @@ constexpr auto RelatesToKey = "m.relates_to"_L1;
 constexpr auto MsgTypeKey = "msgtype"_L1;
 constexpr auto FormattedBodyKey = "formatted_body"_L1;
 constexpr auto FormatKey = "format"_L1;
-constexpr auto TextTypeKey = "m.text"_L1;
-constexpr auto EmoteTypeKey = "m.emote"_L1;
-constexpr auto NoticeTypeKey = "m.notice"_L1;
+constexpr auto TextTypeId = "m.text"_L1;
+constexpr auto EmoteTypeId = "m.emote"_L1;
+constexpr auto NoticeTypeId = "m.notice"_L1;
+constexpr auto FileTypeId = "m.file"_L1;
+constexpr auto ImageTypeId = "m.file"_L1;
+constexpr auto AudioTypeId = "m.file"_L1;
+constexpr auto VideoTypeId = "m.file"_L1;
 constexpr auto HtmlContentTypeId = "org.matrix.custom.html"_L1;
 
 template <typename ContentT>
@@ -50,9 +54,9 @@ struct MsgTypeDesc {
 };
 
 constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
-    { TextTypeKey, MsgType::Text, false, make<TextContent> },
-    { EmoteTypeKey, MsgType::Emote, false, make<TextContent> },
-    { NoticeTypeKey, MsgType::Notice, false, make<TextContent> },
+    { TextTypeId, MsgType::Text, false, make<TextContent> },
+    { EmoteTypeId, MsgType::Emote, false, make<TextContent> },
+    { NoticeTypeId, MsgType::Notice, false, make<TextContent> },
     { "m.image"_L1, MsgType::Image, true, make<ImageContent> },
     { "m.file"_L1, MsgType::File, true, make<FileContent> },
     { "m.location"_L1, MsgType::Location, false, make<LocationContent> },
@@ -194,45 +198,58 @@ void RoomMessageEvent::setContent(std::unique_ptr<Base> content)
         assembleContentJson(plainBody(), rawMsgtype(), std::move(content), relatesTo());
 }
 
-bool RoomMessageEvent::hasTextContent() const
+template <>
+bool RoomMessageEvent::has<TextContent>() const
 {
-    return !content()
-           || (msgtype() == MsgType::Text || msgtype() == MsgType::Emote
-               || msgtype() == MsgType::Notice);
+    const auto t = msgtype();
+    return (t == MsgType::Text || t == MsgType::Emote || t == MsgType::Notice)
+           && make<TextContent>(contentJson()) != nullptr;
 }
 
-std::unique_ptr<TextContent> RoomMessageEvent::richTextContent() const
-{
-    if (!hasTextContent() || !content()) {
-        return {};
-    }
-
-    return std::make_unique<TextContent>(contentJson());
-}
-
-bool RoomMessageEvent::hasFileContent() const
+template <>
+bool RoomMessageEvent::has<FileContentBase>() const
 {
     return jsonToMsgTypeDesc(rawMsgtype()).fileBased;
 }
 
-std::unique_ptr<FileContent> RoomMessageEvent::fileContent() const
+template <>
+bool RoomMessageEvent::has<FileContent>() const
 {
-    return hasFileContent() ? std::make_unique<FileContent>(contentJson()) : nullptr;
+    return rawMsgtype() == FileTypeId;
+}
+
+template <>
+bool RoomMessageEvent::has<ImageContent>() const
+{
+    return rawMsgtype() == ImageTypeId;
+}
+
+template <>
+bool RoomMessageEvent::has<AudioContent>() const
+{
+    return rawMsgtype() == AudioTypeId;
+}
+
+template <>
+bool RoomMessageEvent::has<VideoContent>() const
+{
+    return rawMsgtype() == VideoTypeId;
 }
 
 bool RoomMessageEvent::hasThumbnail() const
 {
-    return contentJson().contains("thumbnail_url"_L1);
+    return fromJson<QUrl>(contentJson()[InfoKey]["thumbnail_url"_L1]).isValid();
 }
 
-bool RoomMessageEvent::hasLocationContent() const
+Thumbnail RoomMessageEvent::getThumbnail() const
+{
+    return contentPart<Thumbnail>(InfoKey);
+}
+
+template <>
+bool RoomMessageEvent::has<LocationContent>() const
 {
     return msgtype() == MsgType::Location;
-}
-
-std::unique_ptr<LocationContent> RoomMessageEvent::locationContent() const
-{
-    return hasLocationContent() ? std::make_unique<LocationContent>(contentJson()) : nullptr;
 }
 
 std::optional<EventRelation> RoomMessageEvent::relatesTo() const
@@ -248,7 +265,7 @@ QString RoomMessageEvent::upstreamEventId() const
 
 QString RoomMessageEvent::replacedEvent() const
 {
-    if (!content() || !hasTextContent())
+    if (!has<TextContent>())
         return {};
 
     const auto er = relatesTo();
@@ -315,7 +332,7 @@ QString safeFileName(QString rawName)
 
 QString RoomMessageEvent::fileNameToDownload() const
 {
-    const auto fileInfo = fileContent();
+    const auto fileInfo = get<FileContent>();
     if (QUO_ALARM(fileInfo == nullptr))
         return {};
 
@@ -362,8 +379,7 @@ QString RoomMessageEvent::rawMsgTypeForFile(const QFileInfo& fi)
 }
 
 TextContent::TextContent(QString text, const QString& contentType)
-    : mimeType(QMimeDatabase().mimeTypeForName(contentType))
-    , body(std::move(text))
+    : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(std::move(text))
 {
     if (contentType == HtmlContentTypeId)
         mimeType = QMimeDatabase().mimeTypeForName("text/html"_L1);
@@ -401,15 +417,14 @@ void TextContent::fillJson(QJsonObject &json) const
     }
 }
 
-LocationContent::LocationContent(const QString& geoUri,
-                                 const Thumbnail& thumbnail)
+LocationContent::LocationContent(const QString& geoUri, const Thumbnail& thumbnail)
     : geoUri(geoUri), thumbnail(thumbnail)
 {}
 
 LocationContent::LocationContent(const QJsonObject& json)
     : Base(json)
     , geoUri(json["geo_uri"_L1].toString())
-    , thumbnail(json["info"_L1].toObject())
+    , thumbnail(json[InfoKey].toObject())
 {}
 
 QMimeType LocationContent::type() const
@@ -420,5 +435,5 @@ QMimeType LocationContent::type() const
 void LocationContent::fillJson(QJsonObject& o) const
 {
     o.insert("geo_uri"_L1, geoUri);
-    o.insert("info"_L1, toInfoJson(thumbnail));
+    o.insert(InfoKey, toInfoJson(thumbnail));
 }
