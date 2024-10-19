@@ -27,9 +27,10 @@ constexpr auto TextTypeId = "m.text"_L1;
 constexpr auto EmoteTypeId = "m.emote"_L1;
 constexpr auto NoticeTypeId = "m.notice"_L1;
 constexpr auto FileTypeId = "m.file"_L1;
-constexpr auto ImageTypeId = "m.file"_L1;
-constexpr auto AudioTypeId = "m.file"_L1;
-constexpr auto VideoTypeId = "m.file"_L1;
+constexpr auto ImageTypeId = "m.image"_L1;
+constexpr auto AudioTypeId = "m.audio"_L1;
+constexpr auto VideoTypeId = "m.video"_L1;
+constexpr auto LocationTypeId = "m.location"_L1;
 constexpr auto HtmlContentTypeId = "org.matrix.custom.html"_L1;
 
 template <typename ContentT>
@@ -57,11 +58,11 @@ constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
     { TextTypeId, MsgType::Text, false, make<TextContent> },
     { EmoteTypeId, MsgType::Emote, false, make<TextContent> },
     { NoticeTypeId, MsgType::Notice, false, make<TextContent> },
-    { "m.image"_L1, MsgType::Image, true, make<ImageContent> },
-    { "m.file"_L1, MsgType::File, true, make<FileContent> },
-    { "m.location"_L1, MsgType::Location, false, make<LocationContent> },
-    { "m.video"_L1, MsgType::Video, true, make<VideoContent> },
-    { "m.audio"_L1, MsgType::Audio, true, make<AudioContent> },
+    { ImageTypeId, MsgType::Image, true, make<ImageContent> },
+    { FileTypeId, MsgType::File, true, make<FileContent> },
+    { LocationTypeId, MsgType::Location, false, make<LocationContent> },
+    { VideoTypeId, MsgType::Video, true, make<VideoContent> },
+    { AudioTypeId, MsgType::Audio, true, make<AudioContent> },
     { "m.key.verification.request"_L1, MsgType::Text, false, make<TextContent> },
 });
 
@@ -249,7 +250,7 @@ Thumbnail RoomMessageEvent::getThumbnail() const
 template <>
 bool RoomMessageEvent::has<LocationContent>() const
 {
-    return msgtype() == MsgType::Location;
+    return rawMsgtype() == LocationTypeId;
 }
 
 std::optional<EventRelation> RoomMessageEvent::relatesTo() const
@@ -362,10 +363,10 @@ QString RoomMessageEvent::fileNameToDownload() const
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
 {
     auto name = mimeType.name();
-    return name.startsWith("image/"_L1)   ? u"m.image"_s
-           : name.startsWith("video/"_L1) ? u"m.video"_s
-           : name.startsWith("audio/"_L1) ? u"m.audio"_s
-                                          : u"m.file"_s;
+    return name.startsWith("image/"_L1)   ? ImageTypeId
+           : name.startsWith("video/"_L1) ? VideoTypeId
+           : name.startsWith("audio/"_L1) ? AudioTypeId
+                                          : FileTypeId;
 }
 
 QString RoomMessageEvent::rawMsgTypeForUrl(const QUrl& url)
