@@ -87,22 +87,22 @@ It's not practical to fix old contributions in git, so if one is forgotten,
 do not try to fix them.  We presume that if someone sometimes used a DCO,
 a commit without a DCO is an accident and the DCO still applies.
 -->
+
 ### License
 
 Unless a contributor explicitly specifies otherwise, we assume contributors
 to agree that all contributed code is released either under *LGPL v2.1 or later*.
 This is more than just [LGPL v2.1 libQuotient now uses](./COPYING)
-because the project plans to switch to LGPL v3 for library code in the near future.
+because the project plans to eventually switch to LGPL v3 for library code.
 <!-- The below is invalid yet!
 All new contributed material that is not executable, including all text when not executed, is also released under the
 [Creative Commons Attribution 4.0 International (CC BY 4.0) license](https://creativecommons.org/licenses/by/4.0/) or later.
 -->
 
-Any components proposed for reuse should have a license that permits releasing
-a derivative work under *LGPL v3 or later* (that includes licenses permitting
-*LGPL v2.1 or later* but not *LGPL v2.1 only*). In any case, the component
-should be redistributable under a license from
-[the list approved by OSI](https://opensource.org/licenses), no exceptions.
+Any components proposed for reuse should have a license that permits releasing a derivative work
+under *LGPL v3 or later* (that includes licenses permitting *LGPL v2.1 or later* but not
+*LGPL v2.1 only*). While this rule can be negotiated in some situations, using only licenses from
+[the list approved by OSI](https://opensource.org/licenses) is non-negotiable.
 
 We use [SPDX](https://spdx.dev) conventions for copyright statements. Please
 follow them when making a sizable contribution: add your name and year to
@@ -150,10 +150,12 @@ should follow it. Reasonable deviations from the defined style are allowed;
 use `// clang-format off` and `// clang-format on` to protect them.
 
 Most fundamental things from `.clang-format`:
-* We (mostly) use Webkit style: 4-space indents, no tabs, no trailing spaces, no last empty lines.
-  If you see code that doesn't follow this, fix it on the spot, thank you.
+* Our style is based on that of Webkit: 4-space indents, no tabs, no trailing spaces, no empty lines
+  at the end of the file. If you see code that doesn't follow this, fix it on the spot, thank you.
 * Prefer keeping lines within 100 characters. Slight overflows are ok if that
-  helps readability. Ideally, just use `clang-format` to format lines.
+  helps readability.
+
+Ideally, just use `clang-format` to format lines.
 
 ### API conventions
 
@@ -181,9 +183,9 @@ so tread carefully).
 
 ### Generated C++ code for CS API
 
-The code in `Quotient/csapi`, `Quotient/identity` and `Quotient/application-service`, although
-stored in Git, is actually generated from the official Matrix Client-Server API definition files.
-Make sure to read [CODE_GENERATION.md](./CODE_GENERATION.md) before trying to change anything there.
+The code in `Quotient/csapi` and `Quotient/application-service`, although stored in Git, is
+actually generated from the official Matrix Client-Server API definition files. Make sure to read
+[CODE_GENERATION.md](./CODE_GENERATION.md) before trying to change anything there.
 
 
 ## Documentation changes
@@ -253,7 +255,8 @@ Further sections are for those who's going to actively hack on the library code.
     questions at your pull request.
 * Prefer `std::unique_ptr<>` over `QScopedPointer<>`; `std::as_const()` to `qAsConst()`; 
   `std::swap()` to `qSwap()` etc.; basically, do not use compat facilities provided by Qt if the 
-  standard library provides an _equivalent_ facility.
+  standard library provides an _equivalent_ facility (Qt containers, `qHash` are not _equivalent_
+  to STL counterparts, e.g.).
 
 * When you write logs within the library always use logging categories defined in
   `logging_categories_p.h` instead of plain `qDebug()`, to avoid a log line being assigned
