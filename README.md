@@ -131,11 +131,11 @@ attribution) the source code of [Quaternion](https://github.com/quotient-im/Quat
 ### API/ABI stability
 
 Since Quotient 0.7.2, symbols in all header files of libQuotient *except files ending with `_p.h`
-and `namespace _impl`* are considered public and covered by API/ABI stability guarantees.
+and namespace `_impl`* are considered public and covered by API/ABI stability guarantees.
 Specifically, the API and ABI are backwards compatible within every minor version (0.7.x releases)
 with every next minor version (0.8, e.g.) breaking the compatibility. Once we reach 1.0, this rule
 will apply to the major version, aligning with [semantic versioning](https://semver.org/) rules.
-`_p.h` files and `namespace _impl` are not covered by these guarantees; client code should not
+`*_p.h` files and namespace `_impl` are not covered by these guarantees; client code should not
 directly include these files, nor use symbols defined in these locations.
 
 ## Building the library

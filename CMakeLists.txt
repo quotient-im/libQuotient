@@ -5,8 +5,8 @@ endif()
 
 set(API_VERSION "0.9")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
-set(PRE_STAGE "rc")
-set(FULL_VERSION ${PROJECT_VERSION}~${PRE_STAGE})
+set(PRE_STAGE "rc2")
+string(JOIN ~ FULL_VERSION ${PROJECT_VERSION} ${PRE_STAGE})
 
 message(STATUS)
 message(STATUS "Configuring ${PROJECT_NAME} ${FULL_VERSION} ==>")

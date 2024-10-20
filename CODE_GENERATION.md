@@ -1,14 +1,11 @@
 # Generated C++ code for CS API
 
-The code in `Quotient/csapi`, `Quotient/identity` and
-`Quotient/application-service`, although stored in Git, is actually generated
-from the official Matrix Client-Server API definition files. If you're unhappy
-with something in there and want to improve that, you have to understand the way
-these files are produced and setup some additional tooling. The shortest
-possible procedure resembling the below text can be found in
-.github/workflows/ci.yml (regeneration of those files is tested in CI) - see
-the tasks "Get CS API definitions; clone and build GTAD" and
-"Regenerate API code".
+The code in `Quotient/csapi`, and `Quotient/application-service`, although stored in Git, is
+actually generated from the official Matrix Client-Server API definition files. If you're unhappy
+with something in there and want to improve that, you have to understand the way these files are
+produced and setup some additional tooling. The shortest possible implementation of the procedure
+described below can be found in .github/workflows/ci.yml (regeneration of those files is tested
+in CI) - see the tasks "Get CS API definitions; clone and build GTAD" and "Regenerate API code".
 
 ## Why generate the code at all?
 
@@ -30,25 +27,25 @@ that also briefly touches on GTAD - the tool written for the purpose.
 
    You can also just clone GTAD sources to keep them separate from libQuotient:
    `git clone --recursive https://github.com/quotient-im/gtad.git`
-2. Configure and build GTAD: same as libQuotient, it uses CMake so this should
-   be very straightforward (if not - you're probably not quite ready for this
-   stuff anyway).
-3. Get Matrix CS API definitions from a matrix-spec repo. Although the official
-   repo is at https://github.com/matrix-org/matrix-spec.git` (formerly
-   https://github.com/matrix-org/matrix-doc.git), you cannot use its main branch
-   with GTAD 0.9 (used for the current - 0.8 - version of libQuotient) because
-   the project has recently moved to OpenAPI 3 and GTAD does not support it yet.
-   For that reason as well as build predictability (the official Matrix repo
-   doesn't check whether a particular change breaks code generation), a soft
-   fork of the official definitions is kept at
-   https://github.com/quotient-im/matrix-spec.git - that guarantees buildability
-   of the generated code. This repo closely follows the official one (but maybe
-   not its freshest commit), applying a few adjustments on top. And of course
-   you can use your own repository if you need to change the API definition.
-4. If you plan to submit a PR with the generated code to libQuotient or just
-   would like it to be properly formatted, you should either ensure you have
-   clang-format (version 13 at least) in your PATH or pass
-   `-DCLANG_FORMAT=<path>` to CMake, as mentioned in the next section.
+
+2. Configure and build GTAD: same as libQuotient, it uses CMake so this should be very
+   straightforward (if not - you're probably not quite ready for this stuff anyway). It's only
+   tested on Linux but doesn't use anything Linux-specific; Windows, in particular, should be
+   just fine.
+
+3. Get Matrix CS API definitions from a matrix-spec repo. Although the official repo is at
+   https://github.com/matrix-org/matrix-spec.git`, it is not recommended to use its main branch
+   directly because the official Matrix repo doesn't check whether a particular change breaks code
+   generation or changes the generated API (it's a completely separate project after all). For that
+   reason, a soft fork of the official definitions is kept at
+   https://github.com/quotient-im/matrix-spec.git - that guarantees buildability of the generated
+   code and also has certain tweaks to make the generated API better. This repo closely follows
+   the official one (but maybe not its freshest commit). And of course you can fork it and use your
+   own repository if you need to change the API definition.
+
+4. If you plan to submit a PR with the generated code to libQuotient or just would like it to be
+   properly formatted, you should either ensure you have clang-format (version 16 at least) in your
+   PATH or pass `-DCLANG_FORMAT=<path>` to CMake, as mentioned in the next section.
 
 ## Generating CS API contents
 
@@ -60,11 +57,11 @@ that also briefly touches on GTAD - the tool written for the purpose.
    `-DCLANG_FORMAT=/path/to/clang-format` to the line above. If everything's
    right, the detected locations will be mentioned in CMake output and
    an additional build target called `update-api` will be configured.
-2. Generate the code: `cmake --build <your build dir> --target update-api`.
-   Building this target will create (overwriting without warning) source files
-   in `Quotient/csapi`, `Quotient/identity`, `Quotient/application-service` for
-   all YAML files it can find in `/path/to/matrix-spec/data/api/client-server`
-   and their dependencies.
+
+2. Generate the code: `cmake --build <your build dir> --target update-api`. Building this target
+   will create (overwriting without warning) source files in `Quotient/csapi`,
+   `Quotient/application-service` for all YAML files it can find in
+   `/path/to/matrix-spec/data/api/client-server` and their dependencies.
 
 ## Changing generated code
 
@@ -154,6 +151,7 @@ an existing one beyond minor adjustments):
 4. Once the MSC is accepted, you can officially submit your changes in API
    definitions as a "spec PR" to the official repo.
 
-In any case, when submitting a PR for libQuotient, please make sure generated
-files are committed separately from non-generated ones (no need to make two PRs;
-just separate the files in different commits).
+In any case, when submitting a PR for libQuotient, please make sure generated files are committed
+separately from non-generated ones (no need to make two PRs; just separate the files in different
+commits). This helps in situations when the same `gtad.yaml` or Mustache templates are
+cherry-picked between branches or back/forward-ported.
