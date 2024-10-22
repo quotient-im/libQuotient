@@ -62,49 +62,37 @@ public:
     //! Update the message JSON with the given content
     void setContent(std::unique_ptr<EventContent::Base> content);
 
+    //! \brief Determine whether the message has content/attachment of a specified type
+    //!
+    //! \return true, if the message has type and content corresponding to \p ContentT (e.g.
+    //!         `m.file` or `m.audio` for FileContent); false otherwise
+    template <std::derived_from<EventContent::Base> ContentT>
+    bool has() const { return false; }
+
+    //! \brief Get the message content and try to cast it to the specified type
+    //!
+    //! \return A pointer to the object of the requested type if the event has content of this type;
+    //!         nullptr, if the event has no content or the content cannot be cast to this type
+    template <std::derived_from<EventContent::Base> ContentT>
+    std::unique_ptr<ContentT> get() const
+    {
+        return has<ContentT>()
+                   ? std::unique_ptr<ContentT>(static_cast<ContentT*>(content().release()))
+                   : nullptr;
+    }
+
     QMimeType mimeType() const;
-
-    //! \brief Determine whether the message has text content
-    //!
-    //! \return true, if the message type is one of m.text, m.notice, m.emote,
-    //!         or the message type is unspecified (in which case plainBody()
-    //!         can still be examined); false otherwise
-    bool hasTextContent() const;
-
-    //! \brief Get the TextContent object for the event
-    //!
-    //! \return A TextContent object if the message has one; std::nullopt otherwise.
-    std::unique_ptr<EventContent::TextContent> richTextContent() const;
-
-    //! \brief Determine whether the message has a file/attachment
-    //!
-    //! \return true, if the message has a data structure corresponding to
-    //!         a file (such as m.file or m.audio); false otherwise
-    bool hasFileContent() const;
-
-    //! \brief Get the FileContent object for the event
-    //!
-    //! \return A FileContent object if the message has one; std::nullopt otherwise.
-    std::unique_ptr<EventContent::FileContent> fileContent() const;
 
     //! \brief Determine whether the message has a thumbnail
     //!
     //! \return true, if the message has a data structure corresponding to
     //!         a thumbnail (the message type may be one for visual content,
-    //!         such as m.image, or generic binary content, i.e. m.file);
+    //!         such as m.image, or non-visual, i.e. m.file or m.location);
     //!         false otherwise
     bool hasThumbnail() const;
 
-    //! \brief Determine whether the message has a location
-    //!
-    //! \return true, if the message has a data structure corresponding to
-    //!         a location; false otherwise
-    bool hasLocationContent() const;
-
-    //! \brief Get the LocationContent object for the event
-    //!
-    //! \return A LocationContent object if the message has one; std::nullopt otherwise.
-    std::unique_ptr<EventContent::LocationContent> locationContent() const;
+    //! Retrieve a thumbnail from the message event
+    EventContent::Thumbnail getThumbnail() const;
 
     //! \brief The EventRelation for this event.
     //!
@@ -172,6 +160,8 @@ public:
 
     QString fileNameToDownload() const;
 
+    void updateFileSourceInfo(const FileSourceInfo& fsi);
+
     static QString rawMsgTypeForUrl(const QUrl& url);
     static QString rawMsgTypeForFile(const QFileInfo& fi);
 
@@ -183,6 +173,14 @@ private:
 
     Q_ENUM(MsgType)
 };
+
+template <> QUOTIENT_API bool RoomMessageEvent::has<EventContent::TextContent>() const;
+template <> QUOTIENT_API bool RoomMessageEvent::has<EventContent::LocationContent>() const;
+template <> QUOTIENT_API bool RoomMessageEvent::has<EventContent::FileContentBase>() const;
+template <> QUOTIENT_API bool RoomMessageEvent::has<EventContent::FileContent>() const;
+template <> QUOTIENT_API bool RoomMessageEvent::has<EventContent::ImageContent>() const;
+template <> QUOTIENT_API bool RoomMessageEvent::has<EventContent::AudioContent>() const;
+template <> QUOTIENT_API bool RoomMessageEvent::has<EventContent::VideoContent>() const;
 
 using MessageEventType = RoomMessageEvent::MsgType;
 } // namespace Quotient

@@ -23,9 +23,14 @@ constexpr auto RelatesToKey = "m.relates_to"_L1;
 constexpr auto MsgTypeKey = "msgtype"_L1;
 constexpr auto FormattedBodyKey = "formatted_body"_L1;
 constexpr auto FormatKey = "format"_L1;
-constexpr auto TextTypeKey = "m.text"_L1;
-constexpr auto EmoteTypeKey = "m.emote"_L1;
-constexpr auto NoticeTypeKey = "m.notice"_L1;
+constexpr auto TextTypeId = "m.text"_L1;
+constexpr auto EmoteTypeId = "m.emote"_L1;
+constexpr auto NoticeTypeId = "m.notice"_L1;
+constexpr auto FileTypeId = "m.file"_L1;
+constexpr auto ImageTypeId = "m.image"_L1;
+constexpr auto AudioTypeId = "m.audio"_L1;
+constexpr auto VideoTypeId = "m.video"_L1;
+constexpr auto LocationTypeId = "m.location"_L1;
 constexpr auto HtmlContentTypeId = "org.matrix.custom.html"_L1;
 
 template <typename ContentT>
@@ -50,14 +55,14 @@ struct MsgTypeDesc {
 };
 
 constexpr auto msgTypes = std::to_array<MsgTypeDesc>({
-    { TextTypeKey, MsgType::Text, false, make<TextContent> },
-    { EmoteTypeKey, MsgType::Emote, false, make<TextContent> },
-    { NoticeTypeKey, MsgType::Notice, false, make<TextContent> },
-    { "m.image"_L1, MsgType::Image, true, make<ImageContent> },
-    { "m.file"_L1, MsgType::File, true, make<FileContent> },
-    { "m.location"_L1, MsgType::Location, false, make<LocationContent> },
-    { "m.video"_L1, MsgType::Video, true, make<VideoContent> },
-    { "m.audio"_L1, MsgType::Audio, true, make<AudioContent> },
+    { TextTypeId, MsgType::Text, false, make<TextContent> },
+    { EmoteTypeId, MsgType::Emote, false, make<TextContent> },
+    { NoticeTypeId, MsgType::Notice, false, make<TextContent> },
+    { ImageTypeId, MsgType::Image, true, make<ImageContent> },
+    { FileTypeId, MsgType::File, true, make<FileContent> },
+    { LocationTypeId, MsgType::Location, false, make<LocationContent> },
+    { VideoTypeId, MsgType::Video, true, make<VideoContent> },
+    { AudioTypeId, MsgType::Audio, true, make<AudioContent> },
     { "m.key.verification.request"_L1, MsgType::Text, false, make<TextContent> },
 });
 
@@ -194,45 +199,58 @@ void RoomMessageEvent::setContent(std::unique_ptr<Base> content)
         assembleContentJson(plainBody(), rawMsgtype(), std::move(content), relatesTo());
 }
 
-bool RoomMessageEvent::hasTextContent() const
+template <>
+bool RoomMessageEvent::has<TextContent>() const
 {
-    return !content()
-           || (msgtype() == MsgType::Text || msgtype() == MsgType::Emote
-               || msgtype() == MsgType::Notice);
+    const auto t = msgtype();
+    return (t == MsgType::Text || t == MsgType::Emote || t == MsgType::Notice)
+           && make<TextContent>(contentJson()) != nullptr;
 }
 
-std::unique_ptr<TextContent> RoomMessageEvent::richTextContent() const
-{
-    if (!hasTextContent() || !content()) {
-        return {};
-    }
-
-    return std::make_unique<TextContent>(contentJson());
-}
-
-bool RoomMessageEvent::hasFileContent() const
+template <>
+bool RoomMessageEvent::has<FileContentBase>() const
 {
     return jsonToMsgTypeDesc(rawMsgtype()).fileBased;
 }
 
-std::unique_ptr<FileContent> RoomMessageEvent::fileContent() const
+template <>
+bool RoomMessageEvent::has<FileContent>() const
 {
-    return hasFileContent() ? std::make_unique<FileContent>(contentJson()) : nullptr;
+    return rawMsgtype() == FileTypeId;
+}
+
+template <>
+bool RoomMessageEvent::has<ImageContent>() const
+{
+    return rawMsgtype() == ImageTypeId;
+}
+
+template <>
+bool RoomMessageEvent::has<AudioContent>() const
+{
+    return rawMsgtype() == AudioTypeId;
+}
+
+template <>
+bool RoomMessageEvent::has<VideoContent>() const
+{
+    return rawMsgtype() == VideoTypeId;
 }
 
 bool RoomMessageEvent::hasThumbnail() const
 {
-    return contentJson().contains("thumbnail_url"_L1);
+    return fromJson<QUrl>(contentJson()[InfoKey]["thumbnail_url"_L1]).isValid();
 }
 
-bool RoomMessageEvent::hasLocationContent() const
+Thumbnail RoomMessageEvent::getThumbnail() const
 {
-    return msgtype() == MsgType::Location;
+    return contentPart<Thumbnail>(InfoKey);
 }
 
-std::unique_ptr<LocationContent> RoomMessageEvent::locationContent() const
+template <>
+bool RoomMessageEvent::has<LocationContent>() const
 {
-    return hasLocationContent() ? std::make_unique<LocationContent>(contentJson()) : nullptr;
+    return rawMsgtype() == LocationTypeId;
 }
 
 std::optional<EventRelation> RoomMessageEvent::relatesTo() const
@@ -248,7 +266,7 @@ QString RoomMessageEvent::upstreamEventId() const
 
 QString RoomMessageEvent::replacedEvent() const
 {
-    if (!content() || !hasTextContent())
+    if (!has<TextContent>())
         return {};
 
     const auto er = relatesTo();
@@ -315,13 +333,15 @@ QString safeFileName(QString rawName)
 
 QString RoomMessageEvent::fileNameToDownload() const
 {
-    const auto fileInfo = fileContent();
-    if (QUO_ALARM(fileInfo == nullptr))
+    const auto fileContent = get<FileContentBase>();
+    if (QUO_ALARM(fileContent == nullptr))
         return {};
 
+    const auto fileInfo = fileContent->commonInfo();
+
     QString fileName;
-    if (!fileInfo->originalName.isEmpty())
-        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
+    if (!fileInfo.originalName.isEmpty())
+        fileName = QFileInfo(safeFileName(fileInfo.originalName)).fileName();
     else if (QUrl u { plainBody() }; u.isValid()) {
         qDebug(MAIN) << id()
                      << "has no file name supplied but the event body "
@@ -329,26 +349,33 @@ QString RoomMessageEvent::fileNameToDownload() const
         fileName = u.fileName();
     }
     if (fileName.isEmpty())
-        return safeFileName(fileInfo->mediaId()).replace(u'.', u'-') % u'.'
-               % fileInfo->mimeType.preferredSuffix();
+        return safeFileName(fileInfo.mediaId()).replace(u'.', u'-') % u'.'
+               % fileInfo.mimeType.preferredSuffix();
 
     if (QSysInfo::productType() == "windows"_L1) {
-        if (const auto& suffixes = fileInfo->mimeType.suffixes();
+        if (const auto& suffixes = fileInfo.mimeType.suffixes();
             !suffixes.isEmpty() && std::ranges::none_of(suffixes, [&fileName](const QString& s) {
                 return fileName.endsWith(s);
             }))
-            return fileName % u'.' % fileInfo->mimeType.preferredSuffix();
+            return fileName % u'.' % fileInfo.mimeType.preferredSuffix();
     }
     return fileName;
+}
+
+void RoomMessageEvent::updateFileSourceInfo(const FileSourceInfo& fsi)
+{
+    editSubobject(editJson(), ContentKey, [&fsi](QJsonObject& contentJson) {
+        Quotient::fillJson(contentJson, { "url"_L1, "file"_L1 }, fsi);
+    });
 }
 
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
 {
     auto name = mimeType.name();
-    return name.startsWith("image/"_L1)   ? u"m.image"_s
-           : name.startsWith("video/"_L1) ? u"m.video"_s
-           : name.startsWith("audio/"_L1) ? u"m.audio"_s
-                                          : u"m.file"_s;
+    return name.startsWith("image/"_L1)   ? ImageTypeId
+           : name.startsWith("video/"_L1) ? VideoTypeId
+           : name.startsWith("audio/"_L1) ? AudioTypeId
+                                          : FileTypeId;
 }
 
 QString RoomMessageEvent::rawMsgTypeForUrl(const QUrl& url)
@@ -362,8 +389,7 @@ QString RoomMessageEvent::rawMsgTypeForFile(const QFileInfo& fi)
 }
 
 TextContent::TextContent(QString text, const QString& contentType)
-    : mimeType(QMimeDatabase().mimeTypeForName(contentType))
-    , body(std::move(text))
+    : mimeType(QMimeDatabase().mimeTypeForName(contentType)), body(std::move(text))
 {
     if (contentType == HtmlContentTypeId)
         mimeType = QMimeDatabase().mimeTypeForName("text/html"_L1);
@@ -401,15 +427,14 @@ void TextContent::fillJson(QJsonObject &json) const
     }
 }
 
-LocationContent::LocationContent(const QString& geoUri,
-                                 const Thumbnail& thumbnail)
+LocationContent::LocationContent(const QString& geoUri, const Thumbnail& thumbnail)
     : geoUri(geoUri), thumbnail(thumbnail)
 {}
 
 LocationContent::LocationContent(const QJsonObject& json)
     : Base(json)
     , geoUri(json["geo_uri"_L1].toString())
-    , thumbnail(json["info"_L1].toObject())
+    , thumbnail(json[InfoKey].toObject())
 {}
 
 QMimeType LocationContent::type() const
@@ -420,5 +445,5 @@ QMimeType LocationContent::type() const
 void LocationContent::fillJson(QJsonObject& o) const
 {
     o.insert("geo_uri"_L1, geoUri);
-    o.insert("info"_L1, toInfoJson(thumbnail));
+    o.insert(InfoKey, toInfoJson(thumbnail));
 }

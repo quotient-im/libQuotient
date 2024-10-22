@@ -69,6 +69,8 @@ struct QUOTIENT_API JsonObjectConverter<JWK> {
 
 using FileSourceInfo = std::variant<QUrl, EncryptedFileMetadata>;
 
+using FileSourceInfoKeys = std::array<QLatin1String, std::variant_size_v<FileSourceInfo>>;
+
 QUOTIENT_API QUrl getUrlFromSourceInfo(const FileSourceInfo& fsi);
 
 QUOTIENT_API void setUrlInSourceInfo(FileSourceInfo& fsi, const QUrl& newUrl);
@@ -86,9 +88,11 @@ void fillJson(QJsonObject&, const FileSourceInfo&) = delete;
 //! - a key-to-object mapping where key is taken from jsonKeys[1] and the object
 //!   is the result of converting EncryptedFileMetadata to JSON,
 //!   if FileSourceInfo stores EncryptedFileMetadata
-QUOTIENT_API void fillJson(QJsonObject& jo,
-                           const std::array<QLatin1String, 2>& jsonKeys,
+QUOTIENT_API void fillJson(QJsonObject& jo, const FileSourceInfoKeys& jsonKeys,
                            const FileSourceInfo& fsi);
+
+QUOTIENT_API FileSourceInfo fileSourceInfoFromJson(const QJsonObject& jo,
+                                                   const FileSourceInfoKeys& jsonKeys);
 
 namespace FileMetadataMap {
     QUOTIENT_API void add(const QString& roomId,
