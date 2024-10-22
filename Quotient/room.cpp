@@ -1419,12 +1419,11 @@ QUrl Room::makeMediaUrl(const QString& eventId, const QUrl& mxcUrl) const
 const RoomMessageEvent*
 Room::Private::getEventWithFile(const QString& eventId) const
 {
-    auto evtIt = q->findInTimeline(eventId);
-    if (evtIt != timeline.rend() && is<RoomMessageEvent>(**evtIt)) {
-        auto* event = evtIt->viewAs<RoomMessageEvent>();
-        if (event->has<EventContent::FileContent>())
+    if (auto evtIt = q->findInTimeline(eventId); evtIt != historyEdge())
+        if (auto* event = evtIt->viewAs<RoomMessageEvent>();
+            event && event->has<EventContent::FileContentBase>())
             return event;
-    }
+
     qCWarning(MAIN) << "No files to download in event" << eventId;
     return nullptr;
 }
@@ -1445,7 +1444,7 @@ QUrl Room::urlToThumbnail(const QString& eventId) const
 QUrl Room::urlToDownload(const QString& eventId) const
 {
     if (const auto* const event = d->getEventWithFile(eventId)) {
-        if (const auto fileInfo = event->get<EventContent::FileContent>();
+        if (const auto fileInfo = event->get<EventContent::FileContentBase>();
             QUO_CHECK(fileInfo != nullptr))
             return connection()->getUrlForApi<DownloadFileJob>(fileInfo->url());
     }
@@ -1742,12 +1741,13 @@ Room::Private::moveEventsToTimeline(RoomEventsRange events,
                              : timeline.emplace_back(std::move(e), ++index);
         eventsIndex.insert(eId, index);
         if (usesEncryption)
-            if (auto* const rme = ti.viewAs<RoomMessageEvent>())
-                if (const auto fileInfo = rme->get<EventContent::FileContent>()) {
-                    if (const auto* const efm =
-                            std::get_if<EncryptedFileMetadata>(&fileInfo->source))
-                        FileMetadataMap::add(id, eId, *efm);
-                }
+            if (const auto* const rme = ti.viewAs<RoomMessageEvent>())
+                if (const auto fileContent = rme->get<EventContent::FileContentBase>())
+                    std::visit(Overloads{ [this, &eId](const EncryptedFileMetadata& efm) {
+                                             FileMetadataMap::add(id, eId, efm);
+                                         },
+                                          [](QUrl&&) {} },
+                               fileContent->commonInfo().source);
 
         if (auto n = q->checkForNotifications(ti); n.type != Notification::None)
             notifications.insert(eId, n);
@@ -2460,13 +2460,13 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         Q_ASSERT(false);
         return;
     }
-    const auto fileInfo = event->get<EventContent::FileContent>();
-    if (!fileInfo->isValid()) {
+    const auto fileInfo = event->get<EventContent::FileContentBase>()->commonInfo();
+    if (!fileInfo.isValid()) {
         qCWarning(MAIN) << "Event" << eventId
                         << "has an empty or malformed mxc URL; won't download";
         return;
     }
-    const auto fileUrl = fileInfo->url();
+    const auto fileUrl = fileInfo.url();
     auto filePath = localFilename.toLocalFile();
     if (filePath.isEmpty()) { // Setup default file path
         filePath = fileUrl.path().mid(1) % u'_' % event->fileNameToDownload();
@@ -2478,8 +2478,7 @@ void Room::downloadFile(const QString& eventId, const QUrl& localFilename)
         qDebug(MAIN) << "File path:" << filePath;
     }
     DownloadFileJob *job = nullptr;
-    if (auto* fileMetadata =
-            std::get_if<EncryptedFileMetadata>(&fileInfo->source)) {
+    if (auto* fileMetadata = std::get_if<EncryptedFileMetadata>(&fileInfo.source)) {
         job = connection()->downloadFile(fileUrl, *fileMetadata, filePath);
     } else {
         job = connection()->downloadFile(fileUrl, filePath);

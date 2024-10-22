@@ -333,13 +333,15 @@ QString safeFileName(QString rawName)
 
 QString RoomMessageEvent::fileNameToDownload() const
 {
-    const auto fileInfo = get<FileContent>();
-    if (QUO_ALARM(fileInfo == nullptr))
+    const auto fileContent = get<FileContentBase>();
+    if (QUO_ALARM(fileContent == nullptr))
         return {};
 
+    const auto fileInfo = fileContent->commonInfo();
+
     QString fileName;
-    if (!fileInfo->originalName.isEmpty())
-        fileName = QFileInfo(safeFileName(fileInfo->originalName)).fileName();
+    if (!fileInfo.originalName.isEmpty())
+        fileName = QFileInfo(safeFileName(fileInfo.originalName)).fileName();
     else if (QUrl u { plainBody() }; u.isValid()) {
         qDebug(MAIN) << id()
                      << "has no file name supplied but the event body "
@@ -347,15 +349,15 @@ QString RoomMessageEvent::fileNameToDownload() const
         fileName = u.fileName();
     }
     if (fileName.isEmpty())
-        return safeFileName(fileInfo->mediaId()).replace(u'.', u'-') % u'.'
-               % fileInfo->mimeType.preferredSuffix();
+        return safeFileName(fileInfo.mediaId()).replace(u'.', u'-') % u'.'
+               % fileInfo.mimeType.preferredSuffix();
 
     if (QSysInfo::productType() == "windows"_L1) {
-        if (const auto& suffixes = fileInfo->mimeType.suffixes();
+        if (const auto& suffixes = fileInfo.mimeType.suffixes();
             !suffixes.isEmpty() && std::ranges::none_of(suffixes, [&fileName](const QString& s) {
                 return fileName.endsWith(s);
             }))
-            return fileName % u'.' % fileInfo->mimeType.preferredSuffix();
+            return fileName % u'.' % fileInfo.mimeType.preferredSuffix();
     }
     return fileName;
 }

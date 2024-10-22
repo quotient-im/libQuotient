@@ -151,8 +151,27 @@ struct QUOTIENT_API Thumbnail : public ImageInfo {
 //! The base for all file-based content classes
 class QUOTIENT_API FileContentBase : public Base {
 public:
-    using Base::Base;
+    FileContentBase(const QJsonObject& contentJson = {})
+        : Base(contentJson), thumbnail(contentJson[InfoKey].toObject())
+    {}
     virtual QUrl url() const = 0;
+    virtual FileInfo commonInfo() const = 0;
+
+    Thumbnail thumbnail;
+
+protected:
+    virtual QJsonObject makeInfoJson() const = 0;
+
+    void fillJson(QJsonObject& json) const override
+    {
+        const auto fileInfo = commonInfo();
+        Quotient::fillJson(json, { "url"_L1, "file"_L1 }, fileInfo.source);
+        addParam<IfNotEmpty>(json, "filename"_L1, fileInfo.originalName);
+        auto infoJson = makeInfoJson();
+        if (thumbnail.isValid())
+            thumbnail.dumpTo(infoJson);
+        json.insert(InfoKey, infoJson);
+    }
 };
 
 //! \brief Rich text content for m.text, m.emote, m.notice
@@ -214,7 +233,6 @@ public:
         : FileContentBase(json)
         , InfoT(fileSourceInfoFromJson(json, { "url"_L1, "file"_L1 }), json[InfoKey].toObject(),
                 json["filename"_L1].toString())
-        , thumbnail(FileInfo::originalInfoJson)
     {
         // Two small hacks on originalJson to expose mediaIds to QML
         originalJson.insert("mediaId"_L1, InfoT::mediaId());
@@ -223,25 +241,10 @@ public:
 
     QMimeType type() const override { return InfoT::mimeType; }
     QUrl url() const override { return InfoT::url(); }
-
-public:
-    Thumbnail thumbnail;
+    FileInfo commonInfo() const override { return SLICE(*this, FileInfo); }
 
 protected:
-    virtual void fillInfoJson(QJsonObject& infoJson [[maybe_unused]]) const
-    {}
-
-    void fillJson(QJsonObject& json) const override
-    {
-        Quotient::fillJson(json, { "url"_L1, "file"_L1 }, InfoT::source);
-        if (!InfoT::originalName.isEmpty())
-            json.insert("filename"_L1, InfoT::originalName);
-        auto infoJson = toInfoJson(*this);
-        if (thumbnail.isValid())
-            thumbnail.dumpTo(infoJson);
-        fillInfoJson(infoJson);
-        json.insert(InfoKey, infoJson);
-    }
+    QJsonObject makeInfoJson() const override { return toInfoJson(*this); }
 };
 
 //! \brief Content class for m.image
@@ -288,9 +291,11 @@ public:
     {}
 
 protected:
-    void fillInfoJson(QJsonObject& infoJson) const override
+    QJsonObject makeInfoJson() const override
     {
+        auto infoJson = UrlBasedContent<InfoT>::makeInfoJson();
         infoJson.insert("duration"_L1, duration);
+        return infoJson;
 }
 
 public:
