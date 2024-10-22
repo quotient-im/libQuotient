@@ -10,12 +10,9 @@ using namespace Quotient;
 
 void PendingEventItem::setFileUploaded(const FileSourceInfo& uploadedFileData)
 {
-    if (auto* rme = getAs<RoomMessageEvent>()) {
-        auto fc = rme->get<EventContent::FileContent>();
-        Q_ASSERT(fc != nullptr);
-        fc->source = uploadedFileData;
-        rme->setContent(std::move(fc));
-    }
+    if (auto* rme = getAs<RoomMessageEvent>())
+        rme->updateFileSourceInfo(uploadedFileData);
+
     if (auto* rae = getAs<RoomAvatarEvent>()) {
         rae->editContent([&uploadedFileData](EventContent::FileInfo& fi) {
             fi.source = uploadedFileData;

@@ -160,6 +160,8 @@ public:
 
     QString fileNameToDownload() const;
 
+    void updateFileSourceInfo(const FileSourceInfo& fsi);
+
     static QString rawMsgTypeForUrl(const QUrl& url);
     static QString rawMsgTypeForFile(const QFileInfo& fi);
 

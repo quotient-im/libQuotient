@@ -360,6 +360,13 @@ QString RoomMessageEvent::fileNameToDownload() const
     return fileName;
 }
 
+void RoomMessageEvent::updateFileSourceInfo(const FileSourceInfo& fsi)
+{
+    editSubobject(editJson(), ContentKey, [&fsi](QJsonObject& contentJson) {
+        Quotient::fillJson(contentJson, { "url"_L1, "file"_L1 }, fsi);
+    });
+}
+
 QString rawMsgTypeForMimeType(const QMimeType& mimeType)
 {
     auto name = mimeType.name();
