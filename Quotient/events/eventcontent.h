@@ -142,8 +142,7 @@ QUOTIENT_API QJsonObject toInfoJson(const ImageInfo& info);
 //! `info/thumbnail_info` fields are used.
 struct QUOTIENT_API Thumbnail : public ImageInfo {
     using ImageInfo::ImageInfo;
-    explicit Thumbnail(const QJsonObject& infoJson,
-                       const std::optional<EncryptedFileMetadata>& efm = {});
+    explicit Thumbnail(const QJsonObject& infoJson);
 
     //! \brief Add thumbnail information to the passed `info` JSON object
     void dumpTo(QJsonObject& infoJson) const;
@@ -213,12 +212,10 @@ public:
     using InfoT::InfoT;
     explicit UrlBasedContent(const QJsonObject& json)
         : FileContentBase(json)
-        , InfoT(fromJson<QUrl>(json["url"_L1]), json[InfoKey].toObject(),
+        , InfoT(fileSourceInfoFromJson(json, { "url"_L1, "file"_L1 }), json[InfoKey].toObject(),
                 json["filename"_L1].toString())
         , thumbnail(FileInfo::originalInfoJson)
     {
-        if (const auto efmJson = json.value("file"_L1).toObject(); !efmJson.isEmpty())
-            InfoT::source = fromJson<EncryptedFileMetadata>(efmJson);
         // Two small hacks on originalJson to expose mediaIds to QML
         originalJson.insert("mediaId"_L1, InfoT::mediaId());
         originalJson.insert("thumbnailMediaId"_L1, thumbnail.mediaId());

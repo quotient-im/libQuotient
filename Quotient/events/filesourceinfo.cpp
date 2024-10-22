@@ -117,16 +117,17 @@ QUrl Quotient::getUrlFromSourceInfo(const FileSourceInfo& fsi) { return getUrl(f
 
 void Quotient::setUrlInSourceInfo(FileSourceInfo& fsi, const QUrl& newUrl) { getUrl(fsi) = newUrl; }
 
-void Quotient::fillJson(QJsonObject& jo,
-                        const std::array<QLatin1String, 2>& jsonKeys,
+void Quotient::fillJson(QJsonObject& jo, const FileSourceInfoKeys& jsonKeys,
                         const FileSourceInfo& fsi)
 {
-    // NB: Keeping variant_size_v out of the function signature for readability.
-    // NB2: Can't use jsonKeys directly inside static_assert as its value is
-    // unknown so the compiler cannot ensure size() is constexpr (go figure...)
-    static_assert(
-        std::variant_size_v<FileSourceInfo> == decltype(jsonKeys) {}.size());
     jo.insert(jsonKeys[fsi.index()], toJson(fsi));
+}
+
+FileSourceInfo Quotient::fileSourceInfoFromJson(const QJsonObject& jo,
+                                                const FileSourceInfoKeys& jsonKeys)
+{
+    return jo.contains(jsonKeys[1]) ? fromJson<EncryptedFileMetadata>(jo[jsonKeys[1]])
+                                    : FileSourceInfo(fromJson<QUrl>(jo[jsonKeys[0]]));
 }
 
 namespace {
