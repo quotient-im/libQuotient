@@ -1932,7 +1932,7 @@ Room::PendingEvents::iterator Room::Private::addAsPending(RoomEventPtr&& event)
         event->setSender(connection->userId());
     emit q->pendingEventAboutToAdd(std::to_address(event));
     auto it = unsyncedEvents.emplace(unsyncedEvents.end(), std::move(event));
-    emit q->pendingEventAdded();
+    emit q->pendingEventAdded(std::to_address(event));
     return it;
 }
 

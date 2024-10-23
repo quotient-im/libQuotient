@@ -838,7 +838,7 @@ Q_SIGNALS:
     /// The event is about to be appended to the list of pending events
     void pendingEventAboutToAdd(Quotient::RoomEvent* event);
     /// An event has been appended to the list of pending events
-    void pendingEventAdded();
+    void pendingEventAdded(const Quotient::RoomEvent* event);
     /// The remote echo has arrived with the sync and will be merged
     /// with its local counterpart
     /** NB: Requires a sync loop to be emitted */
