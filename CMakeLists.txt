@@ -5,7 +5,7 @@ endif()
 
 set(API_VERSION "0.9")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
-set(PRE_STAGE "rc3")
+set(PRE_STAGE "")
 string(JOIN ~ FULL_VERSION ${PROJECT_VERSION} ${PRE_STAGE})
 
 message(STATUS)
