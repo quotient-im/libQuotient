@@ -1780,7 +1780,7 @@ void Room::Private::updateThread(const RoomEvent* event)
     if (thread.threadRootId.isEmpty()) {
         thread.threadRootId = rme->threadRootEventId();
         // If we can't find the root we assume it's a historical event and will be loaded later.
-        if (auto rootIt = q->findInTimeline(thread.threadRootId); rootIt != historyEdge()) {
+        if (auto rootIt = q->findInTimeline(thread.threadRootId); rootIt != historyEdge() && rootIt->viewAs<RoomMessageEvent>()) {
             thread.addEvent(rootIt->viewAs<RoomMessageEvent>(), true,
                             (*rootIt)->senderId() == connection->userId());
         }
