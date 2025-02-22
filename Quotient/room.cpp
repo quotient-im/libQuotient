@@ -1915,6 +1915,11 @@ Room::Changes Room::Private::updateStatsFromSyncData(const SyncRoomData& data, b
                           << "to" << serverHighlightCount;
         changes |= Change::Highlights;
     }
+    if (merge(unreadStats.notableCount, data.unreadCount)) {
+        qCDebug(MESSAGES) << "Updated notable number in" << q->objectName()
+                          << "to" << unreadStats.notableCount;
+        changes |= Change::PartiallyReadStats;
+    }
     return changes;
 }
 
