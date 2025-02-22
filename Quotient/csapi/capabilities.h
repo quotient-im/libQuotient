@@ -40,6 +40,18 @@ public:
         QHash<QString, QString> available;
     };
 
+    //! The profile fields the server supports and if they can be edited.
+    struct QUOTIENT_API ProfileFieldsCapability {
+        //! If the user is allowed to change their own profile fields.
+        bool enabled;
+
+        //! A list of allowed profile field keys.
+        QList<QString> allowed;
+
+        //! A list of disallowed profile field keys.
+        QList<QString> disallowed;
+    };
+
     //! The custom capabilities the server supports, using the
     //! Java package naming convention.
     struct QUOTIENT_API Capabilities {
@@ -61,6 +73,10 @@ public:
         //! Capability to indicate if the user can generate tokens to log further clients into their
         //! account.
         std::optional<BooleanCapability> getLoginToken{};
+
+        //! Capability to indicate if the user can edit profile fields and which ones they can
+        //! change.
+        std::optional<ProfileFieldsCapability> profileFields{};
 
         //! Application-dependent keys using the
         //! [Common Namespaced Identifier
@@ -97,6 +113,16 @@ struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::RoomVersionsCapabili
 };
 
 template <>
+struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::ProfileFieldsCapability> {
+    static void fillFrom(const QJsonObject& jo, GetCapabilitiesJob::ProfileFieldsCapability& result)
+    {
+        fillFromJson(jo.value("enabled"_L1), result.enabled);
+        fillFromJson(jo.value("allowed"_L1), result.allowed);
+        fillFromJson(jo.value("disallowed"_L1), result.disallowed);
+    }
+};
+
+template <>
 struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
     static void fillFrom(QJsonObject jo, GetCapabilitiesJob::Capabilities& result)
     {
@@ -106,6 +132,7 @@ struct QUOTIENT_API JsonObjectConverter<GetCapabilitiesJob::Capabilities> {
         fillFromJson(jo.take("m.set_avatar_url"_L1), result.setAvatarUrl);
         fillFromJson(jo.take("m.3pid_changes"_L1), result.thirdPartyIdChanges);
         fillFromJson(jo.take("m.get_login_token"_L1), result.getLoginToken);
+        fillFromJson(jo.take("uk.tcpip.msc4133.profile_fields"_L1), result.profileFields);
         fromJson(jo, result.additionalProperties);
     }
 };

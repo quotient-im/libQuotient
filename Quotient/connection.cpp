@@ -1972,3 +1972,28 @@ bool Connection::allSessionsSelfVerified(const QString& userId) const
     database()->execute(query);
     return !query.next();
 }
+
+bool Connection::canChangeProfileFields() const
+{
+    return !d->capabilities.profileFields || d->capabilities.profileFields->enabled;
+}
+
+bool Connection::profileFieldAllowed(const QString& key) const
+{
+    // If the capability is missing, assume we are allowed to edit any profile field
+    if (!d->capabilities.profileFields) {
+        return true;
+    }
+
+    // If it's explicitly in the allow list
+    if (d->capabilities.profileFields->allowed.contains(key)) {
+        return true;
+    }
+
+    // As long as it's not explicitly disallowed
+    if (d->capabilities.profileFields->disallowed.contains(key)) {
+        return false;
+    }
+
+    return true;
+}

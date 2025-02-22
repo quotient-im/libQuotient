@@ -53,3 +53,19 @@ GetUserProfileJob::GetUserProfileJob(const QString& userId)
     : BaseJob(HttpVerb::Get, u"GetUserProfileJob"_s,
               makePath("/_matrix/client/v3", "/profile/", userId))
 {}
+
+GetProfileFieldJob::GetProfileFieldJob(const QString& userId, const QString& key)
+    : BaseJob(HttpVerb::Get, u"GetProfileFieldJob"_s,
+              makePath("/_matrix/client/unstable/uk.tcpip.msc4133", "/profile/", userId, "/", key))
+    , m_key(key)
+{}
+
+SetProfileFieldJob::SetProfileFieldJob(const QString& userId, const QString& key,
+                                       const QString& value)
+    : BaseJob(HttpVerb::Put, u"SetProfileFieldJob"_s,
+              makePath("/_matrix/client/unstable/uk.tcpip.msc4133", "/profile/", userId, "/", key))
+{
+    QJsonObject _dataJson;
+    addParam(_dataJson, key, value);
+    setRequestData({ _dataJson });
+}

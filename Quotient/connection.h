@@ -145,6 +145,7 @@ class QUOTIENT_API Connection : public QObject {
     Q_PROPERTY(bool encryptionEnabled READ encryptionEnabled WRITE enableEncryption NOTIFY encryptionChanged)
     Q_PROPERTY(bool directChatEncryptionEnabled READ directChatEncryptionEnabled WRITE enableDirectChatEncryption NOTIFY directChatsEncryptionChanged)
     Q_PROPERTY(QStringList accountDataEventTypes READ accountDataEventTypes NOTIFY accountDataChanged)
+    Q_PROPERTY(bool canChangeProfileFields READ canChangeProfileFields NOTIFY capabilitiesLoaded)
 
 public:
     using UsersToDevicesToContent = QHash<QString, QHash<QString, QJsonObject>>;
@@ -448,6 +449,12 @@ public:
     //! This is often not the case when SSO is enabled.
     //! \sa loadingCapabilities
     bool canChangePassword() const;
+
+    //! Indicate if the server allows the user to change their profile fields.
+    bool canChangeProfileFields() const;
+
+    //! Indicate if the server allows this specific profile field.
+    Q_INVOKABLE bool profileFieldAllowed(const QString& key) const;
 
     //! \brief Check whether encryption is enabled on this connection
     //! \sa enableEncryption

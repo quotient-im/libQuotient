@@ -84,6 +84,42 @@ public:
 
 inline auto collectResponse(const GetAvatarUrlJob* job) { return job->avatarUrl(); }
 
+//! \brief Get a user's profile field.
+//!
+//! Get one of the user's profile fields. This API may be used to fetch the user's
+//! own profile field or to query the profile field of other users; either locally or
+//! on remote homeservers.
+class QUOTIENT_API GetProfileFieldJob : public BaseJob {
+public:
+    //! \param userId
+    //!   The user whose profile field to query.
+    //! \param key
+    //!   The key of the profile field.
+    explicit GetProfileFieldJob(const QString& userId, const QString& key);
+
+    // Result properties
+
+    //! The value of the profile field.
+    QString value() const { return loadFromJson<QString>(m_key); }
+
+private:
+    QString m_key;
+};
+
+//! \brief Sets a user's profile field.
+//!
+//! Set one of the user's own profile fields. This may fail depending on if the server allows the
+//! user to change their own profile field, or if the field isn't allowed.
+class QUOTIENT_API SetProfileFieldJob : public BaseJob {
+public:
+    //! \param userId
+    //!   The user whose avatar URL to set.
+    //!
+    //! \param avatarUrl
+    //!   The new avatar URL for this user.
+    explicit SetProfileFieldJob(const QString& userId, const QString& key, const QString& value);
+};
+
 //! \brief Get this user's profile information.
 //!
 //! Get the combined profile information for this user. This API may be used
