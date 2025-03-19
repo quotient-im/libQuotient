@@ -298,7 +298,7 @@ public:
 
     const PendingEventItem& sendEvent(RoomEventPtr&& event);
 
-    QString doPostFile(event_ptr_tt<RoomMessageEvent> fileEvent, const QUrl& localUrl);
+    const PendingEventItem& doPostFile(event_ptr_tt<RoomMessageEvent> fileEvent, const QUrl& localUrl);
 
     PendingEvents::iterator addAsPending(RoomEventPtr&& event);
 
@@ -2010,7 +2010,7 @@ Room::PendingEvents::iterator Room::Private::addAsPending(RoomEventPtr&& event)
         event->setSender(connection->userId());
     emit q->pendingEventAboutToAdd(std::to_address(event));
     auto it = unsyncedEvents.emplace(unsyncedEvents.end(), std::move(event));
-    emit q->pendingEventAdded(it->event());
+    emit q->pendingEventAdded(*it);
     return it;
 }
 
@@ -2127,7 +2127,7 @@ void Room::Private::onEventSendingFailure(PendingEvents::iterator eventItemIter,
     emit q->pendingEventChanged(int(eventItemIter - unsyncedEvents.begin()));
 }
 
-PendingEventItem::future_type Room::whenMessageMerged(QString txnId) const
+PendingEventItem::merged_future_type Room::whenMessageMerged(QString txnId) const
 {
     if (auto it = findPendingEvent(txnId); it != d->unsyncedEvents.cend())
         return it->whenMerged();
@@ -2196,14 +2196,15 @@ void Room::discardMessage(const QString& txnId)
     emit pendingEventDiscarded();
 }
 
-QString Room::postReaction(const QString& eventId, const QString& key)
+const PendingEventItem& Room::postReaction(const QString& eventId, const QString& key)
 {
-    return post<ReactionEvent>(eventId, key)->transactionId();
+    return post<ReactionEvent>(eventId, key);
 }
 
-QString Room::Private::doPostFile(event_ptr_tt<RoomMessageEvent> fileEvent, const QUrl& localUrl)
+const PendingEventItem& Room::Private::doPostFile(event_ptr_tt<RoomMessageEvent> fileEvent, const QUrl& localUrl)
 {
-    const auto txnId = addAsPending(std::move(fileEvent))->event()->transactionId();
+    const auto& pendingItem = *addAsPending(std::move(fileEvent));
+    const auto txnId = pendingItem->transactionId();
     // Remote URL will only be known after upload; fill in the local path
     // to enable the preview while the event is pending.
     q->uploadFile(txnId, localUrl);
@@ -2246,10 +2247,10 @@ QString Room::Private::doPostFile(event_ptr_tt<RoomMessageEvent> fileEvent, cons
                 emit q->pendingEventDiscarded();
             });
 
-    return txnId;
+    return pendingItem;
 }
 
-QString Room::postFile(const QString& plainText,
+const PendingEventItem& Room::postFile(const QString& plainText,
                        std::unique_ptr<EventContent::FileContentBase> fileContent,
                        std::optional<EventRelation> relatesTo)
 {
@@ -2271,9 +2272,9 @@ const PendingEventItem& Room::post(RoomEventPtr event)
     return d->sendEvent(std::move(event));
 }
 
-QString Room::postJson(const QString& matrixType, const QJsonObject& eventContent)
+const PendingEventItem& Room::postJson(const QString& matrixType, const QJsonObject& eventContent)
 {
-    return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent))->transactionId();
+    return d->sendEvent(loadEvent<RoomEvent>(matrixType, eventContent));
 }
 
 SetRoomStateWithKeyJob* Room::setState(const StateEvent& evt)
@@ -2836,6 +2837,7 @@ Room::Timeline::size_type Room::Private::mergePendingEvent(PendingEvents::iterat
     auto* remoteEcho = remoteEchoIt->get();
     const auto pendingEvtIdx = int(localEchoIt - unsyncedEvents.begin());
     onEventReachedServer(localEchoIt, remoteEcho->id());
+    localEchoIt->setAboutToMerge(*remoteEcho, pendingEvtIdx);
     emit q->pendingEventAboutToMerge(remoteEcho, pendingEvtIdx);
     qCDebug(MESSAGES) << "Merging pending event from transaction" << remoteEcho->transactionId()
                       << "into" << remoteEcho->id();

@@ -98,11 +98,13 @@ private:
 
 class QUOTIENT_API PendingEventItem : public EventItemBase {
 public:
-    using future_type = QFuture<std::reference_wrapper<const RoomEvent>>;
+    using about_to_merge_future_type = QFuture<std::pair<std::reference_wrapper<const RoomEvent>, int>>;
+    using merged_future_type = QFuture<std::reference_wrapper<const RoomEvent>>;
 
     explicit PendingEventItem(RoomEventPtr&& e) : EventItemBase(std::move(e))
     {
-        _promise.setProgressRange(0, 5);
+        _aboutToMergePromise.setProgressRange(0, 5);
+        _mergePromise.setProgressRange(0, 5);
     }
 
     EventStatus::Code deliveryStatus() const { return _status; }
@@ -116,10 +118,15 @@ public:
         setStatus(EventStatus::ReachedServer);
         (*this)->addId(eventId);
     }
+    void setAboutToMerge(const RoomEvent& intoEvent, int pendingEventIndex)
+    {
+        _aboutToMergePromise.addResult(std::make_pair(std::ref(intoEvent), pendingEventIndex));
+        _aboutToMergePromise.finish();
+    }
     void setMerged(const RoomEvent& intoEvent)
     {
-        _promise.addResult(intoEvent);
-        _promise.finish();
+        _mergePromise.addResult(intoEvent);
+        _mergePromise.finish();
     }
     void setSendingFailed(QString errorText)
     {
@@ -128,12 +135,19 @@ public:
     }
     void resetStatus() { setStatus(EventStatus::Submitted); }
 
-    //! \brief Get a future for the moment when the item gets merged in the timeline
+    //! \brief Get a future for the moment just before the item gets merged in the timeline
     //!
     //! The future will get finished just before this pending item is merged into its remote
     //! counterpart that comes with /sync. The pending item will always be in ReachedServer state.
+    //! The future result has type implicitly convertible to std::pair with a `const RoomEvent&` and an `int`.
+    about_to_merge_future_type whenAboutToMerged() const { return _aboutToMergePromise.future(); }
+
+    //! \brief Get a future for the moment when the item gets merged in the timeline
+    //!
+    //! The future will get finished just after this pending item is merged into its remote
+    //! counterpart that comes with /sync. The pending item will always be in ReachedServer state.
     //! The future result has type implicitly convertible to `const RoomEvent&`.
-    future_type whenMerged() const { return _promise.future(); }
+    merged_future_type whenMerged() const { return _mergePromise.future(); }
 
 private:
     // Unlike TimelineItems, it's reasonable to assume PendingEventItems are not many; so we can
@@ -141,15 +155,18 @@ private:
     EventStatus::Code _status = EventStatus::Submitted;
     QDateTime _lastUpdated = QDateTime::currentDateTimeUtc();
     QString _annotation;
-    QPromise<std::reference_wrapper<const RoomEvent>> _promise;
+    QPromise<std::pair<std::reference_wrapper<const RoomEvent>, int>> _aboutToMergePromise;
+    QPromise<std::reference_wrapper<const RoomEvent>> _mergePromise;
 
     void setStatus(EventStatus::Code status)
     {
         _status = status;
         _lastUpdated = QDateTime::currentDateTimeUtc();
         _annotation.clear();
-        _promise.start();
-        _promise.setProgressValue(_status);
+        _aboutToMergePromise.start();
+        _mergePromise.start();
+        _aboutToMergePromise.setProgressValue(_status);
+        _mergePromise.setProgressValue(_status);
     }
 };
 

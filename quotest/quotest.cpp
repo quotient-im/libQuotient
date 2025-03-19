@@ -379,12 +379,13 @@ TEST_IMPL(loadMembers)
 
 TEST_IMPL(sendMessage)
 {
-    auto txnId = targetRoom->postText("Hello, "_L1 % origin % " is here"_L1);
+    const auto& pendingItem = targetRoom->postText("Hello, "_L1 % origin % " is here"_L1);
+    const auto txnId = pendingItem->transactionId();
     if (!validatePendingEvent<RoomMessageEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         FAIL_TEST();
     }
-    targetRoom->whenMessageMerged(txnId).then(this, [this, thisTest, txnId](const RoomEvent& evt) {
+    pendingItem.whenMerged().then([this, thisTest, txnId](const RoomEvent& evt) {
         const auto pendingIt = targetRoom->findPendingEvent(txnId);
         if (pendingIt == targetRoom->pendingEvents().end()) {
             clog << "Pending event not found at the moment of local echo merging\n";
@@ -414,7 +415,7 @@ TEST_IMPL(sendReaction)
             }
 
             const auto key = u"+"_s;
-            const auto txnId = targetRoom->postReaction(targetEvtId, key);
+            const auto txnId = targetRoom->postReaction(targetEvtId, key)->transactionId();
             FAIL_TEST_IF(!validatePendingEvent<ReactionEvent>(txnId),
                          "Invalid pending event right after submitting");
 
@@ -452,7 +453,7 @@ TEST_IMPL(sendFile)
     const auto tfName = tfi.fileName();
     clog << "Sending file " << tfName.toStdString() << endl;
     const auto txnId = targetRoom->postFile(
-        "Test file"_L1, std::make_unique<EventContent::FileContent>(tfi));
+        "Test file"_L1, std::make_unique<EventContent::FileContent>(tfi))->transactionId();
     if (!validatePendingEvent<RoomMessageEvent>(txnId)) {
         clog << "Invalid pending event right after submitting" << endl;
         tf->deleteLater();
@@ -905,7 +906,7 @@ TEST_IMPL(visitResources)
 
 TEST_IMPL(thread)
 {
-    auto rootTxnId = targetRoom->postText("Threadroot"_L1);
+    auto rootTxnId = targetRoom->postText("Threadroot"_L1)->transactionId();
     connect(targetRoom, &Room::pendingEventAboutToMerge, this, [this, thisTest, rootTxnId](Quotient::RoomEvent* rootEvt) {
         if (rootEvt->transactionId() == rootTxnId) {
             const auto relation = EventRelation::replyInThread(rootEvt->id(), true, rootEvt->id());
@@ -975,7 +976,7 @@ void TestManager::conclude()
         htmlReport += "<br><strong>Did not finish:</strong>"_L1 + QString::fromUtf8(dnfList);
     }
 
-    auto txnId = room->postText(plainReport, htmlReport);
+    auto txnId = room->postText(plainReport, htmlReport)->transactionId();
     // Now just wait until all the pending events reach the server
     connectUntil(room, &Room::messageSent, this, [this, txnId, room, plainReport] {
         const auto& pendingEvents = room->pendingEvents();

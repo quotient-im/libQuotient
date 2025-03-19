@@ -757,7 +757,7 @@ public:
     //!
     //! This means MessageEventType Text, Emote or Notice.
     template<MessageEventType type = MessageEventType::Text>
-    QString postText(const QString& plainText,
+    const PendingEventItem& postText(const QString& plainText,
                      const std::optional<QString>& html = std::nullopt,
                      const std::optional<EventRelation>& relatesTo = std::nullopt)
     {
@@ -771,21 +771,21 @@ public:
         if (html) {
             content = std::make_unique<EventContent::TextContent>(*html, u"text/html"_s);
         }
-        return post<RoomMessageEvent>(plainText, type, std::move(content), relatesTo)->transactionId();
+        return post<RoomMessageEvent>(plainText, type, std::move(content), relatesTo);
     }
 
     //! Send a file with the given content
-    QString postFile(const QString& plainText,
+    const PendingEventItem& postFile(const QString& plainText,
                      std::unique_ptr<EventContent::FileContentBase> fileContent,
                      std::optional<EventRelation> relatesTo = std::nullopt);
 
     //! Send the given Json as a message
-    QString postJson(const QString& matrixType, const QJsonObject& eventContent);
+    const PendingEventItem& postJson(const QString& matrixType, const QJsonObject& eventContent);
 
     //! Send a reaction on a given event with a given key
-    QString postReaction(const QString& eventId, const QString& key);
+    const PendingEventItem& postReaction(const QString& eventId, const QString& key);
 
-    PendingEventItem::future_type whenMessageMerged(QString txnId) const;
+    PendingEventItem::merged_future_type whenMessageMerged(QString txnId) const;
 
     //! Send a request to update the room state with the given event
     SetRoomStateWithKeyJob* setState(const StateEvent& evt);
@@ -882,7 +882,7 @@ Q_SIGNALS:
     /// The event is about to be appended to the list of pending events
     void pendingEventAboutToAdd(Quotient::RoomEvent* event);
     /// An event has been appended to the list of pending events
-    void pendingEventAdded(const Quotient::RoomEvent* event);
+    void pendingEventAdded(const PendingEventItem& pendingItem);
     /// The remote echo has arrived with the sync and will be merged
     /// with its local counterpart
     /** NB: Requires a sync loop to be emitted */
