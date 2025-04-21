@@ -54,9 +54,12 @@ template <template <typename> class TargetT, typename SourceT>
 #ifdef __cpp_lib_ranges_contains
 constexpr auto rangeContains = std::ranges::contains;
 #else
-[[nodiscard]] constexpr auto rangeContains(const auto& c, const auto& v, auto proj)
+template <typename RangeT, typename ValT, typename ProjT = std::identity>
+    requires std::indirect_binary_predicate<
+        std::ranges::equal_to, std::projected<std::ranges::iterator_t<RangeT>, ProjT>, const ValT*>
+[[nodiscard]] constexpr auto rangeContains(const RangeT& r, const ValT& v, ProjT proj = {})
 {
-    return std::ranges::find(c, v, std::move(proj)) != std::ranges::end(c);
+    return std::ranges::find(r, v, std::move(proj)) != std::ranges::end(r);
 }
 #endif
 

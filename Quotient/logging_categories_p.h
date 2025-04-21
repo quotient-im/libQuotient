@@ -24,6 +24,7 @@ QUO_LOGGING_CATEGORY(THUMBNAILJOB, "quotient.jobs.thumbnail")
 QUO_LOGGING_CATEGORY(NETWORK, "quotient.network")
 QUO_LOGGING_CATEGORY(PROFILER, "quotient.profiler")
 QUO_LOGGING_CATEGORY(DATABASE, "quotient.database")
+QUO_LOGGING_CATEGORY(HTMLFILTER, "quotient.htmlfilter")
 
 } // namespace Quotient
 

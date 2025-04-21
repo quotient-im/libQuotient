@@ -11,6 +11,7 @@
 #include <QtCore/QFuture>
 #include <QtCore/QHashFunctions>
 #include <QtCore/QLatin1String>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QScopedPointer>
 #include <QtCore/QUrl>
 
@@ -111,7 +112,14 @@ inline auto makeReadyValueFuture(T&& value)
 #endif
 }
 
-inline namespace Literals { using namespace Qt::Literals; }
+inline namespace Literals {
+    using namespace Qt::Literals;
+
+    inline QRegularExpression operator""_qre(const char* latin1s, size_t size)
+    {
+        return QRegularExpression(operator""_L1(latin1s, size));
+    }
+}
 
 #if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR < 10
 /// This is only to make UnorderedMap alias work until we get rid of it
