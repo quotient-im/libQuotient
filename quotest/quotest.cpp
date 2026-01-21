@@ -314,15 +314,18 @@ void TestManager::setupAndRun(const QString& targetRoomAlias)
     c->setLazyLoading(true);
 
     qInfo() << "Joining" << targetRoomAlias;
-    c->joinAndGetRoom(targetRoomAlias).then(this, [this](Room* room) {
-        if (!room) {
-            qCritical() << "Failed to join the test room";
+    c->joinAndGetRoom(targetRoomAlias)
+        .then(this, [this](const JobResult<Room *> &expectedRoom) {
+        if (!expectedRoom) {
+            auto logLine = qCritical();
+            logLine << "Failed to join the test room: ";
+            expectedRoom.error().dumpToLog(logLine);
             finalize();
             return;
         }
         // Ensure that the room has been joined and filled with some events
         // so that other tests could use that
-        testSuite = new TestSuite(room, origin, this);
+        testSuite = new TestSuite(*expectedRoom, origin, this);
         // Only start the sync after joining, to make sure the room just
         // joined is in it
         c->syncLoop();

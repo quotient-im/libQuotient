@@ -615,8 +615,11 @@ public:
     //! \sa LoginFlowsJob, loginFlows, loginFlowsChanged, homeserverChanged
     Q_INVOKABLE QFuture<QList<LoginFlow> > setHomeserver(const QUrl& baseUrl);
 
-    //! \brief Get a future to a direct chat with the user
+    [[deprecated("Use tryGetDirectChat() instead")]]
     Q_INVOKABLE QFuture<Room*> getDirectChat(const QString& otherUserId);
+
+    //! \brief Get a future to a direct chat with the user
+    Q_INVOKABLE QFuture<JobResult<Room *>> tryGetDirectChat(const QString &otherUserId);
 
     //! Create a direct chat with a single user, optional name and topic
     //!
@@ -631,8 +634,8 @@ public:
     Q_INVOKABLE JobHandle<JoinRoomJob> joinRoom(const QString& roomAlias,
                                                 const QStringList& serverNames = {});
 
-    Q_INVOKABLE QFuture<Room*> joinAndGetRoom(const QString& roomAlias,
-                                              const QStringList& serverNames = {});
+    Q_INVOKABLE QFuture<JobResult<Room *>> joinAndGetRoom(const QString &roomAlias,
+                                                          const QStringList &serverNames = {});
 
     Q_INVOKABLE QFuture<Room *> waitForNewRoom(const QString &roomId);
 

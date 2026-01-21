@@ -63,13 +63,13 @@ QImage Avatar::get(int width, int height, get_callback_t callback) const
 QFuture<QUrl> Avatar::upload(const QString& fileName) const
 {
     d->uploadRequest = d->connection->uploadFile(fileName);
-    return d->uploadRequest.responseFuture();
+    return d->uploadRequest.toFuture();
 }
 
 QFuture<QUrl> Avatar::upload(QIODevice* source) const
 {
     d->uploadRequest = d->connection->uploadContent(source);
-    return d->uploadRequest.responseFuture();
+    return d->uploadRequest.toFuture();
 }
 
 bool Avatar::isEmpty() const { return d->_url.isEmpty(); }

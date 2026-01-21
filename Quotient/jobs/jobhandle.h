@@ -5,6 +5,8 @@
 #include <QtCore/QFuture>
 #include <QtCore/QPointer>
 
+#include <expected>
+
 namespace Quotient {
 
 template <typename FnT, typename JobT>
@@ -191,9 +193,19 @@ public:
     }
 
     //! Get a QFuture for the value returned by `collectResponse()` called on the underlying job
-    auto responseFuture()
+    auto toFuture()
     {
-        return future_type::then([](auto* j) { return collectResponse(j); });
+        return future_type::then([](future_type ft) mutable {
+            auto *const job = ft.result();
+            if (!job->status().good())
+                ft.cancel();
+            return collectResponse(job);
+        });
+    }
+
+    auto toFutureExpected()
+    {
+        return then([] (JobT* j) { return collectResponse(j); }, &BaseJob::status);
     }
 
     //! \brief Abandon the underlying job, if there's one pending
@@ -222,17 +234,17 @@ private:
         auto callFn(future_value_type job)
         {
             if constexpr (std::invocable<FnT>) {
-                return std::forward<FnT>(fn)();
+                return std::invoke(std::forward<FnT>(fn));
             } else {
                 static_assert(AllowJobArg, "onCanceled continuations should not accept arguments");
-                if constexpr (requires { fn(job); })
-                    return fn(job);
+                if constexpr (std::invocable<FnT, future_value_type>)
+                    return std::invoke(std::forward<FnT>(fn), job);
                 else if constexpr (requires { collectResponse(job); }) {
                     static_assert(
-                        requires { fn(collectResponse(job)); },
+                        std::invocable<FnT, decltype(collectResponse(job))>,
                         "The continuation function must accept either of: 1) no arguments; "
                         "2) the job pointer itself; 3) the value returned by collectResponse(job)");
-                    return fn(collectResponse(job));
+                    return std::invoke(std::forward<FnT>(fn), collectResponse(job));
                 }
             }
         }
@@ -291,8 +303,12 @@ private:
             else if constexpr (std::is_same_v<FailureFnT, Skip>) {
                 // Still call fFn to suppress unused lambda warning
                 return job->status().good() ? sFn(job) : (fFn(job), sType{});
-            } else
+            } else if constexpr (std::is_same_v<sType, fType>)
                 return job->status().good() ? sFn(job) : fFn(job);
+            else {
+                using result_t = std::expected<sType, fType>;
+                return job->status().good() ? result_t(sFn(job)) : std::unexpected(fFn(job));
+            }
         };
     }
 
@@ -338,6 +354,9 @@ private:
 
 template <std::derived_from<BaseJob> JobT>
 JobHandle(JobT*) -> JobHandle<JobT>;
+
+template <typename ResultT>
+using JobResult = std::expected<ResultT, BaseJob::Status>;
 
 } // namespace Quotient
 

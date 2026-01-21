@@ -820,9 +820,10 @@ public:
     //! a new room of the specified version. It is possible to specify \p additionalCreators for
     //! room versions that support those (unfortunately it is only possible to find out whether
     //! a given room version supports additional creators by attempting to upgrade a room).
-    //! \return a future eventually holding a new room once it arrives via sync
-    QFuture<std::expected<Room *, BaseJob::Status>> upgrade(
-        QString newVersion, const QStringList &additionalCreators = {});
+    //! \return a future eventually holding either a new room once it arrives via sync,
+    //!         or the failed upgrade job status if the upgrade wasn't successful
+    QFuture<JobResult<Room *>> upgrade(QString newVersion,
+                                         const QStringList &additionalCreators = {});
 
 public Q_SLOTS:
     /** Check whether the room should be upgraded */

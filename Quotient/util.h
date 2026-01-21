@@ -384,4 +384,12 @@ struct QUOTIENT_API HomeserverData {
 
     bool checkMatrixSpecVersion(QStringView targetVersion) const;
 };
+
+//! Basic concept for all specialisations of std::expected
+template <typename T>
+concept Expected_Class = requires(T exp) {
+    exp.value();
+    exp.error();
+};
+
 } // namespace Quotient

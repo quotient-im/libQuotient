@@ -672,10 +672,11 @@ JobHandle<JoinRoomJob> Connection::joinRoom(const QString& roomAlias, const QStr
         .then([this](const QString& roomId) { provideRoom(roomId); });
 }
 
-QFuture<Room*> Connection::joinAndGetRoom(const QString& roomAlias, const QStringList& serverNames)
+QFuture<JobResult<Room *>> Connection::joinAndGetRoom(const QString &roomAlias,
+                                                      const QStringList &serverNames)
 {
     return callApi<JoinRoomJob>(roomAlias, serverNames, serverNames)
-        .then([this](const QString& roomId) { return provideRoom(roomId); });
+        .then([this](const QString &roomId) { return provideRoom(roomId); }, &BaseJob::status);
 }
 
 QFuture<Room *> Connection::waitForNewRoom(const QString &roomId)
@@ -839,10 +840,20 @@ JobHandle<CreateRoomJob> Connection::createRoom(
 
 void Connection::requestDirectChat(const QString& userId)
 {
-    getDirectChat(userId).then([this](Room* r) { emit directChatAvailable(r); });
+    tryGetDirectChat(userId).then([this](const JobResult<Room *> &expRoom) {
+        if (expRoom)
+            emit directChatAvailable(*expRoom);
+    });
 }
 
-QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
+QFuture<Room *> Connection::getDirectChat(const QString &otherUserId)
+{
+    return tryGetDirectChat(otherUserId).then([](JobResult<Room *> expRoom) {
+        return expRoom.value_or(nullptr);
+    });
+}
+
+QFuture<JobResult<Room*>> Connection::tryGetDirectChat(const QString& otherUserId)
 {
     auto* u = user(otherUserId);
     if (QUO_ALARM_X(!u, u"Couldn't get a user object for" % otherUserId))
@@ -861,7 +872,7 @@ QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
                 continue;
             qCDebug(MAIN) << "Requested direct chat with" << otherUserId
                           << "is already available as" << r->id();
-            return QtFuture::makeReadyValueFuture(r);
+            return QtFuture::makeReadyValueFuture<JobResult<Room *>>(r);
         }
         if (auto ir = invitation(roomId)) {
             Q_ASSERT(ir->id() == roomId);
@@ -889,9 +900,9 @@ QFuture<Room*> Connection::getDirectChat(const QString& otherUserId)
         emit directChatsListChanged({}, removals);
     }
 
-    return createDirectChat(otherUserId).then([this](const QString& roomId) {
+    return createDirectChat(otherUserId).then([this](const QString &roomId) {
         return room(roomId, JoinState::Join);
-    });
+    }, &BaseJob::status);
 }
 
 JobHandle<CreateRoomJob> Connection::createDirectChat(const QString& userId, const QString& topic,
@@ -1463,7 +1474,7 @@ QFuture<QList<LoginFlow>> Connection::setHomeserver(const QUrl& baseUrl)
             d->loginFlows.clear();
         emit loginFlowsChanged();
     });
-    return d->loginFlowsJob.responseFuture();
+    return d->loginFlowsJob.toFuture();
 }
 
 void Connection::saveRoomState(Room* r) const
