@@ -6,8 +6,8 @@
 #include "encryptedevent.h"
 #include "redactionevent.h"
 #include "stateevent.h"
-
 #include "../logging_categories_p.h"
+#include "../ranges_extras.h"
 
 using namespace Quotient;
 
@@ -104,10 +104,11 @@ const QJsonObject RoomEvent::encryptedJson() const
 }
 
 namespace {
-bool containsEventType(const auto& haystack, const auto& needle)
+bool containsEventType(std::span<const AbstractEventMetaType *const> haystack, const QString &needle)
 {
-    return std::ranges::any_of(haystack, [needle](const AbstractEventMetaType* candidate) {
-        return candidate->matrixId == needle || containsEventType(candidate->derivedTypes(), needle);
+    return std::ranges::any_of(haystack, [needle](const AbstractEventMetaType *candidate) {
+        return rangeContains(candidate->matrixIds, needle)
+               || containsEventType(candidate->derivedTypes(), needle);
     });
 }
 }

@@ -11,7 +11,7 @@ constexpr inline auto PrevContentKey = "prev_content"_L1;
 
 class QUOTIENT_API StateEvent : public RoomEvent {
 public:
-    QUO_BASE_EVENT(StateEvent, RoomEvent, "json.contains('state_key')")
+    QUO_BASE_EVENT(StateEvent, RoomEvent)
 
     static bool isValid(const QJsonObject& fullJson)
     {

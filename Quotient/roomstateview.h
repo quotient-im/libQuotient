@@ -50,11 +50,11 @@ public:
     template <Keyed_State_Event EvT>
     const EvT* get(const QString& stateKey = {}) const
     {
-        if (const auto* evt = get(EvT::TypeId, stateKey)) {
-            Q_ASSERT(evt->matrixType() == EvT::TypeId
-                     && evt->stateKey() == stateKey);
-            return eventCast<const EvT>(evt);
-        }
+        for (auto typeId : EvT::MetaType.matrixIds)
+            if (const auto *evt = get(typeId, stateKey)) {
+                Q_ASSERT(evt->matrixType() == typeId && evt->stateKey() == stateKey);
+                return eventCast<const EvT>(evt);
+            }
         return nullptr;
     }
 
@@ -66,10 +66,11 @@ public:
     template <Keyless_State_Event EvT>
     const EvT* get() const
     {
-        if (const auto* evt = get(EvT::TypeId)) {
-            Q_ASSERT(evt->matrixType() == EvT::TypeId);
-            return eventCast<const EvT>(evt);
-        }
+        for (auto typeId : EvT::MetaType.matrixIds)
+            if (const auto *evt = get(typeId)) {
+                Q_ASSERT(evt->matrixType() == typeId);
+                return eventCast<const EvT>(evt);
+            }
         return nullptr;
     }
 
@@ -80,20 +81,23 @@ public:
     template <Keyed_State_Event EvT>
     bool contains(const QString& stateKey = {}) const
     {
-        return contains(EvT::TypeId, stateKey);
+        return std::ranges::any_of(EvT::MetaType.matrixIds, [this, &stateKey](event_type_t typeId) {
+            return contains(typeId, stateKey);
+        });
     }
 
     template <Keyless_State_Event EvT>
     bool contains() const
     {
-        return contains(EvT::TypeId);
+        return std::ranges::any_of(EvT::MetaType.matrixIds,
+                                   [this](event_type_t typeId) { return contains(typeId); });
     }
 
     template <Keyed_State_Event EvT>
     auto content(const QString& stateKey,
                  typename EvT::content_type defaultValue = {}) const
     {
-        // EventBase<>::content is special in that it returns a const-ref,
+        // EventTemplate<>::content for StateEvent is special in that it returns a const-ref,
         // and lift() inside queryOr() can't wrap that in a temporary optional.
         if (const auto evt = get<EvT>(stateKey))
             return evt->content();

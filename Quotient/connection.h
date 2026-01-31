@@ -183,8 +183,10 @@ public:
     template <EventClass EventT>
     const EventT* accountData() const
     {
-        // 0.9: use the default argument and fold into the next overload
-        return eventCast<EventT>(accountData(EventT::TypeId));
+        for (auto typeId : EventT::MetaType.matrixIds)
+            if (const auto &evtPtr = accountData(typeId))
+                return eventCast<EventT>(evtPtr);
+        return nullptr;
     }
 
     template <EventClass EventT>

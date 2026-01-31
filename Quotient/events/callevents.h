@@ -9,7 +9,7 @@ namespace Quotient {
 
 class QUOTIENT_API CallEvent : public RoomEvent {
 public:
-    QUO_BASE_EVENT(CallEvent, RoomEvent, "m.call.*")
+    QUO_BASE_EVENT(CallEvent, RoomEvent)
 
     QUO_CONTENT_GETTER(QString, callId)
     QUO_CONTENT_GETTER(int, version)

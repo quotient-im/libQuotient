@@ -719,7 +719,7 @@ void KeyVerificationSession::sendEvent(const QString &userId, const QString &dev
     if (m_room) {
         auto json = event.contentJson();
         json.remove("transaction_id"_L1);
-        if (event.metaType().matrixId == KeyVerificationRequestEvent::TypeId) {
+        if (event.is<KeyVerificationRequestEvent>()) {
             json["msgtype"_L1] = event.matrixType();
             json["body"_L1] = m_connection->userId() + " sent a verification request"_L1;
             json["to"_L1] = m_remoteUserId;

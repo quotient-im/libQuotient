@@ -101,6 +101,7 @@ private slots:
     TEST_DECL(sendMessage)
     TEST_DECL(sendReaction)
     TEST_DECL(sendFile)
+    TEST_DECL(loadCustomEvent)
     TEST_DECL(sendCustomEvent)
     TEST_DECL(setTopic)
     TEST_DECL(redactEvent)
@@ -574,8 +575,19 @@ bool TestSuite::checkFileSendingOutcome(const TestToken& thisTest,
     return true;
 }
 
-DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent, "quotest.custom", int, testValue,
-                    "test_value")
+QUO_DEFINE_SIMPLE_EVENT(CustomEvent, RoomEvent,
+                        QUO_LIST("quotest.custom.unstable", "quotest.custom"), int, testValue,
+                        "test_value")
+
+TEST_IMPL(loadCustomEvent)
+{
+    // TODO: Make a unit test for event.*
+    FAIL_TEST_IF(CustomEvent::MetaType.matrixIds.size() != 2);
+    auto testEvent = loadEvent<RoomEvent>(CustomEvent::MetaType.matrixIds[1],
+                                          QJsonObject{{"test_value"_L1, 17}});
+    FINISH_TEST(testEvent && testEvent->is<CustomEvent>()
+                && eventCast<CustomEvent>(testEvent)->testValue() == 17);
+}
 
 TEST_IMPL(sendCustomEvent)
 {

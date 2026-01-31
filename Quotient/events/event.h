@@ -41,12 +41,14 @@ bool is(const Event& e);
 //! a whole new kind of event metatypes.
 class QUOTIENT_API AbstractEventMetaType {
 public:
+    using TypeIds = std::array<event_type_t, 2>;
+
     // The public fields here are const and are not to be changeable anyway.
     // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
     const std::type_info &typeInfo;
     const char *const className;
     const AbstractEventMetaType *const baseType;
-    const event_type_t matrixId;
+    const TypeIds matrixIds{};
     // NOLINTEND(misc-non-private-member-variables-in-classes)
 
     auto derivedTypes() const { return std::span(_derivedTypes); }
@@ -63,9 +65,11 @@ protected:
     template <class EventT>
     friend class EventMetaType;
 
-    explicit AbstractEventMetaType(const std::type_info &typeInfo, const char *className,
-                                   AbstractEventMetaType *nearestBase = nullptr,
-                                   event_type_t matrixId = nullptr);
+    AbstractEventMetaType(const std::type_info &typeInfo, const char *className,
+                          AbstractEventMetaType *nearestBase);
+
+    AbstractEventMetaType(const std::type_info &typeInfo, const char *className,
+                                   AbstractEventMetaType *nearestBase, TypeIds matrixTypeIds);
 
     // The returned value indicates whether a generic object has to be created
     // on the top level when `event` is empty, instead of returning nullptr
@@ -92,14 +96,22 @@ class QUOTIENT_API EventMetaType : public AbstractEventMetaType {
     // Above: can't constrain EventT to be EventClass because it's incomplete
     // at the point of EventMetaType<EventT> instantiation (see QUO_BASE_EVENT and QUO_EVENT)
 public:
-    explicit EventMetaType(AbstractEventMetaType *nearestBase = nullptr,
-                           const char* matrixTypeId = {})
+    //! Construct an event metatype class for a base event type
+    explicit EventMetaType(AbstractEventMetaType *nearestBase = nullptr)
         // NB: typeid(T&) == typeid(T) but typeid(T&) can be used with an incomplete type
         // NB2: it would be lovely to "just" use QMetaType::fromType<> instead of QtPrivate API
         //      but QMetaType tries to instantiate constructor wrappers and it's not possible while
         //      the type is incomplete
         : AbstractEventMetaType(typeid(EventT &), QtPrivate::QMetaTypeForType<EventT>().getName(),
-                                nearestBase, event_type_t(matrixTypeId))
+                                nearestBase)
+    {}
+
+    //! Construct an event metatype class for an event type that can be loaded from \p TypeIdTs
+    template <std::same_as<const char *>... TypeIdTs>
+    explicit EventMetaType(AbstractEventMetaType *nearestBase, TypeIdTs... matrixTypeIds)
+        requires (sizeof...(TypeIdTs) > 0 && sizeof...(TypeIdTs) <= 2)
+        : AbstractEventMetaType(typeid(EventT &), QtPrivate::QMetaTypeForType<EventT>().getName(),
+                                nearestBase, {event_type_t(matrixTypeIds)...})
     {}
 
     //! \brief Try to load an event from JSON, with dynamic type resolution
@@ -107,9 +119,9 @@ public:
     //! The generic logic defined in this class template and invoked applies to
     //! all event types defined in the library and boils down to the following:
     //! 1.
-    //!    a. If EventT has TypeId defined (which normally is a case of
-    //!       all leaf - specific - event types, via QUO_EVENT macro) and
-    //!       \p type doesn't exactly match it, nullptr is immediately returned.
+    //!    a. If EventT has TypeId defined (which normally is a case of all leaf - specific -
+    //!       event types, via QUO_EVENT macro) and \p type doesn't exactly match any of matrixIds,
+    //!       nullptr is immediately returned.
     //!    b. In absence of TypeId, an event type is assumed to be a base;
     //!       its derivedTypes are examined, and this algorithm is applied
     //!       recursively on each.
@@ -120,8 +132,8 @@ public:
     //!    of `state_key` is checked in any type derived from StateEvent.
     //! 3. If step 1b above returned non-nullptr, immediately return it.
     //! 4.
-    //!    a. If EventT::isValid() or EventT::TypeId (either, or both) exist and
-    //!       are satisfied (see steps 1a and 2 above), an object of this type
+    //!    a. If EventT::isValid() or EventT::TypeId (either, or both) exist and validations in
+    //!       steps 1a and 2 have been either skipped or satisfied, an object of this type
     //!       is created from the passed JSON and returned. In case of a base
     //!       event type, this will be a generic (aka "unknown") event.
     //!    b. If neither exists, a generic event is only created and returned
@@ -147,7 +159,7 @@ private:
                     Event*& event) const override
     {
         if constexpr (requires { EventT::TypeId; }) {
-            if (EventT::TypeId != type)
+            if (std::ranges::find(matrixIds, type) == std::ranges::end(matrixIds))
                 return false;
         } else {
             for (const auto& p : _derivedTypes) {
@@ -392,6 +404,14 @@ protected:
     explicit EventTemplate(const QJsonObject &json) : BaseEventT(json) {}
 };
 
+#define QUO_EVENT_IMPL(StaticVarName_, CppType_, ...)                                 \
+    friend class EventMetaType<CppType_>;                                             \
+    static inline auto StaticVarName_ = EventMetaType<CppType_>(__VA_ARGS__);         \
+    static_assert(&CppType_::StaticVarName_ == &StaticVarName_,                       \
+                  #CppType_ " is wrong here - check for copy-pasta");                 \
+    const AbstractEventMetaType &metaType() const override { return StaticVarName_; } \
+    // End of macro
+
 //! \brief Supply event metatype information in base event types
 //!
 //! Use this macro in a public section of your base event class to provide
@@ -401,14 +421,11 @@ protected:
 //! initialised by parameters passed to the macro, and a metaType() override
 //! pointing to that BaseMetaType.
 //! \sa EventMetaType
-#define QUO_BASE_EVENT(CppType_, BaseCppType_, ...)                                      \
-    friend class EventMetaType<CppType_>;                                                \
-    static inline auto BaseMetaType =                                                    \
-        EventMetaType<CppType_>(&BaseCppType_::BaseMetaType __VA_OPT__(, ) __VA_ARGS__); \
-    static_assert(&CppType_::BaseMetaType == &BaseMetaType,                              \
-                  #CppType_ " is wrong here - check for copy-pasta");                    \
-    const AbstractEventMetaType &metaType() const override { return BaseMetaType; }      \
-    // End of macro
+#define QUO_BASE_EVENT(CppType_, BaseCppType_) \
+    QUO_EVENT_IMPL(BaseMetaType, CppType_, &BaseCppType_::BaseMetaType)
+
+//! A helper macro to pass two event type identifiers to QUO_EVENT and QUO_DEFINE_SIMPLE_EVENT
+#define QUO_LIST(...) __VA_ARGS__
 
 //! \brief Supply event metatype information in (specific) event types
 //!
@@ -417,21 +434,26 @@ protected:
 //! Do _not_ use this macro if your class is an intermediate wrapper and is not
 //! supposed to be instantiated on its own. Provides MetaType static field
 //! initialised as described below; a metaType() override pointing to it; and
-//! the TypeId static field that is equal to MetaType.matrixId.
+//! the TypeId static field that is equal to MetaType.matrixIds[0].
 //!
-//! The first two macro parameters are used as the first two EventMetaType
-//! constructor parameters; the third EventMetaType parameter is always
-//! BaseMetaType; and additional base types can be passed in extra macro
-//! parameters if you need to include the same event type in more than one
-//! event factory hierarchy (e.g., EncryptedEvent).
-//! \sa EventMetaType
-#define QUO_EVENT(CppType_, MatrixType_)                                                     \
-    friend class EventMetaType<CppType_>;                                                    \
-    static inline const auto MetaType = EventMetaType<CppType_>(&BaseMetaType, MatrixType_); \
-    static_assert(&CppType_::MetaType == &MetaType,                                          \
-                  #CppType_ " is wrong here - check for copy-pasta");                        \
-    static inline const auto &TypeId = MetaType.matrixId;                                    \
-    const AbstractEventMetaType &metaType() const override { return MetaType; }              \
+//! There are cases when the underlying Matrix event type has two type ids, namely when the type
+//! is being proposed for the specification (i.e. there's an MSC for it) or has just been merged
+//! into the spec. In such situations it is often desirable to recognise both the canonical
+//! ("m.example_event") and the unstable (i.e., "org.matrix.mscXXXX.example_event") types but only
+//! send events with the unstable (while the MSC is in flight) or, later, stable (when it is
+//! accepted) types. If you use QUO_LIST to pass two event type ids instead of one, e.g.
+//! `QUO_EVENT(ExampleEvent, QUO_LIST("org.matrix.mscXXXX.example_event", "m.example_event"))`, then
+//! only the first type will be used both to load the event from JSON and create a new instance of
+//! the event, the second type will only be used to detect the event in JSON but you cannot create
+//! new class instances using this type. Once the MSC is accepted, simply switch the two type ids
+//! around and rebuild the code that creates or loads events of this type.
+//! \note QUO_LIST is used here instead of making QUO_EVENT a variadic macro to provide an extra
+//!       safeguard, but also to use the same syntax in cases when the type id is not the last
+//!       parameter, e.g. for DEFINE_SIMPLE_EVENT
+//! \sa Quotient::EventMetaType, QUO_LIST
+#define QUO_EVENT(CppType_, MatrixTypeOrTypeList_)                           \
+    QUO_EVENT_IMPL(MetaType, CppType_, &BaseMetaType, MatrixTypeOrTypeList_) \
+    static inline const auto &TypeId = MetaType.matrixIds[0];                \
     // End of macro
 
 #define QUO_CONTENT_GETTER_X(PartType_, PartName_, JsonKey_) \
@@ -452,26 +474,31 @@ protected:
 #define QUO_CONTENT_GETTER(PartType_, PartName_) \
     QUO_CONTENT_GETTER_X(PartType_, PartName_, toSnakeCase(#PartName_##_L1))
 
-/// \brief Define a new event class with a single key-value pair in the content
-///
-/// This macro defines a new event class \p Name_ derived from \p Base_,
-/// with Matrix event type \p TypeId_, providing a getter named \p GetterName_
-/// for a single value of type \p ValueType_ inside the event content.
-/// To retrieve the value the getter uses a JSON key name that corresponds to
-/// its own (getter's) name but written in snake_case. \p GetterName_ must be
-/// in camelCase, no quotes (an identifier, not a literal).
-#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_, JsonKey_)      \
-    constexpr inline auto Name_##ContentKey = JsonKey_##_L1;                               \
-    class QUOTIENT_API Name_                                                               \
-        : public ::Quotient::EventTemplate<                                                \
-              Name_, Base_, EventContent::SingleKeyValue<ValueType_, Name_##ContentKey>> { \
-    public:                                                                                \
-        QUO_EVENT(Name_, TypeId_)                                                          \
-        using value_type = ValueType_;                                                     \
-        using EventTemplate::EventTemplate;                                                \
-        QUO_CONTENT_GETTER_X(ValueType_, GetterName_, Name_##ContentKey)                   \
-    };                                                                                     \
+//! \brief Define a new event class with a single key-value pair in the content
+//!
+//! This macro defines a new event class \p Name_ derived from \p Base_, with Matrix event type
+//! \p TypeId_, providing a getter named \p GetterName_ for a single value of type \p ValueType_
+//! stored under \p JsonKey_ inside the event content.
+//!
+//! \p TypeId_ can be a QUO_LIST() with two event types, the same way it works with QUO_EVENT.
+//! \sa QUO_LIST, QUO_EVENT
+#define QUO_DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_, JsonKey_) \
+    constexpr inline auto Name_##ContentKey = QLatin1String(JsonKey_);                    \
+    class QUOTIENT_API Name_                                                              \
+        : public ::Quotient::EventTemplate<                                               \
+              Name_, Base_, EventContent::SingleKeyValue<ValueType_, Name_##ContentKey>>  \
+    {                                                                                     \
+    public:                                                                               \
+        QUO_EVENT(Name_, QUO_LIST(TypeId_))                                               \
+        using value_type = ValueType_;                                                    \
+        using EventTemplate::EventTemplate;                                               \
+        QUO_CONTENT_GETTER_X(ValueType_, GetterName_, Name_##ContentKey)                  \
+    };                                                                                    \
     // End of macro
+
+//! \deprecated Use QUO_DEFINE_SIMPLE_EVENT instead
+#define DEFINE_SIMPLE_EVENT(Name_, Base_, TypeId_, ValueType_, GetterName_, JsonKey_) \
+    QUO_DEFINE_SIMPLE_EVENT(Name_, Base_, QUO_LIST(TypeId_), ValueType_, GetterName_, JsonKey_)
 
 // === is<>(), eventCast<>() and switchOnType<>() ===
 
