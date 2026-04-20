@@ -770,6 +770,8 @@ public Q_SLOTS:
     static Connection* makeMockConnection(const QString& mxId,
                                           bool enableEncryption = true);
 
+    Q_INVOKABLE bool isUserPresent(const QString &userId) const;
+
 Q_SIGNALS:
     //! \brief Initial server resolution has failed
     //!
@@ -945,6 +947,8 @@ Q_SIGNALS:
     //! The connection is ready to be used. Most notably, the fundamental e2ee data is loaded.
     //! This does not mean that the server was reached, a sync was performed, or the state cache was loaded.
     void ready();
+
+    void presenceChanged();
 
     friend class ::TestCrossSigning;
 protected:

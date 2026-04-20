@@ -52,6 +52,8 @@ public:
     std::unordered_map<QString, EventPtr> accountData;
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
+    QStringList forcePresentUsers;
+    QStringList presentUsers;
 
     GetCapabilitiesJob::Capabilities capabilities{};
 

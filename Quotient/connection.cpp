@@ -33,6 +33,7 @@
 #include "events/encryptionevent.h"
 #include "jobs/downloadfilejob.h"
 #include "jobs/mediathumbnailjob.h"
+#include "events/presenceevent.h"
 
 // moc needs fully defined deps, see https://www.qt.io/blog/whats-new-in-qmetatype-qvariant
 #include "moc_connection.cpp" // NOLINT(bugprone-suspicious-include)
@@ -634,7 +635,26 @@ void Connection::Private::consumeAccountData(Events&& accountDataEvents)
 
 void Connection::Private::consumePresenceData(Events&& presenceData)
 {
-    // To be implemented
+    for (const auto &event : presenceData) {
+        auto presenceEvent = eventCast<const PresenceEvent>(event);
+        auto sender = presenceEvent->fullJson()[u"sender"_s].toString(); // TODO ?
+        if (presenceEvent->currentlyActive()) {
+            forcePresentUsers += sender;
+        } else {
+            forcePresentUsers.removeAll(sender);
+        }
+        if (presenceEvent->presence() == u"online") {
+            presentUsers += sender;
+        } else {
+            presentUsers.removeAll(sender);
+        }
+    }
+    Q_EMIT q->presenceChanged();
+}
+
+bool Connection::isUserPresent(const QString &userId) const
+{
+    return d->forcePresentUsers.contains(userId) || d->presentUsers.contains(userId);
 }
 
 void Connection::Private::consumeToDeviceEvents(Events&& toDeviceEvents)
