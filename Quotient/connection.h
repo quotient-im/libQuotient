@@ -375,6 +375,7 @@ public:
     //! Returns true if this megolm session comes from a verified device
     bool isVerifiedSession(const QByteArray& megolmSessionId) const;
 
+#if Quotient_VERSION_MAJOR == 0 && Quotient_VERSION_MINOR <= 10
     //! Returns whether the device is verified
     bool isVerifiedDevice(const QString& userId, const QString& deviceId) const;
 
@@ -383,7 +384,17 @@ public:
     //! This might give unexpected results for users we're not tracking,
     //! i.e., users that we don't share an encrypted room with
     bool isKnownE2eeCapableDevice(const QString& userId, const QString& deviceId) const;
+#endif
 
+    enum VerificationState : uint8_t { NoE2EE = 0, Unverified, SelfVerified, Verified };
+    Q_ENUM(VerificationState)
+
+    //! \brief Returns whether the device is E2EE-capable and verified/self-verified
+    //!
+    //! \note This may give unexpected results for users not tracked in this account,
+    //!       e.g. users that have no common encrypted room with the current account
+    VerificationState getDeviceVerificationState(const QString& userId,
+                                                 const QString& deviceId) const;
 
     void sendSessionKeyToDevices(const QString& roomId,
                                  const QOlmOutboundGroupSession& outboundSession,

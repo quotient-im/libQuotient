@@ -1966,6 +1966,21 @@ bool Connection::isKnownE2eeCapableDevice(const QString& userId, const QString& 
     return query.next();
 }
 
+Connection::VerificationState Connection::getDeviceVerificationState(const QString& userId,
+                                                                     const QString& deviceId) const
+{
+    auto query = database()->prepareQuery(
+        "SELECT verified, selfVerified FROM tracked_devices WHERE deviceId=:deviceId AND matrixId=:matrixId;"_L1);
+    query.bindValue(":deviceId"_L1, deviceId);
+    query.bindValue(":matrixId"_L1, userId);
+    database()->execute(query);
+    return query.next() ? query.value("verified"_L1).toBool() ? Verified
+                          : isUserVerified(userId) && query.value("selfVerified"_L1).toBool()
+                              ? SelfVerified
+                              : Unverified
+                        : NoE2EE;
+}
+
 bool Connection::hasConflictingDeviceIdsAndCrossSigningKeys(const QString& userId)
 {
     if (d->encryptionData) {
