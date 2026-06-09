@@ -89,6 +89,7 @@ set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
 # Instruct CMake to run moc automatically when needed.
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql Qml)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
