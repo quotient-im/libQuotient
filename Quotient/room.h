@@ -912,7 +912,7 @@ Q_SIGNALS:
     void eventsHistoryJobChanged();
     void aboutToAddHistoricalMessages(Quotient::RoomEventsRange events);
     void aboutToAddNewMessages(Quotient::RoomEventsRange events);
-    void addedMessages(int fromIndex, int toIndex);
+    void addedMessages(int oldest, int newest);
     /// The event is about to be appended to the list of pending events
     void pendingEventAboutToAdd(Quotient::RoomEvent* event);
     /// An event has been appended to the list of pending events
