@@ -2367,6 +2367,10 @@ void Connection::Private::requestDeviceVerification(KeyVerificationSession* sess
 
 bool Connection::isVerifiedEvent(const QString& eventId, Room* room)
 {
+    if (!d->cryptoMachine) {
+        return false;
+    }
+
     if (eventId.isEmpty()) {
         return false;
     }
