@@ -15,7 +15,7 @@
 The Quotient project aims to produce a Qt-based SDK to develop applications for
 [Matrix](https://matrix.org). libQuotient is a library that enables client applications. It is
 the backbone of [Quaternion](https://github.com/quotient-im/Quaternion),
-[NeoChat](https://invent.kde.org/network/neochat) and other projects.
+[NeoChat](https://invent.kde.org/network/neochat), and other projects.
 
 ## Contacts
 
@@ -24,7 +24,7 @@ You can find Quotient developers in the Matrix room:
 
 You can file issues at
 [the project issue tracker](https://github.com/quotient-im/libQuotient/issues).
-If you find what looks like a security issue, please use instructions
+If you find what looks like a security issue, please use the instructions
 in [SECURITY.md](./SECURITY.md).
 
 ## Getting and using libQuotient
@@ -43,6 +43,8 @@ To use libQuotient (i.e. build or run applications with it), you'll need:
 - Qt 6.8 or newer - either Open Source or Commercial
 - QtKeychain (https://github.com/frankosterfeld/qtkeychain) - the newest release is recommended;
   the build configuration of QtKeychain must use the same Qt major version, i.e. Qt 6.
+- A reasonably new rust toolchain (rustc + cargo)
+- At least version 0.6.1 of [Corrosion](https://github.com/corrosion-rs/corrosion).
 
 To build applications with libQuotient, you'll also need:
 
@@ -51,7 +53,6 @@ To build applications with libQuotient, you'll also need:
   (`std::expected`, in particular)
   - GCC 14 (Windows, Linux, macOS), Clang 19 (Linux), Apple Clang 15 (macOS 14+)
     and Visual Studio 2022 17.6 (Windows) are the oldest officially supported
-- libolm 3.2.5 or newer (the latest 3.x strongly recommended)
 - OpenSSL 3.x (1.1.x may still work but is strongly discouraged)
 - Any build system that works with CMake should be fine; known to work are GNU Make and
   ninja (recommended) on any platform; NMake and jom on Windows should also work
@@ -68,7 +69,7 @@ avatar thumbnails, without any on-screen drawing.
 
 #### macOS
 
-`brew install qt qtkeychain libolm openssl@3` should get you the most recent versions of
+`brew install qt qtkeychain corrosion openssl@3` should get you the most recent versions of
 the runtime libraries.
 
 You may need to add `$(brew --prefix qt)`, `$(brew --prefix qtkeychain)` etc. to `CMAKE_PREFIX_PATH`
@@ -98,11 +99,6 @@ _If you use a C++ IDE_: you should be able to configure CMake path and extra opt
 (or any other library) to `PATH` explicitly; use `CMAKE_PREFIX_PATH` instead and leave `PATH`
 unchanged. If your IDE is Qt Creator, you shouldn't need to deal with Qt paths at all, just pick
 the right kit and go straight to building.
-
-You will also need libolm. You'll have to build it yourself - there's no binary for Windows that you
-can download from vcpkg or elsewhere, as of this writing. The source code is available
-at https://gitlab.matrix.org/matrix-org/olm; you can use the same toolchain (CMake+MSVC, e.g.) as
-for the rest of Quotient.
 
 ## Using the library
 
