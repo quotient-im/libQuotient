@@ -171,7 +171,7 @@ jobs:
     - name: Build and install Corrosion
       run: |
         cd ..
-        git clone -b v0.6.0 https://github.com/corrosion-rs/corrosion
+        git clone -b v0.6.1 https://github.com/corrosion-rs/corrosion
         cmake -S corrosion -B corrosion/build $CMAKE_ARGS
         cmake --build corrosion/build --target install
 
