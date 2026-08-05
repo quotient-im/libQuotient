@@ -248,15 +248,17 @@ bool Connection::capabilitiesReady() const
 
 QStringList Connection::supportedMatrixSpecVersions() const { return d->data->homeserverData().supportedSpecVersions; }
 
-namespace {
-QFuture<QKeychain::Job*> runKeychainJob(QKeychain::Job* j, const QString& keychainId)
+QFuture<QKeychain::Job*> Connection::Private::runKeychainJob(QKeychain::Job* j, const QString& keychainId) const
 {
     j->setAutoDelete(true);
-    j->setKey(keychainId);
+    if (!keychainSuffix.isEmpty()) {
+        j->setKey(keychainId + "-"_L1 + keychainSuffix);
+    } else {
+        j->setKey(keychainId);
+    }
     auto ft = QtFuture::connect(j, &QKeychain::Job::finished);
     j->start();
     return ft;
-}
 }
 
 void Connection::Private::saveAccessTokenToKeychain() const
@@ -1011,6 +1013,11 @@ QFuture<Room *> Connection::waitForNewRoom(const QString &roomId)
         return false;
     });
     return ft;
+}
+
+void Connection::setKeychainSuffix(const QString &suffix)
+{
+    d->keychainSuffix = suffix;
 }
 
 JobHandle<LeaveRoomJob> Connection::leaveRoom(Room* room)

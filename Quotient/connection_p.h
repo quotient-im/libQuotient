@@ -23,6 +23,10 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QQueue>
 
+namespace QKeychain {
+class Job;
+}
+
 namespace Quotient {
 
 class Q_DECL_HIDDEN Quotient::Connection::Private {
@@ -93,6 +97,8 @@ public:
     bool isHandlingOutgoing = false;
 
     unsigned int lastScheduledRequest = 0;
+
+    QString keychainSuffix;
 
     //! \brief Check the homeserver and resolve it if needed, before connecting
     //!
@@ -188,5 +194,7 @@ public:
     void setupCryptoMachine(const QByteArray& picklingKey);
     void runShareKey(Room* room, std::function<void()>);
     void startKeyShare();
+
+    QFuture<QKeychain::Job*> runKeychainJob(QKeychain::Job* j, const QString& keychainId) const;
 };
 } // namespace Quotient
