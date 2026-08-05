@@ -686,6 +686,78 @@ void Connection::onSyncSuccess(SyncJob *syncJob)
                                                stringFromRust(session.remote_device_id()), this);
                 emit newKeyVerificationSession(keyVerificationSession);
             }
+
+            if ((*d->cryptoMachine)->requires_cs_bootstrap() && !d->bootstrappingCrossSigning) {
+                d->bootstrappingCrossSigning = true;
+                const auto result = (*d->cryptoMachine)->bootstrap_cs();
+
+                if (!result->has_error()) {
+                    const auto requests = result->value();
+                    const auto masterKey = fromRustJson<CrossSigningKey>(requests->master_key_json());
+                    const auto selfSigning = fromRustJson<CrossSigningKey>(requests->self_signing_key_json());
+                    const auto userSigning = fromRustJson<CrossSigningKey>(requests->user_signing_key_json());
+                    const auto signatures = fromRustJson<QHash<UserId, QHash<QString, QJsonObject>>>(requests->upload_signatures_content());
+                    auto processOtherJobs = [this, masterKey, selfSigning, userSigning, signatures] {
+                            callApi<UploadCrossSigningKeysJob>(masterKey, selfSigning, userSigning).then([this, signatures](){
+                                callApi<UploadCrossSigningSignaturesJob>(signatures).then([this] {
+                                    d->bootstrappingCrossSigning = false;
+                                });
+                            });
+                    };
+                    if (requests->has_upload_keys_request()) {
+                        const auto request = requests->upload_keys_request();
+                        const auto id = request->id();
+                        callApi<UploadKeysJob>(fromRustJson<DeviceKeys>(request->keys_upload_device_keys())).then([this, id, processOtherJobs](const auto& job) {
+                            (*d->cryptoMachine)->mark_keys_upload_as_sent(bytesToRust(job->rawData()), id);
+                            processOtherJobs();
+                        });
+                    } else {
+                        processOtherJobs();
+                    }
+
+                    const auto masterKeyForAccountData = jsonFromRust(requests->master());
+                    const auto selfSigningKeyForAccountData = jsonFromRust(requests->self_signing());
+                    const auto userSigningKeyForAccountData = jsonFromRust(requests->user_signing());
+                    const auto backupKeyForAccountData = jsonFromRust(requests->backup());
+                    const auto backupKey = stringFromRust(requests->backup_key());
+
+                    const auto secretStorageEventContent = jsonFromRust(requests->secret_storage_event_content());
+                    const auto secretStorageKeyId = stringFromRust(requests->secret_storage_key_id());
+                    const auto backupInfo = jsonFromRust(requests->backup_info());
+                    const auto secretStorageEventType = stringFromRust(requests->secret_storage_event_type());
+
+                    setAccountData(u"m.secret_storage.default_key"_s, {
+                        {u"key"_s, secretStorageKeyId}
+                    });
+                    setAccountData(secretStorageEventType, secretStorageEventContent);
+                    setAccountData(u"m.cross_signing.master"_s, {
+                        {u"encrypted"_s, QJsonObject {
+                            {secretStorageKeyId, masterKeyForAccountData}
+                        }}
+                    });
+                    setAccountData(u"m.cross_signing.self_signing"_s, {
+                        {u"encrypted"_s, QJsonObject {
+                            {secretStorageKeyId, selfSigningKeyForAccountData}
+                        }}
+                    });
+                    setAccountData(u"m.cross_signing.user_signing"_s, {
+                        {u"encrypted"_s, QJsonObject {
+                            {secretStorageKeyId, userSigningKeyForAccountData}
+                        }}
+                    });
+                    setAccountData(u"m.megolm_backup.v1"_s, {
+                        {u"encrypted"_s, QJsonObject {
+                            {secretStorageKeyId, backupKeyForAccountData}
+                        }}
+                    });
+
+                    emit backupKeyCreated(backupKey);
+                    callApi<PostRoomKeysVersionJob>(backupInfo[u"algorithm"_s].toString(), backupInfo[u"auth_data"_s].toObject()).then([this](const auto &job) {
+                        (*d->cryptoMachine)->set_backup_version(stringToRust(job->version()));
+                    });
+
+                }
+            }
         }
         emit allPrivateCSKeysAvailableChanged();
         emit isBackupDecryptionKeyAvailableChanged();

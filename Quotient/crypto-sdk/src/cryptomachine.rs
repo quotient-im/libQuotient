@@ -64,6 +64,7 @@ pub(crate) struct CryptoMachine {
     pub(crate) error_string: String,
     pub(crate) runtime: tokio::runtime::Runtime,
     pub(crate) machine: Option<ManuallyDrop<OlmMachine>>,
+    pub(crate) pending_backup_decryption_key: Option<BackupDecryptionKey>,
 }
 
 impl Drop for CryptoMachine {
@@ -171,6 +172,32 @@ impl OutgoingRequestResult {
         match self {
             Self::Ok(value) => value.clone(),
             Self::Err(_) => panic!(),
+        }
+    }
+}
+
+pub(crate) enum CrossSigningBootstrapRequestsResult {
+    Ok(Box<crate::request::CrossSigningBootstrapRequests>),
+    Err(Box<dyn Error>)
+}
+
+impl CrossSigningBootstrapRequestsResult {
+    pub(crate) fn has_error(&self) -> bool {
+        matches!(self, Self::Err(_))
+    }
+
+    pub(crate) fn error_string(&self) -> String {
+        if let Self::Err(error) = self {
+            error.to_string()
+        } else {
+            Default::default()
+        }
+    }
+
+    pub(crate) fn value(&self) -> Box<crate::request::CrossSigningBootstrapRequests> {
+        match self {
+            Self::Ok(value) => value.clone(),
+            Self::Err(_) => panic!("CrossSigningBootstrapRequests does not have a value"),
         }
     }
 }
@@ -543,6 +570,78 @@ macro_rules! crypto_machine {
 }
 
 impl CryptoMachine {
+    pub(crate) fn requires_cs_bootstrap(&mut self) -> bool {
+        self.runtime.block_on(async {
+            let machine = crypto_machine!(self);
+            !machine
+                .get_identity(machine.user_id(), None)
+                .await.unwrap()
+                .is_some()
+        })
+    }
+
+    pub(crate) fn set_backup_version(&mut self, version: String) {
+        let pending_backup = self.pending_backup_decryption_key.take();
+        self.runtime.block_on(async {
+            crypto_machine!(self).backup_machine().save_decryption_key(pending_backup, Some(version)).await.unwrap();
+        });
+    }
+
+    pub(crate) fn bootstrap_cs(&mut self) -> Box<CrossSigningBootstrapRequestsResult> {
+        let result: Result<Box<crate::request::CrossSigningBootstrapRequests>, Box<dyn Error>> =
+        self.runtime.block_on(async {
+            let requests = crypto_machine!(self).bootstrap_cross_signing(false).await?;
+            let secret_storage = SecretStorageKey::new();
+            let backup_decryption_key = BackupDecryptionKey::new().unwrap();
+
+            let mut backup_info = backup_decryption_key.to_backup_info();
+            crypto_machine!(self).backup_machine().sign_backup(&mut backup_info).await?;
+            crypto_machine!(self).backup_machine().enable_backup_v1(backup_decryption_key.megolm_v1_public_key()).await.unwrap();
+            self.pending_backup_decryption_key = Some(backup_decryption_key.clone());
+
+            #[derive(serde::Serialize)]
+            struct AesEncrypted {
+                iv: String,
+                ciphertext: String,
+                mac: String,
+            }
+
+            impl AesEncrypted {
+                fn new(encrypted: AesHmacSha2EncryptedData) -> Self {
+                    AesEncrypted {
+                        iv: Base64::<Standard>::new(encrypted.iv.into()).encode(),
+                        ciphertext: encrypted.ciphertext.to_string(),
+                        mac: Base64::<Standard>::new(encrypted.mac.into()).encode(),
+                    }
+                }
+            }
+
+            let cs_keys = crypto_machine!(self).export_cross_signing_keys().await?.unwrap();
+            let master = secret_storage.encrypt(cs_keys.master_key.as_ref().unwrap().clone().into_bytes(), &SecretName::CrossSigningMasterKey);
+            let user_signing = secret_storage.encrypt(cs_keys.user_signing_key.clone().unwrap().into_bytes(), &SecretName::CrossSigningUserSigningKey);
+            let self_signing = secret_storage.encrypt(cs_keys.self_signing_key.clone().unwrap().into_bytes(), &SecretName::CrossSigningSelfSigningKey);
+            let backup = secret_storage.encrypt(backup_decryption_key.to_base64().into_bytes(), &SecretName::RecoveryKey);
+            Ok(Box::new(crate::request::CrossSigningBootstrapRequests {
+                bootstrap_requests: requests,
+                secret_storage_key_id: secret_storage.key_id().to_string(),
+                backup_info: serde_json::to_string(&backup_info).unwrap(),
+                master: serde_json::to_string(&AesEncrypted::new(master)).unwrap(),
+                self_signing: serde_json::to_string(&AesEncrypted::new(self_signing)).unwrap(),
+                user_signing: serde_json::to_string(&AesEncrypted::new(user_signing)).unwrap(),
+                backup: serde_json::to_string(&AesEncrypted::new(backup)).unwrap(),
+                backup_key: secret_storage.to_base58(),
+                secret_storage_event_content: serde_json::to_string(&secret_storage.event_content()).unwrap(),
+                secret_storage_event_type: secret_storage.event_type().to_string(),
+            }))
+        });
+        Box::new(match result {
+            Ok(requests) => CrossSigningBootstrapRequestsResult::Ok(requests),
+            Err(error) => {
+                error!("Failed to process bootstrap_cs: {:?}", error);
+                CrossSigningBootstrapRequestsResult::Err(error)
+            }
+        })
+    }
     pub(crate) fn is_ok(&self) -> bool {
         self.error == InitError::Ok
     }

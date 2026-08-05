@@ -30,6 +30,7 @@ use cryptomachine::SyncChanges;
 use cryptomachine::SyncChangesResult;
 use cryptomachine::ToDeviceRequestResult;
 use cryptomachine::U8Result;
+use cryptomachine::CrossSigningBootstrapRequestsResult;
 use file_crypto::DecryptResult;
 
 fn init(
@@ -100,12 +101,14 @@ fn init(
             error_string: "Success".to_string(),
             runtime: rt,
             machine: Some(ManuallyDrop::new(machine)),
+            pending_backup_decryption_key: None,
         },
         InnerInitResult::Err(error, error_string) => CryptoMachine {
             error,
             error_string,
             runtime: rt,
             machine: None,
+            pending_backup_decryption_key: None,
         },
     })
 }
@@ -117,7 +120,7 @@ use file_crypto::decrypt_file;
 use file_crypto::encrypt_file;
 use request::{
     ConfirmRequests, KeyVerificationRequest, KeysClaimRequest, OutgoingKeyVerificationRequest,
-    OutgoingRequest, ToDeviceRequest,
+    OutgoingRequest, ToDeviceRequest, CrossSigningBootstrapRequests,
 };
 use verification::{CreatedSession, Emoji};
 
@@ -184,6 +187,8 @@ mod ffi {
         type KeyVerificationRequestResult;
         type EncryptionInfoResult;
         type DecryptResult;
+        type CrossSigningBootstrapRequests;
+        type CrossSigningBootstrapRequestsResult;
 
         // General CryptoMachine functions
         fn init(
@@ -527,5 +532,32 @@ mod ffi {
         );
 
         fn all_private_cs_keys_available(self: &CryptoMachine) -> bool;
+        fn requires_cs_bootstrap(self: &mut CryptoMachine) -> bool;
+        fn bootstrap_cs(self: &mut CryptoMachine) -> Box<CrossSigningBootstrapRequestsResult>;
+
+        fn has_error(self: &CrossSigningBootstrapRequestsResult) -> bool;
+        fn value(self: &CrossSigningBootstrapRequestsResult) -> Box<CrossSigningBootstrapRequests>;
+
+        fn upload_signatures_content(self: &CrossSigningBootstrapRequests) -> String;
+        fn self_signing_key_json(self: &CrossSigningBootstrapRequests) -> String;
+        fn user_signing_key_json(self: &CrossSigningBootstrapRequests) -> String;
+        fn master_key_json(self: &CrossSigningBootstrapRequests) -> String;
+        fn has_upload_keys_request(self: &CrossSigningBootstrapRequests) -> bool;
+        fn upload_keys_request(self: &CrossSigningBootstrapRequests) -> Box<OutgoingRequest>;
+
+        pub(crate) fn secret_storage_key_id(self: &CrossSigningBootstrapRequests) -> String;
+        pub(crate) fn master(self: &CrossSigningBootstrapRequests) -> String;
+        pub(crate) fn self_signing(self: &CrossSigningBootstrapRequests) -> String;
+        pub(crate) fn user_signing(self: &CrossSigningBootstrapRequests) -> String;
+        pub(crate) fn backup(self: &CrossSigningBootstrapRequests) -> String;
+
+        pub(crate) fn backup_key(self: &CrossSigningBootstrapRequests) -> String;
+        pub(crate) fn secret_storage_event_content(self: &CrossSigningBootstrapRequests) -> String;
+
+        pub(crate) fn secret_storage_event_type(self: &CrossSigningBootstrapRequests) -> String;
+
+        pub(crate) fn backup_info(self: &CrossSigningBootstrapRequests) -> String;
+
+        pub(crate) fn set_backup_version(self: &mut CryptoMachine, version: String);
     }
 }
