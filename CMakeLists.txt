@@ -99,7 +99,7 @@ if(${Qt}Core_VERSION VERSION_GREATER_EQUAL 6.10)
 endif()
 
 find_package(${Qt}Keychain REQUIRED)
-find_package(Corrosion REQUIRED)
+find_package(Corrosion 0.6.1 REQUIRED)
 
 if(NOT WIN32)
     find_package(PkgConfig REQUIRED)

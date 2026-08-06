@@ -658,9 +658,7 @@ void Connection::onSyncSuccess(SyncJob *syncJob)
     if (d->cryptoMachine) {
         auto syncChangesResult =
             (*d->cryptoMachine)->receive_sync_changes(bytesToRust(syncJob->rawData()));
-        if (syncChangesResult->has_error()) {
-            return;
-        } else {
+        if (!syncChangesResult->has_error()) {
             auto syncChanges = syncChangesResult->value();
 
             if (syncChanges->secrets_received()) {
