@@ -69,11 +69,9 @@ pub(crate) struct CryptoMachine {
 impl Drop for CryptoMachine {
     fn drop(&mut self) {
         self.runtime.block_on(async {
-            let machine = self
-                .machine
-                .take()
-                .expect("CryptoMachine should not be destroyed more than once");
-            drop(ManuallyDrop::into_inner(machine));
+            if let Some(machine) = self.machine.take() {
+                drop(ManuallyDrop::into_inner(machine));
+            }
         })
     }
 }
