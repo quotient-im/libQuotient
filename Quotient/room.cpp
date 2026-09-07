@@ -1908,7 +1908,8 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
         auto type = eventItem->matrixType();
         auto contentJson = eventItem->contentJson();
 
-        connection->shareRoomKey(q, [this, txnId, eventItemIter, type, contentJson, &eventItem]() {
+        connection->shareRoomKey(q, [this, txnId, type, contentJson, &eventItem]() {
+            auto eventItemIter = q->findPendingEvent(txnId);
             const RoomEvent* _event = eventItemIter->event();
             std::unique_ptr<EncryptedEvent> encryptedEvent;
             auto content = QJsonDocument::fromJson(connection->encryptRoomEvent(q, QJsonDocument(contentJson).toJson(), type).toUtf8()).object();
