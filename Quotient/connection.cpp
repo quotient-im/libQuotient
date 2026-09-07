@@ -820,9 +820,13 @@ void Connection::Private::processOutgoingRequests()
                 break;
             }
             case OutgoingRequestType::RoomMessage: {
+                const auto room = q->room(stringFromRust(request.room_msg_room_id()));
+                if (!room) {
+                    qCWarning(E2EE) << "Room" << stringFromRust(request.room_msg_room_id()) << "not found";
+                    break;
+                }
                 futures.append(
-                    q->room(stringFromRust(request.room_msg_room_id()))
-                        ->post(loadEvent<RoomEvent>(stringFromRust(request.room_msg_matrix_type()),
+                        room->post(loadEvent<RoomEvent>(stringFromRust(request.room_msg_matrix_type()),
                                                     jsonFromRust(request.room_msg_content())))
                         .whenMerged()
                         .then([this, id](const RoomEvent& targetEvt) {
