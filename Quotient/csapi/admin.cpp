@@ -4,12 +4,12 @@
 
 using namespace Quotient;
 
-QUrl GetWhoIsJob::makeRequestUrl(const HomeserverData& hsData, const QString& userId)
+QUrl GetWhoIsJob::makeRequestUrl(const HomeserverData &hsData, const QString &userId)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/admin/whois/", userId));
 }
 
-GetWhoIsJob::GetWhoIsJob(const QString& userId)
+GetWhoIsJob::GetWhoIsJob(const QString &userId)
     : BaseJob(HttpVerb::Get, u"GetWhoIsJob"_s,
               makePath("/_matrix/client/v3", "/admin/whois/", userId))
 {}

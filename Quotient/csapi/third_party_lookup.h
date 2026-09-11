@@ -2,10 +2,9 @@
 
 #pragma once
 
+#include <Quotient/csapi/definitions/protocol.h>
 #include <Quotient/jobs/basejob.h>
-
 #include <Quotient/application-service/definitions/location.h>
-#include <Quotient/application-service/definitions/protocol.h>
 #include <Quotient/application-service/definitions/user.h>
 
 namespace Quotient {
@@ -15,7 +14,8 @@ namespace Quotient {
 //! Fetches the overall metadata about protocols supported by the
 //! homeserver. Includes both the available protocols and all fields
 //! required for queries against each protocol.
-class QUOTIENT_API GetProtocolsJob : public BaseJob {
+class QUOTIENT_API GetProtocolsJob : public BaseJob
+{
 public:
     explicit GetProtocolsJob();
 
@@ -23,7 +23,7 @@ public:
     //!
     //! This function can be used when a URL for GetProtocolsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -34,22 +34,23 @@ public:
     }
 };
 
-inline auto collectResponse(const GetProtocolsJob* job) { return job->protocols(); }
+inline auto collectResponse(const GetProtocolsJob *job) { return job->protocols(); }
 
 //! \brief Retrieve metadata about a specific protocol that the homeserver supports.
 //!
 //! Fetches the metadata from the homeserver about a particular third-party protocol.
-class QUOTIENT_API GetProtocolMetadataJob : public BaseJob {
+class QUOTIENT_API GetProtocolMetadataJob : public BaseJob
+{
 public:
     //! \param protocol
     //!   The name of the protocol.
-    explicit GetProtocolMetadataJob(const QString& protocol);
+    explicit GetProtocolMetadataJob(const QString &protocol);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetProtocolMetadataJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& protocol);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &protocol);
 
     // Result properties
 
@@ -57,7 +58,7 @@ public:
     ThirdPartyProtocol data() const { return fromJson<ThirdPartyProtocol>(jsonData()); }
 };
 
-inline auto collectResponse(const GetProtocolMetadataJob* job) { return job->data(); }
+inline auto collectResponse(const GetProtocolMetadataJob *job) { return job->data(); }
 
 //! \brief Retrieve Matrix-side portals rooms leading to a third-party location.
 //!
@@ -69,22 +70,24 @@ inline auto collectResponse(const GetProtocolMetadataJob* job) { return job->dat
 //! object containing the network-specific fields that comprise this
 //! identifier. It should attempt to canonicalise the identifier as much
 //! as reasonably possible given the network type.
-class QUOTIENT_API QueryLocationByProtocolJob : public BaseJob {
+class QUOTIENT_API QueryLocationByProtocolJob : public BaseJob
+{
 public:
     //! \param protocol
     //!   The protocol used to communicate to the third-party network.
     //!
-    //! \param searchFields
+    //! \param fields
     //!   One or more custom fields to help identify the third-party
     //!   location.
-    explicit QueryLocationByProtocolJob(const QString& protocol, const QString& searchFields = {});
+    explicit QueryLocationByProtocolJob(const QString &protocol,
+                                        const QHash<QString, QString> &fields = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for QueryLocationByProtocolJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& protocol,
-                               const QString& searchFields = {});
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &protocol,
+                               const QHash<QString, QString> &fields = {});
 
     // Result properties
 
@@ -95,28 +98,29 @@ public:
     }
 };
 
-inline auto collectResponse(const QueryLocationByProtocolJob* job) { return job->data(); }
+inline auto collectResponse(const QueryLocationByProtocolJob *job) { return job->data(); }
 
 //! \brief Retrieve the Matrix User ID of a corresponding third-party user.
 //!
 //! Retrieve a Matrix User ID linked to a user on the third-party service, given
 //! a set of user parameters.
-class QUOTIENT_API QueryUserByProtocolJob : public BaseJob {
+class QUOTIENT_API QueryUserByProtocolJob : public BaseJob
+{
 public:
     //! \param protocol
     //!   The name of the protocol.
     //!
     //! \param fields
     //!   One or more custom fields that are passed to the AS to help identify the user.
-    explicit QueryUserByProtocolJob(const QString& protocol,
-                                    const QHash<QString, QString>& fields = {});
+    explicit QueryUserByProtocolJob(const QString &protocol,
+                                    const QHash<QString, QString> &fields = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for QueryUserByProtocolJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& protocol,
-                               const QHash<QString, QString>& fields = {});
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &protocol,
+                               const QHash<QString, QString> &fields = {});
 
     // Result properties
 
@@ -124,23 +128,24 @@ public:
     QVector<ThirdPartyUser> data() const { return fromJson<QVector<ThirdPartyUser>>(jsonData()); }
 };
 
-inline auto collectResponse(const QueryUserByProtocolJob* job) { return job->data(); }
+inline auto collectResponse(const QueryUserByProtocolJob *job) { return job->data(); }
 
 //! \brief Reverse-lookup third-party locations given a Matrix room alias.
 //!
 //! Retrieve an array of third-party network locations from a Matrix room
 //! alias.
-class QUOTIENT_API QueryLocationByAliasJob : public BaseJob {
+class QUOTIENT_API QueryLocationByAliasJob : public BaseJob
+{
 public:
     //! \param alias
     //!   The Matrix room alias to look up.
-    explicit QueryLocationByAliasJob(const QString& alias);
+    explicit QueryLocationByAliasJob(const QString &alias);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for QueryLocationByAliasJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& alias);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &alias);
 
     // Result properties
 
@@ -151,22 +156,23 @@ public:
     }
 };
 
-inline auto collectResponse(const QueryLocationByAliasJob* job) { return job->data(); }
+inline auto collectResponse(const QueryLocationByAliasJob *job) { return job->data(); }
 
 //! \brief Reverse-lookup third-party users given a Matrix User ID.
 //!
 //! Retrieve an array of third-party users from a Matrix User ID.
-class QUOTIENT_API QueryUserByIDJob : public BaseJob {
+class QUOTIENT_API QueryUserByIDJob : public BaseJob
+{
 public:
     //! \param userid
     //!   The Matrix User ID to look up.
-    explicit QueryUserByIDJob(const QString& userid);
+    explicit QueryUserByIDJob(const QString &userid);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for QueryUserByIDJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userid);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &userid);
 
     // Result properties
 
@@ -174,6 +180,6 @@ public:
     QVector<ThirdPartyUser> data() const { return fromJson<QVector<ThirdPartyUser>>(jsonData()); }
 };
 
-inline auto collectResponse(const QueryUserByIDJob* job) { return job->data(); }
+inline auto collectResponse(const QueryUserByIDJob *job) { return job->data(); }
 
 } // namespace Quotient

@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-QUrl GetTurnServerJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl GetTurnServerJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/voip/turnServer"));
 }

@@ -6,7 +6,8 @@
 
 namespace Quotient {
 //! A client device
-struct QUOTIENT_API Device {
+struct QUOTIENT_API Device
+{
     //! Identifier of this device.
     QString deviceId;
 
@@ -25,15 +26,16 @@ struct QUOTIENT_API Device {
 };
 
 template <>
-struct JsonObjectConverter<Device> {
-    static void dumpTo(QJsonObject& jo, const Device& pod)
+struct JsonObjectConverter<Device>
+{
+    static void dumpTo(QJsonObject &jo, const Device &pod)
     {
         addParam(jo, "device_id"_L1, pod.deviceId);
         addParam<IfNotEmpty>(jo, "display_name"_L1, pod.displayName);
         addParam<IfNotEmpty>(jo, "last_seen_ip"_L1, pod.lastSeenIp);
         addParam<IfNotEmpty>(jo, "last_seen_ts"_L1, pod.lastSeenTs);
     }
-    static void fillFrom(const QJsonObject& jo, Device& pod)
+    static void fillFrom(const QJsonObject &jo, Device &pod)
     {
         fillFromJson(jo.value("device_id"_L1), pod.deviceId);
         fillFromJson(jo.value("display_name"_L1), pod.displayName);

@@ -13,7 +13,8 @@ namespace Quotient {
 //!
 //! Optionally, the returned list may be filtered according to whether the requesting
 //! user has participated in the thread.
-class QUOTIENT_API GetThreadRootsJob : public BaseJob {
+class QUOTIENT_API GetThreadRootsJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room ID where the thread roots are located.
@@ -36,16 +37,16 @@ public:
     //!   A pagination token from a previous result. When not provided, the server starts paginating
     //!   from the most recent event visible to the user (as per history visibility rules;
     //!   topologically).
-    explicit GetThreadRootsJob(const QString& roomId, const QString& include = {},
-                               std::optional<int> limit = std::nullopt, const QString& from = {});
+    explicit GetThreadRootsJob(const QString &roomId, const QString &include = {},
+                               std::optional<int> limit = std::nullopt, const QString &from = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetThreadRootsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& include = {}, std::optional<int> limit = std::nullopt,
-                               const QString& from = {});
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &include = {}, std::optional<int> limit = std::nullopt,
+                               const QString &from = {});
 
     // Result properties
 
@@ -62,7 +63,8 @@ public:
     //! no further results.
     QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The thread roots, ordered by the `latest_event` in each event's aggregated children. All
         //! events returned include bundled
         //! [aggregations](/client-server-api/#aggregations-of-child-events).
@@ -81,6 +83,6 @@ public:
 
 template <std::derived_from<GetThreadRootsJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetThreadRootsJob::Response { return { j->chunk(), j->nextBatch() }; };
+    [](JobT *j) -> GetThreadRootsJob::Response { return {j->chunk(), j->nextBatch()}; };
 
 } // namespace Quotient

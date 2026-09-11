@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <Quotient/csapi/definitions/invite_3pid.h>
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -48,29 +49,13 @@ namespace Quotient {
 //!
 //! If a token is requested from the identity server, the homeserver will
 //! append a `m.room.third_party_invite` event to the room.
-class QUOTIENT_API InviteBy3PIDJob : public BaseJob {
+class QUOTIENT_API InviteBy3PIDJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room identifier (not alias) to which to invite the user.
     //!
-    //! \param idServer
-    //!   The hostname+port of the identity server which should be used for third-party identifier
-    //!   lookups.
-    //!
-    //! \param idAccessToken
-    //!   An access token previously registered with the identity server. Servers
-    //!   can treat this as optional to distinguish between r0.5-compatible clients
-    //!   and this specification version.
-    //!
-    //! \param medium
-    //!   The kind of address being passed in the address field, for example
-    //!   `email` (see [the list of recognised values](/appendices/#3pid-types)).
-    //!
-    //! \param address
-    //!   The invitee's third-party identifier.
-    explicit InviteBy3PIDJob(const QString& roomId, const QString& idServer,
-                             const QString& idAccessToken, const QString& medium,
-                             const QString& address);
+    explicit InviteBy3PIDJob(const QString &roomId, const Invite3pid &data);
 };
 
 } // namespace Quotient

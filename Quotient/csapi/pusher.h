@@ -9,13 +9,15 @@ namespace Quotient {
 //! \brief Gets the current pushers for the authenticated user
 //!
 //! Gets all currently active pushers for the authenticated user.
-class QUOTIENT_API GetPushersJob : public BaseJob {
+class QUOTIENT_API GetPushersJob : public BaseJob
+{
 public:
     // Inner data structures
 
     //! A dictionary of information for the pusher implementation
     //! itself.
-    struct QUOTIENT_API PusherData {
+    struct QUOTIENT_API PusherData
+    {
         //! Required if `kind` is `http`. The URL to use to send
         //! notifications to.
         QUrl url{};
@@ -25,7 +27,8 @@ public:
         QString format{};
     };
 
-    struct QUOTIENT_API Pusher {
+    struct QUOTIENT_API Pusher
+    {
         //! This is a unique identifier for this pusher. See `/set` for
         //! more detail.
         //! Max length, 512 bytes.
@@ -68,7 +71,7 @@ public:
     //!
     //! This function can be used when a URL for GetPushersJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -76,11 +79,12 @@ public:
     QVector<Pusher> pushers() const { return loadFromJson<QVector<Pusher>>("pushers"_L1); }
 };
 
-inline auto collectResponse(const GetPushersJob* job) { return job->pushers(); }
+inline auto collectResponse(const GetPushersJob *job) { return job->pushers(); }
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetPushersJob::PusherData> {
-    static void fillFrom(const QJsonObject& jo, GetPushersJob::PusherData& result)
+struct QUOTIENT_API JsonObjectConverter<GetPushersJob::PusherData>
+{
+    static void fillFrom(const QJsonObject &jo, GetPushersJob::PusherData &result)
     {
         fillFromJson(jo.value("url"_L1), result.url);
         fillFromJson(jo.value("format"_L1), result.format);
@@ -88,8 +92,9 @@ struct QUOTIENT_API JsonObjectConverter<GetPushersJob::PusherData> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetPushersJob::Pusher> {
-    static void fillFrom(const QJsonObject& jo, GetPushersJob::Pusher& result)
+struct QUOTIENT_API JsonObjectConverter<GetPushersJob::Pusher>
+{
+    static void fillFrom(const QJsonObject &jo, GetPushersJob::Pusher &result)
     {
         fillFromJson(jo.value("pushkey"_L1), result.pushkey);
         fillFromJson(jo.value("kind"_L1), result.kind);
@@ -112,17 +117,23 @@ struct QUOTIENT_API JsonObjectConverter<GetPushersJob::Pusher> {
 //! for this user is updated, or it is created if it doesn't exist. If
 //! `kind` is `null`, the pusher with this `app_id` and `pushkey` for this
 //! user is deleted.
-class QUOTIENT_API PostPusherJob : public BaseJob {
+class QUOTIENT_API PostPusherJob : public BaseJob
+{
 public:
     // Inner data structures
 
     //! Required if `kind` is not `null`. A dictionary of information
-    //! for the pusher implementation itself. If `kind` is `http`,
-    //! this should contain `url` which is the URL to use to send
-    //! notifications to.
-    struct QUOTIENT_API PusherData {
-        //! Required if `kind` is `http`. The URL to use to send
-        //! notifications to. MUST be an HTTPS URL with a path of
+    //! for the pusher implementation itself.
+    //!
+    //! If `kind` is `http`, this MUST contain `url` which is the URL
+    //! to use for sending notifications. Clients MAY use this object
+    //! to pass custom data to their push gateway. Servers MUST forward
+    //! the entire content including `format` and any custom keys but excluding `url`
+    //! when calling [`/_matrix/push/v1/notify`](/push-gateway-api/#post_matrixpushv1notify).
+    struct QUOTIENT_API PusherData
+    {
+        //! Required if `kind` is `http`. The URL to use for sending
+        //! notifications. MUST be an HTTPS URL with a path of
         //! `/_matrix/push/v1/notify`.
         QUrl url{};
 
@@ -178,9 +189,13 @@ public:
     //!
     //! \param data
     //!   Required if `kind` is not `null`. A dictionary of information
-    //!   for the pusher implementation itself. If `kind` is `http`,
-    //!   this should contain `url` which is the URL to use to send
-    //!   notifications to.
+    //!   for the pusher implementation itself.
+    //!
+    //!   If `kind` is `http`, this MUST contain `url` which is the URL
+    //!   to use for sending notifications. Clients MAY use this object
+    //!   to pass custom data to their push gateway. Servers MUST forward
+    //!   the entire content including `format` and any custom keys but excluding `url`
+    //!   when calling [`/_matrix/push/v1/notify`](/push-gateway-api/#post_matrixpushv1notify).
     //!
     //! \param append
     //!   If true, the homeserver should add another pusher with the
@@ -188,16 +203,17 @@ public:
     //!   different user IDs. Otherwise, the homeserver must remove any
     //!   other pushers with the same App ID and pushkey for different
     //!   users. The default is `false`.
-    explicit PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId,
-                           const QString& appDisplayName = {}, const QString& deviceDisplayName = {},
-                           const QString& profileTag = {}, const QString& lang = {},
-                           const std::optional<PusherData>& data = std::nullopt,
+    explicit PostPusherJob(const QString &pushkey, const QString &kind, const QString &appId,
+                           const QString &appDisplayName = {}, const QString &deviceDisplayName = {},
+                           const QString &profileTag = {}, const QString &lang = {},
+                           const std::optional<PusherData> &data = std::nullopt,
                            std::optional<bool> append = std::nullopt);
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<PostPusherJob::PusherData> {
-    static void dumpTo(QJsonObject& jo, const PostPusherJob::PusherData& pod)
+struct QUOTIENT_API JsonObjectConverter<PostPusherJob::PusherData>
+{
+    static void dumpTo(QJsonObject &jo, const PostPusherJob::PusherData &pod)
     {
         addParam<IfNotEmpty>(jo, "url"_L1, pod.url);
         addParam<IfNotEmpty>(jo, "format"_L1, pod.format);

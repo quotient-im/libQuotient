@@ -4,22 +4,22 @@
 
 using namespace Quotient;
 
-LeaveRoomJob::LeaveRoomJob(const QString& roomId, const QString& reason)
+LeaveRoomJob::LeaveRoomJob(const QString &roomId, const QString &reason)
     : BaseJob(HttpVerb::Post, u"LeaveRoomJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/leave"))
 {
     QJsonObject _dataJson;
     addParam<IfNotEmpty>(_dataJson, "reason"_L1, reason);
-    setRequestData({ _dataJson });
+    setRequestData({_dataJson});
 }
 
-QUrl ForgetRoomJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId)
+QUrl ForgetRoomJob::makeRequestUrl(const HomeserverData &hsData, const QString &roomId)
 {
     return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v3", "/rooms/", roomId, "/forget"));
 }
 
-ForgetRoomJob::ForgetRoomJob(const QString& roomId)
+ForgetRoomJob::ForgetRoomJob(const QString &roomId)
     : BaseJob(HttpVerb::Post, u"ForgetRoomJob"_s,
               makePath("/_matrix/client/v3", "/rooms/", roomId, "/forget"))
 {}

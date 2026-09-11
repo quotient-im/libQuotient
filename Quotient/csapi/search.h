@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/room_event_filter.h>
-
 #include <Quotient/events/roomevent.h>
 #include <Quotient/events/stateevent.h>
 #include <Quotient/jobs/basejob.h>
@@ -13,13 +12,15 @@ namespace Quotient {
 //! \brief Perform a server-side search.
 //!
 //! Performs a full text search across different categories.
-class QUOTIENT_API SearchJob : public BaseJob {
+class QUOTIENT_API SearchJob : public BaseJob
+{
 public:
     // Inner data structures
 
     //! Configures whether any context for the events
     //! returned are included in the response.
-    struct QUOTIENT_API IncludeEventContext {
+    struct QUOTIENT_API IncludeEventContext
+    {
         //! How many events before the result are
         //! returned. By default, this is `5`.
         std::optional<int> beforeLimit{};
@@ -36,20 +37,23 @@ public:
     };
 
     //! Configuration for group.
-    struct QUOTIENT_API Group {
+    struct QUOTIENT_API Group
+    {
         //! Key that defines the group.
         QString key{};
     };
 
     //! Requests that the server partitions the result set
     //! based on the provided list of keys.
-    struct QUOTIENT_API Groupings {
+    struct QUOTIENT_API Groupings
+    {
         //! List of groups to request.
         QVector<Group> groupBy{};
     };
 
     //! Mapping of category name to search criteria.
-    struct QUOTIENT_API RoomEventsCriteria {
+    struct QUOTIENT_API RoomEventsCriteria
+    {
         //! The string to search events for
         QString searchTerm;
 
@@ -77,19 +81,22 @@ public:
     };
 
     //! Describes which categories to search in and their criteria.
-    struct QUOTIENT_API Categories {
+    struct QUOTIENT_API Categories
+    {
         //! Mapping of category name to search criteria.
         std::optional<RoomEventsCriteria> roomEvents{};
     };
 
-    struct QUOTIENT_API UserProfile {
+    struct QUOTIENT_API UserProfile
+    {
         QString displayname{};
 
         QUrl avatarUrl{};
     };
 
     //! Context for result, if requested.
-    struct QUOTIENT_API EventContext {
+    struct QUOTIENT_API EventContext
+    {
         //! Pagination token for the start of the chunk
         QString begin{};
 
@@ -111,7 +118,8 @@ public:
     };
 
     //! The result object.
-    struct QUOTIENT_API Result {
+    struct QUOTIENT_API Result
+    {
         //! A number that describes how closely this result matches the search. Higher is closer.
         std::optional<double> rank{};
 
@@ -123,7 +131,8 @@ public:
     };
 
     //! The results for a particular group value.
-    struct QUOTIENT_API GroupValue {
+    struct QUOTIENT_API GroupValue
+    {
         //! Token that can be used to get the next batch
         //! of results in the group, by passing as the
         //! `next_batch` parameter to the next call. If
@@ -140,7 +149,8 @@ public:
     };
 
     //! Mapping of category name to search criteria.
-    struct QUOTIENT_API ResultRoomEvents {
+    struct QUOTIENT_API ResultRoomEvents
+    {
         //! An approximate count of the total number of results found.
         std::optional<int> count{};
 
@@ -174,7 +184,8 @@ public:
     };
 
     //! Describes which categories to search in and their criteria.
-    struct QUOTIENT_API ResultCategories {
+    struct QUOTIENT_API ResultCategories
+    {
         //! Mapping of category name to search criteria.
         std::optional<ResultRoomEvents> roomEvents{};
     };
@@ -187,7 +198,7 @@ public:
     //! \param nextBatch
     //!   The point to return events from. If given, this should be a
     //!   `next_batch` result from a previous call to this endpoint.
-    explicit SearchJob(const Categories& searchCategories, const QString& nextBatch = {});
+    explicit SearchJob(const Categories &searchCategories, const QString &nextBatch = {});
 
     // Result properties
 
@@ -198,11 +209,12 @@ public:
     }
 };
 
-inline auto collectResponse(const SearchJob* job) { return job->searchCategories(); }
+inline auto collectResponse(const SearchJob *job) { return job->searchCategories(); }
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::IncludeEventContext> {
-    static void dumpTo(QJsonObject& jo, const SearchJob::IncludeEventContext& pod)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::IncludeEventContext>
+{
+    static void dumpTo(QJsonObject &jo, const SearchJob::IncludeEventContext &pod)
     {
         addParam<IfNotEmpty>(jo, "before_limit"_L1, pod.beforeLimit);
         addParam<IfNotEmpty>(jo, "after_limit"_L1, pod.afterLimit);
@@ -211,24 +223,27 @@ struct QUOTIENT_API JsonObjectConverter<SearchJob::IncludeEventContext> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::Group> {
-    static void dumpTo(QJsonObject& jo, const SearchJob::Group& pod)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::Group>
+{
+    static void dumpTo(QJsonObject &jo, const SearchJob::Group &pod)
     {
         addParam<IfNotEmpty>(jo, "key"_L1, pod.key);
     }
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::Groupings> {
-    static void dumpTo(QJsonObject& jo, const SearchJob::Groupings& pod)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::Groupings>
+{
+    static void dumpTo(QJsonObject &jo, const SearchJob::Groupings &pod)
     {
         addParam<IfNotEmpty>(jo, "group_by"_L1, pod.groupBy);
     }
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::RoomEventsCriteria> {
-    static void dumpTo(QJsonObject& jo, const SearchJob::RoomEventsCriteria& pod)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::RoomEventsCriteria>
+{
+    static void dumpTo(QJsonObject &jo, const SearchJob::RoomEventsCriteria &pod)
     {
         addParam(jo, "search_term"_L1, pod.searchTerm);
         addParam<IfNotEmpty>(jo, "keys"_L1, pod.keys);
@@ -241,16 +256,18 @@ struct QUOTIENT_API JsonObjectConverter<SearchJob::RoomEventsCriteria> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::Categories> {
-    static void dumpTo(QJsonObject& jo, const SearchJob::Categories& pod)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::Categories>
+{
+    static void dumpTo(QJsonObject &jo, const SearchJob::Categories &pod)
     {
         addParam<IfNotEmpty>(jo, "room_events"_L1, pod.roomEvents);
     }
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::UserProfile> {
-    static void fillFrom(const QJsonObject& jo, SearchJob::UserProfile& result)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::UserProfile>
+{
+    static void fillFrom(const QJsonObject &jo, SearchJob::UserProfile &result)
     {
         fillFromJson(jo.value("displayname"_L1), result.displayname);
         fillFromJson(jo.value("avatar_url"_L1), result.avatarUrl);
@@ -258,8 +275,9 @@ struct QUOTIENT_API JsonObjectConverter<SearchJob::UserProfile> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::EventContext> {
-    static void fillFrom(const QJsonObject& jo, SearchJob::EventContext& result)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::EventContext>
+{
+    static void fillFrom(const QJsonObject &jo, SearchJob::EventContext &result)
     {
         fillFromJson(jo.value("start"_L1), result.begin);
         fillFromJson(jo.value("end"_L1), result.end);
@@ -270,8 +288,9 @@ struct QUOTIENT_API JsonObjectConverter<SearchJob::EventContext> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::Result> {
-    static void fillFrom(const QJsonObject& jo, SearchJob::Result& result)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::Result>
+{
+    static void fillFrom(const QJsonObject &jo, SearchJob::Result &result)
     {
         fillFromJson(jo.value("rank"_L1), result.rank);
         fillFromJson(jo.value("result"_L1), result.result);
@@ -280,8 +299,9 @@ struct QUOTIENT_API JsonObjectConverter<SearchJob::Result> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::GroupValue> {
-    static void fillFrom(const QJsonObject& jo, SearchJob::GroupValue& result)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::GroupValue>
+{
+    static void fillFrom(const QJsonObject &jo, SearchJob::GroupValue &result)
     {
         fillFromJson(jo.value("next_batch"_L1), result.nextBatch);
         fillFromJson(jo.value("order"_L1), result.order);
@@ -290,8 +310,9 @@ struct QUOTIENT_API JsonObjectConverter<SearchJob::GroupValue> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::ResultRoomEvents> {
-    static void fillFrom(const QJsonObject& jo, SearchJob::ResultRoomEvents& result)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::ResultRoomEvents>
+{
+    static void fillFrom(const QJsonObject &jo, SearchJob::ResultRoomEvents &result)
     {
         fillFromJson(jo.value("count"_L1), result.count);
         fillFromJson(jo.value("highlights"_L1), result.highlights);
@@ -303,8 +324,9 @@ struct QUOTIENT_API JsonObjectConverter<SearchJob::ResultRoomEvents> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchJob::ResultCategories> {
-    static void fillFrom(const QJsonObject& jo, SearchJob::ResultCategories& result)
+struct QUOTIENT_API JsonObjectConverter<SearchJob::ResultCategories>
+{
+    static void fillFrom(const QJsonObject &jo, SearchJob::ResultCategories &result)
     {
         fillFromJson(jo.value("room_events"_L1), result.roomEvents);
     }

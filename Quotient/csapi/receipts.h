@@ -10,7 +10,8 @@ namespace Quotient {
 //!
 //! This API updates the marker for the given receipt type to the event ID
 //! specified.
-class QUOTIENT_API PostReceiptJob : public BaseJob {
+class QUOTIENT_API PostReceiptJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room in which to send the event.
@@ -32,8 +33,8 @@ public:
     //!   thread this receipt is intended to be under. If
     //!   not specified, the read receipt is *unthreaded*
     //!   (default).
-    explicit PostReceiptJob(const QString& roomId, const QString& receiptType,
-                            const QString& eventId, const QString& threadId = {});
+    explicit PostReceiptJob(const QString &roomId, const QString &receiptType,
+                            const QString &eventId, const QString &threadId = {});
 };
 
 } // namespace Quotient

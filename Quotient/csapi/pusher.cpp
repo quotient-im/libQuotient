@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-QUrl GetPushersJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl GetPushersJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/pushers"));
 }
@@ -13,10 +13,10 @@ GetPushersJob::GetPushersJob()
     : BaseJob(HttpVerb::Get, u"GetPushersJob"_s, makePath("/_matrix/client/v3", "/pushers"))
 {}
 
-PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind, const QString& appId,
-                             const QString& appDisplayName, const QString& deviceDisplayName,
-                             const QString& profileTag, const QString& lang,
-                             const std::optional<PusherData>& data, std::optional<bool> append)
+PostPusherJob::PostPusherJob(const QString &pushkey, const QString &kind, const QString &appId,
+                             const QString &appDisplayName, const QString &deviceDisplayName,
+                             const QString &profileTag, const QString &lang,
+                             const std::optional<PusherData> &data, std::optional<bool> append)
     : BaseJob(HttpVerb::Post, u"PostPusherJob"_s, makePath("/_matrix/client/v3", "/pushers/set"))
 {
     QJsonObject _dataJson;
@@ -29,5 +29,5 @@ PostPusherJob::PostPusherJob(const QString& pushkey, const QString& kind, const 
     addParam<IfNotEmpty>(_dataJson, "lang"_L1, lang);
     addParam<IfNotEmpty>(_dataJson, "data"_L1, data);
     addParam<IfNotEmpty>(_dataJson, "append"_L1, append);
-    setRequestData({ _dataJson });
+    setRequestData({_dataJson});
 }

@@ -5,7 +5,7 @@
 using namespace Quotient;
 
 auto queryToGetSpaceHierarchy(std::optional<bool> suggestedOnly, std::optional<int> limit,
-                              std::optional<int> maxDepth, const QString& from)
+                              std::optional<int> maxDepth, const QString &from)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, u"suggested_only"_s, suggestedOnly);
@@ -15,19 +15,19 @@ auto queryToGetSpaceHierarchy(std::optional<bool> suggestedOnly, std::optional<i
     return _q;
 }
 
-QUrl GetSpaceHierarchyJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+QUrl GetSpaceHierarchyJob::makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
                                           std::optional<bool> suggestedOnly,
                                           std::optional<int> limit, std::optional<int> maxDepth,
-                                          const QString& from)
+                                          const QString &from)
 {
     return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/hierarchy"),
                                    queryToGetSpaceHierarchy(suggestedOnly, limit, maxDepth, from));
 }
 
-GetSpaceHierarchyJob::GetSpaceHierarchyJob(const QString& roomId, std::optional<bool> suggestedOnly,
+GetSpaceHierarchyJob::GetSpaceHierarchyJob(const QString &roomId, std::optional<bool> suggestedOnly,
                                            std::optional<int> limit, std::optional<int> maxDepth,
-                                           const QString& from)
+                                           const QString &from)
     : BaseJob(HttpVerb::Get, u"GetSpaceHierarchyJob"_s,
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/hierarchy"),
               queryToGetSpaceHierarchy(suggestedOnly, limit, maxDepth, from))

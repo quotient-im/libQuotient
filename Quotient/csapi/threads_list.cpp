@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-auto queryToGetThreadRoots(const QString& include, std::optional<int> limit, const QString& from)
+auto queryToGetThreadRoots(const QString &include, std::optional<int> limit, const QString &from)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, u"include"_s, include);
@@ -13,17 +13,17 @@ auto queryToGetThreadRoots(const QString& include, std::optional<int> limit, con
     return _q;
 }
 
-QUrl GetThreadRootsJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                                       const QString& include, std::optional<int> limit,
-                                       const QString& from)
+QUrl GetThreadRootsJob::makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                                       const QString &include, std::optional<int> limit,
+                                       const QString &from)
 {
     return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/threads"),
                                    queryToGetThreadRoots(include, limit, from));
 }
 
-GetThreadRootsJob::GetThreadRootsJob(const QString& roomId, const QString& include,
-                                     std::optional<int> limit, const QString& from)
+GetThreadRootsJob::GetThreadRootsJob(const QString &roomId, const QString &include,
+                                     std::optional<int> limit, const QString &from)
     : BaseJob(HttpVerb::Get, u"GetThreadRootsJob"_s,
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/threads"),
               queryToGetThreadRoots(include, limit, from))

@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-QUrl LogoutJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl LogoutJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/logout"));
 }
@@ -13,7 +13,7 @@ LogoutJob::LogoutJob()
     : BaseJob(HttpVerb::Post, u"LogoutJob"_s, makePath("/_matrix/client/v3", "/logout"))
 {}
 
-QUrl LogoutAllJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl LogoutAllJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/logout/all"));
 }

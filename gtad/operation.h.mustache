@@ -97,7 +97,7 @@ constexpr inline auto doCollectResponse<JobT> =
     };
     {{>closeIgnoreDeprecations}}{{/properties?}}{{/singleValue?}}
     {{/allProperties?}}{{/normalResponse?}}{{/responses}}
-    {{#models.model}}
+    {{#models}}{{#model?}}{{#model}}
 
         {{>openIgnoreDeprecations}}
 template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {
@@ -126,7 +126,7 @@ template <> struct QUOTIENT_API JsonObjectConverter<{{qualifiedName}}> {
         {{/out?}}
 };
         {{>closeIgnoreDeprecations}}
-    {{/models.model}}
+    {{/model}}{{/model?}}{{/models}}
 {{/operations.operation}}
 
 } // namespace Quotient

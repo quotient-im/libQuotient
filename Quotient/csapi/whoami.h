@@ -16,7 +16,8 @@ namespace Quotient {
 //! situation, the server should verify that the given `user_id`
 //! is registered by the appservice, and return it in the response
 //! body.
-class QUOTIENT_API GetTokenOwnerJob : public BaseJob {
+class QUOTIENT_API GetTokenOwnerJob : public BaseJob
+{
 public:
     explicit GetTokenOwnerJob();
 
@@ -24,12 +25,12 @@ public:
     //!
     //! This function can be used when a URL for GetTokenOwnerJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
     //! The user ID that owns the access token.
-    QString userId() const { return loadFromJson<QString>("user_id"_L1); }
+    UserId userId() const { return loadFromJson<UserId>("user_id"_L1); }
 
     //! Device ID associated with the access token. If no device
     //! is associated with the access token (such as in the case
@@ -37,14 +38,15 @@ public:
     //! Otherwise this is required.
     QString deviceId() const { return loadFromJson<QString>("device_id"_L1); }
 
-    //! When `true`, the user is a [Guest User](#guest-access). When
-    //! not present or `false`, the user is presumed to be a non-guest
-    //! user.
+    //! When `true`, the user is a [Guest User](/client-server-api/#guest-access).
+    //! When not present or `false`, the user is presumed to be a
+    //! non-guest user.
     std::optional<bool> isGuest() const { return loadFromJson<std::optional<bool>>("is_guest"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The user ID that owns the access token.
-        QString userId{};
+        UserId userId{};
 
         //! Device ID associated with the access token. If no device
         //! is associated with the access token (such as in the case
@@ -52,16 +54,16 @@ public:
         //! Otherwise this is required.
         QString deviceId{};
 
-        //! When `true`, the user is a [Guest User](#guest-access). When
-        //! not present or `false`, the user is presumed to be a non-guest
-        //! user.
+        //! When `true`, the user is a [Guest User](/client-server-api/#guest-access).
+        //! When not present or `false`, the user is presumed to be a
+        //! non-guest user.
         std::optional<bool> isGuest{};
     };
 };
 
 template <std::derived_from<GetTokenOwnerJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetTokenOwnerJob::Response {
-    return { j->userId(), j->deviceId(), j->isGuest() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> GetTokenOwnerJob::Response {
+    return {j->userId(), j->deviceId(), j->isGuest()};
 };
 
 } // namespace Quotient

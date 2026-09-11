@@ -6,7 +6,8 @@
 
 namespace Quotient {
 
-struct QUOTIENT_API ThirdPartyUser {
+struct QUOTIENT_API ThirdPartyUser
+{
     //! A Matrix User ID representing a third-party user.
     QString userid;
 
@@ -18,14 +19,15 @@ struct QUOTIENT_API ThirdPartyUser {
 };
 
 template <>
-struct JsonObjectConverter<ThirdPartyUser> {
-    static void dumpTo(QJsonObject& jo, const ThirdPartyUser& pod)
+struct JsonObjectConverter<ThirdPartyUser>
+{
+    static void dumpTo(QJsonObject &jo, const ThirdPartyUser &pod)
     {
         addParam(jo, "userid"_L1, pod.userid);
         addParam(jo, "protocol"_L1, pod.protocol);
         addParam(jo, "fields"_L1, pod.fields);
     }
-    static void fillFrom(const QJsonObject& jo, ThirdPartyUser& pod)
+    static void fillFrom(const QJsonObject &jo, ThirdPartyUser &pod)
     {
         fillFromJson(jo.value("userid"_L1), pod.userid);
         fillFromJson(jo.value("protocol"_L1), pod.protocol);

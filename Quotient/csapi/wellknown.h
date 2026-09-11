@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/wellknown/full.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -18,7 +17,8 @@ namespace Quotient {
 //!
 //! Note that this endpoint is not necessarily handled by the homeserver,
 //! but by another webserver, to be used for discovering the homeserver URL.
-class QUOTIENT_API GetWellknownJob : public BaseJob {
+class QUOTIENT_API GetWellknownJob : public BaseJob
+{
 public:
     explicit GetWellknownJob();
 
@@ -26,7 +26,7 @@ public:
     //!
     //! This function can be used when a URL for GetWellknownJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -34,6 +34,6 @@ public:
     DiscoveryInformation data() const { return fromJson<DiscoveryInformation>(jsonData()); }
 };
 
-inline auto collectResponse(const GetWellknownJob* job) { return job->data(); }
+inline auto collectResponse(const GetWellknownJob *job) { return job->data(); }
 
 } // namespace Quotient

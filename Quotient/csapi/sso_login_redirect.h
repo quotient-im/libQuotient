@@ -14,18 +14,19 @@ namespace Quotient {
 //! The server MUST respond with an HTTP redirect to the SSO interface,
 //! or present a page which lets the user select an IdP to continue
 //! with in the event multiple are supported by the server.
-class QUOTIENT_API RedirectToSSOJob : public BaseJob {
+class QUOTIENT_API RedirectToSSOJob : public BaseJob
+{
 public:
     //! \param redirectUrl
     //!   URI to which the user will be redirected after the homeserver has
     //!   authenticated the user with SSO.
-    explicit RedirectToSSOJob(const QString& redirectUrl);
+    explicit RedirectToSSOJob(const QString &redirectUrl);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for RedirectToSSOJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& redirectUrl);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &redirectUrl);
 };
 
 //! \brief Redirect the user's browser to the SSO interface for an IdP.
@@ -36,7 +37,8 @@ public:
 //!
 //! The server MUST respond with an HTTP redirect to the SSO interface
 //! for that IdP.
-class QUOTIENT_API RedirectToIdPJob : public BaseJob {
+class QUOTIENT_API RedirectToIdPJob : public BaseJob
+{
 public:
     //! \param idpId
     //!   The `id` of the IdP from the `m.login.sso` `identity_providers`
@@ -45,14 +47,14 @@ public:
     //! \param redirectUrl
     //!   URI to which the user will be redirected after the homeserver has
     //!   authenticated the user with SSO.
-    explicit RedirectToIdPJob(const QString& idpId, const QString& redirectUrl);
+    explicit RedirectToIdPJob(const QString &idpId, const QString &redirectUrl);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for RedirectToIdPJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& idpId,
-                               const QString& redirectUrl);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &idpId,
+                               const QString &redirectUrl);
 };
 
 } // namespace Quotient

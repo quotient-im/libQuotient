@@ -6,7 +6,8 @@
 
 namespace Quotient {
 
-struct QUOTIENT_API RequestTokenResponse {
+struct QUOTIENT_API RequestTokenResponse
+{
     //! The session ID. Session IDs are opaque strings that must consist entirely
     //! of the characters `[0-9a-zA-Z.=_-]`. Their length must not exceed 255
     //! characters and they must not be empty.
@@ -26,13 +27,14 @@ struct QUOTIENT_API RequestTokenResponse {
 };
 
 template <>
-struct JsonObjectConverter<RequestTokenResponse> {
-    static void dumpTo(QJsonObject& jo, const RequestTokenResponse& pod)
+struct JsonObjectConverter<RequestTokenResponse>
+{
+    static void dumpTo(QJsonObject &jo, const RequestTokenResponse &pod)
     {
         addParam(jo, "sid"_L1, pod.sid);
         addParam<IfNotEmpty>(jo, "submit_url"_L1, pod.submitUrl);
     }
-    static void fillFrom(const QJsonObject& jo, RequestTokenResponse& pod)
+    static void fillFrom(const QJsonObject &jo, RequestTokenResponse &pod)
     {
         fillFromJson(jo.value("sid"_L1), pod.sid);
         fillFromJson(jo.value("submit_url"_L1), pod.submitUrl);

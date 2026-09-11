@@ -22,7 +22,8 @@ namespace Quotient {
 //!
 //! If the user was invited to the room, the homeserver will append a
 //! `m.room.member` event to the room.
-class QUOTIENT_API InviteUserJob : public BaseJob {
+class QUOTIENT_API InviteUserJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room identifier (not alias) to which to invite the user.
@@ -33,7 +34,7 @@ public:
     //! \param reason
     //!   Optional reason to be included as the `reason` on the subsequent
     //!   membership event.
-    explicit InviteUserJob(const QString& roomId, const QString& userId, const QString& reason = {});
+    explicit InviteUserJob(const QString &roomId, const QString &userId, const QString &reason = {});
 };
 
 } // namespace Quotient

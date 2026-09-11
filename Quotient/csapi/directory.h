@@ -7,7 +7,8 @@
 namespace Quotient {
 
 //! \brief Create a new mapping from room alias to room ID.
-class QUOTIENT_API SetRoomAliasJob : public BaseJob {
+class QUOTIENT_API SetRoomAliasJob : public BaseJob
+{
 public:
     //! \param roomAlias
     //!   The room alias to set. Its format is defined
@@ -15,7 +16,7 @@ public:
     //!
     //! \param roomId
     //!   The room ID to set.
-    explicit SetRoomAliasJob(const QString& roomAlias, const QString& roomId);
+    explicit SetRoomAliasJob(const QString &roomAlias, const QString &roomId);
 };
 
 //! \brief Get the room ID corresponding to this room alias.
@@ -25,18 +26,19 @@ public:
 //! The server will use the federation API to resolve the alias if the
 //! domain part of the alias does not correspond to the server's own
 //! domain.
-class QUOTIENT_API GetRoomIdByAliasJob : public BaseJob {
+class QUOTIENT_API GetRoomIdByAliasJob : public BaseJob
+{
 public:
     //! \param roomAlias
     //!   The room alias. Its format is defined
     //!   [in the appendices](/appendices/#room-aliases).
-    explicit GetRoomIdByAliasJob(const QString& roomAlias);
+    explicit GetRoomIdByAliasJob(const QString &roomAlias);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetRoomIdByAliasJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomAlias);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomAlias);
 
     // Result properties
 
@@ -46,7 +48,8 @@ public:
     //! A list of servers that are aware of this room alias.
     QStringList servers() const { return loadFromJson<QStringList>("servers"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The room ID for this room alias.
         QString roomId{};
 
@@ -57,7 +60,7 @@ public:
 
 template <std::derived_from<GetRoomIdByAliasJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetRoomIdByAliasJob::Response { return { j->roomId(), j->servers() }; };
+    [](JobT *j) -> GetRoomIdByAliasJob::Response { return {j->roomId(), j->servers()}; };
 
 //! \brief Remove a mapping of room alias to room ID.
 //!
@@ -72,18 +75,19 @@ constexpr inline auto doCollectResponse<JobT> =
 //! canonical alias event are recommended to, in addition to their other relevant permission
 //! checks, delete the alias and return a successful response even if the user does not
 //! have permission to update the `m.room.canonical_alias` event.
-class QUOTIENT_API DeleteRoomAliasJob : public BaseJob {
+class QUOTIENT_API DeleteRoomAliasJob : public BaseJob
+{
 public:
     //! \param roomAlias
     //!   The room alias to remove. Its format is defined
     //!   [in the appendices](/appendices/#room-aliases).
-    explicit DeleteRoomAliasJob(const QString& roomAlias);
+    explicit DeleteRoomAliasJob(const QString &roomAlias);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for DeleteRoomAliasJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomAlias);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomAlias);
 };
 
 //! \brief Get a list of local aliases on a given room.
@@ -104,17 +108,18 @@ public:
 //! Clients are recommended not to display this list of aliases prominently
 //! as they are not curated, unlike those listed in the `m.room.canonical_alias`
 //! state event.
-class QUOTIENT_API GetLocalAliasesJob : public BaseJob {
+class QUOTIENT_API GetLocalAliasesJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room ID to find local aliases of.
-    explicit GetLocalAliasesJob(const QString& roomId);
+    explicit GetLocalAliasesJob(const QString &roomId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetLocalAliasesJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId);
 
     // Result properties
 
@@ -122,6 +127,6 @@ public:
     QStringList aliases() const { return loadFromJson<QStringList>("aliases"_L1); }
 };
 
-inline auto collectResponse(const GetLocalAliasesJob* job) { return job->aliases(); }
+inline auto collectResponse(const GetLocalAliasesJob *job) { return job->aliases(); }
 
 } // namespace Quotient

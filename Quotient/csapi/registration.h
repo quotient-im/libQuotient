@@ -6,7 +6,6 @@
 #include <Quotient/csapi/definitions/request_email_validation.h>
 #include <Quotient/csapi/definitions/request_msisdn_validation.h>
 #include <Quotient/csapi/definitions/request_token_response.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -55,7 +54,8 @@ namespace Quotient {
 //!
 //! Any user ID returned by this API must conform to the grammar given in the
 //! [Matrix specification](/appendices/#user-identifiers).
-class QUOTIENT_API RegisterJob : public BaseJob {
+class QUOTIENT_API RegisterJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of account to register. Defaults to `user`.
@@ -90,10 +90,10 @@ public:
     //!
     //! \param refreshToken
     //!   If true, the client supports refresh tokens.
-    explicit RegisterJob(const QString& kind = u"user"_s,
-                         const std::optional<AuthenticationData>& auth = std::nullopt,
-                         const QString& username = {}, const QString& password = {},
-                         const QString& deviceId = {}, const QString& initialDeviceDisplayName = {},
+    explicit RegisterJob(const QString &kind = u"user"_s,
+                         const std::optional<AuthenticationData> &auth = std::nullopt,
+                         const QString &username = {}, const QString &password = {},
+                         const QString &deviceId = {}, const QString &initialDeviceDisplayName = {},
                          std::optional<bool> inhibitLogin = std::nullopt,
                          std::optional<bool> refreshToken = std::nullopt);
 
@@ -103,7 +103,7 @@ public:
     //!
     //! Any user ID returned by this API must conform to the grammar given in the
     //! [Matrix specification](/appendices/#user-identifiers).
-    QString userId() const { return loadFromJson<QString>("user_id"_L1); }
+    UserId userId() const { return loadFromJson<UserId>("user_id"_L1); }
 
     //! An access token for the account.
     //! This access token can then be used to authorize other requests.
@@ -135,12 +135,13 @@ public:
     //! Required if the `inhibit_login` option is false.
     QString deviceId() const { return loadFromJson<QString>("device_id"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The fully-qualified Matrix user ID (MXID) that has been registered.
         //!
         //! Any user ID returned by this API must conform to the grammar given in the
         //! [Matrix specification](/appendices/#user-identifiers).
-        QString userId{};
+        UserId userId{};
 
         //! An access token for the account.
         //! This access token can then be used to authorize other requests.
@@ -172,8 +173,8 @@ public:
 };
 
 template <std::derived_from<RegisterJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> RegisterJob::Response {
-    return { j->userId(), j->accessToken(), j->refreshToken(), j->expiresInMs(), j->deviceId() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> RegisterJob::Response {
+    return {j->userId(), j->accessToken(), j->refreshToken(), j->expiresInMs(), j->deviceId()};
 };
 
 //! \brief Begins the validation process for an email to be used during registration.
@@ -182,9 +183,10 @@ constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> RegisterJob::Resp
 //! already associated with an account on this homeserver. The homeserver
 //! should validate the email itself, either by sending a validation email
 //! itself or by using a service it has control over.
-class QUOTIENT_API RequestTokenToRegisterEmailJob : public BaseJob {
+class QUOTIENT_API RequestTokenToRegisterEmailJob : public BaseJob
+{
 public:
-    explicit RequestTokenToRegisterEmailJob(const EmailValidationData& data);
+    explicit RequestTokenToRegisterEmailJob(const EmailValidationData &data);
 
     // Result properties
 
@@ -194,7 +196,7 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
-inline auto collectResponse(const RequestTokenToRegisterEmailJob* job) { return job->response(); }
+inline auto collectResponse(const RequestTokenToRegisterEmailJob *job) { return job->response(); }
 
 //! \brief Requests a validation token be sent to the given phone number for the purpose of
 //! registering an account
@@ -203,9 +205,10 @@ inline auto collectResponse(const RequestTokenToRegisterEmailJob* job) { return 
 //! already associated with an account on this homeserver. The homeserver
 //! should validate the phone number itself, either by sending a validation
 //! message itself or by using a service it has control over.
-class QUOTIENT_API RequestTokenToRegisterMSISDNJob : public BaseJob {
+class QUOTIENT_API RequestTokenToRegisterMSISDNJob : public BaseJob
+{
 public:
-    explicit RequestTokenToRegisterMSISDNJob(const MsisdnValidationData& data);
+    explicit RequestTokenToRegisterMSISDNJob(const MsisdnValidationData &data);
 
     // Result properties
 
@@ -215,7 +218,7 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
-inline auto collectResponse(const RequestTokenToRegisterMSISDNJob* job) { return job->response(); }
+inline auto collectResponse(const RequestTokenToRegisterMSISDNJob *job) { return job->response(); }
 
 //! \brief Changes a user's password.
 //!
@@ -232,7 +235,8 @@ inline auto collectResponse(const RequestTokenToRegisterMSISDNJob* job) { return
 //! valid access token is provided. The homeserver SHOULD NOT revoke the
 //! access token provided in the request. Whether other access tokens for
 //! the user are revoked depends on the request parameters.
-class QUOTIENT_API ChangePasswordJob : public BaseJob {
+class QUOTIENT_API ChangePasswordJob : public BaseJob
+{
 public:
     //! \param newPassword
     //!   The new password for the account.
@@ -246,8 +250,8 @@ public:
     //!
     //! \param auth
     //!   Additional authentication information for the user-interactive authentication API.
-    explicit ChangePasswordJob(const QString& newPassword, bool logoutDevices = true,
-                               const std::optional<AuthenticationData>& auth = std::nullopt);
+    explicit ChangePasswordJob(const QString &newPassword, bool logoutDevices = true,
+                               const std::optional<AuthenticationData> &auth = std::nullopt);
 };
 
 //! \brief Requests a validation token be sent to the given email address for the purpose of
@@ -268,9 +272,10 @@ public:
 //!
 //! The homeserver should validate the email itself, either by sending a
 //! validation email itself or by using a service it has control over.
-class QUOTIENT_API RequestTokenToResetPasswordEmailJob : public BaseJob {
+class QUOTIENT_API RequestTokenToResetPasswordEmailJob : public BaseJob
+{
 public:
-    explicit RequestTokenToResetPasswordEmailJob(const EmailValidationData& data);
+    explicit RequestTokenToResetPasswordEmailJob(const EmailValidationData &data);
 
     // Result properties
 
@@ -278,7 +283,7 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
-inline auto collectResponse(const RequestTokenToResetPasswordEmailJob* job)
+inline auto collectResponse(const RequestTokenToResetPasswordEmailJob *job)
 {
     return job->response();
 }
@@ -301,9 +306,10 @@ inline auto collectResponse(const RequestTokenToResetPasswordEmailJob* job)
 //!
 //! The homeserver should validate the phone number itself, either by sending a
 //! validation message itself or by using a service it has control over.
-class QUOTIENT_API RequestTokenToResetPasswordMSISDNJob : public BaseJob {
+class QUOTIENT_API RequestTokenToResetPasswordMSISDNJob : public BaseJob
+{
 public:
-    explicit RequestTokenToResetPasswordMSISDNJob(const MsisdnValidationData& data);
+    explicit RequestTokenToResetPasswordMSISDNJob(const MsisdnValidationData &data);
 
     // Result properties
 
@@ -311,7 +317,7 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
-inline auto collectResponse(const RequestTokenToResetPasswordMSISDNJob* job)
+inline auto collectResponse(const RequestTokenToResetPasswordMSISDNJob *job)
 {
     return job->response();
 }
@@ -333,7 +339,8 @@ inline auto collectResponse(const RequestTokenToResetPasswordMSISDNJob* job)
 //! Unlike other endpoints, this endpoint does not take an `id_access_token`
 //! parameter because the homeserver is expected to sign the request to the
 //! identity server instead.
-class QUOTIENT_API DeactivateAccountJob : public BaseJob {
+class QUOTIENT_API DeactivateAccountJob : public BaseJob
+{
 public:
     //! \param auth
     //!   Additional authentication information for the user-interactive authentication API.
@@ -364,8 +371,8 @@ public:
     //!   3PIDs](/client-server-api/#adding-account-administrative-contact-information).
     //!
     //!   Defaults to `false` if not present.
-    explicit DeactivateAccountJob(const std::optional<AuthenticationData>& auth = std::nullopt,
-                                  const QString& idServer = {},
+    explicit DeactivateAccountJob(const std::optional<AuthenticationData> &auth = std::nullopt,
+                                  const QString &idServer = {},
                                   std::optional<bool> erase = std::nullopt);
 
     // Result properties
@@ -384,7 +391,7 @@ public:
     }
 };
 
-inline auto collectResponse(const DeactivateAccountJob* job) { return job->idServerUnbindResult(); }
+inline auto collectResponse(const DeactivateAccountJob *job) { return job->idServerUnbindResult(); }
 
 //! \brief Checks to see if a username is available on the server.
 //!
@@ -400,17 +407,18 @@ inline auto collectResponse(const DeactivateAccountJob* job) { return job->idSer
 //! however the clients must also be aware that using this API does not normally
 //! reserve the username. This can mean that the username becomes unavailable
 //! between checking its availability and attempting to register it.
-class QUOTIENT_API CheckUsernameAvailabilityJob : public BaseJob {
+class QUOTIENT_API CheckUsernameAvailabilityJob : public BaseJob
+{
 public:
     //! \param username
     //!   The username to check the availability of.
-    explicit CheckUsernameAvailabilityJob(const QString& username);
+    explicit CheckUsernameAvailabilityJob(const QString &username);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for CheckUsernameAvailabilityJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& username);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &username);
 
     // Result properties
 
@@ -422,6 +430,6 @@ public:
     }
 };
 
-inline auto collectResponse(const CheckUsernameAvailabilityJob* job) { return job->available(); }
+inline auto collectResponse(const CheckUsernameAvailabilityJob *job) { return job->available(); }
 
 } // namespace Quotient

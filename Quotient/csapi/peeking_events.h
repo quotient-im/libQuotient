@@ -19,7 +19,8 @@ namespace Quotient {
 //! Note that the normal `/events` endpoint has been deprecated. This
 //! API will also be deprecated at some point, but its replacement is not
 //! yet known.
-class QUOTIENT_API PeekEventsJob : public BaseJob {
+class QUOTIENT_API PeekEventsJob : public BaseJob
+{
 public:
     //! \param from
     //!   The token to stream from. This token is either from a previous
@@ -30,16 +31,16 @@ public:
     //!
     //! \param roomId
     //!   The room ID for which events should be returned.
-    explicit PeekEventsJob(const QString& from = {}, std::optional<int> timeout = std::nullopt,
-                           const QString& roomId = {});
+    explicit PeekEventsJob(const QString &from = {}, std::optional<int> timeout = std::nullopt,
+                           const QString &roomId = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for PeekEventsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& from = {},
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &from = {},
                                std::optional<int> timeout = std::nullopt,
-                               const QString& roomId = {});
+                               const QString &roomId = {});
 
     // Result properties
 
@@ -54,7 +55,8 @@ public:
     //! An array of events.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! A token which correlates to the first value in `chunk`. This
         //! is usually the same token supplied to `from=`.
         QString begin{};
@@ -70,6 +72,6 @@ public:
 
 template <std::derived_from<PeekEventsJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> PeekEventsJob::Response { return { j->begin(), j->end(), j->chunk() }; };
+    [](JobT *j) -> PeekEventsJob::Response { return {j->begin(), j->end(), j->chunk()}; };
 
 } // namespace Quotient

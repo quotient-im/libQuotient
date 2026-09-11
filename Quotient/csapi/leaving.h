@@ -19,7 +19,8 @@ namespace Quotient {
 //!
 //! The user will still be allowed to retrieve history from the room which
 //! they were previously allowed to see.
-class QUOTIENT_API LeaveRoomJob : public BaseJob {
+class QUOTIENT_API LeaveRoomJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room identifier to leave.
@@ -27,7 +28,7 @@ public:
     //! \param reason
     //!   Optional reason to be included as the `reason` on the subsequent
     //!   membership event.
-    explicit LeaveRoomJob(const QString& roomId, const QString& reason = {});
+    explicit LeaveRoomJob(const QString &roomId, const QString &reason = {});
 };
 
 //! \brief Stop the requesting user remembering about a particular room.
@@ -41,17 +42,18 @@ public:
 //!
 //! If the user is currently joined to the room, they must leave the room
 //! before calling this API.
-class QUOTIENT_API ForgetRoomJob : public BaseJob {
+class QUOTIENT_API ForgetRoomJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room identifier to forget.
-    explicit ForgetRoomJob(const QString& roomId);
+    explicit ForgetRoomJob(const QString &roomId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for ForgetRoomJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId);
 };
 
 } // namespace Quotient

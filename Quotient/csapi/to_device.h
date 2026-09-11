@@ -10,7 +10,8 @@ namespace Quotient {
 //!
 //! This endpoint is used to send send-to-device events to a set of
 //! client devices.
-class QUOTIENT_API SendToDeviceJob : public BaseJob {
+class QUOTIENT_API SendToDeviceJob : public BaseJob
+{
 public:
     //! \param eventType
     //!   The type of event to send.
@@ -24,8 +25,8 @@ public:
     //!   The messages to send. A map from user ID, to a map from
     //!   device ID to message body. The device ID may also be `*`,
     //!   meaning all known devices for the user.
-    explicit SendToDeviceJob(const QString& eventType, const QString& txnId,
-                             const QHash<UserId, QHash<QString, QJsonObject>>& messages);
+    explicit SendToDeviceJob(const QString &eventType, const QString &txnId,
+                             const QHash<UserId, QHash<QString, QJsonObject>> &messages);
 };
 
 } // namespace Quotient

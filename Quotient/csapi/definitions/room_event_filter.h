@@ -3,12 +3,12 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/event_filter.h>
-
 #include <Quotient/converters.h>
 
 namespace Quotient {
 
-struct QUOTIENT_API RoomEventFilter : EventFilter {
+struct QUOTIENT_API RoomEventFilter : EventFilter
+{
     //! If `true`, enables per-[thread](/client-server-api/#threading) notification
     //! counts. Only applies to the `/sync` endpoint. Defaults to `false`.
     std::optional<bool> unreadThreadNotifications{};
@@ -38,8 +38,9 @@ struct QUOTIENT_API RoomEventFilter : EventFilter {
 };
 
 template <>
-struct JsonObjectConverter<RoomEventFilter> {
-    static void dumpTo(QJsonObject& jo, const RoomEventFilter& pod)
+struct JsonObjectConverter<RoomEventFilter>
+{
+    static void dumpTo(QJsonObject &jo, const RoomEventFilter &pod)
     {
         fillJson<EventFilter>(jo, pod);
         addParam<IfNotEmpty>(jo, "unread_thread_notifications"_L1, pod.unreadThreadNotifications);
@@ -49,7 +50,7 @@ struct JsonObjectConverter<RoomEventFilter> {
         addParam<IfNotEmpty>(jo, "rooms"_L1, pod.rooms);
         addParam<IfNotEmpty>(jo, "contains_url"_L1, pod.containsUrl);
     }
-    static void fillFrom(const QJsonObject& jo, RoomEventFilter& pod)
+    static void fillFrom(const QJsonObject &jo, RoomEventFilter &pod)
     {
         fillFromJson<EventFilter>(jo, pod);
         fillFromJson(jo.value("unread_thread_notifications"_L1), pod.unreadThreadNotifications);

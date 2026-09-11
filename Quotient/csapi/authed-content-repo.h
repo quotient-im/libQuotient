@@ -19,7 +19,8 @@ namespace Quotient {
 //! Clients MAY be redirected using the 307/308 responses below to download
 //! the request object. This is typical when the homeserver uses a Content
 //! Delivery Network (CDN).
-class QUOTIENT_API GetContentAuthedJob : public BaseJob {
+class QUOTIENT_API GetContentAuthedJob : public BaseJob
+{
 public:
     //! \param serverName
     //!   The server name from the `mxc://` URI (the authority component).
@@ -33,15 +34,15 @@ public:
     //!   uploaded. The default value is 20000 (20 seconds). The content
     //!   repository SHOULD impose a maximum value for this parameter. The
     //!   content repository MAY respond before the timeout.
-    explicit GetContentAuthedJob(const QString& serverName, const QString& mediaId,
-                                 qint64 timeoutMs = 20000);
+    explicit GetContentAuthedJob(const QString &serverName, const QString &mediaId,
+                                 qint64 timeoutMs = 20'000);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetContentAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
-                               const QString& mediaId, qint64 timeoutMs = 20000);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &serverName,
+                               const QString &mediaId, qint64 timeoutMs = 20'000);
 
     // Result properties
 
@@ -87,7 +88,7 @@ public:
     }
 
     //! The content that was previously uploaded.
-    QIODevice* data() { return reply(); }
+    QIODevice *data() { return reply(); }
 };
 
 //! \brief Download content from the content repository overriding the file name.
@@ -104,7 +105,8 @@ public:
 //! Clients MAY be redirected using the 307/308 responses below to download
 //! the request object. This is typical when the homeserver uses a Content
 //! Delivery Network (CDN).
-class QUOTIENT_API GetContentOverrideNameAuthedJob : public BaseJob {
+class QUOTIENT_API GetContentOverrideNameAuthedJob : public BaseJob
+{
 public:
     //! \param serverName
     //!   The server name from the `mxc://` URI (the authority component).
@@ -121,16 +123,16 @@ public:
     //!   uploaded. The default value is 20000 (20 seconds). The content
     //!   repository SHOULD impose a maximum value for this parameter. The
     //!   content repository MAY respond before the timeout.
-    explicit GetContentOverrideNameAuthedJob(const QString& serverName, const QString& mediaId,
-                                             const QString& fileName, qint64 timeoutMs = 20000);
+    explicit GetContentOverrideNameAuthedJob(const QString &serverName, const QString &mediaId,
+                                             const QString &fileName, qint64 timeoutMs = 20'000);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetContentOverrideNameAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
-                               const QString& mediaId, const QString& fileName,
-                               qint64 timeoutMs = 20000);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &serverName,
+                               const QString &mediaId, const QString &fileName,
+                               qint64 timeoutMs = 20'000);
 
     // Result properties
 
@@ -168,7 +170,7 @@ public:
     }
 
     //! The content that was previously uploaded.
-    QIODevice* data() { return reply(); }
+    QIODevice *data() { return reply(); }
 };
 
 //! \brief Download a thumbnail of content from the content repository
@@ -184,7 +186,8 @@ public:
 //! Clients MAY be redirected using the 307/308 responses below to download
 //! the request object. This is typical when the homeserver uses a Content
 //! Delivery Network (CDN).
-class QUOTIENT_API GetContentThumbnailAuthedJob : public BaseJob {
+class QUOTIENT_API GetContentThumbnailAuthedJob : public BaseJob
+{
 public:
     //! \param serverName
     //!   The server name from the `mxc://` URI (the authority component).
@@ -226,18 +229,18 @@ public:
     //!
     //!   When `true` and the media cannot be animated, such as in the case of a JPEG or PDF, the
     //!   server SHOULD behave as though `animated` is `false`.
-    explicit GetContentThumbnailAuthedJob(const QString& serverName, const QString& mediaId,
-                                          int width, int height, const QString& method = {},
-                                          qint64 timeoutMs = 20000,
+    explicit GetContentThumbnailAuthedJob(const QString &serverName, const QString &mediaId,
+                                          int width, int height, const QString &method = {},
+                                          qint64 timeoutMs = 20'000,
                                           std::optional<bool> animated = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetContentThumbnailAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
-                               const QString& mediaId, int width, int height,
-                               const QString& method = {}, qint64 timeoutMs = 20000,
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &serverName,
+                               const QString &mediaId, int width, int height,
+                               const QString &method = {}, qint64 timeoutMs = 20'000,
                                std::optional<bool> animated = std::nullopt);
 
     // Result properties
@@ -259,7 +262,7 @@ public:
     QString contentType() const { return QString::fromUtf8(reply()->rawHeader("Content-Type")); }
 
     //! A thumbnail of the requested content.
-    QIODevice* data() { return reply(); }
+    QIODevice *data() { return reply(); }
 };
 
 //! \brief Get information about a URL for a client
@@ -272,7 +275,8 @@ public:
 //! rooms. Encrypted rooms often contain more sensitive information the users
 //! do not want to share with the homeserver, and this can mean that the URLs
 //! being shared should also not be shared with the homeserver.
-class QUOTIENT_API GetUrlPreviewAuthedJob : public BaseJob {
+class QUOTIENT_API GetUrlPreviewAuthedJob : public BaseJob
+{
 public:
     //! \param url
     //!   The URL to get a preview of.
@@ -281,13 +285,13 @@ public:
     //!   The preferred point in time to return a preview for. The server may
     //!   return a newer version if it does not have the requested version
     //!   available.
-    explicit GetUrlPreviewAuthedJob(const QUrl& url, std::optional<qint64> ts = std::nullopt);
+    explicit GetUrlPreviewAuthedJob(const QUrl &url, std::optional<qint64> ts = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetUrlPreviewAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QUrl& url,
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QUrl &url,
                                std::optional<qint64> ts = std::nullopt);
 
     // Result properties
@@ -302,7 +306,8 @@ public:
     //! there is no image.
     QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The byte-size of the image. Omitted if there is no image attached.
         std::optional<qint64> matrixImageSize{};
 
@@ -313,8 +318,8 @@ public:
 };
 
 template <std::derived_from<GetUrlPreviewAuthedJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetUrlPreviewAuthedJob::Response {
-    return { j->matrixImageSize(), j->ogImage() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> GetUrlPreviewAuthedJob::Response {
+    return {j->matrixImageSize(), j->ogImage()};
 };
 
 //! \brief Get the configuration for the content repository.
@@ -330,7 +335,8 @@ constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetUrlPreviewAuth
 //! between the client and the server may affect the apparent behaviour of content
 //! repository APIs, for example, proxies may enforce a lower upload size limit
 //! than is advertised by the server on this endpoint.
-class QUOTIENT_API GetConfigAuthedJob : public BaseJob {
+class QUOTIENT_API GetConfigAuthedJob : public BaseJob
+{
 public:
     explicit GetConfigAuthedJob();
 
@@ -338,7 +344,7 @@ public:
     //!
     //! This function can be used when a URL for GetConfigAuthedJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -351,6 +357,6 @@ public:
     }
 };
 
-inline auto collectResponse(const GetConfigAuthedJob* job) { return job->uploadSize(); }
+inline auto collectResponse(const GetConfigAuthedJob *job) { return job->uploadSize(); }
 
 } // namespace Quotient

@@ -1115,10 +1115,10 @@ JobHandle<DownloadFileJob> Connection::downloadFile(const QUrl& url,
 }
 
 JobHandle<CreateRoomJob> Connection::createRoom(
-    RoomVisibility visibility, const QString& alias, const QString& name, const QString& topic,
-    QStringList invites, const QString& presetName, const QString& roomVersion, bool isDirect,
-    const QVector<CreateRoomJob::StateEvent>& initialState,
-    const QVector<CreateRoomJob::Invite3pid>& invite3pids, const QJsonObject& creationContent)
+    RoomVisibility visibility, const QString &alias, const QString &name, const QString &topic,
+    QStringList invites, const QString &presetName, const QString &roomVersion, bool isDirect,
+    const QVector<CreateRoomJob::StateEvent> &initialState, const QVector<Invite3pid> &invite3pids,
+    const QJsonObject &creationContent)
 {
     return createRoom(visibility, alias, name, topic, std::move(invites), presetName, roomVersion,
                       isDirect, initialState, {}, invite3pids, creationContent);

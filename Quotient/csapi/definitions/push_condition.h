@@ -6,7 +6,8 @@
 
 namespace Quotient {
 
-struct QUOTIENT_API PushCondition {
+struct QUOTIENT_API PushCondition
+{
     //! The kind of condition to apply. See [conditions](/client-server-api/#conditions-1) for
     //! more information on the allowed kinds and how they work.
     QString kind;
@@ -37,8 +38,9 @@ struct QUOTIENT_API PushCondition {
 };
 
 template <>
-struct JsonObjectConverter<PushCondition> {
-    static void dumpTo(QJsonObject& jo, const PushCondition& pod)
+struct JsonObjectConverter<PushCondition>
+{
+    static void dumpTo(QJsonObject &jo, const PushCondition &pod)
     {
         addParam(jo, "kind"_L1, pod.kind);
         addParam<IfNotEmpty>(jo, "key"_L1, pod.key);
@@ -46,7 +48,7 @@ struct JsonObjectConverter<PushCondition> {
         addParam<IfNotEmpty>(jo, "is"_L1, pod.is);
         addParam<IfNotEmpty>(jo, "value"_L1, pod.value);
     }
-    static void fillFrom(const QJsonObject& jo, PushCondition& pod)
+    static void fillFrom(const QJsonObject &jo, PushCondition &pod)
     {
         fillFromJson(jo.value("kind"_L1), pod.kind);
         fillFromJson(jo.value("key"_L1), pod.key);

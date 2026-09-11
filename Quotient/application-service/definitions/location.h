@@ -6,7 +6,8 @@
 
 namespace Quotient {
 
-struct QUOTIENT_API ThirdPartyLocation {
+struct QUOTIENT_API ThirdPartyLocation
+{
     //! An alias for a matrix room.
     QString alias;
 
@@ -18,14 +19,15 @@ struct QUOTIENT_API ThirdPartyLocation {
 };
 
 template <>
-struct JsonObjectConverter<ThirdPartyLocation> {
-    static void dumpTo(QJsonObject& jo, const ThirdPartyLocation& pod)
+struct JsonObjectConverter<ThirdPartyLocation>
+{
+    static void dumpTo(QJsonObject &jo, const ThirdPartyLocation &pod)
     {
         addParam(jo, "alias"_L1, pod.alias);
         addParam(jo, "protocol"_L1, pod.protocol);
         addParam(jo, "fields"_L1, pod.fields);
     }
-    static void fillFrom(const QJsonObject& jo, ThirdPartyLocation& pod)
+    static void fillFrom(const QJsonObject &jo, ThirdPartyLocation &pod)
     {
         fillFromJson(jo.value("alias"_L1), pod.alias);
         fillFromJson(jo.value("protocol"_L1), pod.protocol);
