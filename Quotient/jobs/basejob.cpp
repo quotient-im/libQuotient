@@ -110,6 +110,7 @@ public:
     QUrlQuery requestQuery;
     RequestData requestData;
     bool needsToken;
+    bool sendToServerName = false;
 
     bool inBackground = false;
 
@@ -278,7 +279,12 @@ QUrl BaseJob::makeRequestUrl(const HomeserverData& hsData, const QByteArray& enc
 
 QNetworkRequest BaseJob::Private::prepareRequest() const
 {
-    QNetworkRequest req{ makeRequestUrl(connection->homeserverData(), apiEndpoint, requestQuery) };
+    auto homeserverData = connection->homeserverData();
+    if (sendToServerName) {
+        homeserverData.baseUrl = QUrl(u"https://"_s + connection->userId().split(u":"_s)[1]);
+    }
+
+    QNetworkRequest req{ makeRequestUrl(homeserverData, apiEndpoint, requestQuery) };
     if (!requestHeaders.contains("Content-Type"))
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json"_L1);
     if (needsToken)
@@ -832,4 +838,9 @@ QFuture<void> BaseJob::future()
 
     d->futureGenerated = true;
     return d->promise.future();
+}
+
+void BaseJob::setSendToServerName(bool send)
+{
+    d->sendToServerName = send;
 }
