@@ -281,7 +281,7 @@ QNetworkRequest BaseJob::Private::prepareRequest() const
 {
     auto homeserverData = connection->homeserverData();
     if (sendToServerName) {
-        homeserverData.baseUrl = QUrl(u"https://" + connection->userId().split(u":"_s)[1]);
+        homeserverData.baseUrl = QUrl(u"https://"_s + connection->userId().split(u":"_s)[1]);
     }
 
     QNetworkRequest req{ makeRequestUrl(homeserverData, apiEndpoint, requestQuery) };
