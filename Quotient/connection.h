@@ -970,6 +970,10 @@ Q_SIGNALS:
     void ownSessionVerified();
     void receivedVerificationDone(const QString &verificationId);
 
+    //! \brief The crypto machine has failed to load. We cannot recover from this
+    //! The user should be informed about this and prompted to log in again
+    void unrecoverableCryptoError();
+
     friend class ::TestCrossSigning;
     friend class KeyVerificationSession;
 protected:

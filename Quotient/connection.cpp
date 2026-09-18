@@ -331,7 +331,9 @@ QFuture<void> Connection::Private::setupPicklingKey()
                 qDebug(E2EE) << "Successfully loaded pickling key from keychain";
 
                 if (that) {
-                    setupCryptoMachine(data);
+                    if (!setupCryptoMachine(data)) {
+                        return {};
+                    }
                 }
                 return QtFuture::makeReadyValueFuture<Job*>(nullptr);
             }
@@ -340,7 +342,9 @@ QFuture<void> Connection::Private::setupPicklingKey()
                 auto writeJob = new WritePasswordJob(qAppName());
                 const auto base64key = picklingKey.toBase64();
                 if (that) {
-                    setupCryptoMachine(base64key);
+                    if (!setupCryptoMachine(base64key)) {
+                        return {};
+                    }
                 }
                 writeJob->setBinaryData(base64key);
                 qDebug(E2EE) << "Saving a new pickling key to the keychain";
@@ -364,13 +368,17 @@ QFuture<void> Connection::Private::setupPicklingKey()
         });
 }
 
-void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
+QString Connection::Private::databaseDir() const
 {
     auto mxIdForDb = q->userId();
     mxIdForDb.replace(u':', u'_');
-    const QString databaseFolder{ QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb };
-    const QString legacyDatabaseFile{ databaseFolder + "/quotient_%1.db3"_L1.arg(q->deviceId()) };
-    const auto hasVodozemacDatabase = QDir().exists(databaseFolder + u'/' + q->deviceId());
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb;
+}
+
+bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
+{
+    const QString legacyDatabaseFile{ databaseDir() + "/quotient_%1.db3"_L1.arg(q->deviceId()) };
+    const auto hasVodozemacDatabase = QDir().exists(databaseDir() + u'/' + q->deviceId());
     if (hasVodozemacDatabase && QFile::exists(legacyDatabaseFile)) {
         qCDebug(E2EE) << "Removing legacy database as new database already exists";
         QFile(legacyDatabaseFile).remove();
@@ -380,7 +388,7 @@ void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
     const auto hasDb = QFileInfo(legacyDatabaseFile).exists();
     if (hasDb) {
         auto db = QSqlDatabase::addDatabase(u"QSQLITE"_s, "Quotient_"_L1 + q->deviceId());
-        QDir(databaseFolder).mkpath("."_L1);
+        QDir(databaseDir()).mkpath("."_L1);
         db.setDatabaseName(legacyDatabaseFile);
         db.open();
         QSqlQuery query(db);
@@ -392,19 +400,19 @@ void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
     }
 
     cryptoMachine = crypto::init(stringToRust(q->userId()), stringToRust(q->deviceId()),
-                                 stringToRust(databaseFolder % u'/' % q->deviceId()),
+                                 stringToRust(databaseDir() % u'/' % q->deviceId()),
                                  bytesToRust(picklingKey.toBase64()), stringToRust(accountPickle));
     if (!(*cryptoMachine)->is_ok()) {
         qCritical() << "Failed to load crypto machine"
                     << static_cast<int>((*cryptoMachine)->error())
                     << stringFromRust((*cryptoMachine)->error_string());
-        qApp->exit(1);
-        return;
+        Q_EMIT q->unrecoverableCryptoError();
+        return false;
     }
 
     if (hasDb) {
         auto db = QSqlDatabase::addDatabase(u"QSQLITE"_s, "Quotient_"_L1 + q->deviceId());
-        QDir(databaseFolder).mkpath("."_L1);
+        QDir(databaseDir()).mkpath("."_L1);
         db.setDatabaseName(legacyDatabaseFile);
         db.open();
 
@@ -465,6 +473,7 @@ void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
     } else {
         processOutgoingRequests();
     }
+    return true;
 }
 
 void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
@@ -488,20 +497,20 @@ void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
         q->user()->load(); // Load the local user's profile
     }
     auto doCompleteSetup = [this, mxId, deviceId, accessToken](QKeychain::Job* = nullptr){
-        setupPicklingKey();
-
-        emit q->stateChanged();
-
-        if (useEncryption) {
-            emit q->encryptionChanged(useEncryption);
+        setupPicklingKey().then(q, [this](){
             emit q->stateChanged();
-            emit q->ready();
-            emit q->connected();
-        } else {
-            qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
-            emit q->ready();
-            emit q->connected();
-        }
+
+            if (useEncryption) {
+                emit q->encryptionChanged(useEncryption);
+                emit q->stateChanged();
+                emit q->ready();
+                emit q->connected();
+            } else {
+                qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
+                emit q->ready();
+                emit q->connected();
+            }
+        });
     };
     if (newLogin) {
         auto mxIdForDb = q->userId();
@@ -574,6 +583,7 @@ QFuture<void> Connection::logout()
                 disconnect(d->syncLoopConnection);
             SettingsGroup("Accounts"_L1).remove(userId());
             d->dropAccessToken();
+            QDir(d->databaseDir() + u'/' + deviceId()).removeRecursively();
             emit loggedOut();
             deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state

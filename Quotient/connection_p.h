@@ -185,8 +185,10 @@ public:
     void initializeExistingBackup();
 
     QFuture<void> setupPicklingKey();
-    void setupCryptoMachine(const QByteArray& picklingKey);
+    bool setupCryptoMachine(const QByteArray& picklingKey);
     void runShareKey(Room* room, std::function<void()>);
     void startKeyShare();
+
+    QString databaseDir() const;
 };
 } // namespace Quotient
