@@ -93,6 +93,7 @@ public:
     bool isHandlingOutgoing = false;
 
     unsigned int lastScheduledRequest = 0;
+    bool isBeingDestructed = false;
 
     //! \brief Check the homeserver and resolve it if needed, before connecting
     //!

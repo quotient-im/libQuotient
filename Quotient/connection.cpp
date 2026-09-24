@@ -92,6 +92,7 @@ Connection::Connection(QObject* parent) : Connection({}, parent) {}
 
 Connection::~Connection()
 {
+    d->isBeingDestructed = true;
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
 }
@@ -377,6 +378,10 @@ QString Connection::Private::databaseDir() const
 
 bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
 {
+    if (isBeingDestructed) {
+        return true;
+    }
+
     const QString legacyDatabaseFile{ databaseDir() + "/quotient_%1.db3"_L1.arg(q->deviceId()) };
     const auto hasVodozemacDatabase = QDir().exists(databaseDir() + u'/' + q->deviceId());
     if (hasVodozemacDatabase && QFile::exists(legacyDatabaseFile)) {
