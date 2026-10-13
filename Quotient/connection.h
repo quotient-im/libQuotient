@@ -635,6 +635,16 @@ public:
 
     Q_INVOKABLE QFuture<Room *> waitForNewRoom(const QString &roomId);
 
+    //! \brief Sets an additional suffix for keychain entries.
+    //!
+    //! This is useful for platforms that may share the same keychain but not config folders.
+    //! For example, Flatpaks and system packages where the keychain entries from libQuotient can
+    //! conflict.
+    //!
+    //! This identifier is appended to entries in the keychain, for example "@userid:domain" becomes "@userid:domain-suffix".
+    //! The dash is added automatically.
+    void setKeychainSuffix(const QString &suffix);
+
 public Q_SLOTS:
     //! \brief Log in using a username and password pair
     //!
