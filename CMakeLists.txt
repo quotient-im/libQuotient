@@ -3,7 +3,7 @@ if (POLICY CMP0092)
 cmake_policy(SET CMP0092 NEW)
 endif()
 
-set(API_VERSION "0.10")
+set(API_VERSION "0.11")
 project(Quotient VERSION "${API_VERSION}.0" LANGUAGES CXX)
 set(PRE_STAGE "alpha")
 string(JOIN ~ FULL_VERSION ${PROJECT_VERSION} ${PRE_STAGE})
