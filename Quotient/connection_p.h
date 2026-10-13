@@ -63,6 +63,7 @@ public:
 
     bool isInitializingBackup = false;
     bool isUploadingKeysToBackup = false;
+    bool bootstrappingCrossSigning = false;
 
     QVector<GetLoginFlowsJob::LoginFlow> loginFlows;
 
