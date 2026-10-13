@@ -29,5 +29,6 @@ quotient_add_test(NAME callcandidateseventtest)
 quotient_add_test(NAME utiltests)
 quotient_add_test(NAME testsettings)
 quotient_add_test(NAME testthread NEEDS_MOCK_SERVER)
+quotient_add_test(NAME testblurhash)
 
 add_test(NAME testqmltypes COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/testqmltypes.sh ${KDE_INSTALL_FULL_LIBDIR}/qml/io/github/quotient_im/libquotient)
