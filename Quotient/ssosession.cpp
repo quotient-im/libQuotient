@@ -121,8 +121,10 @@ void SsoSession::Private::processCallback()
         sendHttpResponse("200 OK", msg.toHtmlEscaped().toUtf8());
         socket->disconnectFromHost();
     });
-    connect(connection, &Connection::loginError, socket, [this] {
-        onError("401 Unauthorised", tr("Login failed"));
+    connect(connection, &Connection::loginError, socket, [this](const auto &message, const auto &details) {
+        qCWarning(MAIN).nospace() << tr("Login failed:") << message << " " << details;
+        sendHttpResponse("401 Unauthorised", "<h3>" + tr("Login failed").toUtf8() + "</h3>");
+        socket->disconnectFromHost();
     });
 }
 
