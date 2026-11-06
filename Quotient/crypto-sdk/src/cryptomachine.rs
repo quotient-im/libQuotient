@@ -734,23 +734,28 @@ impl CryptoMachine {
         let result: Result<Box<SyncChanges>, Box<dyn Error>> = self.runtime.block_on(async {
             let machine = crypto_machine!(self);
             #[derive(serde::Deserialize)]
+            struct ToDevice {
+                #[serde(default)]
+                events: Vec<Raw<AnyToDeviceEvent>>,
+            }
+            #[derive(serde::Deserialize)]
             struct Changes {
-                to_device: Option<BTreeMap<String, Vec<Raw<AnyToDeviceEvent>>>>,
+                to_device: Option<ToDevice>,
                 device_lists: Option<DeviceLists>,
+                // Optional in the spec, and omitted by some servers when empty
+                #[serde(default)]
                 device_one_time_keys_count: BTreeMap<OneTimeKeyAlgorithm, UInt>,
                 next_batch: Option<String>,
                 device_unused_fallback_key_types: Option<Vec<OneTimeKeyAlgorithm>>,
             }
 
+            // Once the machine's receive_sync_changes() has succeeded, nothing below may fail,
+            // or the received room keys would not be reported to the caller.
             let changes = serde_json::from_str::<Changes>(sync_json.as_str())?;
             let changes = machine
                 .receive_sync_changes(
                     EncryptionSyncChanges {
-                        to_device_events: if let Some(events) = changes.to_device {
-                            events["events"].clone()
-                        } else {
-                            Default::default()
-                        },
+                        to_device_events: changes.to_device.map(|it| it.events).unwrap_or_default(),
                         changed_devices: &changes.device_lists.unwrap_or_default(),
                         one_time_keys_counts: &changes.device_one_time_keys_count,
                         unused_fallback_keys: changes.device_unused_fallback_key_types.as_deref(),
@@ -785,12 +790,18 @@ impl CryptoMachine {
                             }
                         }
                         Ok(AnyToDeviceEvent::KeyVerificationDone(done)) => {
-                            let machine = crypto_machine!(self);
-                            if done.sender == machine.user_id() && machine.get_identity(&UserId::parse(&done.sender)?, None)
-                                .await?
-                                .ok_or("Identity not found")?
-                                .is_verified() {
-                                self_verified = true;
+                            if done.sender == machine.user_id() {
+                                match machine.get_identity(&done.sender, None).await {
+                                    Ok(Some(identity)) => {
+                                        if identity.is_verified() {
+                                            self_verified = true;
+                                        }
+                                    }
+                                    Ok(None) => error!("Own identity not found"),
+                                    Err(error) => {
+                                        error!("Failed to get own identity: {:?}", error)
+                                    }
+                                }
                             }
                             received_done_events.push(done.content.transaction_id.to_string());
                         }
