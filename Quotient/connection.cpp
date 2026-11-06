@@ -487,21 +487,27 @@ void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
         q->loadCapabilities();
         q->user()->load(); // Load the local user's profile
     }
-    auto doCompleteSetup = [this, mxId, deviceId, accessToken](QKeychain::Job* = nullptr){
-        setupPicklingKey();
-
-        emit q->stateChanged();
-
-        if (useEncryption) {
-            emit q->encryptionChanged(useEncryption);
+    auto doCompleteSetup = [this](QKeychain::Job* = nullptr) {
+        auto announce = [this] {
             emit q->stateChanged();
-            emit q->ready();
-            emit q->connected();
-        } else {
-            qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
-            emit q->ready();
-            emit q->connected();
-        }
+
+            if (useEncryption) {
+                emit q->encryptionChanged(useEncryption);
+                emit q->stateChanged();
+                emit q->ready();
+                emit q->connected();
+            } else {
+                qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
+                emit q->ready();
+                emit q->connected();
+            }
+        };
+        // Only announce the connection once the pickling key is loaded and the crypto machine
+        // is set up. Clients start syncing on connected(); without a crypto machine, the
+        // to-device events of those syncs (most importantly room keys) would be lost for good.
+        // The future is cancelled if the pickling key can't be loaded; announce anyway then, the
+        // account is still usable without E2EE.
+        setupPicklingKey().then(q, announce).onCanceled(q, announce);
     };
     if (newLogin) {
         auto mxIdForDb = q->userId();
@@ -655,6 +661,10 @@ void Connection::syncLoopIteration()
 
 void Connection::onSyncSuccess(SyncJob *syncJob)
 {
+    if (!d->cryptoMachine && d->useEncryption) {
+        qCWarning(E2EE) << "Processing a sync without a crypto machine; to-device events in it, "
+                           "including room keys, are lost";
+    }
     if (d->cryptoMachine) {
         auto syncChangesResult =
             (*d->cryptoMachine)->receive_sync_changes(bytesToRust(syncJob->rawData()));
