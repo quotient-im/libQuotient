@@ -1983,9 +1983,15 @@ void Connection::reloadDevices()
 
 Connection* Connection::makeMockConnection(const QString& mxId, bool enableEncryption)
 {
+    return makeMockConnection(mxId, enableEncryption, {});
+}
+
+Connection* Connection::makeMockConnection(const QString& mxId, bool enableEncryption,
+                                           const QString& deviceId)
+{
     auto* c = new Connection;
     c->enableEncryption(enableEncryption);
-    c->d->completeSetup(mxId);
+    c->d->completeSetup(mxId, false, deviceId);
     return c;
 }
 
