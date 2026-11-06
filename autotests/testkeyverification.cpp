@@ -7,6 +7,8 @@
 #include <QTest>
 #include <QtCore/QDateTime>
 
+#include <memory>
+
 #include <Quotient/connection.h>
 #include <Quotient/e2ee/qolmaccount.h>
 #include <Quotient/e2ee/cryptoutils.h>
@@ -18,6 +20,71 @@ class TestKeyVerificationSession : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void testSimultaneousStart_data()
+    {
+        QTest::addColumn<QString>("localUser");
+        QTest::addColumn<QString>("remoteUser");
+        QTest::addColumn<QString>("localDevice");
+        QTest::addColumn<QString>("remoteDevice");
+        QTest::addColumn<bool>("keepOurStart");
+        QTest::newRow("self-local-smaller")
+            << u"@self:localhost"_s << u"@self:localhost"_s
+            << u"AAA"_s << u"ZZZ"_s << true;
+        QTest::newRow("self-local-larger")
+            << u"@self:localhost"_s << u"@self:localhost"_s
+            << u"ZZZ"_s << u"AAA"_s << false;
+        QTest::newRow("different-local-smaller")
+            << u"@alice:localhost"_s << u"@bob:localhost"_s
+            << u"ZZZ"_s << u"AAA"_s << true;
+        QTest::newRow("different-local-larger")
+            << u"@bob:localhost"_s << u"@alice:localhost"_s
+            << u"AAA"_s << u"ZZZ"_s << false;
+    }
+
+    void testSimultaneousStart()
+    {
+        QFETCH(QString, localUser);
+        QFETCH(QString, remoteUser);
+        QFETCH(QString, localDevice);
+        QFETCH(QString, remoteDevice);
+        QFETCH(bool, keepOurStart);
+        auto connection = std::unique_ptr<Connection>(
+            Connection::makeMockConnection(localUser, true, localDevice));
+        QCOMPARE(connection->userId(), localUser);
+        QCOMPARE(connection->deviceId(), localDevice);
+        auto session = connection->startKeyVerificationSession(remoteUser, remoteDevice);
+        session->sendRequest();
+        const auto transactionId = session->transactionId();
+        session->handleEvent(
+            KeyVerificationReadyEvent(transactionId, remoteDevice, {SasV1Method}));
+        QCOMPARE(session->state(), KeyVerificationSession::WAITINGFORACCEPT);
+        session->handleEvent(KeyVerificationStartEvent(transactionId, remoteDevice));
+        QCOMPARE(session->state(), keepOurStart ? KeyVerificationSession::WAITINGFORACCEPT
+                                               : KeyVerificationSession::ACCEPTED);
+        if (keepOurStart) {
+            session->handleEvent(KeyVerificationAcceptEvent(
+            transactionId, QString::fromLatin1("commitment_TODO"_ba.toBase64())));
+            QCOMPARE(session->state(), KeyVerificationSession::WAITINGFORKEY);
+        }
+    }
+
+    void testSelfVerificationCrossedStartThenAccept()
+    {
+        const auto user = u"@self-sequence:localhost"_s;
+        auto connection = std::unique_ptr<Connection>(
+            Connection::makeMockConnection(user, true, u"AAA"_s));
+        QCOMPARE(connection->deviceId(), u"AAA"_s);
+        auto session = connection->startKeyVerificationSession(user, u"ZZZ"_s);
+        session->sendRequest();
+        const auto transactionId = session->transactionId();
+        session->handleEvent(KeyVerificationReadyEvent(transactionId, u"ZZZ"_s, {SasV1Method}));
+        session->handleEvent(KeyVerificationStartEvent(transactionId, u"ZZZ"_s));
+        session->handleEvent(KeyVerificationAcceptEvent(
+            transactionId, QString::fromLatin1("commitment_TODO"_ba.toBase64())));
+        QCOMPARE(session->state(), KeyVerificationSession::WAITINGFORKEY);
+        QCOMPARE(session->error(), KeyVerificationSession::NONE);
+    }
+
     void testOutgoing1()
     {
         auto connection = Connection::makeMockConnection("@carl:localhost"_L1);

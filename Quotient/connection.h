@@ -802,6 +802,15 @@ public Q_SLOTS:
 
     static Connection* makeMockConnection(const QString& mxId,
                                           bool enableEncryption = true);
+    //! \brief Create a mock connection with a specified device identity
+    //!
+    //! Initialises local encryption state without logging in to a homeserver.
+    //! Intended for tests that need to distinguish devices of the same user.
+    //! \param mxId Matrix user ID for the mock connection
+    //! \param enableEncryption Whether to initialise encryption support
+    //! \param deviceId Device ID to use during connection setup
+    static Connection* makeMockConnection(const QString& mxId, bool enableEncryption,
+                                          const QString& deviceId);
 
 Q_SIGNALS:
     //! \brief Initial server resolution has failed
