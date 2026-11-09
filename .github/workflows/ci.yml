@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-24.04, macos-14, windows-latest ]
+        os: [ ubuntu-24.04, macos-15, macos-15-intel, windows-latest ]
         qt-version: [ '6.8' ]
         override-compiler: [ '' ] # Defaults: MSVC on Windows, Clang elsewhere
         include: # Attach API updating and static analysis to specific jobs
@@ -31,7 +31,9 @@ jobs:
           override-compiler: GCC
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
-        - os: macos-14
+        - os: macos-15
+          qt-version: '6.10'
+        - os: macos-15-intel
           qt-version: '6.10'
 
     env:
@@ -138,7 +140,7 @@ jobs:
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
         sh rustup-init.sh -y --default-toolchain none
-        rustup target add "x86_64-apple-darwin"
+        rustup target add "${{ contains(matrix.os, '-intel') && 'x86_64-apple-darwin' || 'aarch64-apple-darwin' }}"
 
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
