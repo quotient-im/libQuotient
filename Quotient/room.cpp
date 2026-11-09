@@ -1066,14 +1066,14 @@ void Room::Private::getAllMembers()
     };
 
     if (!summary.joinedMemberCount.has_value()) {
-            connectUntil(q, &Room::changed, q, [doGetAllMembers, this] {
-                if (summary.joinedMemberCount.has_value()) {
-                    doGetAllMembers();
-                    return true;
-                }
-                return false;
-            });
-            return;
+        connectUntil(q, &Room::changed, q, [doGetAllMembers, this] {
+            if (summary.joinedMemberCount.has_value()) {
+                doGetAllMembers();
+                return true;
+            }
+            return false;
+        });
+        return;
     }
 
     doGetAllMembers();
