@@ -389,7 +389,7 @@ bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
     const auto hasDb = QFileInfo(legacyDatabaseFile).exists();
     if (hasDb) {
         auto db = QSqlDatabase::addDatabase(u"QSQLITE"_s, "Quotient_"_L1 + q->deviceId());
-        QDir(databaseDir()).mkpath("."_L1);
+        QDir(databaseFolder).mkpath("."_L1);
         db.setDatabaseName(legacyDatabaseFile);
         db.open();
         QSqlQuery query(db);
