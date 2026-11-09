@@ -402,7 +402,7 @@ bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
     }
 
     cryptoMachine = crypto::init(stringToRust(q->userId()), stringToRust(q->deviceId()),
-                                 stringToRust(databaseDir() % u'/' % q->deviceId()),
+                                 stringToRust(databaseFolder % u'/' % q->deviceId()),
                                  bytesToRust(picklingKey.toBase64()), stringToRust(accountPickle));
     if (!(*cryptoMachine)->is_ok()) {
         qCritical() << "Failed to load crypto machine"
