@@ -92,6 +92,7 @@ Connection::Connection(QObject* parent) : Connection({}, parent) {}
 
 Connection::~Connection()
 {
+    d->isBeingDestructed = true;
     qCDebug(MAIN) << "deconstructing connection object for" << userId();
     stopSync();
 }
@@ -331,7 +332,9 @@ QFuture<void> Connection::Private::setupPicklingKey()
                 qDebug(E2EE) << "Successfully loaded pickling key from keychain";
 
                 if (that) {
-                    setupCryptoMachine(data);
+                    if (!setupCryptoMachine(data)) {
+                        return {};
+                    }
                 }
                 return QtFuture::makeReadyValueFuture<Job*>(nullptr);
             }
@@ -340,7 +343,9 @@ QFuture<void> Connection::Private::setupPicklingKey()
                 auto writeJob = new WritePasswordJob(qAppName());
                 const auto base64key = picklingKey.toBase64();
                 if (that) {
-                    setupCryptoMachine(base64key);
+                    if (!setupCryptoMachine(base64key)) {
+                        return {};
+                    }
                 }
                 writeJob->setBinaryData(base64key);
                 qDebug(E2EE) << "Saving a new pickling key to the keychain";
@@ -364,11 +369,16 @@ QFuture<void> Connection::Private::setupPicklingKey()
         });
 }
 
-void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
+QString Connection::Private::databaseDir() const
 {
     auto mxIdForDb = q->userId();
     mxIdForDb.replace(u':', u'_');
-    const QString databaseFolder{ QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb };
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb;
+}
+
+bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
+{
+    const auto databaseFolder = databaseDir();
     const QString legacyDatabaseFile{ databaseFolder + "/quotient_%1.db3"_L1.arg(q->deviceId()) };
     const auto hasVodozemacDatabase = QDir().exists(databaseFolder + u'/' + q->deviceId());
     if (hasVodozemacDatabase && QFile::exists(legacyDatabaseFile)) {
@@ -398,8 +408,8 @@ void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
         qCritical() << "Failed to load crypto machine"
                     << static_cast<int>((*cryptoMachine)->error())
                     << stringFromRust((*cryptoMachine)->error_string());
-        qApp->exit(1);
-        return;
+        Q_EMIT q->unrecoverableCryptoError();
+        return false;
     }
 
     if (hasDb) {
@@ -465,6 +475,7 @@ void Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
     } else {
         processOutgoingRequests();
     }
+    return true;
 }
 
 void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
@@ -488,20 +499,20 @@ void Connection::Private::completeSetup(const QString& mxId, bool newLogin,
         q->user()->load(); // Load the local user's profile
     }
     auto doCompleteSetup = [this, mxId, deviceId, accessToken](QKeychain::Job* = nullptr){
-        setupPicklingKey();
-
-        emit q->stateChanged();
-
-        if (useEncryption) {
-            emit q->encryptionChanged(useEncryption);
+        setupPicklingKey().then(q, [this](){
             emit q->stateChanged();
-            emit q->ready();
-            emit q->connected();
-        } else {
-            qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
-            emit q->ready();
-            emit q->connected();
-        }
+
+            if (useEncryption) {
+                emit q->encryptionChanged(useEncryption);
+                emit q->stateChanged();
+                emit q->ready();
+                emit q->connected();
+            } else {
+                qCInfo(E2EE) << "End-to-end encryption (E2EE) support is off for" << q->objectName();
+                emit q->ready();
+                emit q->connected();
+            }
+        });
     };
     if (newLogin) {
         auto mxIdForDb = q->userId();
@@ -574,6 +585,7 @@ QFuture<void> Connection::logout()
                 disconnect(d->syncLoopConnection);
             SettingsGroup("Accounts"_L1).remove(userId());
             d->dropAccessToken();
+            QDir(d->databaseDir() + u'/' + deviceId()).removeRecursively();
             emit loggedOut();
             deleteLater();
         } else { // logout() somehow didn't proceed - restore the session state
@@ -840,6 +852,9 @@ void Connection::Private::processOutgoingRequests()
 
     QtFuture::whenAll(futures.begin(), futures.end()).then([this](const auto &) {
         isHandlingOutgoing = false;
+        if (isBeingDestructed) {
+            return;
+        }
         processOutgoingRequests();
     });
     isHandlingOutgoing = true;
