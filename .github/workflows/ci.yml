@@ -22,11 +22,11 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-24.04, macos-15, macos-15-intel, windows-latest ]
+        os: [ ubuntu-26.04, macos-15, macos-15-intel, windows-latest ]
         qt-version: [ '6.8' ]
         override-compiler: [ '' ] # Defaults: MSVC on Windows, Clang elsewhere
         include: # Attach API updating and static analysis to specific jobs
-        - os: ubuntu-24.04
+        - os: ubuntu-26.04
           qt-version: '6.8'
           override-compiler: GCC
           update-api: update-api
