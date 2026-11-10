@@ -35,8 +35,8 @@ jobs:
           qt-version: '6.8'
 
     env:
-      GCC_VERSION: -14
-      CLANG_VERSION: -19
+      GCC_VERSION: -15
+      CLANG_VERSION: -20
       SONAR_DIR: sonar
 
     steps:
