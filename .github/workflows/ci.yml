@@ -23,18 +23,16 @@ jobs:
       max-parallel: 1
       matrix:
         os: [ ubuntu-26.04, macos-15, macos-15-intel, windows-latest ]
-        qt-version: [ '6.8' ]
+        qt-version: [ '6.10' ]
         override-compiler: [ '' ] # Defaults: MSVC on Windows, Clang elsewhere
         include: # Attach API updating and static analysis to specific jobs
         - os: ubuntu-26.04
-          qt-version: '6.8'
+          qt-version: '6.10'
           override-compiler: GCC
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
         - os: macos-15
-          qt-version: '6.10'
-        - os: macos-15-intel
-          qt-version: '6.10'
+          qt-version: '6.8'
 
     env:
       GCC_VERSION: -14
