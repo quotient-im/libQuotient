@@ -22,25 +22,25 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        os: [ ubuntu-24.04, macos-14, windows-latest ]
-        qt-version: [ '6.8' ]
+        os: [ ubuntu-26.04, macos-15, macos-15-intel, windows-latest ]
+        qt-version: [ '6.10' ]
         override-compiler: [ '' ] # Defaults: MSVC on Windows, Clang elsewhere
         include: # Attach API updating and static analysis to specific jobs
-        - os: ubuntu-24.04
-          qt-version: '6.8'
+        - os: ubuntu-26.04
+          qt-version: '6.10'
           override-compiler: GCC
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
-        - os: macos-14
-          qt-version: '6.10'
+        - os: macos-15
+          qt-version: '6.8'
 
     env:
-      GCC_VERSION: -14
-      CLANG_VERSION: -19
+      GCC_VERSION: -15
+      CLANG_VERSION: -20
       SONAR_DIR: sonar
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -59,7 +59,7 @@ jobs:
         gnome-keyring-daemon -d --unlock <<<'' # Create a login keyring with no password
 
     - name: Install Qt and necessary tools
-      uses: jurplel/install-qt-action@v4.3.0
+      uses: jurplel/install-qt-action@v4.5.0
       with:
         version: '${{ matrix.qt-version }}.*'
         cache: true
@@ -138,10 +138,10 @@ jobs:
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh
         sh rustup-init.sh -y --default-toolchain none
-        rustup target add "x86_64-apple-darwin"
+        rustup target add "${{ contains(matrix.os, '-intel') && 'x86_64-apple-darwin' || 'aarch64-apple-darwin' }}"
 
     - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: step-security/msvc-dev-cmd@v1.13.1
       if: startsWith(matrix.os, 'windows')
       with:
         arch: x64
@@ -149,7 +149,7 @@ jobs:
     - name: Set up Sonar Cloud tools
       id: sonar
       if: matrix.static-analysis == 'sonar'
-      uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+      uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v8.4.1
 
 
     - name: Build and install QtKeychain (mac)
@@ -243,7 +243,7 @@ jobs:
     - name: Run sonar-scanner
       if: matrix.static-analysis == 'sonar'
       continue-on-error: true
-      uses: SonarSource/sonarqube-scan-action@v6
+      uses: SonarSource/sonarqube-scan-action@v8.4.1
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
