@@ -17,12 +17,14 @@ namespace Quotient {
 //! Note that this endpoint is not necessarily handled by the homeserver.
 //! It may be served by another webserver, used for discovering support
 //! information for the homeserver.
-class QUOTIENT_API GetWellknownSupportJob : public BaseJob {
+class QUOTIENT_API GetWellknownSupportJob : public BaseJob
+{
 public:
     // Inner data structures
 
     //! A way to contact the server administrator.
-    struct QUOTIENT_API Contact {
+    struct QUOTIENT_API Contact
+    {
         //! An informal description of what the contact methods
         //! are used for.
         //!
@@ -43,13 +45,13 @@ public:
         //!
         //! At least one of `matrix_id` or `email_address` is
         //! required.
-        QString matrixId{};
+        UserId matrixId{};
 
         //! An email address to reach the administrator.
         //!
         //! At least one of `matrix_id` or `email_address` is
         //! required.
-        QString emailAddress{};
+        QUrl emailAddress{};
     };
 
     // Construction/destruction
@@ -60,7 +62,7 @@ public:
     //!
     //! This function can be used when a URL for GetWellknownSupportJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -75,9 +77,10 @@ public:
     //! homeserver, like extra login/registration steps.
     //!
     //! At least one of `contacts` or `support_page` is required.
-    QString supportPage() const { return loadFromJson<QString>("support_page"_L1); }
+    QUrl supportPage() const { return loadFromJson<QUrl>("support_page"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! Ways to contact the server administrator.
         //!
         //! At least one of `contacts` or `support_page` is required.
@@ -89,17 +92,18 @@ public:
         //! homeserver, like extra login/registration steps.
         //!
         //! At least one of `contacts` or `support_page` is required.
-        QString supportPage{};
+        QUrl supportPage{};
     };
 };
 
 template <std::derived_from<GetWellknownSupportJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetWellknownSupportJob::Response { return { j->contacts(), j->supportPage() }; };
+    [](JobT *j) -> GetWellknownSupportJob::Response { return {j->contacts(), j->supportPage()}; };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetWellknownSupportJob::Contact> {
-    static void fillFrom(const QJsonObject& jo, GetWellknownSupportJob::Contact& result)
+struct QUOTIENT_API JsonObjectConverter<GetWellknownSupportJob::Contact>
+{
+    static void fillFrom(const QJsonObject &jo, GetWellknownSupportJob::Contact &result)
     {
         fillFromJson(jo.value("role"_L1), result.role);
         fillFromJson(jo.value("matrix_id"_L1), result.matrixId);

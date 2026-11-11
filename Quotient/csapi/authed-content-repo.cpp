@@ -11,8 +11,8 @@ auto queryToGetContentAuthed(qint64 timeoutMs)
     return _q;
 }
 
-QUrl GetContentAuthedJob::makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
-                                         const QString& mediaId, qint64 timeoutMs)
+QUrl GetContentAuthedJob::makeRequestUrl(const HomeserverData &hsData, const QString &serverName,
+                                         const QString &mediaId, qint64 timeoutMs)
 {
     return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/media/download/", serverName,
@@ -20,13 +20,13 @@ QUrl GetContentAuthedJob::makeRequestUrl(const HomeserverData& hsData, const QSt
                                    queryToGetContentAuthed(timeoutMs));
 }
 
-GetContentAuthedJob::GetContentAuthedJob(const QString& serverName, const QString& mediaId,
+GetContentAuthedJob::GetContentAuthedJob(const QString &serverName, const QString &mediaId,
                                          qint64 timeoutMs)
     : BaseJob(HttpVerb::Get, u"GetContentAuthedJob"_s,
               makePath("/_matrix/client/v1", "/media/download/", serverName, "/", mediaId),
               queryToGetContentAuthed(timeoutMs))
 {
-    setExpectedContentTypes({ "application/octet-stream" });
+    setExpectedContentTypes({"application/octet-stream"});
 }
 
 auto queryToGetContentOverrideNameAuthed(qint64 timeoutMs)
@@ -36,10 +36,10 @@ auto queryToGetContentOverrideNameAuthed(qint64 timeoutMs)
     return _q;
 }
 
-QUrl GetContentOverrideNameAuthedJob::makeRequestUrl(const HomeserverData& hsData,
-                                                     const QString& serverName,
-                                                     const QString& mediaId,
-                                                     const QString& fileName, qint64 timeoutMs)
+QUrl GetContentOverrideNameAuthedJob::makeRequestUrl(const HomeserverData &hsData,
+                                                     const QString &serverName,
+                                                     const QString &mediaId,
+                                                     const QString &fileName, qint64 timeoutMs)
 {
     return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/media/download/", serverName,
@@ -47,19 +47,19 @@ QUrl GetContentOverrideNameAuthedJob::makeRequestUrl(const HomeserverData& hsDat
                                    queryToGetContentOverrideNameAuthed(timeoutMs));
 }
 
-GetContentOverrideNameAuthedJob::GetContentOverrideNameAuthedJob(const QString& serverName,
-                                                                 const QString& mediaId,
-                                                                 const QString& fileName,
+GetContentOverrideNameAuthedJob::GetContentOverrideNameAuthedJob(const QString &serverName,
+                                                                 const QString &mediaId,
+                                                                 const QString &fileName,
                                                                  qint64 timeoutMs)
     : BaseJob(HttpVerb::Get, u"GetContentOverrideNameAuthedJob"_s,
               makePath("/_matrix/client/v1", "/media/download/", serverName, "/", mediaId, "/",
                        fileName),
               queryToGetContentOverrideNameAuthed(timeoutMs))
 {
-    setExpectedContentTypes({ "application/octet-stream" });
+    setExpectedContentTypes({"application/octet-stream"});
 }
 
-auto queryToGetContentThumbnailAuthed(int width, int height, const QString& method,
+auto queryToGetContentThumbnailAuthed(int width, int height, const QString &method,
                                       qint64 timeoutMs, std::optional<bool> animated)
 {
     QUrlQuery _q;
@@ -71,9 +71,9 @@ auto queryToGetContentThumbnailAuthed(int width, int height, const QString& meth
     return _q;
 }
 
-QUrl GetContentThumbnailAuthedJob::makeRequestUrl(const HomeserverData& hsData,
-                                                  const QString& serverName, const QString& mediaId,
-                                                  int width, int height, const QString& method,
+QUrl GetContentThumbnailAuthedJob::makeRequestUrl(const HomeserverData &hsData,
+                                                  const QString &serverName, const QString &mediaId,
+                                                  int width, int height, const QString &method,
                                                   qint64 timeoutMs, std::optional<bool> animated)
 {
     return BaseJob::makeRequestUrl(
@@ -81,19 +81,19 @@ QUrl GetContentThumbnailAuthedJob::makeRequestUrl(const HomeserverData& hsData,
         queryToGetContentThumbnailAuthed(width, height, method, timeoutMs, animated));
 }
 
-GetContentThumbnailAuthedJob::GetContentThumbnailAuthedJob(const QString& serverName,
-                                                           const QString& mediaId, int width,
-                                                           int height, const QString& method,
+GetContentThumbnailAuthedJob::GetContentThumbnailAuthedJob(const QString &serverName,
+                                                           const QString &mediaId, int width,
+                                                           int height, const QString &method,
                                                            qint64 timeoutMs,
                                                            std::optional<bool> animated)
     : BaseJob(HttpVerb::Get, u"GetContentThumbnailAuthedJob"_s,
               makePath("/_matrix/client/v1", "/media/thumbnail/", serverName, "/", mediaId),
               queryToGetContentThumbnailAuthed(width, height, method, timeoutMs, animated))
 {
-    setExpectedContentTypes({ "image/jpeg", "image/png", "image/apng", "image/gif", "image/webp" });
+    setExpectedContentTypes({"image/jpeg", "image/png", "image/apng", "image/gif", "image/webp"});
 }
 
-auto queryToGetUrlPreviewAuthed(const QUrl& url, std::optional<qint64> ts)
+auto queryToGetUrlPreviewAuthed(const QUrl &url, std::optional<qint64> ts)
 {
     QUrlQuery _q;
     addParam(_q, u"url"_s, url);
@@ -101,20 +101,20 @@ auto queryToGetUrlPreviewAuthed(const QUrl& url, std::optional<qint64> ts)
     return _q;
 }
 
-QUrl GetUrlPreviewAuthedJob::makeRequestUrl(const HomeserverData& hsData, const QUrl& url,
+QUrl GetUrlPreviewAuthedJob::makeRequestUrl(const HomeserverData &hsData, const QUrl &url,
                                             std::optional<qint64> ts)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v1", "/media/preview_url"),
                                    queryToGetUrlPreviewAuthed(url, ts));
 }
 
-GetUrlPreviewAuthedJob::GetUrlPreviewAuthedJob(const QUrl& url, std::optional<qint64> ts)
+GetUrlPreviewAuthedJob::GetUrlPreviewAuthedJob(const QUrl &url, std::optional<qint64> ts)
     : BaseJob(HttpVerb::Get, u"GetUrlPreviewAuthedJob"_s,
               makePath("/_matrix/client/v1", "/media/preview_url"),
               queryToGetUrlPreviewAuthed(url, ts))
 {}
 
-QUrl GetConfigAuthedJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl GetConfigAuthedJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v1", "/media/config"));
 }

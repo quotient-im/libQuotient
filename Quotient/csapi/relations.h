@@ -18,7 +18,8 @@ namespace Quotient {
 //! For example, passing a `from` token from page 2 of the results, and a `to` token
 //! from page 1, would return the empty set. The caller can use a `from` token from
 //! page 1 and a `to` token from page 2 to paginate over the same range, however.
-class QUOTIENT_API GetRelatingEventsJob : public BaseJob {
+class QUOTIENT_API GetRelatingEventsJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The ID of the room containing the parent event.
@@ -67,19 +68,19 @@ public:
     //!   to not infinitely recurse.
     //!
     //!   The default value is `false`.
-    explicit GetRelatingEventsJob(const QString& roomId, const QString& eventId,
-                                  const QString& from = {}, const QString& to = {},
-                                  std::optional<int> limit = std::nullopt, const QString& dir = {},
+    explicit GetRelatingEventsJob(const QString &roomId, const QString &eventId,
+                                  const QString &from = {}, const QString &to = {},
+                                  std::optional<int> limit = std::nullopt, const QString &dir = {},
                                   std::optional<bool> recurse = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetRelatingEventsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& eventId, const QString& from = {},
-                               const QString& to = {}, std::optional<int> limit = std::nullopt,
-                               const QString& dir = {}, std::optional<bool> recurse = std::nullopt);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &eventId, const QString &from = {},
+                               const QString &to = {}, std::optional<int> limit = std::nullopt,
+                               const QString &dir = {}, std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 
@@ -102,7 +103,8 @@ public:
     //! The child events of the requested event, ordered topologically most-recent first.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! An opaque string representing a pagination token. The absence of this token
         //! means there are no more results to fetch and the client should stop paginating.
         QString nextBatch{};
@@ -122,8 +124,8 @@ public:
 };
 
 template <std::derived_from<GetRelatingEventsJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetRelatingEventsJob::Response {
-    return { j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> GetRelatingEventsJob::Response {
+    return {j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk()};
 };
 
 //! \brief Get the child events for a given parent event, with a given `relType`.
@@ -138,7 +140,8 @@ constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetRelatingEvents
 //! For example, passing a `from` token from page 2 of the results, and a `to` token
 //! from page 1, would return the empty set. The caller can use a `from` token from
 //! page 1 and a `to` token from page 2 to paginate over the same range, however.
-class QUOTIENT_API GetRelatingEventsWithRelTypeJob : public BaseJob {
+class QUOTIENT_API GetRelatingEventsWithRelTypeJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The ID of the room containing the parent event.
@@ -190,21 +193,21 @@ public:
     //!   to not infinitely recurse.
     //!
     //!   The default value is `false`.
-    explicit GetRelatingEventsWithRelTypeJob(const QString& roomId, const QString& eventId,
-                                             const QString& relType, const QString& from = {},
-                                             const QString& to = {},
+    explicit GetRelatingEventsWithRelTypeJob(const QString &roomId, const QString &eventId,
+                                             const QString &relType, const QString &from = {},
+                                             const QString &to = {},
                                              std::optional<int> limit = std::nullopt,
-                                             const QString& dir = {},
+                                             const QString &dir = {},
                                              std::optional<bool> recurse = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetRelatingEventsWithRelTypeJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& eventId, const QString& relType,
-                               const QString& from = {}, const QString& to = {},
-                               std::optional<int> limit = std::nullopt, const QString& dir = {},
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &eventId, const QString &relType,
+                               const QString &from = {}, const QString &to = {},
+                               std::optional<int> limit = std::nullopt, const QString &dir = {},
                                std::optional<bool> recurse = std::nullopt);
 
     // Result properties
@@ -230,7 +233,8 @@ public:
     //! supplied in the URL.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! An opaque string representing a pagination token. The absence of this token
         //! means there are no more results to fetch and the client should stop paginating.
         QString nextBatch{};
@@ -253,8 +257,8 @@ public:
 
 template <std::derived_from<GetRelatingEventsWithRelTypeJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetRelatingEventsWithRelTypeJob::Response {
-    return { j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk() };
+    [](JobT *j) -> GetRelatingEventsWithRelTypeJob::Response {
+    return {j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk()};
 };
 
 //! \brief Get the child events for a given parent event, with a given `relType` and `eventType`.
@@ -269,7 +273,8 @@ constexpr inline auto doCollectResponse<JobT> =
 //! For example, passing a `from` token from page 2 of the results, and a `to` token
 //! from page 1, would return the empty set. The caller can use a `from` token from
 //! page 1 and a `to` token from page 2 to paginate over the same range, however.
-class QUOTIENT_API GetRelatingEventsWithRelTypeAndEventTypeJob : public BaseJob {
+class QUOTIENT_API GetRelatingEventsWithRelTypeAndEventTypeJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The ID of the room containing the parent event.
@@ -328,20 +333,20 @@ public:
     //!
     //!   The default value is `false`.
     explicit GetRelatingEventsWithRelTypeAndEventTypeJob(
-        const QString& roomId, const QString& eventId, const QString& relType,
-        const QString& eventType, const QString& from = {}, const QString& to = {},
-        std::optional<int> limit = std::nullopt, const QString& dir = {},
+        const QString &roomId, const QString &eventId, const QString &relType,
+        const QString &eventType, const QString &from = {}, const QString &to = {},
+        std::optional<int> limit = std::nullopt, const QString &dir = {},
         std::optional<bool> recurse = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetRelatingEventsWithRelTypeAndEventTypeJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& eventId, const QString& relType,
-                               const QString& eventType, const QString& from = {},
-                               const QString& to = {}, std::optional<int> limit = std::nullopt,
-                               const QString& dir = {}, std::optional<bool> recurse = std::nullopt);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &eventId, const QString &relType,
+                               const QString &eventType, const QString &from = {},
+                               const QString &to = {}, std::optional<int> limit = std::nullopt,
+                               const QString &dir = {}, std::optional<bool> recurse = std::nullopt);
 
     // Result properties
 
@@ -366,7 +371,8 @@ public:
     //! in the URL.
     RoomEvents chunk() { return takeFromJson<RoomEvents>("chunk"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! An opaque string representing a pagination token. The absence of this token
         //! means there are no more results to fetch and the client should stop paginating.
         QString nextBatch{};
@@ -389,8 +395,8 @@ public:
 
 template <std::derived_from<GetRelatingEventsWithRelTypeAndEventTypeJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetRelatingEventsWithRelTypeAndEventTypeJob::Response {
-    return { j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk() };
+    [](JobT *j) -> GetRelatingEventsWithRelTypeAndEventTypeJob::Response {
+    return {j->nextBatch(), j->prevBatch(), j->recursionDepth(), j->chunk()};
 };
 
 } // namespace Quotient

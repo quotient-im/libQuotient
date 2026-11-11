@@ -10,7 +10,8 @@ namespace Quotient {
 //!
 //! This API provides credentials for the client to use when initiating
 //! calls.
-class QUOTIENT_API GetTurnServerJob : public BaseJob {
+class QUOTIENT_API GetTurnServerJob : public BaseJob
+{
 public:
     explicit GetTurnServerJob();
 
@@ -18,7 +19,7 @@ public:
     //!
     //! This function can be used when a URL for GetTurnServerJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -26,6 +27,6 @@ public:
     QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
-inline auto collectResponse(const GetTurnServerJob* job) { return job->data(); }
+inline auto collectResponse(const GetTurnServerJob *job) { return job->data(); }
 
 } // namespace Quotient

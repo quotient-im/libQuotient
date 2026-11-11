@@ -11,8 +11,9 @@ namespace Quotient {
 //! Set some account data for the client. This config is only visible to the user
 //! that set the account data. The config will be available to clients through the
 //! top-level `account_data` field in the homeserver response to
-//! [/sync](#get_matrixclientv3sync).
-class QUOTIENT_API SetAccountDataJob : public BaseJob {
+//! [/sync](/client-server-api/#get_matrixclientv3sync).
+class QUOTIENT_API SetAccountDataJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The ID of the user to set account data for. The access token must be
@@ -24,15 +25,16 @@ public:
     //!
     //! \param content
     //!   The content of the account data.
-    explicit SetAccountDataJob(const QString& userId, const QString& type,
-                               const QJsonObject& content = {});
+    explicit SetAccountDataJob(const QString &userId, const QString &type,
+                               const QJsonObject &content = {});
 };
 
 //! \brief Get some account data for the user.
 //!
 //! Get some account data for the client. This config is only visible to the user
 //! that set the account data.
-class QUOTIENT_API GetAccountDataJob : public BaseJob {
+class QUOTIENT_API GetAccountDataJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The ID of the user to get account data for. The access token must be
@@ -41,14 +43,14 @@ public:
     //! \param type
     //!   The event type of the account data to get. Custom types should be
     //!   namespaced to avoid clashes.
-    explicit GetAccountDataJob(const QString& userId, const QString& type);
+    explicit GetAccountDataJob(const QString &userId, const QString &type);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetAccountDataJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
-                               const QString& type);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &userId,
+                               const QString &type);
 
     // Result properties
 
@@ -56,14 +58,15 @@ public:
     QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
-inline auto collectResponse(const GetAccountDataJob* job) { return job->data(); }
+inline auto collectResponse(const GetAccountDataJob *job) { return job->data(); }
 
 //! \brief Set some account data for the user that is specific to a room.
 //!
 //! Set some account data for the client on a given room. This config is only
 //! visible to the user that set the account data. The config will be delivered to
-//! clients in the per-room entries via [/sync](#get_matrixclientv3sync).
-class QUOTIENT_API SetAccountDataPerRoomJob : public BaseJob {
+//! clients in the per-room entries via [/sync](/client-server-api/#get_matrixclientv3sync).
+class QUOTIENT_API SetAccountDataPerRoomJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The ID of the user to set account data for. The access token must be
@@ -78,15 +81,16 @@ public:
     //!
     //! \param content
     //!   The content of the account data.
-    explicit SetAccountDataPerRoomJob(const QString& userId, const QString& roomId,
-                                      const QString& type, const QJsonObject& content = {});
+    explicit SetAccountDataPerRoomJob(const QString &userId, const QString &roomId,
+                                      const QString &type, const QJsonObject &content = {});
 };
 
 //! \brief Get some account data for the user that is specific to a room.
 //!
 //! Get some account data for the client on a given room. This config is only
 //! visible to the user that set the account data.
-class QUOTIENT_API GetAccountDataPerRoomJob : public BaseJob {
+class QUOTIENT_API GetAccountDataPerRoomJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The ID of the user to get account data for. The access token must be
@@ -98,15 +102,15 @@ public:
     //! \param type
     //!   The event type of the account data to get. Custom types should be
     //!   namespaced to avoid clashes.
-    explicit GetAccountDataPerRoomJob(const QString& userId, const QString& roomId,
-                                      const QString& type);
+    explicit GetAccountDataPerRoomJob(const QString &userId, const QString &roomId,
+                                      const QString &type);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetAccountDataPerRoomJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
-                               const QString& roomId, const QString& type);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &userId,
+                               const QString &roomId, const QString &type);
 
     // Result properties
 
@@ -114,6 +118,6 @@ public:
     QJsonObject data() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
-inline auto collectResponse(const GetAccountDataPerRoomJob* job) { return job->data(); }
+inline auto collectResponse(const GetAccountDataPerRoomJob *job) { return job->data(); }
 
 } // namespace Quotient

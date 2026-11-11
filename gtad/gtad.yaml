@@ -3,7 +3,7 @@ analyzer:
     # Escaping open braces because GTAD always treats subst keys as regexes, unlike other places
     '\{\{% boxes/note %}}': '\note'
     '\{\{% boxes/warning %}}': '\warning'
-    '\{\{< changed-in v="([^ ]+)" >}}': '<strong>[Changed in v$1]</strong>'
+    '\{\{[<%] changed-in v="([^ ]+)" [>%]}}': '<strong>[Changed in v$1]</strong>'
     '( +)\{\{% /boxes/[a-z]+ %}}\n': '' # Delete lines with the closing handlebar entirely
   identifiers:
     signed: signedData
@@ -89,6 +89,7 @@ analyzer:
       - uri: &Url
           type: QUrl
           initializer: QUrl::fromEncoded("{{defaultValue}}"_L1)
+      - email: *Url
       - mx-mxc-uri: *Url
       - mx-user-id: UserId
       - mx-room-id: RoomId
@@ -143,6 +144,9 @@ analyzer:
     inline:
     # Inline whatever is used from the identity spec
     - /identity/definitions/
+    # These two are only used once each within CS (the other use is in AS API), with CS adding
+    # fields to each - excess normalisation for our needs, so denormalise back
+    - /protocol_(base|instance).yaml$/
     # Despite being used in two calls, it's more practical to have those
     # fields available as getters right from the respective job classes
     - /public_rooms_response.yaml$/

@@ -6,7 +6,8 @@
 
 namespace Quotient {
 
-struct QUOTIENT_API EventFilter {
+struct QUOTIENT_API EventFilter
+{
     //! The maximum number of events to return, must be an integer greater than 0.
     //!
     //! Servers should apply a default value, and impose a maximum value to avoid
@@ -31,8 +32,9 @@ struct QUOTIENT_API EventFilter {
 };
 
 template <>
-struct JsonObjectConverter<EventFilter> {
-    static void dumpTo(QJsonObject& jo, const EventFilter& pod)
+struct JsonObjectConverter<EventFilter>
+{
+    static void dumpTo(QJsonObject &jo, const EventFilter &pod)
     {
         addParam<IfNotEmpty>(jo, "limit"_L1, pod.limit);
         addParam<IfNotEmpty>(jo, "not_senders"_L1, pod.notSenders);
@@ -40,7 +42,7 @@ struct JsonObjectConverter<EventFilter> {
         addParam<IfNotEmpty>(jo, "senders"_L1, pod.senders);
         addParam<IfNotEmpty>(jo, "types"_L1, pod.types);
     }
-    static void fillFrom(const QJsonObject& jo, EventFilter& pod)
+    static void fillFrom(const QJsonObject &jo, EventFilter &pod)
     {
         fillFromJson(jo.value("limit"_L1), pod.limit);
         fillFromJson(jo.value("not_senders"_L1), pod.notSenders);

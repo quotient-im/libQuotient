@@ -25,7 +25,8 @@ namespace Quotient {
 //! per their grammar/syntax and that they point to the room ID where the
 //! state event is to be sent. Servers do not validate aliases which are
 //! being removed or are already present in the state event.
-class QUOTIENT_API SetRoomStateWithKeyJob : public BaseJob {
+class QUOTIENT_API SetRoomStateWithKeyJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room to set the state in
@@ -37,8 +38,8 @@ public:
     //!   The state_key for the state to send. Defaults to the empty string. When
     //!   an empty string, the trailing slash on this endpoint is optional.
     //!
-    explicit SetRoomStateWithKeyJob(const QString& roomId, const QString& eventType,
-                                    const QString& stateKey, const QJsonObject& content = {});
+    explicit SetRoomStateWithKeyJob(const QString &roomId, const QString &eventType,
+                                    const QString &stateKey, const QJsonObject &content = {});
 
     // Result properties
 
@@ -46,6 +47,6 @@ public:
     QString eventId() const { return loadFromJson<QString>("event_id"_L1); }
 };
 
-inline auto collectResponse(const SetRoomStateWithKeyJob* job) { return job->eventId(); }
+inline auto collectResponse(const SetRoomStateWithKeyJob *job) { return job->eventId(); }
 
 } // namespace Quotient

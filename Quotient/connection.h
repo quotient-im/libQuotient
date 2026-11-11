@@ -705,13 +705,13 @@ public Q_SLOTS:
     //!
     //! This method allows to customize room entirely to your liking,
     //! providing all the attributes the original CS API provides.
-    JobHandle<CreateRoomJob> createRoom(RoomVisibility visibility, const QString& alias,
-               const QString& name, const QString& topic, QStringList invites,
-               const QString& presetName = {}, const QString& roomVersion = {},
-               bool isDirect = false,
-               const QVector<CreateRoomJob::StateEvent>& initialState = {},
-               const QVector<CreateRoomJob::Invite3pid>& invite3pids = {},
-               const QJsonObject& creationContent = {});
+    JobHandle<CreateRoomJob> createRoom(RoomVisibility visibility, const QString &alias,
+                                        const QString &name, const QString &topic,
+                                        QStringList invites, const QString &presetName = {},
+                                        const QString &roomVersion = {}, bool isDirect = false,
+                                        const QVector<CreateRoomJob::StateEvent> &initialState = {},
+                                        const QVector<Invite3pid> &invite3pids = {},
+                                        const QJsonObject &creationContent = {});
 
     //! \brief Create a room with additional creators
     //!

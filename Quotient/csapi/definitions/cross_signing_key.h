@@ -6,7 +6,8 @@
 
 namespace Quotient {
 //! Cross signing key
-struct QUOTIENT_API CrossSigningKey {
+struct QUOTIENT_API CrossSigningKey
+{
     //! The ID of the user the key belongs to.
     QString userId;
 
@@ -25,15 +26,16 @@ struct QUOTIENT_API CrossSigningKey {
 };
 
 template <>
-struct JsonObjectConverter<CrossSigningKey> {
-    static void dumpTo(QJsonObject& jo, const CrossSigningKey& pod)
+struct JsonObjectConverter<CrossSigningKey>
+{
+    static void dumpTo(QJsonObject &jo, const CrossSigningKey &pod)
     {
         addParam(jo, "user_id"_L1, pod.userId);
         addParam(jo, "usage"_L1, pod.usage);
         addParam(jo, "keys"_L1, pod.keys);
         addParam<IfNotEmpty>(jo, "signatures"_L1, pod.signatures);
     }
-    static void fillFrom(const QJsonObject& jo, CrossSigningKey& pod)
+    static void fillFrom(const QJsonObject &jo, CrossSigningKey &pod)
     {
         fillFromJson(jo.value("user_id"_L1), pod.userId);
         fillFromJson(jo.value("usage"_L1), pod.usage);

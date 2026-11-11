@@ -16,7 +16,8 @@ namespace Quotient {
 //!
 //! *Note*: This endpoint supports lazy-loading of room member events. See
 //! [Lazy-loading room members](/client-server-api/#lazy-loading-room-members) for more information.
-class QUOTIENT_API GetEventContextJob : public BaseJob {
+class QUOTIENT_API GetEventContextJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room to get events from.
@@ -38,16 +39,16 @@ public:
     //!   homeserver prefers.
     //!
     //!   See [Filtering](/client-server-api/#filtering) for more information.
-    explicit GetEventContextJob(const QString& roomId, const QString& eventId,
-                                std::optional<int> limit = std::nullopt, const QString& filter = {});
+    explicit GetEventContextJob(const QString &roomId, const QString &eventId,
+                                std::optional<int> limit = std::nullopt, const QString &filter = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetEventContextJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& eventId, std::optional<int> limit = std::nullopt,
-                               const QString& filter = {});
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &eventId, std::optional<int> limit = std::nullopt,
+                               const QString &filter = {});
 
     // Result properties
 
@@ -71,7 +72,8 @@ public:
     //! The state of the room at the last event returned.
     StateEvents state() { return takeFromJson<StateEvents>("state"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! A token that can be used to paginate backwards with.
         QString begin{};
 
@@ -95,9 +97,9 @@ public:
 };
 
 template <std::derived_from<GetEventContextJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetEventContextJob::Response {
-    return { j->begin(),          j->end(),         j->eventsBefore(),
-             j->requestedEvent(), j->eventsAfter(), j->state() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> GetEventContextJob::Response {
+    return {j->begin(),          j->end(),         j->eventsBefore(),
+            j->requestedEvent(), j->eventsAfter(), j->state()};
 };
 
 } // namespace Quotient

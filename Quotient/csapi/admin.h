@@ -13,11 +13,13 @@ namespace Quotient {
 //! This API may be restricted to only be called by the user being looked
 //! up, or by a server admin. Server-local administrator privileges are not
 //! specified in this document.
-class QUOTIENT_API GetWhoIsJob : public BaseJob {
+class QUOTIENT_API GetWhoIsJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API ConnectionInfo {
+    struct QUOTIENT_API ConnectionInfo
+    {
         //! Most recently seen IP address of the session.
         QString ip{};
 
@@ -28,12 +30,14 @@ public:
         QString userAgent{};
     };
 
-    struct QUOTIENT_API SessionInfo {
+    struct QUOTIENT_API SessionInfo
+    {
         //! Information particular connections in the session.
         QVector<ConnectionInfo> connections{};
     };
 
-    struct QUOTIENT_API DeviceInfo {
+    struct QUOTIENT_API DeviceInfo
+    {
         //! A user's sessions (i.e. what they did with an access token from one login).
         QVector<SessionInfo> sessions{};
     };
@@ -42,13 +46,13 @@ public:
 
     //! \param userId
     //!   The user to look up.
-    explicit GetWhoIsJob(const QString& userId);
+    explicit GetWhoIsJob(const QString &userId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetWhoIsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &userId);
 
     // Result properties
 
@@ -61,7 +65,8 @@ public:
         return loadFromJson<QHash<QString, DeviceInfo>>("devices"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! The Matrix user ID of the user.
         QString userId{};
 
@@ -72,11 +77,12 @@ public:
 
 template <std::derived_from<GetWhoIsJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetWhoIsJob::Response { return { j->userId(), j->devices() }; };
+    [](JobT *j) -> GetWhoIsJob::Response { return {j->userId(), j->devices()}; };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
-    static void fillFrom(const QJsonObject& jo, GetWhoIsJob::ConnectionInfo& result)
+struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::ConnectionInfo>
+{
+    static void fillFrom(const QJsonObject &jo, GetWhoIsJob::ConnectionInfo &result)
     {
         fillFromJson(jo.value("ip"_L1), result.ip);
         fillFromJson(jo.value("last_seen"_L1), result.lastSeen);
@@ -85,16 +91,18 @@ struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::ConnectionInfo> {
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::SessionInfo> {
-    static void fillFrom(const QJsonObject& jo, GetWhoIsJob::SessionInfo& result)
+struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::SessionInfo>
+{
+    static void fillFrom(const QJsonObject &jo, GetWhoIsJob::SessionInfo &result)
     {
         fillFromJson(jo.value("connections"_L1), result.connections);
     }
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::DeviceInfo> {
-    static void fillFrom(const QJsonObject& jo, GetWhoIsJob::DeviceInfo& result)
+struct QUOTIENT_API JsonObjectConverter<GetWhoIsJob::DeviceInfo>
+{
+    static void fillFrom(const QJsonObject &jo, GetWhoIsJob::DeviceInfo &result)
     {
         fillFromJson(jo.value("sessions"_L1), result.sessions);
     }

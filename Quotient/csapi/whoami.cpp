@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-QUrl GetTokenOwnerJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl GetTokenOwnerJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/account/whoami"));
 }

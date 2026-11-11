@@ -15,7 +15,8 @@ namespace Quotient {
 //! The body of the request should be the content object of the event; the
 //! fields in this object will vary depending on the type of event. See
 //! [Room Events](/client-server-api/#room-events) for the m. event specification.
-class QUOTIENT_API SendMessageJob : public BaseJob {
+class QUOTIENT_API SendMessageJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room to send the event to.
@@ -28,8 +29,8 @@ public:
     //!   should generate an ID unique across requests with the same access token; it will be used
     //!   by the server to ensure idempotency of requests.
     //!
-    explicit SendMessageJob(const QString& roomId, const QString& eventType, const QString& txnId,
-                            const QJsonObject& content = {});
+    explicit SendMessageJob(const QString &roomId, const QString &eventType, const QString &txnId,
+                            const QJsonObject &content = {});
 
     // Result properties
 
@@ -37,6 +38,6 @@ public:
     QString eventId() const { return loadFromJson<QString>("event_id"_L1); }
 };
 
-inline auto collectResponse(const SendMessageJob* job) { return job->eventId(); }
+inline auto collectResponse(const SendMessageJob *job) { return job->eventId(); }
 
 } // namespace Quotient

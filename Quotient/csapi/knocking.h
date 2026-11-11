@@ -23,7 +23,8 @@ namespace Quotient {
 //!
 //! The knock will appear as an entry in the response of the
 //! [`/sync`](/client-server-api/#get_matrixclientv3sync) API.
-class QUOTIENT_API KnockRoomJob : public BaseJob {
+class QUOTIENT_API KnockRoomJob : public BaseJob
+{
 public:
     //! \param roomIdOrAlias
     //!   The room identifier or alias to knock upon.
@@ -39,8 +40,8 @@ public:
     //! \param reason
     //!   Optional reason to be included as the `reason` on the subsequent
     //!   membership event.
-    explicit KnockRoomJob(const QString& roomIdOrAlias, const QStringList& serverName = {},
-                          const QStringList& via = {}, const QString& reason = {});
+    explicit KnockRoomJob(const QString &roomIdOrAlias, const QStringList &serverName = {},
+                          const QStringList &via = {}, const QString &reason = {});
 
     // Result properties
 
@@ -48,6 +49,6 @@ public:
     QString roomId() const { return loadFromJson<QString>("room_id"_L1); }
 };
 
-inline auto collectResponse(const KnockRoomJob* job) { return job->roomId(); }
+inline auto collectResponse(const KnockRoomJob *job) { return job->roomId(); }
 
 } // namespace Quotient

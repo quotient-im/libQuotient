@@ -4,7 +4,6 @@
 
 #include <Quotient/csapi/definitions/auth_data.h>
 #include <Quotient/csapi/definitions/client_device.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -12,7 +11,8 @@ namespace Quotient {
 //! \brief List registered devices for the current user
 //!
 //! Gets information about all devices for the current user.
-class QUOTIENT_API GetDevicesJob : public BaseJob {
+class QUOTIENT_API GetDevicesJob : public BaseJob
+{
 public:
     explicit GetDevicesJob();
 
@@ -20,7 +20,7 @@ public:
     //!
     //! This function can be used when a URL for GetDevicesJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -28,22 +28,23 @@ public:
     QVector<Device> devices() const { return loadFromJson<QVector<Device>>("devices"_L1); }
 };
 
-inline auto collectResponse(const GetDevicesJob* job) { return job->devices(); }
+inline auto collectResponse(const GetDevicesJob *job) { return job->devices(); }
 
 //! \brief Get a single device
 //!
 //! Gets information on a single device, by device id.
-class QUOTIENT_API GetDeviceJob : public BaseJob {
+class QUOTIENT_API GetDeviceJob : public BaseJob
+{
 public:
     //! \param deviceId
     //!   The device to retrieve.
-    explicit GetDeviceJob(const QString& deviceId);
+    explicit GetDeviceJob(const QString &deviceId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetDeviceJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& deviceId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &deviceId);
 
     // Result properties
 
@@ -51,12 +52,13 @@ public:
     Device device() const { return fromJson<Device>(jsonData()); }
 };
 
-inline auto collectResponse(const GetDeviceJob* job) { return job->device(); }
+inline auto collectResponse(const GetDeviceJob *job) { return job->device(); }
 
 //! \brief Update a device
 //!
 //! Updates the metadata on the given device.
-class QUOTIENT_API UpdateDeviceJob : public BaseJob {
+class QUOTIENT_API UpdateDeviceJob : public BaseJob
+{
 public:
     //! \param deviceId
     //!   The device to update.
@@ -64,7 +66,7 @@ public:
     //! \param displayName
     //!   The new display name for this device. If not given, the
     //!   display name is unchanged.
-    explicit UpdateDeviceJob(const QString& deviceId, const QString& displayName = {});
+    explicit UpdateDeviceJob(const QString &deviceId, const QString &displayName = {});
 };
 
 //! \brief Delete a device
@@ -73,7 +75,8 @@ public:
 //! API](/client-server-api/#user-interactive-authentication-api).
 //!
 //! Deletes the given device, and invalidates any access token associated with it.
-class QUOTIENT_API DeleteDeviceJob : public BaseJob {
+class QUOTIENT_API DeleteDeviceJob : public BaseJob
+{
 public:
     //! \param deviceId
     //!   The device to delete.
@@ -81,8 +84,8 @@ public:
     //! \param auth
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
-    explicit DeleteDeviceJob(const QString& deviceId,
-                             const std::optional<AuthenticationData>& auth = std::nullopt);
+    explicit DeleteDeviceJob(const QString &deviceId,
+                             const std::optional<AuthenticationData> &auth = std::nullopt);
 };
 
 //! \brief Bulk deletion of devices
@@ -91,7 +94,8 @@ public:
 //! API](/client-server-api/#user-interactive-authentication-api).
 //!
 //! Deletes the given devices, and invalidates any access token associated with them.
-class QUOTIENT_API DeleteDevicesJob : public BaseJob {
+class QUOTIENT_API DeleteDevicesJob : public BaseJob
+{
 public:
     //! \param devices
     //!   The list of device IDs to delete.
@@ -99,8 +103,8 @@ public:
     //! \param auth
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
-    explicit DeleteDevicesJob(const QStringList& devices,
-                              const std::optional<AuthenticationData>& auth = std::nullopt);
+    explicit DeleteDevicesJob(const QStringList &devices,
+                              const std::optional<AuthenticationData> &auth = std::nullopt);
 };
 
 } // namespace Quotient

@@ -4,9 +4,7 @@
 
 #include <Quotient/csapi/definitions/cross_signing_key.h>
 #include <Quotient/csapi/definitions/device_keys.h>
-
 #include <Quotient/e2ee/e2ee_common.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -14,7 +12,8 @@ namespace Quotient {
 //! \brief Upload end-to-end encryption keys.
 //!
 //! Publishes end-to-end encryption keys for the device.
-class QUOTIENT_API UploadKeysJob : public BaseJob {
+class QUOTIENT_API UploadKeysJob : public BaseJob
+{
 public:
     //! \param deviceKeys
     //!   Identity keys for the device. May be absent if no new
@@ -42,9 +41,9 @@ public:
     //!   be included to denote that the key is a fallback key.
     //!
     //!   May be absent if a new fallback key is not required.
-    explicit UploadKeysJob(const std::optional<DeviceKeys>& deviceKeys = std::nullopt,
-                           const OneTimeKeys& oneTimeKeys = {},
-                           const OneTimeKeys& fallbackKeys = {});
+    explicit UploadKeysJob(const std::optional<DeviceKeys> &deviceKeys = std::nullopt,
+                           const OneTimeKeys &oneTimeKeys = {},
+                           const OneTimeKeys &fallbackKeys = {});
 
     // Result properties
 
@@ -58,24 +57,27 @@ public:
     }
 };
 
-inline auto collectResponse(const UploadKeysJob* job) { return job->oneTimeKeyCounts(); }
+inline auto collectResponse(const UploadKeysJob *job) { return job->oneTimeKeyCounts(); }
 
 //! \brief Download device identity keys.
 //!
 //! Returns the current devices and identity keys for the given users.
-class QUOTIENT_API QueryKeysJob : public BaseJob {
+class QUOTIENT_API QueryKeysJob : public BaseJob
+{
 public:
     // Inner data structures
 
     //! Additional data added to the device key information
     //! by intermediate servers, and not covered by the
     //! signatures.
-    struct QUOTIENT_API UnsignedDeviceInfo {
+    struct QUOTIENT_API UnsignedDeviceInfo
+    {
         //! The display name which the user set on the device.
         QString deviceDisplayName{};
     };
 
-    struct QUOTIENT_API DeviceInformation : DeviceKeys {
+    struct QUOTIENT_API DeviceInformation : DeviceKeys
+    {
         //! Additional data added to the device key information
         //! by intermediate servers, and not covered by the
         //! signatures.
@@ -92,7 +94,7 @@ public:
     //! \param timeout
     //!   The time (in milliseconds) to wait when downloading keys from
     //!   remote servers. 10 seconds is the recommended default.
-    explicit QueryKeysJob(const QHash<UserId, QStringList>& deviceKeys,
+    explicit QueryKeysJob(const QHash<UserId, QStringList> &deviceKeys,
                           std::optional<int> timeout = std::nullopt);
 
     // Result properties
@@ -149,7 +151,8 @@ public:
         return loadFromJson<QHash<UserId, CrossSigningKey>>("user_signing_keys"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! If any remote homeservers could not be reached, they are
         //! recorded here. The names of the properties are the names of
         //! the unreachable servers.
@@ -190,22 +193,24 @@ public:
 };
 
 template <std::derived_from<QueryKeysJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> QueryKeysJob::Response {
-    return { j->failures(), j->deviceKeys(), j->masterKeys(), j->selfSigningKeys(),
-             j->userSigningKeys() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> QueryKeysJob::Response {
+    return {j->failures(), j->deviceKeys(), j->masterKeys(), j->selfSigningKeys(),
+            j->userSigningKeys()};
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo> {
-    static void fillFrom(const QJsonObject& jo, QueryKeysJob::UnsignedDeviceInfo& result)
+struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::UnsignedDeviceInfo>
+{
+    static void fillFrom(const QJsonObject &jo, QueryKeysJob::UnsignedDeviceInfo &result)
     {
         fillFromJson(jo.value("device_display_name"_L1), result.deviceDisplayName);
     }
 };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::DeviceInformation> {
-    static void fillFrom(const QJsonObject& jo, QueryKeysJob::DeviceInformation& result)
+struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::DeviceInformation>
+{
+    static void fillFrom(const QJsonObject &jo, QueryKeysJob::DeviceInformation &result)
     {
         fillFromJson<DeviceKeys>(jo, result);
         fillFromJson(jo.value("unsigned"_L1), result.unsignedData);
@@ -215,7 +220,22 @@ struct QUOTIENT_API JsonObjectConverter<QueryKeysJob::DeviceInformation> {
 //! \brief Claim one-time encryption keys.
 //!
 //! Claims one-time keys for use in pre-key messages.
-class QUOTIENT_API ClaimKeysJob : public BaseJob {
+//!
+//! The request contains the user ID, device ID and algorithm name of the
+//! keys that are required. If a key matching these requirements can be
+//! found, the response contains it. The returned key is a one-time key
+//! if one is available, and otherwise a fallback key.
+//!
+//! One-time keys are given out in the order that they were uploaded via
+//! [/keys/upload](/client-server-api/#post_matrixclientv3keysupload). (All
+//! keys uploaded within a given call to `/keys/upload` are considered
+//! equivalent in this regard; no ordering is specified within them.)
+//!
+//! Servers must ensure that each one-time key is returned at most once,
+//! so when a key has been returned, no other request will ever return
+//! the same key.
+class QUOTIENT_API ClaimKeysJob : public BaseJob
+{
 public:
     //! \param oneTimeKeys
     //!   The keys to be claimed. A map from user ID, to a map from
@@ -224,7 +244,7 @@ public:
     //! \param timeout
     //!   The time (in milliseconds) to wait when downloading keys from
     //!   remote servers. 10 seconds is the recommended default.
-    explicit ClaimKeysJob(const QHash<UserId, QHash<QString, QString>>& oneTimeKeys,
+    explicit ClaimKeysJob(const QHash<UserId, QHash<QString, QString>> &oneTimeKeys,
                           std::optional<int> timeout = std::nullopt);
 
     // Result properties
@@ -254,7 +274,8 @@ public:
         return loadFromJson<QHash<UserId, QHash<QString, OneTimeKeys>>>("one_time_keys"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! If any remote homeservers could not be reached, they are
         //! recorded here. The names of the properties are the names of
         //! the unreachable servers.
@@ -278,7 +299,7 @@ public:
 
 template <std::derived_from<ClaimKeysJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> ClaimKeysJob::Response { return { j->failures(), j->oneTimeKeys() }; };
+    [](JobT *j) -> ClaimKeysJob::Response { return {j->failures(), j->oneTimeKeys()}; };
 
 //! \brief Query users with recent device key updates.
 //!
@@ -291,7 +312,8 @@ constexpr inline auto doCollectResponse<JobT> =
 //!   membership state `join`); *and*
 //! * added new device identity keys or removed an existing device with
 //!   identity keys, between `from` and `to`.
-class QUOTIENT_API GetKeysChangesJob : public BaseJob {
+class QUOTIENT_API GetKeysChangesJob : public BaseJob
+{
 public:
     //! \param from
     //!   The desired start point of the list. Should be the `next_batch` field
@@ -305,13 +327,13 @@ public:
     //!   field from a recent call to [`/sync`](/client-server-api/#get_matrixclientv3sync) -
     //!   typically the most recent such call. This may be used by the server as a hint to check its
     //!   caches are up to date.
-    explicit GetKeysChangesJob(const QString& from, const QString& to);
+    explicit GetKeysChangesJob(const QString &from, const QString &to);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetKeysChangesJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& from, const QString& to);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &from, const QString &to);
 
     // Result properties
 
@@ -324,7 +346,8 @@ public:
     //! with the user.
     QStringList left() const { return loadFromJson<QStringList>("left"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The Matrix User IDs of all users who updated their device
         //! identity keys.
         QStringList changed{};
@@ -338,6 +361,6 @@ public:
 
 template <std::derived_from<GetKeysChangesJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetKeysChangesJob::Response { return { j->changed(), j->left() }; };
+    [](JobT *j) -> GetKeysChangesJob::Response { return {j->changed(), j->left()}; };
 
 } // namespace Quotient

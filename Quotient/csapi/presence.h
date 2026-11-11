@@ -12,7 +12,8 @@ namespace Quotient {
 //! the activity time is updated to reflect that activity; the client does
 //! not need to specify the `last_active_ago` field. You cannot set the
 //! presence state of another user.
-class QUOTIENT_API SetPresenceJob : public BaseJob {
+class QUOTIENT_API SetPresenceJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The user whose presence state to update.
@@ -22,24 +23,25 @@ public:
     //!
     //! \param statusMsg
     //!   The status message to attach to this state.
-    explicit SetPresenceJob(const QString& userId, const QString& presence,
-                            const QString& statusMsg = {});
+    explicit SetPresenceJob(const QString &userId, const QString &presence,
+                            const QString &statusMsg = {});
 };
 
 //! \brief Get this user's presence state.
 //!
 //! Get the given user's presence state.
-class QUOTIENT_API GetPresenceJob : public BaseJob {
+class QUOTIENT_API GetPresenceJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The user whose presence state to get.
-    explicit GetPresenceJob(const QString& userId);
+    explicit GetPresenceJob(const QString &userId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetPresenceJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &userId);
 
     // Result properties
 
@@ -62,7 +64,8 @@ public:
         return loadFromJson<std::optional<bool>>("currently_active"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! This user's presence.
         QString presence{};
 
@@ -79,8 +82,8 @@ public:
 };
 
 template <std::derived_from<GetPresenceJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetPresenceJob::Response {
-    return { j->presence(), j->lastActiveAgo(), j->statusMsg(), j->currentlyActive() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> GetPresenceJob::Response {
+    return {j->presence(), j->lastActiveAgo(), j->statusMsg(), j->currentlyActive()};
 };
 
 } // namespace Quotient

@@ -6,7 +6,8 @@
 
 namespace Quotient {
 
-struct QUOTIENT_API PublicRoomsChunk {
+struct QUOTIENT_API PublicRoomsChunk
+{
     //! The number of members joined to the room.
     int numJoinedMembers;
 
@@ -44,8 +45,9 @@ struct QUOTIENT_API PublicRoomsChunk {
 };
 
 template <>
-struct JsonObjectConverter<PublicRoomsChunk> {
-    static void dumpTo(QJsonObject& jo, const PublicRoomsChunk& pod)
+struct JsonObjectConverter<PublicRoomsChunk>
+{
+    static void dumpTo(QJsonObject &jo, const PublicRoomsChunk &pod)
     {
         addParam(jo, "num_joined_members"_L1, pod.numJoinedMembers);
         addParam(jo, "room_id"_L1, pod.roomId);
@@ -58,7 +60,7 @@ struct JsonObjectConverter<PublicRoomsChunk> {
         addParam<IfNotEmpty>(jo, "join_rule"_L1, pod.joinRule);
         addParam<IfNotEmpty>(jo, "room_type"_L1, pod.roomType);
     }
-    static void fillFrom(const QJsonObject& jo, PublicRoomsChunk& pod)
+    static void fillFrom(const QJsonObject &jo, PublicRoomsChunk &pod)
     {
         fillFromJson(jo.value("num_joined_members"_L1), pod.numJoinedMembers);
         fillFromJson(jo.value("room_id"_L1), pod.roomId);

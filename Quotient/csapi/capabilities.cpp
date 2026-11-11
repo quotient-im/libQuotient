@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-QUrl GetCapabilitiesJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl GetCapabilitiesJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/_matrix/client/v3", "/capabilities"));
 }

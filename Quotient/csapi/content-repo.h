@@ -10,7 +10,8 @@
 namespace Quotient {
 
 //! \brief Upload some content to the content repository.
-class QUOTIENT_API UploadContentJob : public BaseJob {
+class QUOTIENT_API UploadContentJob : public BaseJob
+{
 public:
     //!
     //! \param filename
@@ -22,8 +23,8 @@ public:
     //!   Clients SHOULD always supply this header.
     //!
     //!   Defaults to `application/octet-stream` if it is not set.
-    explicit UploadContentJob(QIODevice* content, const QString& filename = {},
-                              const QString& contentType = {});
+    explicit UploadContentJob(QIODevice *content, const QString &filename = {},
+                              const QString &contentType = {});
 
     // Result properties
 
@@ -31,13 +32,14 @@ public:
     QUrl contentUri() const { return loadFromJson<QUrl>("content_uri"_L1); }
 };
 
-inline auto collectResponse(const UploadContentJob* job) { return job->contentUri(); }
+inline auto collectResponse(const UploadContentJob *job) { return job->contentUri(); }
 
 //! \brief Upload content to an `mxc://` URI that was created earlier.
 //!
 //! This endpoint permits uploading content to an `mxc://` URI that was created
 //! earlier via [POST /_matrix/media/v1/create](/client-server-api/#post_matrixmediav1create).
-class QUOTIENT_API UploadContentToMXCJob : public BaseJob {
+class QUOTIENT_API UploadContentToMXCJob : public BaseJob
+{
 public:
     //! \param serverName
     //!   The server name from the `mxc://` URI (the authority component).
@@ -55,9 +57,9 @@ public:
     //!   Clients SHOULD always supply this header.
     //!
     //!   Defaults to `application/octet-stream` if it is not set.
-    explicit UploadContentToMXCJob(const QString& serverName, const QString& mediaId,
-                                   QIODevice* content, const QString& filename = {},
-                                   const QString& contentType = {});
+    explicit UploadContentToMXCJob(const QString &serverName, const QString &mediaId,
+                                   QIODevice *content, const QString &filename = {},
+                                   const QString &contentType = {});
 };
 
 //! \brief Create a new `mxc://` URI without uploading the content.
@@ -82,7 +84,8 @@ public:
 //! `unused_expires_at` timestamp has not yet passed). In both cases, the
 //! server should respond with an HTTP 429 error with an errcode of
 //! `M_LIMIT_EXCEEDED`.
-class QUOTIENT_API CreateContentJob : public BaseJob {
+class QUOTIENT_API CreateContentJob : public BaseJob
+{
 public:
     explicit CreateContentJob();
 
@@ -90,7 +93,7 @@ public:
     //!
     //! This function can be used when a URL for CreateContentJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -105,7 +108,8 @@ public:
         return loadFromJson<std::optional<qint64>>("unused_expires_at"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! The [`mxc://` URI](/client-server-api/#matrix-content-mxc-uris) at
         //! which the content will be available, once it is uploaded.
         QUrl contentUri{};
@@ -118,7 +122,7 @@ public:
 
 template <std::derived_from<CreateContentJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> CreateContentJob::Response { return { j->contentUri(), j->unusedExpiresAt() }; };
+    [](JobT *j) -> CreateContentJob::Response { return {j->contentUri(), j->unusedExpiresAt()}; };
 
 //! \brief Download content from the content repository.
 //!
@@ -133,7 +137,8 @@ constexpr inline auto doCollectResponse<JobT> =
 //! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
 //! information.
 class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetContentJob
-    : public BaseJob {
+    : public BaseJob
+{
 public:
     //! \param serverName
     //!   The server name from the `mxc://` URI (the authority component).
@@ -159,17 +164,17 @@ public:
     //!   Indicates to the server that it may return a 307 or 308 redirect
     //!   response that points at the relevant media content. When not explicitly
     //!   set to `true` the server must return the media content itself.
-    explicit GetContentJob(const QString& serverName, const QString& mediaId,
-                           bool allowRemote = true, qint64 timeoutMs = 20000,
+    explicit GetContentJob(const QString &serverName, const QString &mediaId,
+                           bool allowRemote = true, qint64 timeoutMs = 20'000,
                            bool allowRedirect = false);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetContentJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
-                               const QString& mediaId, bool allowRemote = true,
-                               qint64 timeoutMs = 20000, bool allowRedirect = false);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &serverName,
+                               const QString &mediaId, bool allowRemote = true,
+                               qint64 timeoutMs = 20'000, bool allowRedirect = false);
 
     // Result properties
 
@@ -215,7 +220,7 @@ public:
     }
 
     //! The content that was previously uploaded.
-    QIODevice* data() { return reply(); }
+    QIODevice *data() { return reply(); }
 };
 
 //! \brief Download content from the content repository overriding the file name
@@ -235,7 +240,8 @@ public:
 //! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
 //! information.
 class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetContentOverrideNameJob
-    : public BaseJob {
+    : public BaseJob
+{
 public:
     //! \param serverName
     //!   The server name from the `mxc://` URI (the authority component).
@@ -264,17 +270,17 @@ public:
     //!   Indicates to the server that it may return a 307 or 308 redirect
     //!   response that points at the relevant media content. When not explicitly
     //!   set to `true` the server must return the media content itself.
-    explicit GetContentOverrideNameJob(const QString& serverName, const QString& mediaId,
-                                       const QString& fileName, bool allowRemote = true,
-                                       qint64 timeoutMs = 20000, bool allowRedirect = false);
+    explicit GetContentOverrideNameJob(const QString &serverName, const QString &mediaId,
+                                       const QString &fileName, bool allowRemote = true,
+                                       qint64 timeoutMs = 20'000, bool allowRedirect = false);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetContentOverrideNameJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
-                               const QString& mediaId, const QString& fileName,
-                               bool allowRemote = true, qint64 timeoutMs = 20000,
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &serverName,
+                               const QString &mediaId, const QString &fileName,
+                               bool allowRemote = true, qint64 timeoutMs = 20'000,
                                bool allowRedirect = false);
 
     // Result properties
@@ -313,7 +319,7 @@ public:
     }
 
     //! The content that was previously uploaded.
-    QIODevice* data() { return reply(); }
+    QIODevice *data() { return reply(); }
 };
 
 //! \brief Download a thumbnail of content from the content repository
@@ -332,7 +338,8 @@ public:
 //! media access. See [Client Behaviour](/client-server-api/#content-repo-client-behaviour) for more
 //! information.
 class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetContentThumbnailJob
-    : public BaseJob {
+    : public BaseJob
+{
 public:
     //! \param serverName
     //!   The server name from the `mxc://` URI (the authority component).
@@ -386,19 +393,19 @@ public:
     //!
     //!   When `true` and the media cannot be animated, such as in the case of a JPEG or PDF, the
     //!   server SHOULD behave as though `animated` is `false`.
-    explicit GetContentThumbnailJob(const QString& serverName, const QString& mediaId, int width,
-                                    int height, const QString& method = {}, bool allowRemote = true,
-                                    qint64 timeoutMs = 20000, bool allowRedirect = false,
+    explicit GetContentThumbnailJob(const QString &serverName, const QString &mediaId, int width,
+                                    int height, const QString &method = {}, bool allowRemote = true,
+                                    qint64 timeoutMs = 20'000, bool allowRedirect = false,
                                     std::optional<bool> animated = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetContentThumbnailJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& serverName,
-                               const QString& mediaId, int width, int height,
-                               const QString& method = {}, bool allowRemote = true,
-                               qint64 timeoutMs = 20000, bool allowRedirect = false,
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &serverName,
+                               const QString &mediaId, int width, int height,
+                               const QString &method = {}, bool allowRemote = true,
+                               qint64 timeoutMs = 20'000, bool allowRedirect = false,
                                std::optional<bool> animated = std::nullopt);
 
     // Result properties
@@ -420,7 +427,7 @@ public:
     QString contentType() const { return QString::fromUtf8(reply()->rawHeader("Content-Type")); }
 
     //! A thumbnail of the requested content.
-    QIODevice* data() { return reply(); }
+    QIODevice *data() { return reply(); }
 };
 
 //! \brief Get information about a URL for a client
@@ -438,7 +445,8 @@ public:
 //! do not want to share with the homeserver, and this can mean that the URLs
 //! being shared should also not be shared with the homeserver.
 class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetUrlPreviewJob
-    : public BaseJob {
+    : public BaseJob
+{
 public:
     //! \param url
     //!   The URL to get a preview of.
@@ -447,13 +455,13 @@ public:
     //!   The preferred point in time to return a preview for. The server may
     //!   return a newer version if it does not have the requested version
     //!   available.
-    explicit GetUrlPreviewJob(const QUrl& url, std::optional<qint64> ts = std::nullopt);
+    explicit GetUrlPreviewJob(const QUrl &url, std::optional<qint64> ts = std::nullopt);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetUrlPreviewJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QUrl& url,
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QUrl &url,
                                std::optional<qint64> ts = std::nullopt);
 
     // Result properties
@@ -468,7 +476,8 @@ public:
     //! there is no image.
     QUrl ogImage() const { return loadFromJson<QUrl>("og:image"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The byte-size of the image. Omitted if there is no image attached.
         std::optional<qint64> matrixImageSize{};
 
@@ -482,7 +491,7 @@ QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 template <std::derived_from<GetUrlPreviewJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetUrlPreviewJob::Response { return { j->matrixImageSize(), j->ogImage() }; };
+    [](JobT *j) -> GetUrlPreviewJob::Response { return {j->matrixImageSize(), j->ogImage()}; };
 QT_WARNING_POP
 
 //! \brief Get the configuration for the content repository.
@@ -502,7 +511,8 @@ QT_WARNING_POP
 //! repository APIs, for example, proxies may enforce a lower upload size limit
 //! than is advertised by the server on this endpoint.
 class [[deprecated("Check the documentation for details")]] QUOTIENT_API GetConfigJob
-    : public BaseJob {
+    : public BaseJob
+{
 public:
     explicit GetConfigJob();
 
@@ -510,7 +520,7 @@ public:
     //!
     //! This function can be used when a URL for GetConfigJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -525,7 +535,7 @@ public:
 
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-inline auto collectResponse(const GetConfigJob* job) { return job->uploadSize(); }
+inline auto collectResponse(const GetConfigJob *job) { return job->uploadSize(); }
 QT_WARNING_POP
 
 } // namespace Quotient

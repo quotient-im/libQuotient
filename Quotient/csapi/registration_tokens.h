@@ -14,17 +14,18 @@ namespace Quotient {
 //!
 //! Servers should be sure to rate limit this endpoint to avoid brute force
 //! attacks.
-class QUOTIENT_API RegistrationTokenValidityJob : public BaseJob {
+class QUOTIENT_API RegistrationTokenValidityJob : public BaseJob
+{
 public:
     //! \param token
     //!   The token to check validity of.
-    explicit RegistrationTokenValidityJob(const QString& token);
+    explicit RegistrationTokenValidityJob(const QString &token);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for RegistrationTokenValidityJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& token);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &token);
 
     // Result properties
 
@@ -34,6 +35,6 @@ public:
     bool valid() const { return loadFromJson<bool>("valid"_L1); }
 };
 
-inline auto collectResponse(const RegistrationTokenValidityJob* job) { return job->valid(); }
+inline auto collectResponse(const RegistrationTokenValidityJob *job) { return job->valid(); }
 
 } // namespace Quotient
