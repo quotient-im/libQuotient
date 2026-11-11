@@ -342,6 +342,7 @@ protected:
     QStringList expectedKeys() const;
     void addExpectedKey(QString key);
     void setExpectedKeys(const QStringList& keys);
+    void setSendToServerName(bool send);
 
     const QNetworkReply* reply() const;
     QNetworkReply* reply();
