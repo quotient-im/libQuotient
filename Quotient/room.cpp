@@ -1961,6 +1961,12 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
                 });
             } else
                 onEventSendingFailure(eventItemIter);
+        }, [this, txnId] {
+            // The event may have been discarded while the key was being shared
+            if (const auto it = q->findPendingEvent(txnId); it != unsyncedEvents.end()) {
+                it->setSendingFailed(tr("Could not share the encryption key for this message"));
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+            }
         });
     } else {
         if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id, eventItem->matrixType(),

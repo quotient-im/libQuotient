@@ -56,7 +56,12 @@ public:
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
     std::optional<rust::Box<crypto::CryptoMachine>> cryptoMachine;
-    QQueue<std::pair<Room *, std::function<void()>>> keyShareQueue;
+    struct KeyShareRequest {
+        Room* room;
+        std::function<void()> then;
+        std::function<void()> onFailure;
+    };
+    QQueue<KeyShareRequest> keyShareQueue;
     bool keyShareRunning = false;
 
     GetCapabilitiesJob::Capabilities capabilities{};
@@ -91,6 +96,8 @@ public:
     }
 
     bool isHandlingOutgoing = false;
+    //! Ids of RoomMessage requests posted to a room but not yet confirmed by the server
+    QSet<QString> roomMessageRequestsInFlight;
 
     unsigned int lastScheduledRequest = 0;
     bool isBeingDestructed = false;
@@ -187,7 +194,9 @@ public:
 
     QFuture<void> setupPicklingKey();
     bool setupCryptoMachine(const QByteArray& picklingKey);
-    void runShareKey(Room* room, std::function<void()>);
+    QFuture<void> sendRoomMessageRequest(Room* room, const QString& requestId,
+                                         RoomEventPtr event);
+    void runShareKey(Room* room, std::function<void()> then, std::function<void()> onFailure);
     void startKeyShare();
 
     QString databaseDir() const;

@@ -832,24 +832,35 @@ void Connection::Private::processOutgoingRequests()
                 break;
             }
             case OutgoingRequestType::RoomMessage: {
-                const auto room = q->room(stringFromRust(request.room_msg_room_id()));
+                // Already posted; it is either still on its way or has failed and waits for
+                // the user to resend or discard it. Posting it again would only duplicate it.
+                if (roomMessageRequestsInFlight.contains(id))
+                    break;
+                const auto roomId = stringFromRust(request.room_msg_room_id());
+                const auto room = q->room(roomId);
                 if (!room) {
-                    qCWarning(E2EE) << "Room" << stringFromRust(request.room_msg_room_id()) << "not found";
+                    // Rooms might still be loading; the request stays unmarked, so the crypto
+                    // machine returns it again and it's picked up on a later iteration
+                    qCWarning(E2EE) << "Room" << roomId << "not found, postponing request" << id;
                     break;
                 }
-                futures.append(
-                        room->post(loadEvent<RoomEvent>(stringFromRust(request.room_msg_matrix_type()),
-                                                    jsonFromRust(request.room_msg_content())))
-                        .whenMerged()
-                        .then([this, id](const RoomEvent& targetEvt) {
-                    (*cryptoMachine)
-                        ->mark_room_message_as_sent(stringToRust(targetEvt.id()), stringToRust(id));
-                }));
+                futures.append(sendRoomMessageRequest(
+                    room, id,
+                    loadEvent<RoomEvent>(stringFromRust(request.room_msg_matrix_type()),
+                                         jsonFromRust(request.room_msg_content()))));
                 break;
             }
         }
     }
 
+    // With nothing to wait for (all requests postponed or in flight), don't loop: whenAll() would
+    // return a finished future and the continuation below would run right away, retrying the same
+    // requests over and over. The next sync calls processOutgoingRequests() again anyway.
+    if (futures.isEmpty())
+        return;
+
+    // Set before attaching the continuation, which resets it
+    isHandlingOutgoing = true;
     QtFuture::whenAll(futures.begin(), futures.end()).then([this](const auto &) {
         isHandlingOutgoing = false;
         if (isBeingDestructed) {
@@ -857,7 +868,61 @@ void Connection::Private::processOutgoingRequests()
         }
         processOutgoingRequests();
     });
-    isHandlingOutgoing = true;
+}
+
+QFuture<void> Connection::Private::sendRoomMessageRequest(Room* room, const QString& requestId,
+                                                          RoomEventPtr event)
+{
+    auto promise = std::make_shared<QPromise<void>>();
+    promise->start();
+    auto future = promise->future();
+    const auto context = new QObject(room);
+
+    const auto& pendingItem = room->post(std::move(event));
+    const auto txnId = pendingItem->transactionId();
+    roomMessageRequestsInFlight.insert(requestId);
+    if (pendingItem.deliveryStatus() == EventStatus::SendingFailed) {
+        qCWarning(E2EE) << "Failed to send room message for transaction" << txnId;
+        promise->finish();
+    }
+
+    connect(room, &Room::messageSent, context,
+            [this, context, promise, txnId, requestId](const QString& sentTxnId,
+                                                       const QString& eventId) {
+                if (sentTxnId != txnId)
+                    return;
+                if (cryptoMachine)
+                    (*cryptoMachine)
+                        ->mark_room_message_as_sent(stringToRust(eventId), stringToRust(requestId));
+                roomMessageRequestsInFlight.remove(requestId);
+                promise->finish();
+                context->deleteLater();
+            });
+    // On failure, unblock the outgoing requests loop but keep listening: if the user resends
+    // the event, messageSent() still arrives and the request gets marked as sent.
+    connect(room, &Room::pendingEventChanged, context, [room, promise, txnId](int index) {
+        const auto& pendingEvents = room->pendingEvents();
+        if (index < 0 || std::cmp_greater_equal(index, pendingEvents.size()))
+            return;
+        if (const auto& item = pendingEvents[static_cast<size_t>(index)];
+            item->transactionId() == txnId
+            && item.deliveryStatus() == EventStatus::SendingFailed) {
+            qCWarning(E2EE) << "Failed to send room message for transaction" << txnId;
+            promise->finish();
+        }
+    });
+    // A discarded event is never sent, so stop listening. The request id stays in
+    // roomMessageRequestsInFlight: the user threw the event away, so don't post it again.
+    connect(room, &Room::pendingEventAboutToDiscard, context,
+            [room, promise, context, txnId](int index) {
+                const auto& pendingEvents = room->pendingEvents();
+                if (index < 0 || std::cmp_greater_equal(index, pendingEvents.size())
+                    || pendingEvents[static_cast<size_t>(index)]->transactionId() != txnId)
+                    return;
+                promise->finish(); // No-op if sending had failed already
+                context->deleteLater();
+            });
+    return future;
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -2088,7 +2153,8 @@ bool Connection::allSessionsSelfVerified(const QString& userId) const
     return (*d->cryptoMachine)->all_sessions_verified(stringToRust(userId));
 }
 
-void Connection::Private::runShareKey(Room* room, std::function<void()> then)
+void Connection::Private::runShareKey(Room* room, std::function<void()> then,
+                                      std::function<void()> onFailure)
 {
     auto historyVisibilityEvent = room->currentState().get("m.room.history_visibility"_L1);
     uint8_t visibility = 0;
@@ -2113,11 +2179,11 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then)
         });
     }
 
-    auto sendKeys = [then, this, room, ids, visibility](){
+    auto sendKeys = [then, onFailure, this, room, ids, visibility](){
         auto requestsResult =
         (*cryptoMachine)->share_room_key(stringToRust(room->id()), ids, false, visibility);
         if (requestsResult->has_error()) {
-            // Not running then()
+            onFailure();
             Q_EMIT q->shareRoomKeyDone();
             return;
         }
@@ -2146,7 +2212,7 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then)
 
     auto missingResult = (*cryptoMachine)->get_missing_sessions(ids);
     if (missingResult->has_error()) {
-        // Not running then()
+        onFailure();
         Q_EMIT q->shareRoomKeyDone();
         return;
     }
@@ -2158,9 +2224,15 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then)
     auto missingId = missing->id();
     q->callApi<ClaimKeysJob>(
          fromRustJson<QHash<UserId, QHash<QString, QString>>>(missing->one_time_keys()))
-        .then([this, missingId, ids, then, sendKeys](const auto& claimJob) mutable {
+        .then([this, missingId, sendKeys](const auto& claimJob) {
         (*cryptoMachine)->mark_keys_claim_as_sent(bytesToRust(claimJob->rawData()), missingId);
         sendKeys();
+    }, [this, onFailure](const auto& claimJob) {
+        // Without the claimed keys, devices that have no Olm session yet wouldn't get the room
+        // key; fail rather than send a message they couldn't decrypt
+        qCWarning(E2EE) << "Failed to claim one-time keys:" << claimJob->errorString();
+        onFailure();
+        Q_EMIT q->shareRoomKeyDone();
     });
 };
 
@@ -2177,13 +2249,14 @@ void Connection::Private::startKeyShare()
             startKeyShare();
         }, Qt::QueuedConnection);
     }, Qt::SingleShotConnection);
-    auto [room, then] = keyShareQueue.dequeue();
-    runShareKey(room, then);
+    auto [room, then, onFailure] = keyShareQueue.dequeue();
+    runShareKey(room, std::move(then), std::move(onFailure));
 }
 
-void Connection::shareRoomKey(Room* room, std::function<void()> then)
+void Connection::shareRoomKey(Room* room, std::function<void()> then,
+                              std::function<void()> onFailure)
 {
-    d->keyShareQueue.enqueue({room, then});
+    d->keyShareQueue.enqueue({ room, std::move(then), std::move(onFailure) });
     if (!d->keyShareRunning) {
         d->startKeyShare();
     }
