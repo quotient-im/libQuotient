@@ -28,7 +28,9 @@ public:
     //! If \p processor returns false, the job ends with IncorrectResponse without parsing
     //! the response, so that it is retried with the same `since` token. This ensures that
     //! a response is not acknowledged to the server (by using its `next_batch` token) before
-    //! its end-to-end encryption data have been processed.
+    //! its end-to-end encryption data have been processed. After a few failed attempts the
+    //! response is accepted anyway, so that a response that can't be processed doesn't block
+    //! syncing forever.
     void setRawResponseProcessor(std::function<bool(const QByteArray&)> processor);
 
 protected:
@@ -37,5 +39,8 @@ protected:
 private:
     SyncData d;
     std::function<bool(const QByteArray&)> rawResponseProcessor;
+    //! How often the raw response processor failed so far; the job is retried as a whole
+    int processingFailures = 0;
+    static constexpr int MaxProcessingAttempts = 5;
 };
 } // namespace Quotient

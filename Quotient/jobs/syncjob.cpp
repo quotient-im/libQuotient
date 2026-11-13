@@ -45,8 +45,15 @@ BaseJob::Status SyncJob::prepareResult()
 {
     // This has to come before parsing: parseJson() adds to the data parsed so far, which
     // would duplicate the rooms from the first attempt when the request is retried
-    if (rawResponseProcessor && !rawResponseProcessor(rawData()))
-        return { IncorrectResponse, tr("Could not process the end-to-end encryption data") };
+    if (rawResponseProcessor && !rawResponseProcessor(rawData())) {
+        // A failure that comes from the response itself would repeat on every retry and
+        // keep the sync from ever progressing, so give up on its encryption data eventually
+        if (++processingFailures < MaxProcessingAttempts)
+            return { IncorrectResponse, tr("Could not process the end-to-end encryption data") };
+        qCCritical(MAIN) << "Could not process the encryption data of the sync response after"
+                         << processingFailures
+                         << "attempts, continuing without it; room keys in it are lost";
+    }
 
     d.parseJson(jsonData());
     if (Q_LIKELY(d.unresolvedRooms().isEmpty()))
