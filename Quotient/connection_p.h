@@ -208,8 +208,7 @@ public:
 
     QFuture<void> setupPicklingKey();
     bool setupCryptoMachine(const QByteArray& picklingKey);
-    QFuture<void> sendRoomMessageRequest(Room* room, const QString& requestId,
-                                         RoomEventPtr event);
+    void sendRoomMessageRequest(Room* room, const QString& requestId, RoomEventPtr event);
     void runShareKey(Room* room, std::function<void()> then, std::function<void()> onFailure);
     void shareKeyWithMembers(Room* room, std::function<void()> then,
                              std::function<void()> onFailure);

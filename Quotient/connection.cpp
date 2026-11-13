@@ -960,59 +960,48 @@ void Connection::Private::finishOutgoingRequestsWaiters(bool keysQueriesSucceede
     }
 }
 
-QFuture<void> Connection::Private::sendRoomMessageRequest(Room* room, const QString& requestId,
-                                                          RoomEventPtr event)
+void Connection::Private::sendRoomMessageRequest(Room* room, const QString& requestId,
+                                                RoomEventPtr event)
 {
-    auto promise = std::make_shared<QPromise<void>>();
-    promise->start();
-    auto future = promise->future();
     const auto context = new QObject(room);
 
     const auto& pendingItem = room->post(std::move(event));
     const auto txnId = pendingItem->transactionId();
     roomMessageRequestsInFlight.insert(requestId);
-    if (pendingItem.deliveryStatus() == EventStatus::SendingFailed) {
+    // The room may refuse to send the event right away, before the connections below exist
+    if (pendingItem.deliveryStatus() == EventStatus::SendingFailed)
         qCWarning(E2EE) << "Failed to send room message for transaction" << txnId;
-        promise->finish();
-    }
 
     connect(room, &Room::messageSent, context,
-            [this, context, promise, txnId, requestId](const QString& sentTxnId,
-                                                       const QString& eventId) {
+            [this, context, txnId, requestId](const QString& sentTxnId, const QString& eventId) {
                 if (sentTxnId != txnId)
                     return;
                 if (cryptoMachine)
                     (*cryptoMachine)
                         ->mark_room_message_as_sent(stringToRust(eventId), stringToRust(requestId));
                 roomMessageRequestsInFlight.remove(requestId);
-                promise->finish();
                 context->deleteLater();
             });
-    // On failure, unblock the outgoing requests loop but keep listening: if the user resends
-    // the event, messageSent() still arrives and the request gets marked as sent.
-    connect(room, &Room::pendingEventChanged, context, [room, promise, txnId](int index) {
+    // Keep listening after a failure: if the user resends the event, messageSent() still arrives
+    // and the request gets marked as sent
+    connect(room, &Room::pendingEventChanged, context, [room, txnId](int index) {
         const auto& pendingEvents = room->pendingEvents();
         if (index < 0 || std::cmp_greater_equal(index, pendingEvents.size()))
             return;
         if (const auto& item = pendingEvents[static_cast<size_t>(index)];
             item->transactionId() == txnId
-            && item.deliveryStatus() == EventStatus::SendingFailed) {
+            && item.deliveryStatus() == EventStatus::SendingFailed)
             qCWarning(E2EE) << "Failed to send room message for transaction" << txnId;
-            promise->finish();
-        }
     });
     // A discarded event is never sent, so stop listening. The request id stays in
     // roomMessageRequestsInFlight: the user threw the event away, so don't post it again.
-    connect(room, &Room::pendingEventAboutToDiscard, context,
-            [room, promise, context, txnId](int index) {
-                const auto& pendingEvents = room->pendingEvents();
-                if (index < 0 || std::cmp_greater_equal(index, pendingEvents.size())
-                    || pendingEvents[static_cast<size_t>(index)]->transactionId() != txnId)
-                    return;
-                promise->finish(); // No-op if sending had failed already
-                context->deleteLater();
-            });
-    return future;
+    connect(room, &Room::pendingEventAboutToDiscard, context, [room, context, txnId](int index) {
+        const auto& pendingEvents = room->pendingEvents();
+        if (index < 0 || std::cmp_greater_equal(index, pendingEvents.size())
+            || pendingEvents[static_cast<size_t>(index)]->transactionId() != txnId)
+            return;
+        context->deleteLater();
+    });
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
