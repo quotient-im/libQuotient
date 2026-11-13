@@ -3,7 +3,7 @@
 
 use crate::{
     encryption_info::EncryptionInfo,
-    ffi::InitError,
+    ffi::{DecryptionErrorKind, InitError},
     request::{
         ConfirmRequests, KeyVerificationRequest, KeysClaimRequest, OutgoingKeyVerificationRequest,
         ToDeviceRequest,
@@ -319,6 +319,38 @@ impl StringResult {
         } else {
             false
         }
+    }
+}
+
+pub(crate) struct RoomDecryptionResult(Result<String, Box<dyn Error>>);
+
+impl RoomDecryptionResult {
+    pub(crate) fn has_error(&self) -> bool {
+        self.0.is_err()
+    }
+
+    pub(crate) fn error_string(&self) -> String {
+        self.0.as_ref().err().map(|error| error.to_string()).unwrap_or_default()
+    }
+
+    pub(crate) fn error_kind(&self) -> DecryptionErrorKind {
+        use matrix_sdk_crypto::{MegolmError, vodozemac::megolm::DecryptionError};
+        let Err(error) = &self.0 else {
+            return DecryptionErrorKind::NoError;
+        };
+        match error.downcast_ref::<MegolmError>() {
+            Some(MegolmError::MissingRoomKey(None)) => DecryptionErrorKind::MissingKey,
+            // Also used when only a later part of the session is known and the rest is withheld
+            Some(MegolmError::MissingRoomKey(Some(_))) => DecryptionErrorKind::Withheld,
+            Some(MegolmError::Decryption(DecryptionError::UnknownMessageIndex(..))) => {
+                DecryptionErrorKind::UnknownMessageIndex
+            }
+            _ => DecryptionErrorKind::Other,
+        }
+    }
+
+    pub(crate) fn value(&self) -> String {
+        self.0.as_ref().ok().cloned().unwrap_or_default()
     }
 }
 
@@ -1006,20 +1038,12 @@ impl CryptoMachine {
         &mut self,
         room_id: String,
         json: String,
-    ) -> Box<StringResult> {
+    ) -> Box<RoomDecryptionResult> {
         let result: Result<String, Box<dyn Error>> = self.runtime.block_on(async {
             let room_id = RoomId::parse(room_id)?;
-            let machine = crypto_machine!(self);
-            if !machine
-                .is_room_key_available(&{ serde_json::from_str(json.as_str())? }, &room_id)
-                .await
-                .unwrap_or(false)
-            {
-                return Err("No room key available".into());
-            }
-            let event = machine
+            let event = crypto_machine!(self)
                 .decrypt_room_event(
-                    &{ serde_json::from_str(json.as_str())? },
+                    &serde_json::from_str(json.as_str())?,
                     &room_id,
                     &DecryptionSettings {
                         sender_device_trust_requirement: TrustRequirement::Untrusted,
@@ -1028,14 +1052,7 @@ impl CryptoMachine {
                 .await?;
             Ok(serde_json::to_string(&event.event)?)
         });
-        Box::new(match result {
-            Ok(event) => StringResult::Ok(event),
-            Err(error) => {
-                // This happens if we don't have the key
-                // error!("Failed to process decrypt_room_event: {:?}", error);
-                StringResult::Err(error)
-            }
-        })
+        Box::new(RoomDecryptionResult(result))
     }
 
     pub(crate) fn update_tracked_users(&mut self, user_ids: Vec<String>) {
