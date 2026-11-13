@@ -2517,8 +2517,6 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
 {
     if (!connection->encryptionEnabled())
         return;
-    if (!q->usesEncryption())
-        return; // If the room doesn't use encryption now, it never did
 
     QElapsedTimer et;
     et.start();
