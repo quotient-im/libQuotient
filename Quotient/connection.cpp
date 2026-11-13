@@ -780,6 +780,11 @@ void Connection::Private::processOutgoingRequests()
         return;
     }
     QList<QFuture<void>> futures;
+    const auto anyFailed = std::make_shared<bool>(false);
+    const auto onFailure = [anyFailed](const auto& job) {
+        qCWarning(E2EE) << "Outgoing crypto request" << job << "failed:" << job->errorString();
+        *anyFailed = true;
+    };
     for (const auto &request : requests) {
         const auto id = stringFromRust(request.id());
         const auto type = request.request_type();
@@ -795,7 +800,7 @@ void Connection::Private::processOutgoingRequests()
                         .then([id, this](const auto& job) {
                     (*cryptoMachine)
                         ->mark_keys_upload_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-                })));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::KeysQuery: {
@@ -808,7 +813,7 @@ void Connection::Private::processOutgoingRequests()
                     emit q->finishedQueryingKeys();
                     (*cryptoMachine)
                         ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-                })));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::KeysClaim: {
@@ -820,7 +825,7 @@ void Connection::Private::processOutgoingRequests()
                         .then([id, this](const auto& job) {
                     (*cryptoMachine)
                         ->mark_keys_claim_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-                })));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::ToDevice: {
@@ -833,7 +838,7 @@ void Connection::Private::processOutgoingRequests()
                                       .then([id, this](const auto& job) {
                     (*cryptoMachine)
                         ->mark_to_device_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-                })));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::SignatureUpload: {
@@ -845,7 +850,7 @@ void Connection::Private::processOutgoingRequests()
                     (*cryptoMachine)
                         ->mark_signature_upload_as_sent(bytesToRust(job->rawData()),
                                                         stringToRust(id));
-                })));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::RoomMessage: {
@@ -878,11 +883,16 @@ void Connection::Private::processOutgoingRequests()
 
     // Set before attaching the continuation, which resets it
     isHandlingOutgoing = true;
-    QtFuture::whenAll(futures.begin(), futures.end()).then([this](const auto &) {
+    QtFuture::whenAll(futures.begin(), futures.end()).then([this, anyFailed](const auto &) {
         isHandlingOutgoing = false;
         if (isBeingDestructed) {
             return;
         }
+        // The crypto machine returns failed requests again; running the loop right away would
+        // resend them over and over without delay if they keep failing (e.g., with a 4xx error).
+        // Leave that to the next sync instead, which calls this function anyway.
+        if (*anyFailed)
+            return;
         processOutgoingRequests();
     });
 }
