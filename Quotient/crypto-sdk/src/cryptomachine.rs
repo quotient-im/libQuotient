@@ -349,6 +349,15 @@ impl RoomDecryptionResult {
         }
     }
 
+    /// The m.room_key.withheld code if the error kind is Withheld, otherwise an empty string
+    pub(crate) fn withheld_code(&self) -> String {
+        use matrix_sdk_crypto::MegolmError;
+        match self.0.as_ref().err().and_then(|error| error.downcast_ref::<MegolmError>()) {
+            Some(MegolmError::MissingRoomKey(Some(code))) => code.as_str().to_owned(),
+            _ => String::new(),
+        }
+    }
+
     pub(crate) fn value(&self) -> String {
         self.0.as_ref().ok().cloned().unwrap_or_default()
     }

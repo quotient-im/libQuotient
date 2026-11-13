@@ -274,6 +274,12 @@ public:
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
+    //! \brief Why the event with the given id could not be decrypted
+    //!
+    //! This is the reason from the last call of decryptMessage() for the event; the library
+    //! calls it when the event arrives and again whenever a new key for its session comes in.
+    //! Returns DecryptionFailure::None if there was no failed attempt, or the last one succeeded.
+    Q_INVOKABLE DecryptionFailure decryptionFailure(const QString& eventId) const;
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
