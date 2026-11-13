@@ -197,6 +197,8 @@ public:
     void monitorSas(KeyVerificationSession *session);
 
     void initializeExistingBackup();
+    //! Called when the server says that the backup being uploaded to isn't the current one
+    void handleBackupVersionChange();
 
     //! \brief Pass the encryption data of a sync response to the crypto machine
     //!
