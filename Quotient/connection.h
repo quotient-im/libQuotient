@@ -765,7 +765,7 @@ public Q_SLOTS:
                                           bool enableEncryption = true);
 
     //! \internal
-    void shareRoomKey(Room* room, std::function<void()> then);
+    void shareRoomKey(Room* room, std::function<void()> then, std::function<void()> onFailure);
     QString encryptRoomEvent(Room* room, const QByteArray& content, const QString& type);
     QString decryptRoomEvent(Room* room, const QByteArray& event);
 
