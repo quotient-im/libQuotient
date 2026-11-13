@@ -785,6 +785,10 @@ void Connection::Private::processOutgoingRequests()
         qCWarning(E2EE) << "Outgoing crypto request" << job << "failed:" << job->errorString();
         *anyFailed = true;
     };
+    const auto checkMarked = [anyFailed](bool marked) {
+        if (!marked)
+            *anyFailed = true;
+    };
     for (const auto &request : requests) {
         const auto id = stringFromRust(request.id());
         const auto type = request.request_type();
@@ -797,9 +801,9 @@ void Connection::Private::processOutgoingRequests()
                                               : std::optional(fromJson<DeviceKeys>(deviceKeys)),
                          fromRustJson<OneTimeKeys>(request.keys_upload_one_time_keys()),
                          fromRustJson<OneTimeKeys>(request.keys_upload_fallback_keys()))
-                        .then([id, this](const auto& job) {
-                    (*cryptoMachine)
-                        ->mark_keys_upload_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                        .then([id, this, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
+                        ->mark_keys_upload_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
                 }, onFailure)));
                 break;
             }
@@ -809,10 +813,10 @@ void Connection::Private::processOutgoingRequests()
                     q->callApi<QueryKeysJob>(fromRustJson<QHash<UserId, QStringList>>(
                                                  request.keys_query_device_keys()),
                                              timeout > 0 ? timeout : std::optional<int>())
-                        .then([id, this](const auto& job) {
+                        .then([id, this, checkMarked](const auto& job) {
                     emit q->finishedQueryingKeys();
-                    (*cryptoMachine)
-                        ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                    checkMarked((*cryptoMachine)
+                        ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
                 }, onFailure)));
                 break;
             }
@@ -822,9 +826,9 @@ void Connection::Private::processOutgoingRequests()
                     q->callApi<ClaimKeysJob>(fromRustJson<QHash<UserId, QHash<QString, QString>>>(
                                                  request.keys_claim_one_time_keys()),
                                              timeout > 0 ? timeout : std::optional<int>())
-                        .then([id, this](const auto& job) {
-                    (*cryptoMachine)
-                        ->mark_keys_claim_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                        .then([id, this, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
+                        ->mark_keys_claim_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
                 }, onFailure)));
                 break;
             }
@@ -835,9 +839,9 @@ void Connection::Private::processOutgoingRequests()
                                        stringFromRust(request.to_device_txn_id()),
                                        fromRustJson<QHash<UserId, QHash<QString, QJsonObject>>>(
                                            request.to_device_messages()))
-                                      .then([id, this](const auto& job) {
-                    (*cryptoMachine)
-                        ->mark_to_device_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                                      .then([id, this, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
+                        ->mark_to_device_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
                 }, onFailure)));
                 break;
             }
@@ -846,10 +850,10 @@ void Connection::Private::processOutgoingRequests()
                     QFuture<void>(q->callApi<UploadCrossSigningSignaturesJob>(
                                        fromRustJson<QHash<UserId, QHash<QString, QJsonObject>>>(
                                            request.upload_signature_signed_keys()))
-                                      .then([this, id](const auto& job) {
-                    (*cryptoMachine)
+                                      .then([this, id, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
                         ->mark_signature_upload_as_sent(bytesToRust(job->rawData()),
-                                                        stringToRust(id));
+                                                        stringToRust(id)));
                 }, onFailure)));
                 break;
             }
