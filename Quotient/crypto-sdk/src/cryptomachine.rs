@@ -100,6 +100,7 @@ pub(crate) struct SyncChanges {
     secrets_received: bool,
     self_verified: bool,
     received_done_events: Vec<String>,
+    withheld_keys: Vec<Key>,
 }
 
 pub(crate) enum SyncChangesResult {
@@ -145,6 +146,11 @@ impl SyncChanges {
 
     pub(crate) fn received_done_events(&self) -> Vec<String> {
         self.received_done_events.clone()
+    }
+
+    /// Sessions for which a m.room_key.withheld notice arrived with this sync
+    pub(crate) fn withheld_keys(&self) -> Vec<Key> {
+        self.withheld_keys.clone()
     }
 }
 
@@ -573,6 +579,33 @@ impl EncryptionInfoResult {
     }
 }
 
+/// The session that a m.room_key.withheld notice is about, if the event is one
+///
+/// The crypto machine has already stored the notice; this is only to find the events whose
+/// decryption failure is now explained by it.
+fn withheld_session(raw: &Raw<AnyToDeviceEvent>) -> Option<Key> {
+    #[derive(Deserialize)]
+    struct Content {
+        room_id: Option<String>,
+        session_id: Option<String>,
+    }
+    #[derive(Deserialize)]
+    struct Event {
+        #[serde(rename = "type")]
+        event_type: String,
+        content: Content,
+    }
+    let event = raw.deserialize_as_unchecked::<Event>().ok()?;
+    if event.event_type != "m.room_key.withheld" && event.event_type != "org.matrix.room_key.withheld" {
+        return None;
+    }
+    // Notices for m.no_olm don't refer to a particular session
+    Some(Key {
+        room_id: event.content.room_id?,
+        session_id: event.content.session_id?,
+    })
+}
+
 macro_rules! crypto_machine {
     ($machine:ident) => {
         $machine
@@ -849,11 +882,17 @@ impl CryptoMachine {
             let mut secrets_received = false;
             let mut self_verified = false;
             let mut received_done_events = vec![];
+            let mut withheld_keys = vec![];
             for to_device_event in changes.0 {
                 // NOTE: Do not use the question mark operator in for loop.
                 match to_device_event {
                     ProcessedToDeviceEvent::Decrypted { raw, .. }
-                    | ProcessedToDeviceEvent::PlainText(raw) => match raw.deserialize() {
+                    | ProcessedToDeviceEvent::PlainText(raw) => {
+                        if let Some(key) = withheld_session(&raw) {
+                            withheld_keys.push(key);
+                            continue;
+                        }
+                        match raw.deserialize() {
                         Ok(AnyToDeviceEvent::KeyVerificationRequest(request)) => {
                             if let Some(request) = machine.get_verification_request(
                                 &request.sender,
@@ -890,7 +929,8 @@ impl CryptoMachine {
                         Err(error) => {
                             error!("Failed to deserialize to_device event: {}", error);
                         }
-                    },
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -907,6 +947,7 @@ impl CryptoMachine {
                 secrets_received,
                 self_verified,
                 received_done_events,
+                withheld_keys,
             }))
         });
         Box::new(match result {

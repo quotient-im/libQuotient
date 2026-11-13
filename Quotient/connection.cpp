@@ -708,6 +708,14 @@ void Connection::onSyncSuccess(SyncJob *syncJob)
                 }
             }
 
+            // A withheld notice doesn't make anything decryptable, but it explains why the events
+            // of that session can't be decrypted; retrying updates their decryptionFailure()
+            for (const auto &key : syncChanges->withheld_keys()) {
+                if (const auto &r = room(stringFromRust(key.room_id()))) {
+                    r->newMegolmSession(stringFromRust(key.session_id()));
+                }
+            }
+
             for (auto &session : syncChanges->sessions()) {
                 auto keyVerificationSession =
                     new KeyVerificationSession(stringFromRust(session.remote_user_id()),

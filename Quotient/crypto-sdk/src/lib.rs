@@ -434,6 +434,7 @@ mod ffi {
 
         fn sessions(self: &SyncChanges) -> Vec<KeyVerificationRequest>;
         fn keys(self: &SyncChanges) -> Vec<Key>;
+        fn withheld_keys(self: &SyncChanges) -> Vec<Key>;
         fn secrets_received(self: &SyncChanges) -> bool;
         fn self_verified(self: &SyncChanges) -> bool;
         fn received_done_events(self: &SyncChanges) -> Vec<String>;
