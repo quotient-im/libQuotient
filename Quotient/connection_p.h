@@ -81,6 +81,8 @@ public:
 
     JobHandle<SyncJob> syncJob{};
     bool lastSyncSuccessful = true;
+    //! Encryption changes from the sync response being processed, see processSyncCryptoData()
+    std::optional<rust::Box<crypto::SyncChanges>> syncChanges;
     JobHandle<LogoutJob> logoutJob{};
 
     bool cacheState = true;
@@ -191,6 +193,12 @@ public:
     void monitorSas(KeyVerificationSession *session);
 
     void initializeExistingBackup();
+
+    //! \brief Pass the encryption data of a sync response to the crypto machine
+    //!
+    //! Runs before the sync job reports success; returns false if processing failed, which
+    //! makes the job retry the same sync instead of acknowledging the response.
+    bool processSyncCryptoData(const QByteArray& rawData);
 
     QFuture<void> setupPicklingKey();
     bool setupCryptoMachine(const QByteArray& picklingKey);
