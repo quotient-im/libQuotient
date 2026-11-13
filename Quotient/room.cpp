@@ -296,6 +296,8 @@ public:
 
     //! Whether all joined and invited members are in the current state (see lazy loading)
     bool allMembersKnown() const;
+    //! Users whose membership changed with a sync while allMembersJob was running
+    QSet<QString> membersChangedDuringMembersJob;
 
     const PendingEventItem& sendEvent(RoomEventPtr&& event);
 
@@ -1067,17 +1069,16 @@ QFuture<bool> Room::loadAllMembers()
         // Invited members are needed as well, e.g. to share room keys with them
         d->allMembersJob = connection()->callApi<GetMembersByRoomJob>(
             id(), connection()->nextBatchToken(), QString(), "leave"_L1);
-        auto nextIndex = d->timeline.empty() ? 0 : d->timeline.back().index() + 1;
-        connect(d->allMembersJob, &BaseJob::success, this, [this, nextIndex] {
-            Q_ASSERT(d->timeline.empty() || nextIndex <= maxTimelineIndex() + 1);
-            auto roomChanges = d->updateStateFrom(d->allMembersJob->chunk());
-            // Replay member events that arrived after the point for which
-            // the full members list was requested.
-            if (!d->timeline.empty())
-                for (auto it = findInTimeline(nextIndex).base(); it != d->syncEdge(); ++it)
-                    if (is<RoomMemberEvent>(**it))
-                        roomChanges |= processStateEvent(**it);
-            d->postprocessChanges(roomChanges);
+        d->membersChangedDuringMembersJob.clear();
+        connect(d->allMembersJob, &BaseJob::success, this, [this] {
+            // The response has the members as of the moment the job started; membership changes
+            // that came with syncs since then (see updateData()) are newer, so keep those
+            auto events = d->allMembersJob->chunk();
+            std::erase_if(events, [this](const auto& event) {
+                return d->membersChangedDuringMembersJob.contains(event->stateKey());
+            });
+            d->membersChangedDuringMembersJob.clear();
+            d->postprocessChanges(d->updateStateFrom(std::move(events)));
             emit allMembersLoaded();
         });
     }
@@ -1853,6 +1854,19 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
     if (d->prevBatch && d->prevBatch->isEmpty())
         *d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
+
+    // While the full member list is loading, membership changes coming with syncs are newer than
+    // what the member list will have; remember them so that it doesn't override them
+    if (isJobPending(d->allMembersJob)) {
+        const auto rememberMember = [this](const RoomEvent& event) {
+            if (is<RoomMemberEvent>(event))
+                d->membersChangedDuringMembersJob.insert(event.stateKey());
+        };
+        for (const auto& event : data.state)
+            rememberMember(*event);
+        for (const auto& event : data.timeline)
+            rememberMember(*event);
+    }
 
     Changes roomChanges {};
     // The order of calculation is important - don't merge the lines!
