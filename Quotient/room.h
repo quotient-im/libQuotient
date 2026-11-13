@@ -1035,6 +1035,9 @@ Q_SIGNALS:
     void tagsChanged();
 
     void updatedEvent(QString eventId);
+    //! The reason why the event with this id can't be decrypted has changed
+    //! \sa decryptionFailure
+    void decryptionFailureChanged(QString eventId);
     void replacedEvent(const Quotient::RoomEvent* newEvent,
                        const Quotient::RoomEvent* oldEvent);
 

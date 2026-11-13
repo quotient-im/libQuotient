@@ -1549,12 +1549,16 @@ std::expected<RoomEventPtr, DecryptionFailure> Room::Private::decrypt(
 RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
 {
     auto result = d->decrypt(encryptedEvent);
-    if (!result) {
-        d->decryptionFailures.insert(encryptedEvent.id(), result.error());
-        return {};
-    }
-    d->decryptionFailures.remove(encryptedEvent.id());
-    return std::move(*result);
+    const auto newFailure = result ? DecryptionFailure::None : result.error();
+    const auto oldFailure = d->decryptionFailures.value(encryptedEvent.id(), DecryptionFailure::None);
+    if (newFailure == DecryptionFailure::None)
+        d->decryptionFailures.remove(encryptedEvent.id());
+    else
+        d->decryptionFailures.insert(encryptedEvent.id(), newFailure);
+    // Not on the first failure: nobody has seen a reason for the event yet
+    if (oldFailure != DecryptionFailure::None && oldFailure != newFailure)
+        emit decryptionFailureChanged(encryptedEvent.id());
+    return result ? std::move(*result) : nullptr;
 }
 
 DecryptionFailure Room::decryptionFailure(const QString& eventId) const
