@@ -2195,14 +2195,16 @@ bool Connection::allSessionsSelfVerified(const QString& userId) const
 void Connection::Private::runShareKey(Room* room, std::function<void()> then,
                                       std::function<void()> onFailure)
 {
+    // The values the bridge expects: 0 = invited, 1 = joined, 2 = shared, 3 = world_readable.
+    // Without a (known) history visibility, "shared" applies, as per the spec.
     auto historyVisibilityEvent = room->currentState().get("m.room.history_visibility"_L1);
-    uint8_t visibility = 0;
+    uint8_t visibility = 2;
     if (historyVisibilityEvent) {
         auto visibilityString = historyVisibilityEvent->contentJson()["history_visibility"_L1].toString();
-        if (visibilityString == u"joined"_s) {
+        if (visibilityString == u"invited"_s) {
+            visibility = 0;
+        } else if (visibilityString == u"joined"_s) {
             visibility = 1;
-        } else if (visibilityString == u"shared"_s) {
-            visibility = 2;
         } else if (visibilityString == u"world_readable"_s) {
             visibility = 3;
         }
@@ -2210,7 +2212,9 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then,
 
     auto ids = stringsToRust(room->joinedMemberIds());
 
-    if (visibility == 0 || visibility == 3) {
+    // Invited users will be able to read messages sent while they are invited, unless only
+    // messages from the moment they join on are visible to them
+    if (visibility != 1) {
         room->currentState().queryAll([&ids](const RoomMemberEvent& e) {
             if (e.isInvite()) {
                 ids.push_back(stringToRust(e.stateKey()));
