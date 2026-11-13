@@ -201,21 +201,21 @@ mod ffi {
         fn receive_verification_event(self: &mut CryptoMachine, full_json: String);
 
         // Mark requests as sent
-        fn mark_keys_upload_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
-        fn mark_keys_query_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
-        fn mark_keys_claim_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
-        fn mark_to_device_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
+        fn mark_keys_upload_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
+        fn mark_keys_query_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
+        fn mark_keys_claim_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
+        fn mark_to_device_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
         fn mark_room_message_as_sent(
             self: &mut CryptoMachine,
+            event_id: String,
             request_id: String,
-            response: String,
-        );
+        ) -> bool;
         fn mark_signature_upload_as_sent(
             self: &mut CryptoMachine,
-            request_id: String,
             response: String,
-        );
-        fn mark_keys_backup_as_sent(self: &mut CryptoMachine, response: String, request_id: String);
+            request_id: String,
+        ) -> bool;
+        fn mark_keys_backup_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
 
         // Specific CryptoMachine functions
         fn share_room_key(

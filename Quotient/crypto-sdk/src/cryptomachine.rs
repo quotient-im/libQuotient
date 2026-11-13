@@ -571,7 +571,7 @@ impl CryptoMachine {
         })
     }
 
-    pub(crate) fn mark_keys_upload_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_upload_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(serde::Deserialize)]
             struct Response {
@@ -589,12 +589,13 @@ impl CryptoMachine {
                 )
                 .await?)
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_upload_as_sent: {:?}", error);
         }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_keys_query_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_query_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(Deserialize)]
             struct Response {
@@ -620,12 +621,13 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_query_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_keys_claim_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_claim_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             // The keys come from the homeservers of the claimed users, i.e. potentially any server
             // in a room, and the user's homeserver passes them on without checking the key ids.
@@ -672,12 +674,13 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_claim_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_to_device_as_sent(&mut self, _: String, request_id: String) {
+    pub(crate) fn mark_to_device_as_sent(&mut self, _: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             crypto_machine!(self)
                 .mark_request_as_sent(
@@ -689,12 +692,13 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_to_device_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_signature_upload_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_signature_upload_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(Deserialize)]
             struct Response {
@@ -711,15 +715,16 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!(
                 "Failed to process mark_signature_upload_as_sent: {:?}",
                 error
             );
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_room_message_as_sent(&mut self, event_id: String, request_id: String) {
+    pub(crate) fn mark_room_message_as_sent(&mut self, event_id: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             let event_id = EventId::parse(&event_id)?;
             crypto_machine!(self)
@@ -732,12 +737,13 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_room_message_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_keys_backup_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_backup_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(Deserialize)]
             struct Response {
@@ -755,9 +761,10 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_backup_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
     pub(crate) fn receive_sync_changes(&mut self, sync_json: String) -> Box<SyncChangesResult> {
