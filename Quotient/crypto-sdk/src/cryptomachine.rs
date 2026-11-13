@@ -1871,15 +1871,56 @@ impl CryptoMachine {
                 .await?
                 .len()
                 > 0
-                && machine
-                    .backup_machine()
-                    .get_backup_keys()
-                    .await?
-                    .decryption_key
-                    .is_none())
+                // Not checking for a stored decryption key: after the backup was replaced on
+                // the server (see handle_backup_version_change()), the old one stays stored
+                && !machine.backup_machine().enabled().await)
         });
         result.unwrap_or_else(|error| {
             error!("Failed to process has_pending_backup_key: {:?}", error);
+            false
+        })
+    }
+
+    /// Handle the server rejecting a backup upload because the backup was replaced or deleted
+    ///
+    /// Stops backing up keys and, if `version_reply` (the response to GET /room_keys/version, or
+    /// an empty string if there's no backup) describes a backup that the stored decryption key
+    /// belongs to, resumes with that backup. Returns whether backing up was resumed.
+    pub(crate) fn handle_backup_version_change(&mut self, version_reply: String) -> bool {
+        let result: Result<bool, Box<dyn Error>> = self.runtime.block_on(async {
+            let backup_machine = crypto_machine!(self).backup_machine();
+            // Also marks all room keys as not backed up, so that a new backup gets all of them
+            backup_machine.disable_backup().await?;
+            if version_reply.is_empty() {
+                return Ok(false);
+            }
+            let Some(decryption_key) = backup_machine.get_backup_keys().await?.decryption_key
+            else {
+                return Ok(false);
+            };
+            let version = {
+                let Object(object) = serde_json::from_str::<Value>(&version_reply)? else {
+                    return Err("Invalid version reply".into());
+                };
+                let Some(version) = object.get("version").and_then(|v| v.as_str()) else {
+                    return Err("Invalid version reply".into());
+                };
+                version.to_string()
+            };
+            let backup_info = serde_json::from_str::<RoomKeyBackupInfo>(&version_reply)?.into();
+            if !decryption_key.backup_key_matches(&backup_info) {
+                return Ok(false);
+            }
+            backup_machine
+                .save_decryption_key(Some(decryption_key.clone()), Some(version.clone()))
+                .await?;
+            let backup_key = decryption_key.megolm_v1_public_key();
+            backup_key.set_version(version);
+            backup_machine.enable_backup_v1(backup_key).await?;
+            Ok(true)
+        });
+        result.unwrap_or_else(|error| {
+            error!("Failed to process handle_backup_version_change: {:?}", error);
             false
         })
     }

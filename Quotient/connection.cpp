@@ -743,10 +743,21 @@ void Connection::onSyncSuccess(SyncJob *syncJob)
                 auto request = requestResult->value();
                 callApi<PutRoomKeysJob>(stringFromRust(request->version()),
                                         fromRustJson<QHash<RoomId, RoomKeyBackup>>(request->rooms()))
-                    .onResult([this, transaction_id = request->transaction_id()](const auto &job) {
+                    .then([this, transaction_id = request->transaction_id()](const auto &job) {
                     d->isUploadingKeysToBackup = false;
                     (*d->cryptoMachine)
                         ->mark_keys_backup_as_sent(bytesToRust(job->rawData()), transaction_id);
+                }, [this](const auto& job) {
+                    d->isUploadingKeysToBackup = false;
+                    // Another client replaced or deleted the backup; uploading to this version
+                    // would keep failing
+                    if (const auto errcode =
+                            QJsonDocument::fromJson(job->rawData()).object()["errcode"_L1].toString();
+                        errcode == "M_WRONG_ROOM_KEYS_VERSION"_L1 || errcode == "M_NOT_FOUND"_L1)
+                        d->handleBackupVersionChange();
+                    else
+                        qCWarning(E2EE) << "Failed to upload room keys to the backup:"
+                                        << job->errorString();
                 });
             }
         }
@@ -2801,7 +2812,26 @@ void Connection::Private::initializeExistingBackup()
     isInitializingBackup = true;
 
     q->callApi<GetRoomKeysVersionCurrentJob>().onResult([this](const auto& job) {
+        isInitializingBackup = false;
         (*cryptoMachine)->initialize_existing_backup(bytesToRust(job->rawData()));
+    });
+}
+
+void Connection::Private::handleBackupVersionChange()
+{
+    qCWarning(E2EE) << "The key backup on the server has changed, checking the current one";
+    q->callApi<GetRoomKeysVersionCurrentJob>().onResult([this](const auto& job) {
+        // On other errors, the next upload attempt will try again
+        if (!job->status().good() && job->error() != BaseJob::NotFound)
+            return;
+        if ((*cryptoMachine)
+                ->handle_backup_version_change(job->status().good() ? bytesToRust(job->rawData())
+                                                                     : rust::String()))
+            qCInfo(E2EE) << "Continuing with the current key backup";
+        else
+            qCWarning(E2EE) << "Stopped backing up room keys: the current key backup needs to be "
+                               "unlocked with its recovery key";
+        emit q->isBackupDecryptionKeyAvailableChanged();
     });
 }
 

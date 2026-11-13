@@ -425,6 +425,7 @@ mod ffi {
         fn has_pending_backup_key(self: &CryptoMachine) -> bool;
         fn has_initialized_backup(self: &CryptoMachine) -> bool;
         fn initialize_existing_backup(self: &mut CryptoMachine, version_reply: String);
+        fn handle_backup_version_change(self: &mut CryptoMachine, version_reply: String) -> bool;
         fn backup_keys(self: &mut CryptoMachine) -> Box<BackupRequestResult>;
 
         fn has_request(self: &BackupRequest) -> bool;
