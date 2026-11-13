@@ -2306,18 +2306,30 @@ void Connection::Private::shareKeyWithMembers(Room* room, std::function<void()> 
             return;
         }
         QList<QFuture<void>> futures;
+        const auto keyNotSent = std::make_shared<bool>(false);
         for (const auto& request : requests) {
             auto txnId = request.txn_id();
+            const auto eventType = stringFromRust(request.event_type());
 
-            futures.append(QFuture<void>(q->callApi<SendToDeviceJob>(stringFromRust(request.event_type()), stringFromRust(txnId),
+            futures.append(QFuture<void>(q->callApi<SendToDeviceJob>(eventType, stringFromRust(txnId),
                                         fromRustJson<QHash<UserId, QHash<QString, QJsonObject>>>(
                                             request.messages()))
-            .then([this, txnId, then](const auto& sendJob) {
+            .then([this, txnId](const auto& sendJob) {
                 (*cryptoMachine)->mark_to_device_as_sent(bytesToRust(sendJob->rawData()), txnId);
+            }, [eventType, keyNotSent](const auto& sendJob) {
+                qCWarning(E2EE) << "Failed to send" << eventType << "to devices:" << sendJob->errorString();
+                // Without a withheld notice, recipients just don't learn why they lack the key
+                if (eventType != "m.room_key.withheld"_L1)
+                    *keyNotSent = true;
             })));
         }
-        QtFuture::whenAll(futures.begin(), futures.end()).then([this, then](const auto &) {
-            then();
+        QtFuture::whenAll(futures.begin(), futures.end()).then([this, then, onFailure, keyNotSent](const auto &) {
+            // The crypto machine keeps unsent requests and returns them with the next attempt
+            // to share the key, e.g. when the user resends the message
+            if (*keyNotSent)
+                onFailure();
+            else
+                then();
             Q_EMIT q->shareRoomKeyDone();
         });
     };
