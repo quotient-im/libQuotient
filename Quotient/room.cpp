@@ -1995,7 +1995,15 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
                 return;
             }
             std::unique_ptr<EncryptedEvent> encryptedEvent;
-            auto content = QJsonDocument::fromJson(connection->encryptRoomEvent(q, QJsonDocument(contentJson).toJson(), type).toUtf8()).object();
+            const auto encrypted = connection->encryptRoomEvent(q, QJsonDocument(contentJson).toJson(), type);
+            if (encrypted.isEmpty()) {
+                // Sending would only produce an event nobody can decrypt
+                qCWarning(E2EE) << "Failed to encrypt the event for transaction" << txnId;
+                eventItemIter->setSendingFailed(tr("Could not encrypt this message"));
+                emit q->pendingEventChanged(int(eventItemIter - unsyncedEvents.begin()));
+                return;
+            }
+            auto content = QJsonDocument::fromJson(encrypted.toUtf8()).object();
             encryptedEvent = makeEvent<EncryptedEvent>(content[u"ciphertext"_s].toString().toUtf8(), content[u"sender_key"_s].toString(), content[u"device_id"_s].toString(), content[u"session_id"_s].toString());
             encryptedEvent->setTransactionId(connection->generateTxnId());
             encryptedEvent->setRoomId(id);
