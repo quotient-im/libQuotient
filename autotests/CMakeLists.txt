@@ -30,4 +30,4 @@ quotient_add_test(NAME utiltests)
 quotient_add_test(NAME testsettings)
 quotient_add_test(NAME testthread NEEDS_MOCK_SERVER)
 
-add_test(NAME testqmltypes COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/testqmltypes.sh ${KDE_INSTALL_FULL_LIBDIR}/qml/io/github/quotient_im/libquotient)
+add_test(NAME testqmltypes COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/testqmltypes.sh $<TARGET_PROPERTY:${QUOTIENT_LIB_NAME}plugin,QT_QML_MODULE_OUTPUT_DIRECTORY>)

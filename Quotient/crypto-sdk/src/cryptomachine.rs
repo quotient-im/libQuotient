@@ -3,7 +3,7 @@
 
 use crate::{
     encryption_info::EncryptionInfo,
-    ffi::InitError,
+    ffi::{DecryptionErrorKind, InitError},
     request::{
         ConfirmRequests, KeyVerificationRequest, KeysClaimRequest, OutgoingKeyVerificationRequest,
         ToDeviceRequest,
@@ -17,7 +17,8 @@ use matrix_sdk_common::{
     deserialized_responses::ProcessedToDeviceEvent,
     ruma::{
         DeviceId, DeviceKeyAlgorithm, DeviceKeyId, EventId, OneTimeKeyAlgorithm, OwnedDeviceId,
-        OwnedTransactionId, OwnedUserId, RoomId, SecondsSinceUnixEpoch, UInt, UserId,
+        OwnedOneTimeKeyId, OwnedTransactionId, OwnedUserId, RoomId, SecondsSinceUnixEpoch, UInt,
+        UserId,
         api::client::{
             backup::{RoomKeyBackup, add_backup_keys},
             keys::{
@@ -29,7 +30,7 @@ use matrix_sdk_common::{
             sync::sync_events::DeviceLists,
             to_device,
         },
-        encryption::{CrossSigningKey, DeviceKeys},
+        encryption::{CrossSigningKey, DeviceKeys, OneTimeKey},
         events::room::history_visibility::HistoryVisibility,
         events::{
             AnyToDeviceEvent,
@@ -99,6 +100,7 @@ pub(crate) struct SyncChanges {
     secrets_received: bool,
     self_verified: bool,
     received_done_events: Vec<String>,
+    withheld_keys: Vec<Key>,
 }
 
 pub(crate) enum SyncChangesResult {
@@ -144,6 +146,11 @@ impl SyncChanges {
 
     pub(crate) fn received_done_events(&self) -> Vec<String> {
         self.received_done_events.clone()
+    }
+
+    /// Sessions for which a m.room_key.withheld notice arrived with this sync
+    pub(crate) fn withheld_keys(&self) -> Vec<Key> {
+        self.withheld_keys.clone()
     }
 }
 
@@ -318,6 +325,47 @@ impl StringResult {
         } else {
             false
         }
+    }
+}
+
+pub(crate) struct RoomDecryptionResult(Result<String, Box<dyn Error>>);
+
+impl RoomDecryptionResult {
+    pub(crate) fn has_error(&self) -> bool {
+        self.0.is_err()
+    }
+
+    pub(crate) fn error_string(&self) -> String {
+        self.0.as_ref().err().map(|error| error.to_string()).unwrap_or_default()
+    }
+
+    pub(crate) fn error_kind(&self) -> DecryptionErrorKind {
+        use matrix_sdk_crypto::{MegolmError, vodozemac::megolm::DecryptionError};
+        let Err(error) = &self.0 else {
+            return DecryptionErrorKind::NoError;
+        };
+        match error.downcast_ref::<MegolmError>() {
+            Some(MegolmError::MissingRoomKey(None)) => DecryptionErrorKind::MissingKey,
+            // Also used when only a later part of the session is known and the rest is withheld
+            Some(MegolmError::MissingRoomKey(Some(_))) => DecryptionErrorKind::Withheld,
+            Some(MegolmError::Decryption(DecryptionError::UnknownMessageIndex(..))) => {
+                DecryptionErrorKind::UnknownMessageIndex
+            }
+            _ => DecryptionErrorKind::Other,
+        }
+    }
+
+    /// The m.room_key.withheld code if the error kind is Withheld, otherwise an empty string
+    pub(crate) fn withheld_code(&self) -> String {
+        use matrix_sdk_crypto::MegolmError;
+        match self.0.as_ref().err().and_then(|error| error.downcast_ref::<MegolmError>()) {
+            Some(MegolmError::MissingRoomKey(Some(code))) => code.as_str().to_owned(),
+            _ => String::new(),
+        }
+    }
+
+    pub(crate) fn value(&self) -> String {
+        self.0.as_ref().ok().cloned().unwrap_or_default()
     }
 }
 
@@ -531,6 +579,33 @@ impl EncryptionInfoResult {
     }
 }
 
+/// The session that a m.room_key.withheld notice is about, if the event is one
+///
+/// The crypto machine has already stored the notice; this is only to find the events whose
+/// decryption failure is now explained by it.
+fn withheld_session(raw: &Raw<AnyToDeviceEvent>) -> Option<Key> {
+    #[derive(Deserialize)]
+    struct Content {
+        room_id: Option<String>,
+        session_id: Option<String>,
+    }
+    #[derive(Deserialize)]
+    struct Event {
+        #[serde(rename = "type")]
+        event_type: String,
+        content: Content,
+    }
+    let event = raw.deserialize_as_unchecked::<Event>().ok()?;
+    if event.event_type != "m.room_key.withheld" && event.event_type != "org.matrix.room_key.withheld" {
+        return None;
+    }
+    // Notices for m.no_olm don't refer to a particular session
+    Some(Key {
+        room_id: event.content.room_id?,
+        session_id: event.content.session_id?,
+    })
+}
+
 macro_rules! crypto_machine {
     ($machine:ident) => {
         $machine
@@ -570,7 +645,7 @@ impl CryptoMachine {
         })
     }
 
-    pub(crate) fn mark_keys_upload_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_upload_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(serde::Deserialize)]
             struct Response {
@@ -588,12 +663,13 @@ impl CryptoMachine {
                 )
                 .await?)
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_upload_as_sent: {:?}", error);
         }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_keys_query_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_query_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(Deserialize)]
             struct Response {
@@ -619,20 +695,50 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_query_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_keys_claim_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_claim_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
+            // The keys come from the homeservers of the claimed users, i.e. potentially any server
+            // in a room, and the user's homeserver passes them on without checking the key ids.
+            // So don't parse them as OneTimeKeys: a single malformed entry would discard the
+            // keys for every other device as well; drop just that entry instead.
             #[derive(Deserialize)]
             struct Response {
                 failures: Option<BTreeMap<String, Value>>,
-                one_time_keys: Option<BTreeMap<OwnedUserId, OneTimeKeys>>,
+                one_time_keys:
+                    Option<BTreeMap<String, BTreeMap<OwnedDeviceId, BTreeMap<String, Raw<OneTimeKey>>>>>,
             }
             let r = serde_json::from_str::<Response>(response.as_str())?;
-            let mut request = claim_keys::v3::Response::new(r.one_time_keys.unwrap_or_default());
+            let mut one_time_keys = BTreeMap::<OwnedUserId, OneTimeKeys>::new();
+            for (user_id, devices) in r.one_time_keys.unwrap_or_default() {
+                let Ok(user_id) = UserId::parse(&user_id) else {
+                    error!("Ignoring claimed keys for invalid user id {:?}", user_id);
+                    continue;
+                };
+                for (device_id, keys) in devices {
+                    let keys: BTreeMap<_, _> = keys
+                        .into_iter()
+                        .filter_map(|(key_id, key)| match OwnedOneTimeKeyId::try_from(key_id.as_str()) {
+                            Ok(key_id) => Some((key_id, key)),
+                            Err(err) => {
+                                error!("Ignoring claimed key {:?} of {} {}: {}", key_id, user_id, device_id, err);
+                                None
+                            }
+                        })
+                        .collect();
+                    // A device without usable keys is left out, as if the server hadn't
+                    // returned it; the crypto machine then handles it as a failed claim
+                    if !keys.is_empty() {
+                        one_time_keys.entry(user_id.clone()).or_default().insert(device_id, keys);
+                    }
+                }
+            }
+            let mut request = claim_keys::v3::Response::new(one_time_keys);
             request.failures = r.failures.unwrap_or_default();
             crypto_machine!(self)
                 .mark_request_as_sent(
@@ -642,12 +748,13 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_claim_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_to_device_as_sent(&mut self, _: String, request_id: String) {
+    pub(crate) fn mark_to_device_as_sent(&mut self, _: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             crypto_machine!(self)
                 .mark_request_as_sent(
@@ -659,12 +766,13 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_to_device_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_signature_upload_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_signature_upload_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(Deserialize)]
             struct Response {
@@ -681,15 +789,16 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!(
                 "Failed to process mark_signature_upload_as_sent: {:?}",
                 error
             );
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_room_message_as_sent(&mut self, event_id: String, request_id: String) {
+    pub(crate) fn mark_room_message_as_sent(&mut self, event_id: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             let event_id = EventId::parse(&event_id)?;
             crypto_machine!(self)
@@ -702,12 +811,13 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_room_message_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
-    pub(crate) fn mark_keys_backup_as_sent(&mut self, response: String, request_id: String) {
+    pub(crate) fn mark_keys_backup_as_sent(&mut self, response: String, request_id: String) -> bool {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
             #[derive(Deserialize)]
             struct Response {
@@ -725,32 +835,38 @@ impl CryptoMachine {
                 .await?;
             Ok(())
         });
-        if let Err(error) = result {
+        if let Err(error) = &result {
             error!("Failed to process mark_keys_backup_as_sent: {:?}", error);
-        };
+        }
+        result.is_ok()
     }
 
     pub(crate) fn receive_sync_changes(&mut self, sync_json: String) -> Box<SyncChangesResult> {
         let result: Result<Box<SyncChanges>, Box<dyn Error>> = self.runtime.block_on(async {
             let machine = crypto_machine!(self);
             #[derive(serde::Deserialize)]
+            struct ToDevice {
+                #[serde(default)]
+                events: Vec<Raw<AnyToDeviceEvent>>,
+            }
+            #[derive(serde::Deserialize)]
             struct Changes {
-                to_device: Option<BTreeMap<String, Vec<Raw<AnyToDeviceEvent>>>>,
+                to_device: Option<ToDevice>,
                 device_lists: Option<DeviceLists>,
+                // Optional in the spec, and omitted by some servers when empty
+                #[serde(default)]
                 device_one_time_keys_count: BTreeMap<OneTimeKeyAlgorithm, UInt>,
                 next_batch: Option<String>,
                 device_unused_fallback_key_types: Option<Vec<OneTimeKeyAlgorithm>>,
             }
 
+            // Once the machine's receive_sync_changes() has succeeded, nothing below may fail,
+            // or the received room keys would not be reported to the caller.
             let changes = serde_json::from_str::<Changes>(sync_json.as_str())?;
             let changes = machine
                 .receive_sync_changes(
                     EncryptionSyncChanges {
-                        to_device_events: if let Some(events) = changes.to_device {
-                            events["events"].clone()
-                        } else {
-                            Default::default()
-                        },
+                        to_device_events: changes.to_device.map(|it| it.events).unwrap_or_default(),
                         changed_devices: &changes.device_lists.unwrap_or_default(),
                         one_time_keys_counts: &changes.device_one_time_keys_count,
                         unused_fallback_keys: changes.device_unused_fallback_key_types.as_deref(),
@@ -766,11 +882,17 @@ impl CryptoMachine {
             let mut secrets_received = false;
             let mut self_verified = false;
             let mut received_done_events = vec![];
+            let mut withheld_keys = vec![];
             for to_device_event in changes.0 {
                 // NOTE: Do not use the question mark operator in for loop.
                 match to_device_event {
                     ProcessedToDeviceEvent::Decrypted { raw, .. }
-                    | ProcessedToDeviceEvent::PlainText(raw) => match raw.deserialize() {
+                    | ProcessedToDeviceEvent::PlainText(raw) => {
+                        if let Some(key) = withheld_session(&raw) {
+                            withheld_keys.push(key);
+                            continue;
+                        }
+                        match raw.deserialize() {
                         Ok(AnyToDeviceEvent::KeyVerificationRequest(request)) => {
                             if let Some(request) = machine.get_verification_request(
                                 &request.sender,
@@ -785,12 +907,18 @@ impl CryptoMachine {
                             }
                         }
                         Ok(AnyToDeviceEvent::KeyVerificationDone(done)) => {
-                            let machine = crypto_machine!(self);
-                            if done.sender == machine.user_id() && machine.get_identity(&UserId::parse(&done.sender)?, None)
-                                .await?
-                                .ok_or("Identity not found")?
-                                .is_verified() {
-                                self_verified = true;
+                            if done.sender == machine.user_id() {
+                                match machine.get_identity(&done.sender, None).await {
+                                    Ok(Some(identity)) => {
+                                        if identity.is_verified() {
+                                            self_verified = true;
+                                        }
+                                    }
+                                    Ok(None) => error!("Own identity not found"),
+                                    Err(error) => {
+                                        error!("Failed to get own identity: {:?}", error)
+                                    }
+                                }
                             }
                             received_done_events.push(done.content.transaction_id.to_string());
                         }
@@ -801,7 +929,8 @@ impl CryptoMachine {
                         Err(error) => {
                             error!("Failed to deserialize to_device event: {}", error);
                         }
-                    },
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -818,6 +947,7 @@ impl CryptoMachine {
                 secrets_received,
                 self_verified,
                 received_done_events,
+                withheld_keys,
             }))
         });
         Box::new(match result {
@@ -958,20 +1088,12 @@ impl CryptoMachine {
         &mut self,
         room_id: String,
         json: String,
-    ) -> Box<StringResult> {
+    ) -> Box<RoomDecryptionResult> {
         let result: Result<String, Box<dyn Error>> = self.runtime.block_on(async {
             let room_id = RoomId::parse(room_id)?;
-            let machine = crypto_machine!(self);
-            if !machine
-                .is_room_key_available(&{ serde_json::from_str(json.as_str())? }, &room_id)
-                .await
-                .unwrap_or(false)
-            {
-                return Err("No room key available".into());
-            }
-            let event = machine
+            let event = crypto_machine!(self)
                 .decrypt_room_event(
-                    &{ serde_json::from_str(json.as_str())? },
+                    &serde_json::from_str(json.as_str())?,
                     &room_id,
                     &DecryptionSettings {
                         sender_device_trust_requirement: TrustRequirement::Untrusted,
@@ -980,14 +1102,7 @@ impl CryptoMachine {
                 .await?;
             Ok(serde_json::to_string(&event.event)?)
         });
-        Box::new(match result {
-            Ok(event) => StringResult::Ok(event),
-            Err(error) => {
-                // This happens if we don't have the key
-                // error!("Failed to process decrypt_room_event: {:?}", error);
-                StringResult::Err(error)
-            }
-        })
+        Box::new(RoomDecryptionResult(result))
     }
 
     pub(crate) fn update_tracked_users(&mut self, user_ids: Vec<String>) {
@@ -1756,15 +1871,56 @@ impl CryptoMachine {
                 .await?
                 .len()
                 > 0
-                && machine
-                    .backup_machine()
-                    .get_backup_keys()
-                    .await?
-                    .decryption_key
-                    .is_none())
+                // Not checking for a stored decryption key: after the backup was replaced on
+                // the server (see handle_backup_version_change()), the old one stays stored
+                && !machine.backup_machine().enabled().await)
         });
         result.unwrap_or_else(|error| {
             error!("Failed to process has_pending_backup_key: {:?}", error);
+            false
+        })
+    }
+
+    /// Handle the server rejecting a backup upload because the backup was replaced or deleted
+    ///
+    /// Stops backing up keys and, if `version_reply` (the response to GET /room_keys/version, or
+    /// an empty string if there's no backup) describes a backup that the stored decryption key
+    /// belongs to, resumes with that backup. Returns whether backing up was resumed.
+    pub(crate) fn handle_backup_version_change(&mut self, version_reply: String) -> bool {
+        let result: Result<bool, Box<dyn Error>> = self.runtime.block_on(async {
+            let backup_machine = crypto_machine!(self).backup_machine();
+            // Also marks all room keys as not backed up, so that a new backup gets all of them
+            backup_machine.disable_backup().await?;
+            if version_reply.is_empty() {
+                return Ok(false);
+            }
+            let Some(decryption_key) = backup_machine.get_backup_keys().await?.decryption_key
+            else {
+                return Ok(false);
+            };
+            let version = {
+                let Object(object) = serde_json::from_str::<Value>(&version_reply)? else {
+                    return Err("Invalid version reply".into());
+                };
+                let Some(version) = object.get("version").and_then(|v| v.as_str()) else {
+                    return Err("Invalid version reply".into());
+                };
+                version.to_string()
+            };
+            let backup_info = serde_json::from_str::<RoomKeyBackupInfo>(&version_reply)?.into();
+            if !decryption_key.backup_key_matches(&backup_info) {
+                return Ok(false);
+            }
+            backup_machine
+                .save_decryption_key(Some(decryption_key.clone()), Some(version.clone()))
+                .await?;
+            let backup_key = decryption_key.megolm_v1_public_key();
+            backup_key.set_version(version);
+            backup_machine.enable_backup_v1(backup_key).await?;
+            Ok(true)
+        });
+        result.unwrap_or_else(|error| {
+            error!("Failed to process handle_backup_version_change: {:?}", error);
             false
         })
     }

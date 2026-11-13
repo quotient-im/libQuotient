@@ -14,6 +14,7 @@
 
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
+#include "csapi/keys.h"
 #include "csapi/logout.h"
 #include "csapi/versions.h"
 #include "csapi/wellknown.h"
@@ -56,7 +57,12 @@ public:
     QMetaObject::Connection syncLoopConnection {};
     int syncTimeout = -1;
     std::optional<rust::Box<crypto::CryptoMachine>> cryptoMachine;
-    QQueue<std::pair<Room *, std::function<void()>>> keyShareQueue;
+    struct KeyShareRequest {
+        Room* room;
+        std::function<void()> then;
+        std::function<void()> onFailure;
+    };
+    QQueue<KeyShareRequest> keyShareQueue;
     bool keyShareRunning = false;
 
     GetCapabilitiesJob::Capabilities capabilities{};
@@ -76,6 +82,8 @@ public:
 
     JobHandle<SyncJob> syncJob{};
     bool lastSyncSuccessful = true;
+    //! Encryption changes from the sync response being processed, see processSyncCryptoData()
+    std::optional<rust::Box<crypto::SyncChanges>> syncChanges;
     JobHandle<LogoutJob> logoutJob{};
 
     bool cacheState = true;
@@ -91,6 +99,11 @@ public:
     }
 
     bool isHandlingOutgoing = false;
+    std::vector<std::shared_ptr<QPromise<bool>>> outgoingRequestsWaiters;
+    //! Whether the outgoing requests loop should do another round even after a failure
+    bool outgoingRerunRequested = false;
+    //! Ids of RoomMessage requests posted to a room but not yet confirmed by the server
+    QSet<QString> roomMessageRequestsInFlight;
 
     unsigned int lastScheduledRequest = 0;
     bool isBeingDestructed = false;
@@ -184,10 +197,27 @@ public:
     void monitorSas(KeyVerificationSession *session);
 
     void initializeExistingBackup();
+    //! Called when the server says that the backup being uploaded to isn't the current one
+    void handleBackupVersionChange();
+
+    //! \brief Pass the encryption data of a sync response to the crypto machine
+    //!
+    //! Runs before the sync job reports success; returns false if processing failed, which
+    //! makes the job retry the same sync instead of acknowledging the response.
+    bool processSyncCryptoData(const QByteArray& rawData);
 
     QFuture<void> setupPicklingKey();
     bool setupCryptoMachine(const QByteArray& picklingKey);
-    void runShareKey(Room* room, std::function<void()>);
+    void sendRoomMessageRequest(Room* room, const QString& requestId, RoomEventPtr event);
+    void runShareKey(Room* room, std::function<void()> then, std::function<void()> onFailure);
+    void shareKeyWithMembers(Room* room, std::function<void()> then,
+                             std::function<void()> onFailure);
+    JobHandle<QueryKeysJob> startKeysQuery(const crypto::OutgoingRequest& request);
+    //! \brief Run the outgoing requests loop until it stops
+    //!
+    //! The future yields false if a key query failed or couldn't be processed, true otherwise.
+    QFuture<bool> whenOutgoingRequestsDone();
+    void finishOutgoingRequestsWaiters(bool keysQueriesSucceeded);
     void startKeyShare();
 
     QString databaseDir() const;

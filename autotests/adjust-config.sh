@@ -33,6 +33,16 @@ rc_joins:
   remote:
     per_second: 10000
     burst_count: 100000
+rc_invites:
+  per_room:
+    per_second: 10000
+    burst_count: 100000
+  per_user:
+    per_second: 10000
+    burst_count: 100000
+  per_issuer:
+    per_second: 10000
+    burst_count: 100000
 tls_certificate_path: "/data/localhost.tls.crt"
 tls_private_key_path: "/data/localhost.tls.key"
 HEREDOC

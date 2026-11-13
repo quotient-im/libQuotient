@@ -25,6 +25,7 @@
 #include <QtCore/QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include <expected>
 #include <functional>
 
 Q_DECLARE_METATYPE(Quotient::GetLoginFlowsJob::LoginFlow)
@@ -765,9 +766,10 @@ public Q_SLOTS:
                                           bool enableEncryption = true);
 
     //! \internal
-    void shareRoomKey(Room* room, std::function<void()> then);
+    void shareRoomKey(Room* room, std::function<void()> then, std::function<void()> onFailure);
     QString encryptRoomEvent(Room* room, const QByteArray& content, const QString& type);
-    QString decryptRoomEvent(Room* room, const QByteArray& event);
+    //! Returns the JSON of the decrypted event, or why it could not be decrypted
+    std::expected<QString, DecryptionFailure> decryptRoomEvent(Room* room, const QByteArray& event);
 
     //! \internal
     void receiveVerificationEvent(const QByteArray& fullJson);

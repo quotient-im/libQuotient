@@ -25,6 +25,7 @@ use cryptomachine::KeyVerificationRequestResult;
 use cryptomachine::MissingSessionsResult;
 use cryptomachine::OutgoingKeyVerificationRequestResult;
 use cryptomachine::OutgoingRequestResult;
+use cryptomachine::RoomDecryptionResult;
 use cryptomachine::StringResult;
 use cryptomachine::SyncChanges;
 use cryptomachine::SyncChangesResult;
@@ -144,6 +145,18 @@ mod ffi {
         DatabaseError,
     }
 
+    /// Why a room event could not be decrypted
+    enum DecryptionErrorKind {
+        NoError,
+        /// The key has not been received (yet)
+        MissingKey,
+        /// The sender refused to share the key with this device (m.room_key.withheld)
+        Withheld,
+        /// The key is only known from a later message of the session on
+        UnknownMessageIndex,
+        Other,
+    }
+
     enum OutgoingRequestType {
         KeysUpload,
         KeysQuery,
@@ -184,6 +197,7 @@ mod ffi {
         type KeyVerificationRequestResult;
         type EncryptionInfoResult;
         type DecryptResult;
+        type RoomDecryptionResult;
 
         // General CryptoMachine functions
         fn init(
@@ -201,21 +215,21 @@ mod ffi {
         fn receive_verification_event(self: &mut CryptoMachine, full_json: String);
 
         // Mark requests as sent
-        fn mark_keys_upload_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
-        fn mark_keys_query_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
-        fn mark_keys_claim_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
-        fn mark_to_device_as_sent(self: &mut CryptoMachine, request_id: String, response: String);
+        fn mark_keys_upload_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
+        fn mark_keys_query_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
+        fn mark_keys_claim_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
+        fn mark_to_device_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
         fn mark_room_message_as_sent(
             self: &mut CryptoMachine,
+            event_id: String,
             request_id: String,
-            response: String,
-        );
+        ) -> bool;
         fn mark_signature_upload_as_sent(
             self: &mut CryptoMachine,
-            request_id: String,
             response: String,
-        );
-        fn mark_keys_backup_as_sent(self: &mut CryptoMachine, response: String, request_id: String);
+            request_id: String,
+        ) -> bool;
+        fn mark_keys_backup_as_sent(self: &mut CryptoMachine, response: String, request_id: String) -> bool;
 
         // Specific CryptoMachine functions
         fn share_room_key(
@@ -239,7 +253,7 @@ mod ffi {
             self: &mut CryptoMachine,
             room_id: String,
             json: String,
-        ) -> Box<StringResult>;
+        ) -> Box<RoomDecryptionResult>;
         fn update_tracked_users(self: &mut CryptoMachine, user_ids: Vec<String>);
         fn request_device_verification(
             self: &mut CryptoMachine,
@@ -411,6 +425,7 @@ mod ffi {
         fn has_pending_backup_key(self: &CryptoMachine) -> bool;
         fn has_initialized_backup(self: &CryptoMachine) -> bool;
         fn initialize_existing_backup(self: &mut CryptoMachine, version_reply: String);
+        fn handle_backup_version_change(self: &mut CryptoMachine, version_reply: String) -> bool;
         fn backup_keys(self: &mut CryptoMachine) -> Box<BackupRequestResult>;
 
         fn has_request(self: &BackupRequest) -> bool;
@@ -420,6 +435,7 @@ mod ffi {
 
         fn sessions(self: &SyncChanges) -> Vec<KeyVerificationRequest>;
         fn keys(self: &SyncChanges) -> Vec<Key>;
+        fn withheld_keys(self: &SyncChanges) -> Vec<Key>;
         fn secrets_received(self: &SyncChanges) -> bool;
         fn self_verified(self: &SyncChanges) -> bool;
         fn received_done_events(self: &SyncChanges) -> Vec<String>;
@@ -507,6 +523,12 @@ mod ffi {
         fn has_error(self: &DecryptResult) -> bool;
         fn error_string(self: &DecryptResult) -> String;
         fn value(self: &DecryptResult) -> Vec<u8>;
+
+        fn has_error(self: &RoomDecryptionResult) -> bool;
+        fn error_kind(self: &RoomDecryptionResult) -> DecryptionErrorKind;
+        fn withheld_code(self: &RoomDecryptionResult) -> String;
+        fn error_string(self: &RoomDecryptionResult) -> String;
+        fn value(self: &RoomDecryptionResult) -> String;
 
         fn import_olm_sessions(
             self: &CryptoMachine,

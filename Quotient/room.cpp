@@ -151,6 +151,8 @@ public:
     JobHandle<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
     std::unordered_map<QString, QSet<QString>> undecryptedEvents;
+    //! Why the last attempt to decrypt an event failed, by event id
+    QHash<QString, DecryptionFailure> decryptionFailures;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -277,6 +279,7 @@ public:
      */
     void dropExtraneousEvents(RoomEvents& events) const;
     void decryptIncomingEvents(RoomEvents& events);
+    std::expected<RoomEventPtr, DecryptionFailure> decrypt(const EncryptedEvent& encryptedEvent);
 
     //! \brief update last receipt record for a given user
     //!
@@ -291,7 +294,10 @@ public:
     Changes updateStats(const rev_iter_t& from, const rev_iter_t& to);
     bool markMessagesAsRead(const rev_iter_t& upToMarker, bool sendPublicReceipts);
 
-    void getAllMembers();
+    //! Whether all joined and invited members are in the current state (see lazy loading)
+    bool allMembersKnown() const;
+    //! Users whose membership changed with a sync while allMembersJob was running
+    QSet<QString> membersChangedDuringMembersJob;
 
     const PendingEventItem& sendEvent(RoomEventPtr&& event);
 
@@ -1039,28 +1045,59 @@ const RoomTombstoneEvent* Room::tombstone() const
     return currentState().get<RoomTombstoneEvent>();
 }
 
-void Room::Private::getAllMembers()
+bool Room::Private::allMembersKnown() const
 {
-    // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= currentState.eventsOfType(RoomMemberEvent::TypeId).size() || isJobPending(allMembersJob))
-        return;
+    const auto expected = summary.joinedMemberCount.value_or(0)
+                          + summary.invitedMemberCount.value_or(0);
+    const auto known = std::ranges::count_if(currentState.eventsOfType(RoomMemberEvent::TypeId),
+                                             [](const auto* event) {
+                                                 const auto membership =
+                                                     eventCast<const RoomMemberEvent>(event)->membership();
+                                                 return membership == Membership::Join
+                                                        || membership == Membership::Invite;
+                                             });
+    return std::cmp_greater_equal(known, expected);
+}
 
-    allMembersJob = connection->callApi<GetMembersByRoomJob>(
-        id, connection->nextBatchToken(), "join"_L1);
-    auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
-    connect(allMembersJob, &BaseJob::success, q, [this, nextIndex] {
-        Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
-        auto roomChanges = updateStateFrom(allMembersJob->chunk());
-        // Replay member events that arrived after the point for which
-        // the full members list was requested.
-        if (!timeline.empty())
-            for (auto it = q->findInTimeline(nextIndex).base();
-                 it != syncEdge(); ++it)
-                if (is<RoomMemberEvent>(**it))
-                    roomChanges |= q->processStateEvent(**it);
-        postprocessChanges(roomChanges);
-        emit q->allMembersLoaded();
+QFuture<bool> Room::loadAllMembers()
+{
+    if (d->allMembersKnown())
+        return QtFuture::makeReadyValueFuture(true);
+
+    // Unless a job is already loading the members, start one
+    if (!isJobPending(d->allMembersJob)) {
+        // Invited members are needed as well, e.g. to share room keys with them
+        d->allMembersJob = connection()->callApi<GetMembersByRoomJob>(
+            id(), connection()->nextBatchToken(), QString(), "leave"_L1);
+        d->membersChangedDuringMembersJob.clear();
+        connect(d->allMembersJob, &BaseJob::success, this, [this] {
+            // The response has the members as of the moment the job started; membership changes
+            // that came with syncs since then (see updateData()) are newer, so keep those
+            auto events = d->allMembersJob->chunk();
+            std::erase_if(events, [this](const auto& event) {
+                return d->membersChangedDuringMembersJob.contains(event->stateKey());
+            });
+            d->membersChangedDuringMembersJob.clear();
+            d->postprocessChanges(d->updateStateFrom(std::move(events)));
+            emit allMembersLoaded();
+        });
+    }
+
+    // Callers may also wait for a job that someone else started
+    auto promise = std::make_shared<QPromise<bool>>();
+    promise->start();
+    auto* const context = new QObject(this);
+    connect(this, &Room::allMembersLoaded, context, [promise, context] {
+        promise->addResult(true);
+        promise->finish();
+        context->deleteLater();
     });
+    connect(d->allMembersJob, &BaseJob::failure, context, [promise, context] {
+        promise->addResult(false);
+        promise->finish();
+        context->deleteLater();
+    });
+    return promise->future();
 }
 
 bool Room::displayed() const { return d->displayed; }
@@ -1073,7 +1110,7 @@ void Room::setDisplayed(bool displayed)
     d->displayed = displayed;
     emit displayedChanged(displayed);
     if (displayed)
-        d->getAllMembers();
+        loadAllMembers();
 }
 
 QString Room::firstDisplayedEventId() const { return d->firstDisplayedEventId; }
@@ -1511,27 +1548,56 @@ int Room::powerLevelFor(const QString& eventTypeId, bool forceStateEvent) const
                                                         : ple->powerLevelForEvent(eventTypeId);
 }
 
-RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
+std::expected<RoomEventPtr, DecryptionFailure> Room::Private::decrypt(
+    const EncryptedEvent& encryptedEvent)
 {
     if (const auto algorithm = encryptedEvent.algorithm();
         !isSupportedAlgorithm(algorithm)) //
     {
         qWarning(E2EE) << "Algorithm" << algorithm << "of encrypted event"
                        << encryptedEvent.id() << "is not supported";
-        return {};
+        return std::unexpected(DecryptionFailure::Other);
     }
 
-    auto decrypted = connection()->decryptRoomEvent(this, QJsonDocument(encryptedEvent.fullJson()).toJson());
-    if (decrypted.isEmpty()) {
-        return {};
-    }
-    if (auto decryptedEvent = encryptedEvent.createDecrypted(decrypted);
-        decryptedEvent->roomId() == id()) {
+    const auto decrypted =
+        connection->decryptRoomEvent(q, QJsonDocument(encryptedEvent.fullJson()).toJson());
+    if (!decrypted)
+        return std::unexpected(decrypted.error());
+    if (auto decryptedEvent = encryptedEvent.createDecrypted(*decrypted);
+        decryptedEvent->roomId() == id) {
+        if (decryptedEvent->isStateEvent()) {
+            qCWarning(E2EE) << "Decrypted event claims to be a state event, rejecting";
+            return std::unexpected(DecryptionFailure::Other);
+        }
+        if (is<RedactionEvent>(*decryptedEvent)) {
+            qCWarning(E2EE) << "Decrypted event claims to be a redaction, rejecting";
+            return std::unexpected(DecryptionFailure::Other);
+        }
         return decryptedEvent;
     }
     qWarning(E2EE) << "Decrypted event" << encryptedEvent.id()
                    << "not for this room; discarding";
-    return {};
+    return std::unexpected(DecryptionFailure::Other);
+}
+
+RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
+{
+    auto result = d->decrypt(encryptedEvent);
+    const auto newFailure = result ? DecryptionFailure::None : result.error();
+    const auto oldFailure = d->decryptionFailures.value(encryptedEvent.id(), DecryptionFailure::None);
+    if (newFailure == DecryptionFailure::None)
+        d->decryptionFailures.remove(encryptedEvent.id());
+    else
+        d->decryptionFailures.insert(encryptedEvent.id(), newFailure);
+    // Not on the first failure: nobody has seen a reason for the event yet
+    if (oldFailure != DecryptionFailure::None && oldFailure != newFailure)
+        emit decryptionFailureChanged(encryptedEvent.id());
+    return result ? std::move(*result) : nullptr;
+}
+
+DecryptionFailure Room::decryptionFailure(const QString& eventId) const
+{
+    return d->decryptionFailures.value(eventId, DecryptionFailure::None);
 }
 
 int Room::joinedCount() const
@@ -1789,6 +1855,19 @@ void Room::updateData(SyncRoomData&& data, bool fromCache)
         *d->prevBatch = data.timelinePrevBatch;
     setJoinState(data.joinState);
 
+    // While the full member list is loading, membership changes coming with syncs are newer than
+    // what the member list will have; remember them so that it doesn't override them
+    if (isJobPending(d->allMembersJob)) {
+        const auto rememberMember = [this](const RoomEvent& event) {
+            if (is<RoomMemberEvent>(event))
+                d->membersChangedDuringMembersJob.insert(event.stateKey());
+        };
+        for (const auto& event : data.state)
+            rememberMember(*event);
+        for (const auto& event : data.timeline)
+            rememberMember(*event);
+    }
+
     Changes roomChanges {};
     // The order of calculation is important - don't merge the lines!
     roomChanges |= d->updateStateFrom(std::move(data.state));
@@ -1908,23 +1987,34 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
         auto type = eventItem->matrixType();
         auto contentJson = eventItem->contentJson();
 
-        connection->shareRoomKey(q, [this, txnId, type, contentJson, &eventItem]() {
+        connection->shareRoomKey(q, [this, txnId, type, contentJson]() {
             auto eventItemIter = q->findPendingEvent(txnId);
-            const RoomEvent* _event = eventItemIter->event();
+            if (eventItemIter == unsyncedEvents.end()) {
+                qCDebug(EVENTS) << "Pending event for transaction" << txnId
+                                << "was discarded while sharing the room key, not sending it";
+                return;
+            }
             std::unique_ptr<EncryptedEvent> encryptedEvent;
-            auto content = QJsonDocument::fromJson(connection->encryptRoomEvent(q, QJsonDocument(contentJson).toJson(), type).toUtf8()).object();
+            const auto encrypted = connection->encryptRoomEvent(q, QJsonDocument(contentJson).toJson(), type);
+            if (encrypted.isEmpty()) {
+                // Sending would only produce an event nobody can decrypt
+                qCWarning(E2EE) << "Failed to encrypt the event for transaction" << txnId;
+                eventItemIter->setSendingFailed(tr("Could not encrypt this message"));
+                emit q->pendingEventChanged(int(eventItemIter - unsyncedEvents.begin()));
+                return;
+            }
+            auto content = QJsonDocument::fromJson(encrypted.toUtf8()).object();
             encryptedEvent = makeEvent<EncryptedEvent>(content[u"ciphertext"_s].toString().toUtf8(), content[u"sender_key"_s].toString(), content[u"device_id"_s].toString(), content[u"session_id"_s].toString());
             encryptedEvent->setTransactionId(connection->generateTxnId());
             encryptedEvent->setRoomId(id);
             encryptedEvent->setSender(connection->userId());
             if (contentJson.contains(RelatesToKey)) {
-                encryptedEvent->applyRelationFrom(*eventItem);
+                encryptedEvent->applyRelationFrom(*eventItemIter->event());
             }
             // We show the unencrypted event locally while pending. The echo
             // check will throw the encrypted version out
-            _event = encryptedEvent.get();
-            if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id, _event->matrixType(),
-                                                                txnId, _event->contentJson())) {
+            if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id, encryptedEvent->matrixType(),
+                                                                txnId, encryptedEvent->contentJson())) {
                 // Below - find pending events by txnIds again because PendingEventItems may move around
                 // as unsyncedEvents vector grows.
                 Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
@@ -1953,6 +2043,12 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
                 });
             } else
                 onEventSendingFailure(eventItemIter);
+        }, [this, txnId] {
+            // The event may have been discarded while the key was being shared
+            if (const auto it = q->findPendingEvent(txnId); it != unsyncedEvents.end()) {
+                it->setSendingFailed(tr("Could not share the encryption key for this message"));
+                emit q->pendingEventChanged(int(it - unsyncedEvents.begin()));
+            }
         });
     } else {
         if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id, eventItem->matrixType(),
@@ -2491,8 +2587,6 @@ void Room::Private::decryptIncomingEvents(RoomEvents& events)
 {
     if (!connection->encryptionEnabled())
         return;
-    if (!q->usesEncryption())
-        return; // If the room doesn't use encryption now, it never did
 
     QElapsedTimer et;
     et.start();
