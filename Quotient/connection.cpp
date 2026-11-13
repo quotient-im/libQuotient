@@ -2310,6 +2310,24 @@ QString Connection::decryptRoomEvent(Room* room, const QByteArray& event)
 
     auto result = (*d->cryptoMachine)->decrypt_room_event(stringToRust(room->id()), bytesToRust(event));
     if (result->has_error()) {
+        const auto eventId = QJsonDocument::fromJson(event)["event_id"_L1].toString();
+        const auto error = stringFromRust(result->error_string());
+        switch (result->error_kind()) {
+        case DecryptionErrorKind::MissingKey:
+            qCWarning(E2EE) << "No key (yet) to decrypt" << eventId << "in" << room->id();
+            break;
+        case DecryptionErrorKind::Withheld:
+            qCWarning(E2EE).noquote() << "The key to decrypt" << eventId << "in" << room->id()
+                                      << "was withheld:" << error;
+            break;
+        case DecryptionErrorKind::UnknownMessageIndex:
+            qCWarning(E2EE).noquote() << "The key to decrypt" << eventId << "in" << room->id()
+                                      << "is only known from a later message on:" << error;
+            break;
+        default:
+            qCWarning(E2EE).noquote() << "Failed to decrypt" << eventId << "in" << room->id()
+                                      << "-" << error;
+        }
         return {};
     }
     return stringFromRust(result->value());

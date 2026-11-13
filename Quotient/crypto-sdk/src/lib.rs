@@ -25,6 +25,7 @@ use cryptomachine::KeyVerificationRequestResult;
 use cryptomachine::MissingSessionsResult;
 use cryptomachine::OutgoingKeyVerificationRequestResult;
 use cryptomachine::OutgoingRequestResult;
+use cryptomachine::RoomDecryptionResult;
 use cryptomachine::StringResult;
 use cryptomachine::SyncChanges;
 use cryptomachine::SyncChangesResult;
@@ -144,6 +145,18 @@ mod ffi {
         DatabaseError,
     }
 
+    /// Why a room event could not be decrypted
+    enum DecryptionErrorKind {
+        NoError,
+        /// The key has not been received (yet)
+        MissingKey,
+        /// The sender refused to share the key with this device (m.room_key.withheld)
+        Withheld,
+        /// The key is only known from a later message of the session on
+        UnknownMessageIndex,
+        Other,
+    }
+
     enum OutgoingRequestType {
         KeysUpload,
         KeysQuery,
@@ -184,6 +197,7 @@ mod ffi {
         type KeyVerificationRequestResult;
         type EncryptionInfoResult;
         type DecryptResult;
+        type RoomDecryptionResult;
 
         // General CryptoMachine functions
         fn init(
@@ -239,7 +253,7 @@ mod ffi {
             self: &mut CryptoMachine,
             room_id: String,
             json: String,
-        ) -> Box<StringResult>;
+        ) -> Box<RoomDecryptionResult>;
         fn update_tracked_users(self: &mut CryptoMachine, user_ids: Vec<String>);
         fn request_device_verification(
             self: &mut CryptoMachine,
@@ -507,6 +521,11 @@ mod ffi {
         fn has_error(self: &DecryptResult) -> bool;
         fn error_string(self: &DecryptResult) -> String;
         fn value(self: &DecryptResult) -> Vec<u8>;
+
+        fn has_error(self: &RoomDecryptionResult) -> bool;
+        fn error_kind(self: &RoomDecryptionResult) -> DecryptionErrorKind;
+        fn error_string(self: &RoomDecryptionResult) -> String;
+        fn value(self: &RoomDecryptionResult) -> String;
 
         fn import_olm_sessions(
             self: &CryptoMachine,
