@@ -99,6 +99,9 @@ public:
     }
 
     bool isHandlingOutgoing = false;
+    std::vector<std::shared_ptr<QPromise<bool>>> outgoingRequestsWaiters;
+    //! Whether the outgoing requests loop should do another round even after a failure
+    bool outgoingRerunRequested = false;
     //! Ids of RoomMessage requests posted to a room but not yet confirmed by the server
     QSet<QString> roomMessageRequestsInFlight;
 
@@ -209,7 +212,11 @@ public:
     void shareKeyWithMembers(Room* room, std::function<void()> then,
                              std::function<void()> onFailure);
     JobHandle<QueryKeysJob> startKeysQuery(const crypto::OutgoingRequest& request);
-    QFuture<void> queryOutdatedKeys();
+    //! \brief Run the outgoing requests loop until it stops
+    //!
+    //! The future yields false if a key query failed or couldn't be processed, true otherwise.
+    QFuture<bool> whenOutgoingRequestsDone();
+    void finishOutgoingRequestsWaiters(bool keysQueriesSucceeded);
     void startKeyShare();
 
     QString databaseDir() const;

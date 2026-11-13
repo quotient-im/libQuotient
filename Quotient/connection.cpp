@@ -773,22 +773,29 @@ void Connection::processSyncData(SyncData&& data, bool fromCache)
 void Connection::Private::processOutgoingRequests()
 {
     if (!cryptoMachine) {
+        finishOutgoingRequestsWaiters(false);
         return;
     }
 
     if (isHandlingOutgoing) {
         return;
     }
+    // This round picks up whatever made a waiter ask for another one
+    outgoingRerunRequested = false;
     const auto requestsResult = (*cryptoMachine)->outgoing_requests();
     if (requestsResult->has_error()) {
+        finishOutgoingRequestsWaiters(false);
         return;
     }
     const auto requests = requestsResult->value();
     if (requests.empty()) {
+        finishOutgoingRequestsWaiters(true);
         return;
     }
     QList<QFuture<void>> futures;
     const auto anyFailed = std::make_shared<bool>(false);
+    // Tracked separately, see whenOutgoingRequestsDone()
+    const auto keysQueryFailed = std::make_shared<bool>(false);
     const auto onFailure = [anyFailed](const auto& job) {
         qCWarning(E2EE) << "Outgoing crypto request" << job << "failed:" << job->errorString();
         *anyFailed = true;
@@ -817,11 +824,18 @@ void Connection::Private::processOutgoingRequests()
             }
             case OutgoingRequestType::KeysQuery: {
                 futures.append(QFuture<void>(
-                    startKeysQuery(request).then([id, this, checkMarked](const auto& job) {
+                    startKeysQuery(request).then([id, this, checkMarked, keysQueryFailed](const auto& job) {
                     emit q->finishedQueryingKeys();
-                    checkMarked((*cryptoMachine)
-                        ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
-                }, onFailure)));
+                    const auto marked =
+                        (*cryptoMachine)
+                            ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                    checkMarked(marked);
+                    if (!marked)
+                        *keysQueryFailed = true;
+                }, [onFailure, keysQueryFailed](const auto& job) {
+                    onFailure(job);
+                    *keysQueryFailed = true;
+                })));
                 break;
             }
             case OutgoingRequestType::KeysClaim: {
@@ -874,10 +888,13 @@ void Connection::Private::processOutgoingRequests()
                     qCWarning(E2EE) << "Room" << roomId << "not found, postponing request" << id;
                     break;
                 }
-                futures.append(sendRoomMessageRequest(
+                // Not waited for: in an encrypted room, sending it involves sharing the room key,
+                // which waits for this loop to stop (see whenOutgoingRequestsDone()). Posting it
+                // again is prevented by roomMessageRequestsInFlight anyway.
+                sendRoomMessageRequest(
                     room, id,
                     loadEvent<RoomEvent>(stringFromRust(request.room_msg_matrix_type()),
-                                         jsonFromRust(request.room_msg_content()))));
+                                         jsonFromRust(request.room_msg_content())));
                 break;
             }
         }
@@ -886,23 +903,50 @@ void Connection::Private::processOutgoingRequests()
     // With nothing to wait for (all requests postponed or in flight), don't loop: whenAll() would
     // return a finished future and the continuation below would run right away, retrying the same
     // requests over and over. The next sync calls processOutgoingRequests() again anyway.
-    if (futures.isEmpty())
+    if (futures.isEmpty()) {
+        finishOutgoingRequestsWaiters(true);
         return;
+    }
 
     // Set before attaching the continuation, which resets it
     isHandlingOutgoing = true;
-    QtFuture::whenAll(futures.begin(), futures.end()).then([this, anyFailed](const auto &) {
+    QtFuture::whenAll(futures.begin(), futures.end()).then([this, anyFailed, keysQueryFailed](const auto &) {
         isHandlingOutgoing = false;
         if (isBeingDestructed) {
             return;
         }
         // The crypto machine returns failed requests again; running the loop right away would
         // resend them over and over without delay if they keep failing (e.g., with a 4xx error).
-        // Leave that to the next sync instead, which calls this function anyway.
-        if (*anyFailed)
+        // Leave that to the next sync instead, which calls this function anyway - unless
+        // a waiter came in during this round, whose requests (e.g. key queries for newly
+        // tracked users) haven't been sent yet.
+        if (*anyFailed && !outgoingRerunRequested) {
+            finishOutgoingRequestsWaiters(!*keysQueryFailed);
             return;
+        }
         processOutgoingRequests();
     });
+}
+
+QFuture<bool> Connection::Private::whenOutgoingRequestsDone()
+{
+    auto promise = std::make_shared<QPromise<bool>>();
+    promise->start();
+    auto future = promise->future();
+    outgoingRequestsWaiters.push_back(std::move(promise));
+    // A round that is running already got its requests before this was called
+    if (isHandlingOutgoing)
+        outgoingRerunRequested = true;
+    processOutgoingRequests(); // Starts the loop, unless it's running already
+    return future;
+}
+
+void Connection::Private::finishOutgoingRequestsWaiters(bool keysQueriesSucceeded)
+{
+    for (const auto& promise : std::exchange(outgoingRequestsWaiters, {})) {
+        promise->addResult(keysQueriesSucceeded);
+        promise->finish();
+    }
 }
 
 QFuture<void> Connection::Private::sendRoomMessageRequest(Room* room, const QString& requestId,
@@ -2217,26 +2261,6 @@ JobHandle<QueryKeysJob> Connection::Private::startKeysQuery(const crypto::Outgoi
         timeout > 0 ? timeout : std::optional<int>());
 }
 
-QFuture<void> Connection::Private::queryOutdatedKeys()
-{
-    const auto requestsResult = (*cryptoMachine)->outgoing_requests();
-    if (requestsResult->has_error())
-        return QtFuture::makeReadyVoidFuture();
-    QList<QFuture<void>> futures;
-    for (const auto& request : requestsResult->value()) {
-        if (request.request_type() != OutgoingRequestType::KeysQuery)
-            continue; // The outgoing requests loop takes care of the rest
-        const auto id = stringFromRust(request.id());
-        futures.append(QFuture<void>(startKeysQuery(request).then([this, id](const auto& job) {
-            emit q->finishedQueryingKeys();
-            (*cryptoMachine)->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-        })));
-    }
-    if (futures.isEmpty())
-        return QtFuture::makeReadyVoidFuture();
-    return QtFuture::whenAll(futures.begin(), futures.end()).then([](const auto&) {});
-}
-
 void Connection::Private::shareKeyWithMembers(Room* room, std::function<void()> then,
                                               std::function<void()> onFailure)
 {
@@ -2299,8 +2323,18 @@ void Connection::Private::shareKeyWithMembers(Room* room, std::function<void()> 
     };
 
     (*cryptoMachine)->update_tracked_users(ids);
-    queryOutdatedKeys().then(q, [this, room = QPointer(room), ids, then, onFailure, sendKeys] {
+    // Only the loop may request key queries: the crypto machine only counts the latest batch
+    whenOutgoingRequestsDone().then(q, [this, room = QPointer(room), ids, then, onFailure,
+                                        sendKeys](const bool keysQueried) {
         if (!room) {
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        if (!keysQueried) {
+            // get_missing_sessions() would block for its whole timeout, waiting for the queries
+            qCWarning(E2EE) << "Could not get the devices of the members of" << room->id()
+                            << "to share the room key with";
+            onFailure();
             Q_EMIT q->shareRoomKeyDone();
             return;
         }
