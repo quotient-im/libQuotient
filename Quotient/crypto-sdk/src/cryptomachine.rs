@@ -17,7 +17,8 @@ use matrix_sdk_common::{
     deserialized_responses::ProcessedToDeviceEvent,
     ruma::{
         DeviceId, DeviceKeyAlgorithm, DeviceKeyId, EventId, OneTimeKeyAlgorithm, OwnedDeviceId,
-        OwnedTransactionId, OwnedUserId, RoomId, SecondsSinceUnixEpoch, UInt, UserId,
+        OwnedOneTimeKeyId, OwnedTransactionId, OwnedUserId, RoomId, SecondsSinceUnixEpoch, UInt,
+        UserId,
         api::client::{
             backup::{RoomKeyBackup, add_backup_keys},
             keys::{
@@ -29,7 +30,7 @@ use matrix_sdk_common::{
             sync::sync_events::DeviceLists,
             to_device,
         },
-        encryption::{CrossSigningKey, DeviceKeys},
+        encryption::{CrossSigningKey, DeviceKeys, OneTimeKey},
         events::room::history_visibility::HistoryVisibility,
         events::{
             AnyToDeviceEvent,
@@ -626,13 +627,42 @@ impl CryptoMachine {
 
     pub(crate) fn mark_keys_claim_as_sent(&mut self, response: String, request_id: String) {
         let result: Result<(), Box<dyn Error>> = self.runtime.block_on(async {
+            // The keys come from the homeservers of the claimed users, i.e. potentially any server
+            // in a room, and the user's homeserver passes them on without checking the key ids.
+            // So don't parse them as OneTimeKeys: a single malformed entry would discard the
+            // keys for every other device as well; drop just that entry instead.
             #[derive(Deserialize)]
             struct Response {
                 failures: Option<BTreeMap<String, Value>>,
-                one_time_keys: Option<BTreeMap<OwnedUserId, OneTimeKeys>>,
+                one_time_keys:
+                    Option<BTreeMap<String, BTreeMap<OwnedDeviceId, BTreeMap<String, Raw<OneTimeKey>>>>>,
             }
             let r = serde_json::from_str::<Response>(response.as_str())?;
-            let mut request = claim_keys::v3::Response::new(r.one_time_keys.unwrap_or_default());
+            let mut one_time_keys = BTreeMap::<OwnedUserId, OneTimeKeys>::new();
+            for (user_id, devices) in r.one_time_keys.unwrap_or_default() {
+                let Ok(user_id) = UserId::parse(&user_id) else {
+                    error!("Ignoring claimed keys for invalid user id {:?}", user_id);
+                    continue;
+                };
+                for (device_id, keys) in devices {
+                    let keys: BTreeMap<_, _> = keys
+                        .into_iter()
+                        .filter_map(|(key_id, key)| match OwnedOneTimeKeyId::try_from(key_id.as_str()) {
+                            Ok(key_id) => Some((key_id, key)),
+                            Err(err) => {
+                                error!("Ignoring claimed key {:?} of {} {}: {}", key_id, user_id, device_id, err);
+                                None
+                            }
+                        })
+                        .collect();
+                    // A device without usable keys is left out, as if the server hadn't
+                    // returned it; the crypto machine then handles it as a failed claim
+                    if !keys.is_empty() {
+                        one_time_keys.entry(user_id.clone()).or_default().insert(device_id, keys);
+                    }
+                }
+            }
+            let mut request = claim_keys::v3::Response::new(one_time_keys);
             request.failures = r.failures.unwrap_or_default();
             crypto_machine!(self)
                 .mark_request_as_sent(
