@@ -2302,10 +2302,36 @@ QString Connection::encryptRoomEvent(Room* room, const QByteArray& content, cons
     return stringFromRust(result->value());
 }
 
-QString Connection::decryptRoomEvent(Room* room, const QByteArray& event)
+DecryptionFailure toDecryptionFailure(DecryptionErrorKind kind, const QString& withheldCode)
+{
+    switch (kind) {
+    case DecryptionErrorKind::MissingKey:
+        return DecryptionFailure::MissingKey;
+    case DecryptionErrorKind::UnknownMessageIndex:
+        return DecryptionFailure::UnknownMessageIndex;
+    case DecryptionErrorKind::Withheld: {
+        static const QHash<QString, DecryptionFailure> withheldCodes{
+            { u"m.unverified"_s, DecryptionFailure::WithheldUnverified },
+            { u"m.blacklisted"_s, DecryptionFailure::WithheldBlacklisted },
+            { u"m.unauthorised"_s, DecryptionFailure::WithheldUnauthorised },
+            { u"m.unavailable"_s, DecryptionFailure::WithheldUnavailable },
+            { u"m.no_olm"_s, DecryptionFailure::WithheldNoOlm },
+            { u"m.history_not_shared"_s, DecryptionFailure::WithheldHistoryNotShared },
+            { u"io.element.msc4268.history_not_shared"_s,
+              DecryptionFailure::WithheldHistoryNotShared },
+        };
+        return withheldCodes.value(withheldCode, DecryptionFailure::WithheldOther);
+    }
+    default:
+        return DecryptionFailure::Other;
+    }
+}
+
+std::expected<QString, DecryptionFailure> Connection::decryptRoomEvent(Room* room,
+                                                                       const QByteArray& event)
 {
     if (!d->cryptoMachine) {
-        return {};
+        return std::unexpected(DecryptionFailure::Other);
     }
 
     auto result = (*d->cryptoMachine)->decrypt_room_event(stringToRust(room->id()), bytesToRust(event));
@@ -2328,7 +2354,8 @@ QString Connection::decryptRoomEvent(Room* room, const QByteArray& event)
             qCWarning(E2EE).noquote() << "Failed to decrypt" << eventId << "in" << room->id()
                                       << "-" << error;
         }
-        return {};
+        return std::unexpected(
+            toDecryptionFailure(result->error_kind(), stringFromRust(result->withheld_code())));
     }
     return stringFromRust(result->value());
 }

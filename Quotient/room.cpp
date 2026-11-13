@@ -151,6 +151,8 @@ public:
     JobHandle<GetMembersByRoomJob> allMembersJob;
     //! Map from megolm sessionId to set of eventIds
     std::unordered_map<QString, QSet<QString>> undecryptedEvents;
+    //! Why the last attempt to decrypt an event failed, by event id
+    QHash<QString, DecryptionFailure> decryptionFailures;
 
     struct FileTransferPrivateInfo {
         FileTransferPrivateInfo() = default;
@@ -277,6 +279,7 @@ public:
      */
     void dropExtraneousEvents(RoomEvents& events) const;
     void decryptIncomingEvents(RoomEvents& events);
+    std::expected<RoomEventPtr, DecryptionFailure> decrypt(const EncryptedEvent& encryptedEvent);
 
     //! \brief update last receipt record for a given user
     //!
@@ -1511,35 +1514,52 @@ int Room::powerLevelFor(const QString& eventTypeId, bool forceStateEvent) const
                                                         : ple->powerLevelForEvent(eventTypeId);
 }
 
-RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
+std::expected<RoomEventPtr, DecryptionFailure> Room::Private::decrypt(
+    const EncryptedEvent& encryptedEvent)
 {
     if (const auto algorithm = encryptedEvent.algorithm();
         !isSupportedAlgorithm(algorithm)) //
     {
         qWarning(E2EE) << "Algorithm" << algorithm << "of encrypted event"
                        << encryptedEvent.id() << "is not supported";
-        return {};
+        return std::unexpected(DecryptionFailure::Other);
     }
 
-    auto decrypted = connection()->decryptRoomEvent(this, QJsonDocument(encryptedEvent.fullJson()).toJson());
-    if (decrypted.isEmpty()) {
-        return {};
-    }
-    if (auto decryptedEvent = encryptedEvent.createDecrypted(decrypted);
-        decryptedEvent->roomId() == id()) {
+    const auto decrypted =
+        connection->decryptRoomEvent(q, QJsonDocument(encryptedEvent.fullJson()).toJson());
+    if (!decrypted)
+        return std::unexpected(decrypted.error());
+    if (auto decryptedEvent = encryptedEvent.createDecrypted(*decrypted);
+        decryptedEvent->roomId() == id) {
         if (decryptedEvent->isStateEvent()) {
             qCWarning(E2EE) << "Decrypted event claims to be a state event, rejecting";
-            return {};
+            return std::unexpected(DecryptionFailure::Other);
         }
         if (is<RedactionEvent>(*decryptedEvent)) {
             qCWarning(E2EE) << "Decrypted event claims to be a redaction, rejecting";
-            return {};
+            return std::unexpected(DecryptionFailure::Other);
         }
         return decryptedEvent;
     }
     qWarning(E2EE) << "Decrypted event" << encryptedEvent.id()
                    << "not for this room; discarding";
-    return {};
+    return std::unexpected(DecryptionFailure::Other);
+}
+
+RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
+{
+    auto result = d->decrypt(encryptedEvent);
+    if (!result) {
+        d->decryptionFailures.insert(encryptedEvent.id(), result.error());
+        return {};
+    }
+    d->decryptionFailures.remove(encryptedEvent.id());
+    return std::move(*result);
+}
+
+DecryptionFailure Room::decryptionFailure(const QString& eventId) const
+{
+    return d->decryptionFailures.value(eventId, DecryptionFailure::None);
 }
 
 int Room::joinedCount() const

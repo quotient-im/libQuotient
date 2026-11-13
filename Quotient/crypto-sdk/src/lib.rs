@@ -524,6 +524,7 @@ mod ffi {
 
         fn has_error(self: &RoomDecryptionResult) -> bool;
         fn error_kind(self: &RoomDecryptionResult) -> DecryptionErrorKind;
+        fn withheld_code(self: &RoomDecryptionResult) -> String;
         fn error_string(self: &RoomDecryptionResult) -> String;
         fn value(self: &RoomDecryptionResult) -> String;
 
