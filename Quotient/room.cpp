@@ -1527,6 +1527,14 @@ RoomEventPtr Room::decryptMessage(const EncryptedEvent& encryptedEvent)
     }
     if (auto decryptedEvent = encryptedEvent.createDecrypted(decrypted);
         decryptedEvent->roomId() == id()) {
+        if (decryptedEvent->isStateEvent()) {
+            qCWarning(E2EE) << "Decrypted event claims to be a state event, rejecting";
+            return {};
+        }
+        if (is<RedactionEvent>(*decryptedEvent)) {
+            qCWarning(E2EE) << "Decrypted event claims to be a redaction, rejecting";
+            return {};
+        }
         return decryptedEvent;
     }
     qWarning(E2EE) << "Decrypted event" << encryptedEvent.id()
