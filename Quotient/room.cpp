@@ -1940,9 +1940,13 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
         auto type = eventItem->matrixType();
         auto contentJson = eventItem->contentJson();
 
-        connection->shareRoomKey(q, [this, txnId, type, contentJson, &eventItem]() {
+        connection->shareRoomKey(q, [this, txnId, type, contentJson]() {
             auto eventItemIter = q->findPendingEvent(txnId);
-            const RoomEvent* _event = eventItemIter->event();
+            if (eventItemIter == unsyncedEvents.end()) {
+                qCDebug(EVENTS) << "Pending event for transaction" << txnId
+                                << "was discarded while sharing the room key, not sending it";
+                return;
+            }
             std::unique_ptr<EncryptedEvent> encryptedEvent;
             auto content = QJsonDocument::fromJson(connection->encryptRoomEvent(q, QJsonDocument(contentJson).toJson(), type).toUtf8()).object();
             encryptedEvent = makeEvent<EncryptedEvent>(content[u"ciphertext"_s].toString().toUtf8(), content[u"sender_key"_s].toString(), content[u"device_id"_s].toString(), content[u"session_id"_s].toString());
@@ -1950,13 +1954,12 @@ const PendingEventItem& Room::Private::doSendEvent(PendingEvents::iterator event
             encryptedEvent->setRoomId(id);
             encryptedEvent->setSender(connection->userId());
             if (contentJson.contains(RelatesToKey)) {
-                encryptedEvent->applyRelationFrom(*eventItem);
+                encryptedEvent->applyRelationFrom(*eventItemIter->event());
             }
             // We show the unencrypted event locally while pending. The echo
             // check will throw the encrypted version out
-            _event = encryptedEvent.get();
-            if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id, _event->matrixType(),
-                                                                txnId, _event->contentJson())) {
+            if (auto call = connection->callApi<SendMessageJob>(BackgroundRequest, id, encryptedEvent->matrixType(),
+                                                                txnId, encryptedEvent->contentJson())) {
                 // Below - find pending events by txnIds again because PendingEventItems may move around
                 // as unsyncedEvents vector grows.
                 Room::connect(call, &BaseJob::sentRequest, q, [this, txnId] {
