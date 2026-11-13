@@ -629,6 +629,8 @@ void Connection::sync(int timeout)
         } else
             emit syncError(job->errorString(), job->rawDataSample());
     });
+    d->syncJob->setRawResponseProcessor(
+        [this](const QByteArray& rawData) { return d->processSyncCryptoData(rawData); });
     connect(d->syncJob, &SyncJob::retryScheduled, this,
             [this](int retriesTaken, int nextInMilliseconds) {
         d->lastSyncSuccessful = false;
@@ -665,13 +667,28 @@ void Connection::syncLoopIteration()
         qCInfo(MAIN) << "Logged out, sync loop will stop now";
 }
 
+bool Connection::Private::processSyncCryptoData(const QByteArray& rawData)
+{
+    if (!cryptoMachine)
+        return true;
+    auto result = (*cryptoMachine)->receive_sync_changes(bytesToRust(rawData));
+    if (result->has_error()) {
+        // The to-device events may carry room keys, which the server deletes once a sync uses
+        // the new token; the sync job retries with the old one so that they come again
+        qCCritical(E2EE).noquote() << "Failed to process the encryption data of the sync response:"
+                                   << stringFromRust(result->error_string());
+        return false;
+    }
+    syncChanges = result->value();
+    return true;
+}
+
 void Connection::onSyncSuccess(SyncJob *syncJob)
 {
     if (d->cryptoMachine) {
-        auto syncChangesResult =
-            (*d->cryptoMachine)->receive_sync_changes(bytesToRust(syncJob->rawData()));
-        if (!syncChangesResult->has_error()) {
-            auto syncChanges = syncChangesResult->value();
+        if (d->syncChanges) {
+            const auto syncChanges = std::move(*d->syncChanges);
+            d->syncChanges.reset();
 
             if (syncChanges->secrets_received()) {
                 emit backupFinished(BackupResult::Success);

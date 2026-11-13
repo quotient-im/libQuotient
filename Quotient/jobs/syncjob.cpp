@@ -36,8 +36,18 @@ SyncJob::SyncJob(const QString& since, const Filter& filter, int timeout,
               timeout, presence)
 {}
 
+void SyncJob::setRawResponseProcessor(std::function<bool(const QByteArray&)> processor)
+{
+    rawResponseProcessor = std::move(processor);
+}
+
 BaseJob::Status SyncJob::prepareResult()
 {
+    // This has to come before parsing: parseJson() adds to the data parsed so far, which
+    // would duplicate the rooms from the first attempt when the request is retried
+    if (rawResponseProcessor && !rawResponseProcessor(rawData()))
+        return { IncorrectResponse, tr("Could not process the end-to-end encryption data") };
+
     d.parseJson(jsonData());
     if (Q_LIKELY(d.unresolvedRooms().isEmpty()))
         return Success;

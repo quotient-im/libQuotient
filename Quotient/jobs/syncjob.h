@@ -7,6 +7,8 @@
 #include "../syncdata.h"
 #include "basejob.h"
 
+#include <functional>
+
 namespace Quotient {
 class QUOTIENT_API SyncJob : public BaseJob {
 public:
@@ -21,10 +23,19 @@ public:
 
     SyncData takeData() { return std::move(d); }
 
+    //! \brief Set a function to process the raw response before it gets parsed
+    //!
+    //! If \p processor returns false, the job ends with IncorrectResponse without parsing
+    //! the response, so that it is retried with the same `since` token. This ensures that
+    //! a response is not acknowledged to the server (by using its `next_batch` token) before
+    //! its end-to-end encryption data have been processed.
+    void setRawResponseProcessor(std::function<bool(const QByteArray&)> processor);
+
 protected:
     Status prepareResult() override;
 
 private:
     SyncData d;
+    std::function<bool(const QByteArray&)> rawResponseProcessor;
 };
 } // namespace Quotient
