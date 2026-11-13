@@ -816,12 +816,8 @@ void Connection::Private::processOutgoingRequests()
                 break;
             }
             case OutgoingRequestType::KeysQuery: {
-                const auto timeout = request.keys_query_timeout();
                 futures.append(QFuture<void>(
-                    q->callApi<QueryKeysJob>(fromRustJson<QHash<UserId, QStringList>>(
-                                                 request.keys_query_device_keys()),
-                                             timeout > 0 ? timeout : std::optional<int>())
-                        .then([id, this, checkMarked](const auto& job) {
+                    startKeysQuery(request).then([id, this, checkMarked](const auto& job) {
                     emit q->finishedQueryingKeys();
                     checkMarked((*cryptoMachine)
                         ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
@@ -2195,6 +2191,55 @@ bool Connection::allSessionsSelfVerified(const QString& userId) const
 void Connection::Private::runShareKey(Room* room, std::function<void()> then,
                                       std::function<void()> onFailure)
 {
+    room->loadAllMembers().then(q, [this, room = QPointer(room), then, onFailure](const bool loaded) {
+        if (!room) {
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        if (!loaded) {
+            qCWarning(E2EE) << "Could not load the members of" << room->id()
+                            << "to share the room key with";
+            onFailure();
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        shareKeyWithMembers(room, then, onFailure);
+    }).onCanceled(q, [this] {
+        Q_EMIT q->shareRoomKeyDone();
+    });
+}
+
+JobHandle<QueryKeysJob> Connection::Private::startKeysQuery(const crypto::OutgoingRequest& request)
+{
+    const auto timeout = request.keys_query_timeout();
+    return q->callApi<QueryKeysJob>(
+        fromRustJson<QHash<UserId, QStringList>>(request.keys_query_device_keys()),
+        timeout > 0 ? timeout : std::optional<int>());
+}
+
+QFuture<void> Connection::Private::queryOutdatedKeys()
+{
+    const auto requestsResult = (*cryptoMachine)->outgoing_requests();
+    if (requestsResult->has_error())
+        return QtFuture::makeReadyVoidFuture();
+    QList<QFuture<void>> futures;
+    for (const auto& request : requestsResult->value()) {
+        if (request.request_type() != OutgoingRequestType::KeysQuery)
+            continue; // The outgoing requests loop takes care of the rest
+        const auto id = stringFromRust(request.id());
+        futures.append(QFuture<void>(startKeysQuery(request).then([this, id](const auto& job) {
+            emit q->finishedQueryingKeys();
+            (*cryptoMachine)->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+        })));
+    }
+    if (futures.isEmpty())
+        return QtFuture::makeReadyVoidFuture();
+    return QtFuture::whenAll(futures.begin(), futures.end()).then([](const auto&) {});
+}
+
+void Connection::Private::shareKeyWithMembers(Room* room, std::function<void()> then,
+                                              std::function<void()> onFailure)
+{
     // The values the bridge expects: 0 = invited, 1 = joined, 2 = shared, 3 = world_readable.
     // Without a (known) history visibility, "shared" applies, as per the spec.
     auto historyVisibilityEvent = room->currentState().get("m.room.history_visibility"_L1);
@@ -2253,29 +2298,36 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then,
         });
     };
 
-    auto missingResult = (*cryptoMachine)->get_missing_sessions(ids);
-    if (missingResult->has_error()) {
-        onFailure();
-        Q_EMIT q->shareRoomKeyDone();
-        return;
-    }
-    if (!missingResult->has_request()) {
-        sendKeys();
-        return;
-    }
-    auto missing = missingResult->request();
-    auto missingId = missing->id();
-    q->callApi<ClaimKeysJob>(
-         fromRustJson<QHash<UserId, QHash<QString, QString>>>(missing->one_time_keys()))
-        .then([this, missingId, sendKeys](const auto& claimJob) {
-        (*cryptoMachine)->mark_keys_claim_as_sent(bytesToRust(claimJob->rawData()), missingId);
-        sendKeys();
-    }, [this, onFailure](const auto& claimJob) {
-        // Without the claimed keys, devices that have no Olm session yet wouldn't get the room
-        // key; fail rather than send a message they couldn't decrypt
-        qCWarning(E2EE) << "Failed to claim one-time keys:" << claimJob->errorString();
-        onFailure();
-        Q_EMIT q->shareRoomKeyDone();
+    (*cryptoMachine)->update_tracked_users(ids);
+    queryOutdatedKeys().then(q, [this, room = QPointer(room), ids, then, onFailure, sendKeys] {
+        if (!room) {
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        auto missingResult = (*cryptoMachine)->get_missing_sessions(ids);
+        if (missingResult->has_error()) {
+            onFailure();
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        if (!missingResult->has_request()) {
+            sendKeys();
+            return;
+        }
+        auto missing = missingResult->request();
+        auto missingId = missing->id();
+        q->callApi<ClaimKeysJob>(
+             fromRustJson<QHash<UserId, QHash<QString, QString>>>(missing->one_time_keys()))
+            .then([this, missingId, sendKeys](const auto& claimJob) {
+            (*cryptoMachine)->mark_keys_claim_as_sent(bytesToRust(claimJob->rawData()), missingId);
+            sendKeys();
+        }, [this, onFailure](const auto& claimJob) {
+            // Without the claimed keys, devices that have no Olm session yet wouldn't get the room
+            // key; fail rather than send a message they couldn't decrypt
+            qCWarning(E2EE) << "Failed to claim one-time keys:" << claimJob->errorString();
+            onFailure();
+            Q_EMIT q->shareRoomKeyDone();
+        });
     });
 };
 

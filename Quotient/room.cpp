@@ -294,7 +294,8 @@ public:
     Changes updateStats(const rev_iter_t& from, const rev_iter_t& to);
     bool markMessagesAsRead(const rev_iter_t& upToMarker, bool sendPublicReceipts);
 
-    void getAllMembers();
+    //! Whether all joined and invited members are in the current state (see lazy loading)
+    bool allMembersKnown() const;
 
     const PendingEventItem& sendEvent(RoomEventPtr&& event);
 
@@ -1042,28 +1043,60 @@ const RoomTombstoneEvent* Room::tombstone() const
     return currentState().get<RoomTombstoneEvent>();
 }
 
-void Room::Private::getAllMembers()
+bool Room::Private::allMembersKnown() const
 {
-    // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= currentState.eventsOfType(RoomMemberEvent::TypeId).size() || isJobPending(allMembersJob))
-        return;
+    const auto expected = summary.joinedMemberCount.value_or(0)
+                          + summary.invitedMemberCount.value_or(0);
+    const auto known = std::ranges::count_if(currentState.eventsOfType(RoomMemberEvent::TypeId),
+                                             [](const auto* event) {
+                                                 const auto membership =
+                                                     eventCast<const RoomMemberEvent>(event)->membership();
+                                                 return membership == Membership::Join
+                                                        || membership == Membership::Invite;
+                                             });
+    return std::cmp_greater_equal(known, expected);
+}
 
-    allMembersJob = connection->callApi<GetMembersByRoomJob>(
-        id, connection->nextBatchToken(), "join"_L1);
-    auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
-    connect(allMembersJob, &BaseJob::success, q, [this, nextIndex] {
-        Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
-        auto roomChanges = updateStateFrom(allMembersJob->chunk());
-        // Replay member events that arrived after the point for which
-        // the full members list was requested.
-        if (!timeline.empty())
-            for (auto it = q->findInTimeline(nextIndex).base();
-                 it != syncEdge(); ++it)
-                if (is<RoomMemberEvent>(**it))
-                    roomChanges |= q->processStateEvent(**it);
-        postprocessChanges(roomChanges);
-        emit q->allMembersLoaded();
+QFuture<bool> Room::loadAllMembers()
+{
+    if (d->allMembersKnown())
+        return QtFuture::makeReadyValueFuture(true);
+
+    // Unless a job is already loading the members, start one
+    if (!isJobPending(d->allMembersJob)) {
+        // Invited members are needed as well, e.g. to share room keys with them
+        d->allMembersJob = connection()->callApi<GetMembersByRoomJob>(
+            id(), connection()->nextBatchToken(), QString(), "leave"_L1);
+        auto nextIndex = d->timeline.empty() ? 0 : d->timeline.back().index() + 1;
+        connect(d->allMembersJob, &BaseJob::success, this, [this, nextIndex] {
+            Q_ASSERT(d->timeline.empty() || nextIndex <= maxTimelineIndex() + 1);
+            auto roomChanges = d->updateStateFrom(d->allMembersJob->chunk());
+            // Replay member events that arrived after the point for which
+            // the full members list was requested.
+            if (!d->timeline.empty())
+                for (auto it = findInTimeline(nextIndex).base(); it != d->syncEdge(); ++it)
+                    if (is<RoomMemberEvent>(**it))
+                        roomChanges |= processStateEvent(**it);
+            d->postprocessChanges(roomChanges);
+            emit allMembersLoaded();
+        });
+    }
+
+    // Callers may also wait for a job that someone else started
+    auto promise = std::make_shared<QPromise<bool>>();
+    promise->start();
+    auto* const context = new QObject(this);
+    connect(this, &Room::allMembersLoaded, context, [promise, context] {
+        promise->addResult(true);
+        promise->finish();
+        context->deleteLater();
     });
+    connect(d->allMembersJob, &BaseJob::failure, context, [promise, context] {
+        promise->addResult(false);
+        promise->finish();
+        context->deleteLater();
+    });
+    return promise->future();
 }
 
 bool Room::displayed() const { return d->displayed; }
@@ -1076,7 +1109,7 @@ void Room::setDisplayed(bool displayed)
     d->displayed = displayed;
     emit displayedChanged(displayed);
     if (displayed)
-        d->getAllMembers();
+        loadAllMembers();
 }
 
 QString Room::firstDisplayedEventId() const { return d->firstDisplayedEventId; }

@@ -333,6 +333,13 @@ public:
     //! Get a list of all member Matrix IDs known to the room.
     QStringList memberIds() const;
 
+    //! \brief Make sure that all joined and invited members are known
+    //!
+    //! With lazy loading, the room only knows some of its members until the full list is loaded.
+    //! This loads it if needed; the future yields true once the list is complete (right away if
+    //! it already is), and false if loading failed.
+    QFuture<bool> loadAllMembers();
+
     //! \brief Get Matrix IDs for room creator(s)
     //!
     //! As long as the create event for the room is known, the returned list will start with

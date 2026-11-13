@@ -14,6 +14,7 @@
 
 #include "csapi/account-data.h"
 #include "csapi/capabilities.h"
+#include "csapi/keys.h"
 #include "csapi/logout.h"
 #include "csapi/versions.h"
 #include "csapi/wellknown.h"
@@ -205,6 +206,10 @@ public:
     QFuture<void> sendRoomMessageRequest(Room* room, const QString& requestId,
                                          RoomEventPtr event);
     void runShareKey(Room* room, std::function<void()> then, std::function<void()> onFailure);
+    void shareKeyWithMembers(Room* room, std::function<void()> then,
+                             std::function<void()> onFailure);
+    JobHandle<QueryKeysJob> startKeysQuery(const crypto::OutgoingRequest& request);
+    QFuture<void> queryOutdatedKeys();
     void startKeyShare();
 
     QString databaseDir() const;
