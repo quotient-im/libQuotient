@@ -2278,6 +2278,22 @@ JobHandle<GetRoomEventsJob> Room::Private::getPreviousContent(int limit, const Q
     eventsHistoryJob =
         connection->callApi<GetRoomEventsJob>(id, "b"_L1, *prevBatch, QString(), limit, filter);
     emit q->eventsHistoryJobChanged();
+    // Without a `from` token, the server paginates from its latest event. If a sync has set
+    // the token while the request was in flight, the response may contain events that are
+    // newer than the ones that sync delivered so far; adding them as historical events would
+    // put them at the wrong end of the timeline (and sync would then drop them as duplicates).
+    // So we cancel and paginate again with prevBatch value that sync just delivered.
+    if (prevBatch->isEmpty())
+        connect(q, &Room::aboutToAddNewMessages, eventsHistoryJob, [this, limit, filter] {
+            if (prevBatch && !prevBatch->isEmpty()) [[unlikely]] {
+                qCDebug(MESSAGES) << "Room" << q->objectName()
+                              << "got a sync while loading history from the latest event;"
+                                 " loading history again from"
+                              << *prevBatch;
+                eventsHistoryJob.cancel();
+                getPreviousContent(limit, filter);
+            }
+        });
     connect(eventsHistoryJob, &BaseJob::success, q, [this] {
         if (const auto newPrevBatch = eventsHistoryJob->end();
             !newPrevBatch.isEmpty() && *prevBatch != newPrevBatch) //
