@@ -931,7 +931,40 @@ impl CryptoMachine {
                         }
                         }
                     }
-                    _ => {}
+                    // These are not otherwise surfaced; if one of them carried a room key,
+                    // the messages of that session stay undecryptable without any hint why
+                    ProcessedToDeviceEvent::UnableToDecrypt {
+                        encrypted_event,
+                        utd_info,
+                    } => {
+                        error!(
+                            "Failed to decrypt a to-device event from {} (type {}): {:?}",
+                            encrypted_event
+                                .get_field::<String>("sender")
+                                .ok()
+                                .flatten()
+                                .unwrap_or_default(),
+                            encrypted_event
+                                .get_field::<String>("type")
+                                .ok()
+                                .flatten()
+                                .unwrap_or_default(),
+                            utd_info
+                        );
+                    }
+                    ProcessedToDeviceEvent::Invalid(raw) => {
+                        error!(
+                            "Ignored an invalid to-device event from {} (type {})",
+                            raw.get_field::<String>("sender")
+                                .ok()
+                                .flatten()
+                                .unwrap_or_default(),
+                            raw.get_field::<String>("type")
+                                .ok()
+                                .flatten()
+                                .unwrap_or_default()
+                        );
+                    }
                 }
             }
             Ok(Box::new(SyncChanges {
@@ -1089,6 +1122,7 @@ impl CryptoMachine {
         room_id: String,
         json: String,
     ) -> Box<RoomDecryptionResult> {
+        let room_id_for_log = room_id.clone();
         let result: Result<String, Box<dyn Error>> = self.runtime.block_on(async {
             let room_id = RoomId::parse(room_id)?;
             let event = crypto_machine!(self)
@@ -1102,6 +1136,9 @@ impl CryptoMachine {
                 .await?;
             Ok(serde_json::to_string(&event.event)?)
         });
+        if let Err(err) = &result {
+            log::debug!("Failed to decrypt a room event in {}: {}", room_id_for_log, err);
+        }
         Box::new(RoomDecryptionResult(result))
     }
 
@@ -2050,54 +2087,65 @@ impl CryptoMachine {
             );
             let mut sessions: Vec<olm::Session> = vec![];
             let pickle_key = Base64::<Standard>::parse(pickle_key.clone()).unwrap();
+            let total = sessions_data.len();
             let pickle_key = pickle_key.as_bytes();
             for session_data in sessions_data {
-                let Ok(session) = matrix_sdk_crypto::vodozemac::olm::Session::from_libolm_pickle(
+                let session = match matrix_sdk_crypto::vodozemac::olm::Session::from_libolm_pickle(
                     &session_data.libolm_pickle,
                     pickle_key,
-                ) else {
-                    continue;
+                ) {
+                    Ok(session) => session,
+                    Err(err) => {
+                        error!("Skipping legacy olm session: invalid pickle: {:?}", err);
+                        continue;
+                    }
                 };
                 sessions.push({
-                    let Ok(session) = olm::Session::from_pickle(
+                    let session = match olm::Session::from_pickle(
                         device_keys.clone(),
                         olm::PickledSession {
                             pickle: session.pickle(),
                             sender_key: {
-                                let Ok(key) =
-                                    Curve25519PublicKey::from_base64(&session_data.sender_key)
-                                else {
-                                    continue;
-                                };
-                                key
+                                match Curve25519PublicKey::from_base64(&session_data.sender_key) {
+                                    Ok(key) => key,
+                                    Err(err) => {
+                                        error!("Skipping legacy olm session: invalid sender key: {:?}", err);
+                                        continue;
+                                    }
+                                }
                             },
                             created_using_fallback_key: false,
                             creation_time: SecondsSinceUnixEpoch({
                                 let Some(secs) = UInt::new(session_data.creation_time) else {
+                                    error!("Skipping legacy olm session: invalid creation_time");
                                     continue;
                                 };
                                 secs
                             }),
                             last_use_time: SecondsSinceUnixEpoch({
                                 let Some(secs) = UInt::new(session_data.last_use_time) else {
+                                    error!("Skipping legacy olm session: invalid last_use_time");
                                     continue;
                                 };
                                 secs
                             }),
                         },
-                    ) else {
-                        continue;
+                    ) {
+                        Ok(session) => session,
+                        Err(err) => {
+                            error!("Skipping legacy olm session: could not restore it: {:?}", err);
+                            continue;
+                        }
                     };
                     session
                 });
             }
+            log::info!("Importing {} of {} legacy olm sessions", sessions.len(), total);
             let mut changes = Changes::default();
             changes.sessions = sessions;
-            crypto_machine!(self)
-                .store()
-                .save_changes(changes)
-                .await
-                .unwrap();
+            if let Err(err) = crypto_machine!(self).store().save_changes(changes).await {
+                error!("Failed to save imported legacy olm sessions: {:?}", err);
+            }
         });
     }
 
@@ -2108,32 +2156,42 @@ impl CryptoMachine {
     ) {
         self.runtime.block_on(async {
             let Ok(pickle_key) = Base64::<Standard>::parse(&pickle_key) else {
+                error!("Not importing legacy megolm sessions: invalid pickle key");
                 return;
             };
+            let total = session_data.len();
             let pickle_key = pickle_key.as_bytes();
             let mut sessions = vec![];
             for session_data in session_data {
-                let Ok(inbound) = InboundGroupSession::from_libolm_pickle(
+                let inbound = match InboundGroupSession::from_libolm_pickle(
                     &session_data.libolm_pickle,
                     pickle_key,
-                ) else {
-                    continue;
+                ) {
+                    Ok(inbound) => inbound,
+                    Err(err) => {
+                        error!("Skipping legacy megolm session: invalid pickle: {:?}", err);
+                        continue;
+                    }
                 };
                 sessions.push(ExportedRoomKey {
                     algorithm: EventEncryptionAlgorithm::MegolmV1AesSha2,
                     room_id: {
-                        let Ok(room_id) = RoomId::parse(session_data.room_id) else {
-                            continue;
-                        };
-                        room_id
+                        match RoomId::parse(&session_data.room_id) {
+                            Ok(room_id) => room_id,
+                            Err(err) => {
+                                error!("Skipping legacy megolm session: invalid room id {:?}: {:?}", session_data.room_id, err);
+                                continue;
+                            }
+                        }
                     },
                     sender_key: {
-                        let Ok(key) =
-                            Curve25519PublicKey::from_base64(&session_data.sender_curve_key)
-                        else {
-                            continue;
-                        };
-                        key
+                        match Curve25519PublicKey::from_base64(&session_data.sender_curve_key) {
+                            Ok(key) => key,
+                            Err(err) => {
+                                error!("Skipping legacy megolm session: invalid sender key: {:?}", err);
+                                continue;
+                            }
+                        }
                     },
                     session_id: inbound.session_id(),
                     session_key: inbound.export_at_first_known_index(),
@@ -2142,11 +2200,14 @@ impl CryptoMachine {
                     shared_history: false,
                 });
             }
-            crypto_machine!(self)
+            log::info!("Importing {} of {} legacy megolm sessions", sessions.len(), total);
+            if let Err(err) = crypto_machine!(self)
                 .store()
                 .import_exported_room_keys(sessions, |_, _| {})
                 .await
-                .unwrap();
+            {
+                error!("Failed to import legacy megolm sessions: {:?}", err);
+            }
         })
     }
 

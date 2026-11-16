@@ -4,7 +4,7 @@ use matrix_sdk_common::ruma::{DeviceId, UserId};
 use matrix_sdk_crypto::OlmMachine;
 use matrix_sdk_sqlite::SqliteCryptoStore;
 use std::{mem::ManuallyDrop, path::Path};
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use tracing_subscriber::{EnvFilter, filter::LevelFilter, fmt, prelude::*};
 
 mod cryptomachine;
 mod encryption_info;
@@ -39,11 +39,29 @@ fn init(
     path: String,
     pickle_key: String,
     account_pickle: String,
+    log_file: String,
 ) -> Box<CryptoMachine> {
+    // Everything up to debug level is also appended to a file (if one could be opened), independently of RUST_LOG
+    let file_layer = if log_file.is_empty() {
+        None
+    } else {
+        match std::fs::OpenOptions::new().create(true).append(true).open(&log_file) {
+            Ok(file) => Some(
+                fmt::layer()
+                    .with_writer(std::sync::Mutex::new(file))
+                    .with_ansi(false)
+                    .with_filter(LevelFilter::DEBUG),
+            ),
+            Err(err) => {
+                eprintln!("Failed to open log file {}: {}", log_file, err);
+                None
+            }
+        }
+    };
     // This will fail when initializing a second account, but that's ok
     let _ = tracing_subscriber::registry()
-        .with(fmt::layer())
-        .with(EnvFilter::from_default_env())
+        .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
+        .with(file_layer)
         .try_init();
     let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
     let _ = rt.enter();
@@ -206,6 +224,7 @@ mod ffi {
             path: String,
             pickle_key: String,
             account_pickle: String,
+            log_file: String,
         ) -> Box<CryptoMachine>;
         fn outgoing_requests(self: &CryptoMachine) -> Box<OutgoingRequestResult>;
         fn receive_sync_changes(
