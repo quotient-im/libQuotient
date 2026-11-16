@@ -42,6 +42,9 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
+#include <QtCore/QDateTime>
+#include <QtCore/QMutex>
+#include <QtCore/QMutexLocker>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QFile>
 #include <QtCore/QMimeDatabase>
@@ -376,6 +379,62 @@ QString Connection::Private::databaseDir() const
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb;
 }
 
+// Debugging aid: E2EE log messages (Qt and Rust side) also go to a file
+namespace {
+QMutex e2eeLogMutex;
+QFile e2eeLogFile;
+QtMessageHandler previousMessageHandler = nullptr;
+bool e2eeDebugWasEnabled = false;
+
+void e2eeMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message)
+{
+    const bool isE2ee = context.category && qstrcmp(context.category, "quotient.e2ee") == 0;
+    // Plain qCritical() calls, which have no category of their own
+    const bool isPlainCritical = (type == QtCriticalMsg || type == QtFatalMsg) && context.category
+                                 && qstrcmp(context.category, "default") == 0;
+    if (isE2ee || isPlainCritical) {
+        const QMutexLocker locker(&e2eeLogMutex);
+        if (e2eeLogFile.isOpen()) {
+            const auto level = type == QtDebugMsg ? "DEBUG"_L1
+                               : type == QtInfoMsg ? "INFO"_L1
+                               : type == QtWarningMsg ? "WARN"_L1
+                                                      : "ERROR"_L1;
+            e2eeLogFile.write((QDateTime::currentDateTime().toString(Qt::ISODateWithMs) % u' ' % level
+                               % u" qt " % QString::fromUtf8(context.category) % u": " % message
+                               % u'\n')
+                                  .toUtf8());
+            e2eeLogFile.flush();
+        }
+        // Debug output was only enabled for the file
+        if (type == QtDebugMsg && !e2eeDebugWasEnabled)
+            return;
+    }
+    if (previousMessageHandler)
+        previousMessageHandler(type, context, message);
+    else
+        fprintf(stderr, "%s\n", qPrintable(qFormatLogMessage(type, context, message)));
+}
+
+//! Returns the path of the log file, or an empty string if it can't be used
+QString setupE2eeLogFile()
+{
+    static const QString path = [] {
+        const auto dir = QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + u"/KDE/neochat"_s;
+        if (!QDir().mkpath(dir))
+            return QString();
+        const auto filePath = dir + u"/e2ee.log"_s;
+        e2eeLogFile.setFileName(filePath);
+        if (!e2eeLogFile.open(QIODevice::Append | QIODevice::Text))
+            return QString();
+        e2eeDebugWasEnabled = E2EE().isDebugEnabled();
+        const_cast<QLoggingCategory&>(E2EE()).setEnabled(QtDebugMsg, true);
+        previousMessageHandler = qInstallMessageHandler(e2eeMessageHandler);
+        return filePath;
+    }();
+    return path;
+}
+} // namespace
+
 bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
 {
     const auto databaseFolder = databaseDir();
@@ -403,7 +462,8 @@ bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
 
     cryptoMachine = crypto::init(stringToRust(q->userId()), stringToRust(q->deviceId()),
                                  stringToRust(databaseFolder % u'/' % q->deviceId()),
-                                 bytesToRust(picklingKey.toBase64()), stringToRust(accountPickle));
+                                 bytesToRust(picklingKey.toBase64()), stringToRust(accountPickle),
+                                 stringToRust(setupE2eeLogFile()));
     if (!(*cryptoMachine)->is_ok()) {
         qCritical() << "Failed to load crypto machine"
                     << static_cast<int>((*cryptoMachine)->error())
@@ -703,14 +763,22 @@ void Connection::onSyncSuccess(SyncJob *syncJob)
             }
 
             for (const auto &key : syncChanges->keys()) {
+                qCDebug(E2EE) << "Received room key for session" << stringFromRust(key.session_id())
+                              << "in" << stringFromRust(key.room_id());
                 if (const auto &r = room(stringFromRust(key.room_id()))) {
                     r->newMegolmSession(stringFromRust(key.session_id()));
+                } else {
+                    qCWarning(E2EE) << "Received a room key for the unknown room"
+                                    << stringFromRust(key.room_id());
                 }
             }
 
             // A withheld notice doesn't make anything decryptable, but it explains why the events
             // of that session can't be decrypted; retrying updates their decryptionFailure()
             for (const auto &key : syncChanges->withheld_keys()) {
+                qCDebug(E2EE) << "Received a withheld notice for session"
+                              << stringFromRust(key.session_id()) << "in"
+                              << stringFromRust(key.room_id());
                 if (const auto &r = room(stringFromRust(key.room_id()))) {
                     r->newMegolmSession(stringFromRust(key.session_id()));
                 }
@@ -795,6 +863,7 @@ void Connection::Private::processOutgoingRequests()
     outgoingRerunRequested = false;
     const auto requestsResult = (*cryptoMachine)->outgoing_requests();
     if (requestsResult->has_error()) {
+        qCWarning(E2EE) << "Could not get the outgoing crypto requests";
         finishOutgoingRequestsWaiters(false);
         return;
     }
@@ -2213,6 +2282,7 @@ void Connection::startSelfVerification()
 {
     auto requestResult = (*d->cryptoMachine)->request_self_verification();
     if (requestResult->has_error()) {
+        qCWarning(E2EE) << "Could not create a self-verification request";
         return;
     }
 
@@ -2405,6 +2475,7 @@ QString Connection::encryptRoomEvent(Room* room, const QByteArray& content, cons
 {
     auto result = (*d->cryptoMachine)->encrypt_room_event(stringToRust(room->id()), bytesToRust(content), stringToRust(type));
     if (result->has_error()) {
+        qCWarning(E2EE) << "Could not encrypt an event of type" << type << "for" << room->id();
         return {};
     }
     return stringFromRust(result->value());
@@ -2472,6 +2543,7 @@ void Connection::Private::acceptKeyVerification(KeyVerificationSession* session)
 {
     auto outgoingResult = (*cryptoMachine)->accept_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (outgoingResult->has_error()) {
+        qCWarning(E2EE) << "Could not accept or cancel verification session" << session->verificationId();
         return;
     }
     auto outgoing = outgoingResult->value();
@@ -2493,6 +2565,7 @@ void Connection::Private::startKeyVerification(KeyVerificationSession* session)
 {
     auto startSasResult = (*cryptoMachine)->start_sas(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (startSasResult->has_error()) {
+        qCWarning(E2EE) << "Could not start SAS for verification session" << session->verificationId();
         return;
     }
 
@@ -2513,6 +2586,7 @@ void Connection::Private::confirmKeyVerification(KeyVerificationSession* session
 {
     auto requestsResult = (*cryptoMachine)->confirm_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (requestsResult->has_error()) {
+        qCWarning(E2EE) << "Could not confirm verification session" << session->verificationId();
         return;
     }
     auto requests = requestsResult->value();
@@ -2551,6 +2625,7 @@ void Connection::Private::cancelKeyVerification(KeyVerificationSession* session)
 {
     auto outgoingResult = (*cryptoMachine)->cancel_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (outgoingResult->has_error()) {
+        qCWarning(E2EE) << "Could not accept or cancel verification session" << session->verificationId();
         return;
     }
     auto outgoing = outgoingResult->value();
@@ -2573,6 +2648,7 @@ void Connection::Private::acceptSas(KeyVerificationSession* session)
 {
     const auto& requestResult = (*cryptoMachine)->accept_sas(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (requestResult->has_error()) {
+        qCWarning(E2EE) << "Could not process verification session" << session->verificationId();
         return;
     }
     const auto& request = requestResult->value();
@@ -2610,6 +2686,8 @@ QList<std::pair<QString, QString>> Connection::Private::keyVerificationSasEmoji(
 {
     auto result = (*cryptoMachine)->sas_emoji(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (result->has_error()) {
+        qCWarning(E2EE) << "Could not get the SAS emoji of verification session"
+                        << session->verificationId();
         return {};
     }
 
@@ -2629,6 +2707,7 @@ void Connection::Private::requestDeviceVerification(KeyVerificationSession* sess
                              ->request_device_verification(stringToRust(session->remoteUser()),
                                                            stringToRust(session->remoteDeviceId()));
     if (requestResult->has_error()) {
+        qCWarning(E2EE) << "Could not process verification session" << session->verificationId();
         return;
     }
     auto request = requestResult->value();
@@ -2666,6 +2745,7 @@ bool Connection::isVerifiedEvent(const QString& eventId, Room* room)
     auto rustJson = bytesToRust(QJsonDocument(json).toJson(QJsonDocument::Compact));
     auto info = (*d->cryptoMachine)->get_room_event_encryption_info(rustJson, stringToRust(room->id()));
     if (info->has_error()) {
+        qCDebug(E2EE) << "No encryption info for an event in" << room->id();
         return false;
     }
     return info->value()->is_verified();
@@ -2682,6 +2762,7 @@ void Connection::Private::requestUserVerification(KeyVerificationSession* sessio
 {
     auto request = (*cryptoMachine)->request_user_verification_content(stringToRust(session->remoteUser()));
     if (request->has_error()) {
+        qCWarning(E2EE) << "Could not create a verification request for" << session->remoteUser();
         return;
     }
     auto transactionId = session->room()->postJson(RoomMessageEvent::TypeId, jsonFromRust(request->value()));
@@ -2692,6 +2773,7 @@ void Connection::Private::requestUserVerification(KeyVerificationSession* sessio
 
         auto rustSessionResult = (*cryptoMachine)->request_user_verification(stringToRust(session->remoteUser()), stringToRust(session->room()->id()), stringToRust(event->id()));
         if (rustSessionResult->has_error()) {
+            qCWarning(E2EE) << "Could not start verification of" << session->remoteUser();
             return true;
         }
         session->setVerificationId(stringFromRust(rustSessionResult->value()->verification_id()));
@@ -2827,6 +2909,7 @@ KeyImport::Error Connection::importKeys(const QString& passphrase, const QString
     auto keysResult = (*d->cryptoMachine)->import_keys(stringToRust(passphrase), stringToRust(data));
 
     if (keysResult->has_error()) {
+        qCWarning(E2EE) << "Could not import room keys, error code" << keysResult->error_code();
         return (KeyImport::Error) keysResult->error_code();
     }
 
@@ -2842,6 +2925,7 @@ QByteArray Connection::exportKeys(const QString& passphrase)
 {
     auto result = (*d->cryptoMachine)->export_keys(stringToRust(passphrase));
     if (result->has_error()) {
+        qCWarning(E2EE) << "Could not export room keys";
         return {};
     }
     return bytesFromRust(result->value());
