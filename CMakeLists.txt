@@ -59,35 +59,11 @@ add_compile_definitions(
     QT_NO_CAST_FROM_ASCII QT_STRICT_ITERATORS QT_NO_CAST_FROM_BYTEARRAY
     QT_NO_NARROWING_CONVERSIONS_IN_CONNECT QT_NO_FOREACH)
 
-set(QtMinVersion "6.8")
-string(REGEX REPLACE "^(.).*" "Qt\\1" Qt ${QtMinVersion}) # makes "Qt<MajorVersionDigit>"
-set(QUOTIENT_LIB_NAME ${PROJECT_NAME}${Qt})
-
-if (WIN32)
-    if (NOT CMAKE_INSTALL_LIBDIR)
-        set(CMAKE_INSTALL_LIBDIR ".")
-        set(CMakeFilesLocation "cmake")
-    else()
-        set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${QUOTIENT_LIB_NAME}")
-    endif()
-
-    if (NOT CMAKE_INSTALL_BINDIR)
-        set(CMAKE_INSTALL_BINDIR ".")
-    endif()
-
-    if (NOT CMAKE_INSTALL_INCLUDEDIR)
-        set(CMAKE_INSTALL_INCLUDEDIR "include")
-    endif()
-else()
-    include(GNUInstallDirs)
-    set(CMakeFilesLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${QUOTIENT_LIB_NAME}")
-endif(WIN32)
+include(cmake/common.cmake)
 set(${PROJECT_NAME}_INSTALL_INCLUDEDIR
         "${CMAKE_INSTALL_INCLUDEDIR}/" CACHE PATH
         "directory to install ${PROJECT_NAME} include files to")
 
-# Instruct CMake to run moc automatically when needed.
-set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
