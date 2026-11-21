@@ -18,7 +18,7 @@
 #include "csapi/versions.h"
 #include "csapi/wellknown.h"
 
-#include "lib.rs.h"
+#include "quotient_rust_cxxbridge/lib.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QQueue>

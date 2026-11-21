@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "lib.rs.h"
+#include "quotient_rust_cxxbridge/lib.h"
 #include "util.h"
 
 #include <QtCore/QJsonObject>

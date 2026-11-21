@@ -108,12 +108,17 @@ endif()
 
 corrosion_import_crate(MANIFEST_PATH Quotient/crypto-sdk/Cargo.toml)
 
-add_library(${QUOTIENT_LIB_NAME})
+# Generate the C++ side of the cxx bridge (header + source) into a CMake-controlled
+# directory and compile it there. This replaces the previous hardcoded cxxbridge
+# include path, which pointed at cxx-build's `shared_dir` symlink and did not
+# resolve on Windows (corrosion #609 hashes the cargo target dir).
+corrosion_add_cxxbridge(quotient_rust_cxxbridge
+    CRATE matrix_rust_sdk_crypto_cpp
+    FILES lib.rs)
+# Match the C++ standard the previous cxx-build invocation used (c++20).
+set_target_properties(quotient_rust_cxxbridge PROPERTIES CXX_STANDARD 20)
 
-string(SHA1 cargo_path_hash ${CMAKE_CURRENT_SOURCE_DIR}/Quotient/crypto-sdk/Cargo.toml)
-string(SUBSTRING "${cargo_path_hash}" 0 5 cargo_path_hash)
-set(corrosion_build_dir "crypto-sdk_${cargo_path_hash}")
-target_include_directories(${QUOTIENT_LIB_NAME} PRIVATE ${CMAKE_BINARY_DIR}/cargo/${corrosion_build_dir}/${Rust_CARGO_TARGET}/cxxbridge/matrix-rust-sdk-crypto/src/)
+add_library(${QUOTIENT_LIB_NAME})
 
 target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
     FILES
@@ -388,9 +393,6 @@ if(NOT WIN32)
 else()
     target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE Bcrypt.lib ntdll)
 endif()
-
-target_include_directories(${QUOTIENT_LIB_NAME} PRIVATE
-    ${CMAKE_BINARY_DIR}/cargo/build/${Rust_CARGO_TARGET}/cxxbridge/matrix-rust-sdk-crypto/src/)
 
 configure_file(${PROJECT_NAME}.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${QUOTIENT_LIB_NAME}.pc @ONLY NEWLINE_STYLE UNIX)
 
