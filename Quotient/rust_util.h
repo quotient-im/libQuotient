@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "lib.rs.h"
+#include "crypto-sdk/lib.h"
 #include "util.h"
 
 #include <QtCore/QJsonObject>
