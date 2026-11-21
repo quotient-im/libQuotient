@@ -35,12 +35,6 @@ matrix-sdk-sqlite = { version = "0.16", default-features = false, features = [
 ] }
 
 
-[build-dependencies]
-# TODO: Fix macos problem and update
-cxx-build = "=1.0.138"
-# For android
-# cxx-build = { git = "https://github.com/TobiasFella/cxx" }
-
 [profile.release]
 strip = true
 opt-level = "z"
