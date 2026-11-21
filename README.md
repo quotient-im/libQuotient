@@ -43,6 +43,7 @@ To use libQuotient (i.e. build or run applications with it), you'll need:
 - Qt 6.8 or newer - either Open Source or Commercial
 - QtKeychain (https://github.com/frankosterfeld/qtkeychain) - the newest release is recommended;
   the build configuration of QtKeychain must use the same Qt major version, i.e. Qt 6.
+- Extra CMake Modules aka ECM (https://github.com/KDE/extra-cmake-modules) - any version from recent years
 - A reasonably new rust toolchain (rustc + cargo)
 - At least version 0.6.1 of [Corrosion](https://github.com/corrosion-rs/corrosion).
 
@@ -64,13 +65,13 @@ development libraries for the dependencies listed above.
 
 Just install the prerequisites using your preferred package manager. If your Qt package base is
 fine-grained you might want to run CMake and look at error messages. The library is entirely
-offscreen; however, aside from QtCore and QtNetwork it also depends on QtGui in order to handle
-avatar thumbnails, without any on-screen drawing.
+offscreen; although it depends on QtGui libQuotient only uses this component to handle avatar
+thumbnails, without any on-screen drawing.
 
 #### macOS
 
-`brew install qt qtkeychain corrosion openssl@3` should get you the most recent versions of
-the runtime libraries.
+`brew install qt qtkeychain extra-cmake-modules corrosion openssl@3` should get you the most recent
+versions of the runtime libraries.
 
 You may need to add `$(brew --prefix qt)`, `$(brew --prefix qtkeychain)` etc. to `CMAKE_PREFIX_PATH`
 (see below) to make CMake aware of the library locations.
@@ -102,11 +103,26 @@ the right kit and go straight to building.
 
 ## Using the library
 
-If you're just starting a project using libQuotient from scratch, you can copy
-`quotest/CMakeLists.txt` to your project and change `quotest` to your project name. If you already
-have an existing CMakeLists.txt, you need to insert a `find_package(Quotient REQUIRED)` line to an
-appropriate place in it (use `find_package(Quotient)` if libQuotient is not a hard dependency for
-you) and then add `Quotient` to your `target_link_libraries()` line.
+If you're just starting a project using libQuotient from scratch, the minimal
+`CMakeLists.txt` looks like this:
+
+```cmake
+cmake_minimum_required(VERSION 3.26)
+project(myapp LANGUAGES CXX)
+
+find_package(QuotientQt6 REQUIRED) # guaranteed to also give you Qt6::Core and Qt6::Network
+find_package(Qt6 COMPONENTS Gui Qml) # anything on top that you use
+
+add_executable(myapp main.cpp)
+target_link_libraries(myapp PRIVATE QuotientQt6 Qt6::Gui Qt6::Qml)
+```
+
+You might also want to look at `quotest/CMakeLists.txt` (and `cmake/common.cmake` included from it)
+to get an idea of what else can be added to your `CMakeLists.txt`.
+
+If you already have an existing `CMakeLists.txt`, insert a `find_package(QuotientQt6 REQUIRED)` line
+to an appropriate place in it (or plain `find_package(QuotientQt6)` if libQuotient is not a hard
+dependency for you) and then add `QuotientQt6` to your `target_link_libraries()` line.
 
 Dynamic linking is only tested on Linux at the moment and is the recommended way of linking with
 libQuotient on this platform. Static linking is the default on Windows/macOS; feel free to
@@ -129,17 +145,20 @@ attribution) the source code of [Quaternion](https://github.com/quotient-im/Quat
 
 Since Quotient 0.7.2, symbols in all header files of libQuotient *except files ending with `_p.h`
 and namespace `_impl`* are considered public and covered by API/ABI stability guarantees.
-Specifically, the API and ABI are backwards compatible within every minor version (0.7.x releases)
-with every next minor version (0.8, e.g.) breaking the compatibility. Once we reach 1.0, this rule
-will apply to the major version, aligning with [semantic versioning](https://semver.org/) rules.
-`*_p.h` files and namespace `_impl` are not covered by these guarantees; client code should not
-directly include these files, nor use symbols defined in these locations.
+Specifically, the API and ABI are backwards compatible _within_ every minor version (0.9.x or 0.10.x
+releases) with every next minor version (0.10, 0.11, e.g.) breaking the compatibility. Once we reach
+1.0, this rule will apply to the major version, aligning with
+[semantic versioning](https://semver.org/) rules.
+
+`*_p.h` files and namespace `_impl` are not a part of the (stable) API/ABI and may change between any
+two versions. Client code should not directly include these files, nor directly use symbols defined in
+these locations.
 
 ## Building the library
 
 On platforms other than Linux you will have to build libQuotient yourself before usage - nobody
 packaged it so far (contributions welcome!). You may also want to build the library on Linux if you
-need a newer version or snapshot than that coming in your distro.
+need a newer version or a different snapshot than what is coming with your distro.
 
 [The source code is at GitHub](https://github.com/quotient-im/libQuotient). Checking out a certain
 commit or tag (rather than downloading the archive) along with submodules is strongly recommended.
@@ -149,9 +168,9 @@ that project (in this case, Quaternion) and update the library submodule (also r
 the appropriate branch. Be mindful of API compatibility restrictions: e.g., each version of
 Quaternion may require the specific branch of libQuotient (`0.8.x`, `0.9.x` etc.).
 
-Tags consisting solely of digits and fullstops (e.g., `0.7.0`) correspond to released versions; tags
+Tags consisting solely of digits and fullstops (e.g., `0.10.0`) correspond to released versions; tags
 ending with `-betaN` or `-rcN` mark respective pre-releases. If/when packaging pre-releases, it is
-advised to replace the leading `-` with `~` (tilde).
+advised to replace the `-` in `-betaN`/`-rcN` with `~` (tilde) - so, `~betaN` and `~rcN` respectively.
 
 libQuotient is a classic CMake-based project; assuming the dependencies are in place, the following
 commands issued in the root directory of the project sources:
@@ -165,7 +184,7 @@ will get you a compiled library in `build` (make sure it exists before running).
 works with CMake should be able to do the same with minimal configuration effort.
 
 Static builds are tested on all supported platforms. Dynamic libraries are the recommended
-configuratiion on Linux; likely workable on macOS; and untested on Windows (you're welcome to try
+configuration on Linux; likely workable on macOS; and untested on Windows (you're welcome to try
 and report on the results).
 
 Before proceeding, double-check that you have installed development libraries for all prerequisites
@@ -189,8 +208,8 @@ On top of them, Quotient understands:
   the respective sections in [CONTRIBUTING.md](./CONTRIBUTING.md)
   and [CODE_GENERATION.md](./CODE_GENERATION.md).
 - `QUOTIENT_FORCE_NAMESPACED_INCLUDES=<ON/OFF>`, `OFF` by default (note that QUOTIENT is in caps
-  here, unlike options above) - when this option is set to `ON`, CMake skips adding
-  `<top-level include prefix>/Quotient/` to include paths, thereby forcing the client code to use
+  here, unlike options above - for historical reasons) - when this option is set to `ON`, CMake skips
+  adding `<top-level include prefix>/Quotient/` to include paths, thereby forcing the client code to use
   `#include <Quotient/header.h>` instead of historically accepted `#include <header.h>`. By default
   this is set to `OFF` for backwards compatibility; eventually this default may/will change so it is
   recommended to at least occasionally add `-DQUOTIENT_FORCE_NAMESPACED_INCLUDES=1` to a CMake
@@ -202,17 +221,17 @@ cmake --build . --target install
 ```
 
 This will also install cmake package config files; once this is done, you should be able to use
-[`quotest/CMakeLists.txt`](quotest/CMakeLists.txt) to compile quotest with the _installed_ library.
-As mentioned above, installation of the `quotest` binary along with the rest of the library can be
-skipped by setting `Quotient_INSTALL_TESTS` to `OFF`.
+CMake code along the lines of [`quotest/CMakeLists.txt`](quotest/CMakeLists.txt) to compile and link
+your application against the _installed_ library if you need. As mentioned above, installation of
+the `quotest` binary along with the rest of the library can be skipped by setting
+`Quotient_INSTALL_TESTS` to `OFF`.
 
 ## Troubleshooting
 
 #### Building fails
 
-- If `cmake` fails with
+- If `cmake` fails with a warning that says something like
   ```
-  CMake Warning at CMakeLists.txt:11 (find_package):
     By not providing "FindQt6Widgets.cmake" in CMAKE_MODULE_PATH this project
     has asked CMake to find a package configuration file provided by
     "Qt6Widgets", but CMake did not find one.
@@ -246,7 +265,7 @@ where
 
 - `<category>` is one of: `main`, `jobs`, `jobs.sync`, `jobs.thumbnail`, `events`, `events.state`
   (covering both the "usual" room state and account data), `events.members`, `events.messages`,
-  `events.ephemeral`, `database`, `network`, `e2ee` and `profiler` - you can always find the full
+  `events.ephemeral`, `network`, `e2ee` and `profiler` - you can always find the full
   list in `Quotient/logging_categories_p.h`;
 - `<level>` is one of `debug`, `info`, and `warning`;
 - `<flag>` is either `true` or `false`.

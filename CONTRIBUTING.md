@@ -99,8 +99,8 @@ All new contributed material that is not executable, including all text when not
 [Creative Commons Attribution 4.0 International (CC BY 4.0) license](https://creativecommons.org/licenses/by/4.0/) or later.
 -->
 
-Any components proposed for reuse should have a license that permits releasing a derivative work
-under *LGPL v3 or later* (that includes licenses permitting *LGPL v2.1 or later* but not
+Any external components proposed for reuse should have a license that permits releasing a derivative
+work under *LGPL v3 or later* (that includes licenses permitting *LGPL v2.1 or later* but not
 *LGPL v2.1 only*). While this rule can be negotiated in some situations, using only licenses from
 [the list approved by OSI](https://opensource.org/licenses) is non-negotiable.
 
@@ -114,7 +114,7 @@ new files by beginning them with the following preamble, also available in
 Individual names and years are discouraged as they bitrot quickly, and both of these are much more
 reliably found out from Git logs. See
 [the recommendation of LF](https://www.linuxfoundation.org/blog/blog/copyright-notices-in-open-source-software-projects)
-for more details on why a static preamble is better and is just as robust when when it comes to
+for more details on why a static preamble is better and is just as robust when it comes to
 copyright compliance.
 
 In line with the same LF recommendation, you're totally allowed to use a different (OSI-approved -
@@ -136,22 +136,28 @@ to make the review easier.
 
 ### C++ feature set
 
-As of version 0.10, the library is compiled with C++23 flags. That being said, support of C++23 is
-still patchy depending on the toolchain (GCC and MSVC lead the pack). You can confidently use C++20
-except a couple features still not fully supported across the board:
-- template parameteres for type aliases and aggregates still cannot be deduced yet, you have
-  to explicitly specify those;
-- we still don't use modules, though it's more likely with every toolchain upgrade.
 
-As for C++23 features, the
-[compiler support page at cppreference](https://en.cppreference.com/w/cpp/compiler_support#cpp23)
+As of version 0.10, the library is compiled with C++23 flags. That being said, support of C++23 is
+still a bit patchy depending on the toolchain, Apple Clang being the main holdback. You actually can use
+most of C++23 **except**, in particular:
+- `std::bind_back`
+- `views::join_with`, `views::chunk`, `views::stride`, `views::enumerate`
+- `flat_map` and `flat_set` (sadly; we have quite a few cases where these would be useful)
+- `ranges::fold*`
+
+The [compiler support page at cppreference](https://en.cppreference.com/w/cpp/compiler_support#cpp23)
 is a nice tool to check whether you can try using a specific language or library feature; refer
 to the list of toolchain versions in [README](./README.md) for the compatibility baseline.
 Be mindful that Clang build configuration on our Linux CI does not use LLVM project's libc++ but
 rather the GNU C++ standard library (i.e. you should look at Clang column for core language features
-but GCC libstdc++ for library features). Most of the limitations these days, anyway, are due
+but GCC/libstdc++ for library features). Most of the limitations these days, anyway, are due
 to Apple's toolchain - they have their own spin of Clang and libc++ that is constantly behind
-vanilla and, as of now, the poorest in terms of features.
+vanilla and, as of now, the poorest in terms of features. That said, the two notable things
+Apple Clang 17 already supports but cppreference doesn't mention as of this writing are:
+explicit object member functions (aka deducing `this`) and CTAD for alias templates
+(i.e. `template<...> using ...`).
+
+We don't use modules, as their support across platforms is still very basic. Guess we'll have to wait for a couple more years.
 
 ### Code style and formatting
 
@@ -175,23 +181,20 @@ All non-inline symbols (functions, classes/structs, even namespace-level static 
 intended for use in client code must be declared with `QUOTIENT_API` macro (the macro itself is
 defined in the dedicated `quotient_export.h` file) in order to export them in the library symbol
 table when it is compiled as dynamic/shared. If you forget to use this macro and a client
-application uses the symbol there will be linkage errors in a lucky case and obscure runtime errors
-(such as split-brained singleton instances) otherwise. You only need to use the macro
+application uses the symbol there will be linkage errors in lucky cases and obscure runtime errors
+(such as split-brained singleton instances) in less lucky cases. You only need to use the macro
 on the namespace level; nested symbols (member functions, e.g.) are exported if their class is
 exported.
 
-Some header files of the library are not intended to be (directly) included by
-clients - these header files have names ending with `_p.h` (e.g. 
-`connection_p.h`). All other header files are considered a part of the library
-official API (and, respectively, ABI). Calls, data structures and other 
-symbols _not_ intended for usage in client code should _not_ be exposed in
-public header files, unless there's no way to keep them out. In particular, 
-this includes private members (functions, typedefs, or variables) in public 
-classes; use pimpl idiom to hide implementation details as much as possible.
-For cases when a definition has to be in the header file but should not be used
-in client code, use `_impl` namespace - anything in that namespace is not 
-covered by API guarantees either (but may still contribute to the ABI surface,
-so tread carefully).
+Some header files of the library are not intended to be (directly) included by clients - these header
+files have names ending with `_p.h` (e.g. `connection_p.h`). All other header files are considered
+a part of the library official API (and, respectively, ABI). Calls, data structures and other symbols
+_not_ intended for usage in client code should _not_ be exposed in public header files, unless there's
+no way to keep them out. In particular, this includes private members (functions, typedefs, or
+variables) in public classes; use pimpl idiom to hide implementation details as much as possible.
+For cases when a definition has to be in the header file but should not be used in client code, use
+`_impl` namespace - anything in that namespace is not covered by API guarantees either (but may still
+contribute to the ABI surface, so tread carefully).
 
 ### Generated C++ code for CS API
 
@@ -241,9 +244,9 @@ Further sections are for those who's going to actively hack on the library code.
 
 * Prefer `class` over `struct` when you have protected or private members in the type; `struct` is
   meant for plain-old-data structures, with maybe just a function or two among public members 
-  but no substantial behaviour. If you need access control or specific logic tightly coupled to
-  the data structure, make it a `class` and consider if you still want to keep its member variables
-  public.
+  but no substantial behaviour. If you need access control (`protected`/`private`) or specific logic
+  tightly coupled to   the data structure, make it a `class` and consider if you still want to keep
+  its member variables public.
 
 * For newly created classes, keep to
   [the rule of 3/5/0](http://en.cppreference.com/w/cpp/language/rule_of_three).
@@ -305,11 +308,10 @@ When commenting in-code:
 
 ### Automated tests
 
-We gradually introduce autotests based on a combination of CTest and Qt Test
-frameworks - see `autotests/` directory. There are very few of those, as we
-have just started adding those to the new code (you guessed it; adding more
-tests to the old code is very welcome and also is a good exercise to get to
-know the library).
+We gradually introduce autotests based on a combination of CTest and Qt Test frameworks - see
+`autotests/` directory. There are very few of those, as we have just started adding those to
+the new code (you guessed it: adding more tests to the old code is very welcome and also is a good
+exercise to get to know the library).
 
 On top of autotests, libQuotient comes with a command-line end-to-end test suite called Quotest.
 Any significant addition to the library API should be accompanied by a respective test
@@ -350,37 +352,35 @@ Pay attention to security, and work *with*, not against, the good security pract
 `char *` and similar unchecked C-style read/write arrays are forbidden - use Qt containers
 (`QString`/`QLatin1String` for strings, in particular) or `std::array<>`/`std::span<>` instead
 (E2EE-related code can also use handy `byte_view_t` and `byte_span_t` aliases). When dealing with
-`QObject`s, organise them in parent-child trees and let Qt manage object lifecycles for you instead
+`QObject`s, organise them in parent-child trees and let Qt manage object lifecycles for you instead of
 explicit deletions. If that doesn't work in a given situation (no obvious parent, non-trivial
 lifecycle, the object doesn't derive from `QObject`, etc.), try to at least use `std::unique_ptr<>`
-and `std::move()` it when/where appropriate to make sure the object has clear ownership. Finally,
+and `std::move()` it if necessary to make sure the object has clear ownership. Finally,
 shared pointers can be used when circular dependencies are not a concern. Avoid direct pointer
 arithmetic wherever possible and only use bare pointers within `QObject` parent-child trees and
 for non-owning/weak access to resources owned by `std::unique_ptr<>`. Consider using references
-instead of pointers, where applicable.
+instead of pointers when you know the pointer to be non-null - especially for weak access.
 
 Exercise the
 [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege)
 where reasonable and appropriate. Prefer internally cohesive code while avoiding
 too much external coupling.
 
-Avoid dealing with any personal information (e.g. email addresses) and secrets 
-(passwords, tokens, keys) unless it is the specific and exclusive purpose
-of the given code. Absolutely _don't_ spill around this information in logs, 
-and only display those in UI where really needed. Do not forget about the 
-issue of local access (in particular, be very careful when storing something in 
-temporary files, let alone permanent configuration or state).
+Avoid dealing with any personal information (e.g. email addresses) and secrets (passwords, tokens, keys)
+unless it is the specific and exclusive purpose of the given code. Absolutely _don't_ spill around this
+information in logs, and only display those in UI where really needed. Do not forget about the 
+issue of shared local access: be careful not to store more than necessary in temporary files, let alone
+in permanent configuration or state.
 
 Where possible, avoid mechanisms that could be used for user tracking (we do need
 to verify people are logged in but that's pretty much it), and ensure that 
 third parties can't use interactions for tracking. Matrix protocols evolve 
-towards decoupling personal information from user activity entirely - follow
-this trend.
+towards decoupling personal information from user activity entirely - do not undermine that.
 
 ### Performance
 
 We want the software to have decent performance for users even on weaker
-machines. At the same time we keep libQuotient single-threaded as much
+machines. At the same time we keep libQuotient itself single-threaded as much
 as possible, to keep the code simple. That means being cautious about operation
 complexity (read about big-O notation if you need a kickstart on the subject).
 This especially refers to operations on the whole timeline and the list of
@@ -398,16 +398,12 @@ than squeezing every bit out of a clumsy algorithm. Beware of premature
 optimization and profile the code before diving into hardcore tweaking that 
 might not give the benefits you think it would.
 
-Speaking of profiling logs (see [README.md](./README.md) on how to turn them
-on) - if you expect some code to take considerable (more than 10k "simple 
-operations") time you might want to setup a `QElapsedTimer` and drop the 
-elapsed time into logs under `PROFILER` logging category. See the existing 
-code for examples - `room.cpp` has quite a few. In order to reduce small 
-timespan logging spam, `PROFILER` log lines are usually guarded by a check 
-that the timer counted big enough time (200 microseconds by default, 20 
-microseconds for tighter parts); this threshold can be altered at compile-time 
-by defining `PROFILER_LOG_USECS` preprocessor symbol (i.e. passing 
-`-DPROFILE_LOG_USECS=<usecs>` to the compiler if you're on Linux/macOS).
+Speaking of profiling logs (see [README.md](./README.md) on how to turn them on) - if you expect some
+code to take considerable (more than 10k "simple operations") time you might want to setup
+a `QElapsedTimer` and drop the elapsed time into logs under `PROFILER` logging category. See
+the existing code for examples - `room.cpp` has quite a few. In order to reduce small timespan logging
+spam, `PROFILER` log lines are usually guarded by a check that the timer counted big enough time
+(200 microseconds usually; 20 microseconds for tighter parts).
 
 ## How to check proposed changes before submitting them
 
@@ -447,6 +443,10 @@ on any platform double-check that it's not your code causing it - and fix
 (or ask how to fix if you don't know) if it is. Generally, pull requests are 
 not accepted until they build on all platforms.
 
+Our CI pipelines also include Sonar; most of the time its warnings are relatively minor but they
+frequently highlight smelly or borderline erroneous code, so it makes sense to pay some (not too much)
+attention to them. Sometimes Sonar downright screams about something - this usually happens for a reason,
+so follow the links and see what it reports.
 
 ## Git commit messages
 
@@ -460,8 +460,8 @@ When writing git commit messages, try to follow the guidelines in
 3.  Capitalize the subject line.
 4.  Do not end the subject line with a period.
 5.  Aim to use the imperative mood in the subject line (*command* form).
-6.  Use the body to explain what and why vs. how (git tracks how it was changed
-    in detail, don't repeat that). Sometimes a quick overview of "how" is 
+6.  Use the body to explain what and why, not how (git tracks how it was changed
+    in detail, no need to spell it out again). Sometimes a quick overview of "how" is 
     acceptable if a commit is huge - but maybe split a commit into smaller ones,
     to begin with?
 
