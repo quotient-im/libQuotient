@@ -87,8 +87,21 @@ corrosion_import_crate(MANIFEST_PATH Quotient/crypto-sdk/Cargo.toml)
 corrosion_add_cxxbridge(crypto-sdk
     CRATE matrix_rust_sdk_crypto_cpp
     FILES lib.rs)
-# Match the C++ standard the previous cxx-build invocation used (c++20).
 set_target_properties(crypto-sdk PROPERTIES CXX_STANDARD 20)
+# corrosion_add_cxxbridge() exposes the generated cxxbridge headers via old-style
+# INTERFACE_SOURCES - set by corrosion with target_sources(PUBLIC) - which CMake refuses to carry
+# into an install/export because they are build-tree paths. According to
+# https://discourse.cmake.org/t/how-to-install-an-interface-library-with-generated-source-in-build-folder/5449
+# FILE_SET is the modern way to enable this (the whole idea was apparently to ensure the compile
+# ordering, i.e. to generate cxxbridge before dependents - QuotientQt6 in our case).
+# The previously set INTERFACE_SOURCES still needs to be cleared so that CMake doesn't complain.
+set_target_properties(crypto-sdk PROPERTIES INTERFACE_SOURCES "")
+set(_cxxbridge_include_dir "${CMAKE_CURRENT_BINARY_DIR}/corrosion_generated/cxxbridge/crypto-sdk/include")
+target_sources(crypto-sdk PUBLIC FILE_SET HEADERS
+    BASE_DIRS "${_cxxbridge_include_dir}"
+    FILES
+        "${_cxxbridge_include_dir}/rust/cxx.h"
+        "${_cxxbridge_include_dir}/crypto-sdk/lib.h")
 
 add_library(${QUOTIENT_LIB_NAME})
 
@@ -358,7 +371,7 @@ find_package(OpenSSL REQUIRED)
 
 target_link_libraries(${QUOTIENT_LIB_NAME}
     PUBLIC ${Qt}::Core ${Qt}::Network ${Qt}::Gui qt${${Qt}Core_VERSION_MAJOR}keychain ${Qt}::Sql
-    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate ${Qt}::QmlIntegration matrix_rust_sdk_crypto_cpp OpenSSL::Crypto)
+    PRIVATE OpenSSL::Crypto ${Qt}::CorePrivate ${Qt}::QmlIntegration matrix_rust_sdk_crypto_cpp crypto-sdk OpenSSL::Crypto)
 
 if(NOT WIN32)
     target_link_libraries(${QUOTIENT_LIB_NAME} PRIVATE PkgConfig::SQLITE)
@@ -380,6 +393,11 @@ endif()
 
 install(TARGETS ${QUOTIENT_LIB_NAME} EXPORT ${QUOTIENT_LIB_NAME}Targets
     RUNTIME LIBRARY ARCHIVE FILE_SET HEADERS)
+
+# corrosion_install() only records the Rust staticlib's IMPORTED_LOCATION and drops its
+# INTERFACE_LINK_LIBRARIES, so in case of installed static libQuotient the cxxbridge glue does not
+# reach consumers unless we install it too. For shared builds it is already baked into the .so.
+install(TARGETS crypto-sdk EXPORT ${QUOTIENT_LIB_NAME}Targets ARCHIVE FILE_SET HEADERS)
 
 corrosion_install(TARGETS matrix_rust_sdk_crypto_cpp LIBRARY)
 

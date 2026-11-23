@@ -45,7 +45,7 @@ endif()
 
 option(${PROJECT_NAME}_INSTALL_TESTS "install quotest application" ON)
 add_feature_info(InstallQuotest ${PROJECT_NAME}_INSTALL_TESTS
-                "the library functional test suite")
+                 "the library functional test suite")
 
 if (${PROJECT_NAME}_INSTALL_TESTS)
     install(TARGETS quotest RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
