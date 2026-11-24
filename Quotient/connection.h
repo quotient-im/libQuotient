@@ -969,6 +969,7 @@ Q_SIGNALS:
     void isBackupDecryptionKeyAvailableChanged();
     void ownSessionVerified();
     void receivedVerificationDone(const QString &verificationId);
+    void backupKeyCreated(const QString &backupKey);
 
     //! \brief The crypto machine has failed to load. We cannot recover from this
     //! The user should be informed about this and prompted to log in again
