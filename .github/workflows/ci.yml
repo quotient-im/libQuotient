@@ -151,20 +151,11 @@ jobs:
       if: matrix.static-analysis == 'sonar'
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v8.4.1
 
-
-    - name: Build and install QtKeychain (mac)
-      if: startsWith(matrix.os, 'macos')
+    - name: Build and install QtKeychain (non-Linux)
+      if: "!startsWith(matrix.os, 'ubuntu')"
       run: |
         cd ..
-        git clone -b v0.13.0 https://github.com/frankosterfeld/qtkeychain.git
-        cmake -S qtkeychain -B qtkeychain/build -DBUILD_WITH_QT6=ON -DBUILD_TRANSLATIONS=OFF $CMAKE_ARGS
-        cmake --build qtkeychain/build --target install
-
-    - name: Build and install QtKeychain (not mac)
-      if: "!startsWith(matrix.os, 'macos')"
-      run: |
-        cd ..
-        git clone -b 0.15.0 https://github.com/frankosterfeld/qtkeychain.git
+        git clone -b 0.18.0 https://github.com/frankosterfeld/qtkeychain.git
         cmake -S qtkeychain -B qtkeychain/build -DBUILD_WITH_QT6=ON -DBUILD_TRANSLATIONS=OFF $CMAKE_ARGS
         cmake --build qtkeychain/build --target install
 
