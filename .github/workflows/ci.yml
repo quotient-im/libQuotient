@@ -31,8 +31,8 @@ jobs:
           override-compiler: GCC
           update-api: update-api
           static-analysis: sonar # NB: to use sonar with Clang, replace gcov usage with lcov
-        - os: macos-15
-          qt-version: '6.8'
+        - os: ubuntu-26.04
+          qt-version: '6.9'
 
     env:
       GCC_VERSION: -15
