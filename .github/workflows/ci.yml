@@ -196,7 +196,7 @@ jobs:
 
     - name: Configure libQuotient
       run: |
-        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS -DQuotient_INSTALL_TESTS=ON
+        cmake -S $GITHUB_WORKSPACE -B $BUILD_PATH $CMAKE_ARGS -DQuotient_INSTALL_TESTS=OFF
 
     - name: Regenerate API code
       if: matrix.update-api
@@ -209,6 +209,13 @@ jobs:
             && format('{0} --out-dir {1}', steps.sonar.outputs.build-wrapper-binary, env.SONAR_DIR)
             || ''}} cmake --build $env:BUILD_PATH --target all
         cmake --build $env:BUILD_PATH --target install
+
+    - name: Check that you can build and run an application with libQuotient
+      run: |
+        cmake -S quotest -B $BUILD_PATH/../quotest-standalone \
+            $CMAKE_ARGS -DQuotient_INSTALL_TESTS=ON
+        cmake --build $BUILD_PATH/../quotest-standalone --target install
+        LD_LIBRARY_PATH=$LIB_PATH quotest --help # Just try to launch it and see if it doesn't fail
 
     - name: Run tests
       env:

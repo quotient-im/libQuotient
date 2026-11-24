@@ -11,6 +11,7 @@ find_dependency(@Qt@Network)
 find_dependency(@Qt@Keychain)
 find_dependency(OpenSSL)
 find_dependency(@Qt@Sql)
+find_dependency(@Qt@Qml)
 
 if(NOT WIN32)
     find_package(PkgConfig REQUIRED)
