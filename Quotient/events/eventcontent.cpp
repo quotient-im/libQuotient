@@ -83,9 +83,10 @@ ImageInfo::ImageInfo(const QFileInfo& fi, QSize imageSize)
 
 ImageInfo::ImageInfo(FileSourceInfo sourceInfo, qint64 fileSize,
                      const QMimeType& type, QSize imageSize,
-                     const QString& originalFilename)
+                     const QString& originalFilename, const QString &imageBlurhash)
     : FileInfo(std::move(sourceInfo), fileSize, type, originalFilename)
     , imageSize(imageSize)
+    , blurhash(imageBlurhash)
 {}
 
 ImageInfo::ImageInfo(FileSourceInfo sourceInfo, const QJsonObject& infoJson,
@@ -101,6 +102,8 @@ QJsonObject Quotient::EventContent::toInfoJson(const ImageInfo& info)
         infoJson.insert("w"_L1, info.imageSize.width());
     if (info.imageSize.height() != -1)
         infoJson.insert("h"_L1, info.imageSize.height());
+    if (!info.blurhash.isEmpty())
+        infoJson.insert("xyz.amorgan.blurhash"_L1, info.blurhash);
     return infoJson;
 }
 
