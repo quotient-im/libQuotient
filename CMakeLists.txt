@@ -71,6 +71,8 @@ find_package(${Qt} ${QtMinVersion} REQUIRED Core Network Gui Test Sql Qml)
 get_filename_component(Qt_Prefix "${${Qt}_DIR}/../../../.." ABSOLUTE)
 
 if(${Qt}Core_VERSION VERSION_GREATER_EQUAL 6.10)
+    # syncdata.cpp has a considerable optimisation that requires private (inline) API
+    set(QT_NO_PRIVATE_MODULE_WARNING ON)
     find_package(${Qt} ${QtMinVersion} REQUIRED COMPONENTS CorePrivate)
 endif()
 
@@ -231,6 +233,7 @@ target_sources(${QUOTIENT_LIB_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS .
 )
 
 include(ECMQmlModule)
+set(KDE_INSTALL_DIRS_NO_CMAKE_VARIABLES TRUE)
 include(KDEInstallDirs)
 
 qt_extract_metatypes(${QUOTIENT_LIB_NAME} OUTPUT_FILES METATYPES_FILE)
