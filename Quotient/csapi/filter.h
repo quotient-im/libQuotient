@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/sync_filter.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -13,7 +12,8 @@ namespace Quotient {
 //! Uploads a new filter definition to the homeserver.
 //! Returns a filter ID that may be used in future requests to
 //! restrict which events are returned to the client.
-class QUOTIENT_API DefineFilterJob : public BaseJob {
+class QUOTIENT_API DefineFilterJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The id of the user uploading the filter. The access token must be authorized to make
@@ -21,7 +21,7 @@ public:
     //!
     //! \param filter
     //!   The filter to upload.
-    explicit DefineFilterJob(const QString& userId, const Filter& filter);
+    explicit DefineFilterJob(const QString &userId, const Filter &filter);
 
     // Result properties
 
@@ -32,24 +32,25 @@ public:
     QString filterId() const { return loadFromJson<QString>("filter_id"_L1); }
 };
 
-inline auto collectResponse(const DefineFilterJob* job) { return job->filterId(); }
+inline auto collectResponse(const DefineFilterJob *job) { return job->filterId(); }
 
 //! \brief Download a filter
-class QUOTIENT_API GetFilterJob : public BaseJob {
+class QUOTIENT_API GetFilterJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The user ID to download a filter for.
     //!
     //! \param filterId
     //!   The filter ID to download.
-    explicit GetFilterJob(const QString& userId, const QString& filterId);
+    explicit GetFilterJob(const QString &userId, const QString &filterId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetFilterJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& userId,
-                               const QString& filterId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &userId,
+                               const QString &filterId);
 
     // Result properties
 
@@ -57,6 +58,6 @@ public:
     Filter filter() const { return fromJson<Filter>(jsonData()); }
 };
 
-inline auto collectResponse(const GetFilterJob* job) { return job->filter(); }
+inline auto collectResponse(const GetFilterJob *job) { return job->filter(); }
 
 } // namespace Quotient

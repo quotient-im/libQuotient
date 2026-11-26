@@ -4,8 +4,8 @@
 
 using namespace Quotient;
 
-auto queryToGetRelatingEvents(const QString& from, const QString& to, std::optional<int> limit,
-                              const QString& dir, std::optional<bool> recurse)
+auto queryToGetRelatingEvents(const QString &from, const QString &to, std::optional<int> limit,
+                              const QString &dir, std::optional<bool> recurse)
 {
     QUrlQuery _q;
     addParam<IfNotEmpty>(_q, u"from"_s, from);
@@ -16,10 +16,10 @@ auto queryToGetRelatingEvents(const QString& from, const QString& to, std::optio
     return _q;
 }
 
-QUrl GetRelatingEventsJob::makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                                          const QString& eventId, const QString& from,
-                                          const QString& to, std::optional<int> limit,
-                                          const QString& dir, std::optional<bool> recurse)
+QUrl GetRelatingEventsJob::makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                                          const QString &eventId, const QString &from,
+                                          const QString &to, std::optional<int> limit,
+                                          const QString &dir, std::optional<bool> recurse)
 {
     return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/",
@@ -27,9 +27,9 @@ QUrl GetRelatingEventsJob::makeRequestUrl(const HomeserverData& hsData, const QS
                                    queryToGetRelatingEvents(from, to, limit, dir, recurse));
 }
 
-GetRelatingEventsJob::GetRelatingEventsJob(const QString& roomId, const QString& eventId,
-                                           const QString& from, const QString& to,
-                                           std::optional<int> limit, const QString& dir,
+GetRelatingEventsJob::GetRelatingEventsJob(const QString &roomId, const QString &eventId,
+                                           const QString &from, const QString &to,
+                                           std::optional<int> limit, const QString &dir,
                                            std::optional<bool> recurse)
     : BaseJob(HttpVerb::Get, u"GetRelatingEventsJob"_s,
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/", eventId),
@@ -38,8 +38,8 @@ GetRelatingEventsJob::GetRelatingEventsJob(const QString& roomId, const QString&
     addExpectedKey(u"chunk"_s);
 }
 
-auto queryToGetRelatingEventsWithRelType(const QString& from, const QString& to,
-                                         std::optional<int> limit, const QString& dir,
+auto queryToGetRelatingEventsWithRelType(const QString &from, const QString &to,
+                                         std::optional<int> limit, const QString &dir,
                                          std::optional<bool> recurse)
 {
     QUrlQuery _q;
@@ -51,11 +51,11 @@ auto queryToGetRelatingEventsWithRelType(const QString& from, const QString& to,
     return _q;
 }
 
-QUrl GetRelatingEventsWithRelTypeJob::makeRequestUrl(const HomeserverData& hsData,
-                                                     const QString& roomId, const QString& eventId,
-                                                     const QString& relType, const QString& from,
-                                                     const QString& to, std::optional<int> limit,
-                                                     const QString& dir, std::optional<bool> recurse)
+QUrl GetRelatingEventsWithRelTypeJob::makeRequestUrl(const HomeserverData &hsData,
+                                                     const QString &roomId, const QString &eventId,
+                                                     const QString &relType, const QString &from,
+                                                     const QString &to, std::optional<int> limit,
+                                                     const QString &dir, std::optional<bool> recurse)
 {
     return BaseJob::makeRequestUrl(
         hsData,
@@ -64,8 +64,8 @@ QUrl GetRelatingEventsWithRelTypeJob::makeRequestUrl(const HomeserverData& hsDat
 }
 
 GetRelatingEventsWithRelTypeJob::GetRelatingEventsWithRelTypeJob(
-    const QString& roomId, const QString& eventId, const QString& relType, const QString& from,
-    const QString& to, std::optional<int> limit, const QString& dir, std::optional<bool> recurse)
+    const QString &roomId, const QString &eventId, const QString &relType, const QString &from,
+    const QString &to, std::optional<int> limit, const QString &dir, std::optional<bool> recurse)
     : BaseJob(HttpVerb::Get, u"GetRelatingEventsWithRelTypeJob"_s,
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/", eventId, "/",
                        relType),
@@ -74,8 +74,8 @@ GetRelatingEventsWithRelTypeJob::GetRelatingEventsWithRelTypeJob(
     addExpectedKey(u"chunk"_s);
 }
 
-auto queryToGetRelatingEventsWithRelTypeAndEventType(const QString& from, const QString& to,
-                                                     std::optional<int> limit, const QString& dir,
+auto queryToGetRelatingEventsWithRelTypeAndEventType(const QString &from, const QString &to,
+                                                     std::optional<int> limit, const QString &dir,
                                                      std::optional<bool> recurse)
 {
     QUrlQuery _q;
@@ -88,9 +88,9 @@ auto queryToGetRelatingEventsWithRelTypeAndEventType(const QString& from, const 
 }
 
 QUrl GetRelatingEventsWithRelTypeAndEventTypeJob::makeRequestUrl(
-    const HomeserverData& hsData, const QString& roomId, const QString& eventId,
-    const QString& relType, const QString& eventType, const QString& from, const QString& to,
-    std::optional<int> limit, const QString& dir, std::optional<bool> recurse)
+    const HomeserverData &hsData, const QString &roomId, const QString &eventId,
+    const QString &relType, const QString &eventType, const QString &from, const QString &to,
+    std::optional<int> limit, const QString &dir, std::optional<bool> recurse)
 {
     return BaseJob::makeRequestUrl(hsData,
                                    makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/",
@@ -100,8 +100,8 @@ QUrl GetRelatingEventsWithRelTypeAndEventTypeJob::makeRequestUrl(
 }
 
 GetRelatingEventsWithRelTypeAndEventTypeJob::GetRelatingEventsWithRelTypeAndEventTypeJob(
-    const QString& roomId, const QString& eventId, const QString& relType, const QString& eventType,
-    const QString& from, const QString& to, std::optional<int> limit, const QString& dir,
+    const QString &roomId, const QString &eventId, const QString &relType, const QString &eventType,
+    const QString &from, const QString &to, std::optional<int> limit, const QString &dir,
     std::optional<bool> recurse)
     : BaseJob(HttpVerb::Get, u"GetRelatingEventsWithRelTypeAndEventTypeJob"_s,
               makePath("/_matrix/client/v1", "/rooms/", roomId, "/relations/", eventId, "/",

@@ -6,7 +6,6 @@
 #include <Quotient/csapi/definitions/request_email_validation.h>
 #include <Quotient/csapi/definitions/request_msisdn_validation.h>
 #include <Quotient/csapi/definitions/request_token_response.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -21,11 +20,13 @@ namespace Quotient {
 //!
 //! Identifiers in this list may be used by the homeserver as, for example,
 //! identifiers that it will accept to reset the user's account password.
-class QUOTIENT_API GetAccount3PIDsJob : public BaseJob {
+class QUOTIENT_API GetAccount3PIDsJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API ThirdPartyIdentifier {
+    struct QUOTIENT_API ThirdPartyIdentifier
+    {
         //! The medium of the third-party identifier.
         QString medium;
 
@@ -49,7 +50,7 @@ public:
     //!
     //! This function can be used when a URL for GetAccount3PIDsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -59,11 +60,12 @@ public:
     }
 };
 
-inline auto collectResponse(const GetAccount3PIDsJob* job) { return job->threepids(); }
+inline auto collectResponse(const GetAccount3PIDsJob *job) { return job->threepids(); }
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier> {
-    static void fillFrom(const QJsonObject& jo, GetAccount3PIDsJob::ThirdPartyIdentifier& result)
+struct QUOTIENT_API JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier>
+{
+    static void fillFrom(const QJsonObject &jo, GetAccount3PIDsJob::ThirdPartyIdentifier &result)
     {
         fillFromJson(jo.value("medium"_L1), result.medium);
         fillFromJson(jo.value("address"_L1), result.address);
@@ -85,12 +87,14 @@ struct QUOTIENT_API JsonObjectConverter<GetAccount3PIDsJob::ThirdPartyIdentifier
 //! This results in this endpoint being an equivalent to `/3pid/bind` rather
 //! than dual-purpose.
 class [[deprecated("Check the documentation for details")]] QUOTIENT_API Post3PIDsJob
-    : public BaseJob {
+    : public BaseJob
+{
 public:
     // Inner data structures
 
     //! The third-party credentials to associate with the account.
-    struct QUOTIENT_API ThreePidCredentials {
+    struct QUOTIENT_API ThreePidCredentials
+    {
         //! The client secret used in the session with the identity server.
         QString clientSecret;
 
@@ -110,7 +114,7 @@ public:
 
     //! \param threePidCreds
     //!   The third-party credentials to associate with the account.
-    explicit Post3PIDsJob(const ThreePidCredentials& threePidCreds);
+    explicit Post3PIDsJob(const ThreePidCredentials &threePidCreds);
 
     // Result properties
 
@@ -131,14 +135,15 @@ public:
 
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
-inline auto collectResponse(const Post3PIDsJob* job) { return job->submitUrl(); }
+inline auto collectResponse(const Post3PIDsJob *job) { return job->submitUrl(); }
 QT_WARNING_POP
 
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 template <>
-struct QUOTIENT_API JsonObjectConverter<Post3PIDsJob::ThreePidCredentials> {
-    static void dumpTo(QJsonObject& jo, const Post3PIDsJob::ThreePidCredentials& pod)
+struct QUOTIENT_API JsonObjectConverter<Post3PIDsJob::ThreePidCredentials>
+{
+    static void dumpTo(QJsonObject &jo, const Post3PIDsJob::ThreePidCredentials &pod)
     {
         addParam(jo, "client_secret"_L1, pod.clientSecret);
         addParam(jo, "id_server"_L1, pod.idServer);
@@ -158,7 +163,8 @@ QT_WARNING_POP
 //!
 //! Homeservers should prevent the caller from adding a 3PID to their account if it has
 //! already been added to another user's account on the homeserver.
-class QUOTIENT_API Add3PIDJob : public BaseJob {
+class QUOTIENT_API Add3PIDJob : public BaseJob
+{
 public:
     //! \param clientSecret
     //!   The client secret used in the session with the homeserver.
@@ -169,8 +175,8 @@ public:
     //! \param auth
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
-    explicit Add3PIDJob(const QString& clientSecret, const QString& sid,
-                        const std::optional<AuthenticationData>& auth = std::nullopt);
+    explicit Add3PIDJob(const QString &clientSecret, const QString &sid,
+                        const std::optional<AuthenticationData> &auth = std::nullopt);
 };
 
 //! \brief Binds a 3PID to the user's account through an Identity Service.
@@ -182,7 +188,8 @@ public:
 //! the identity server to the caller.
 //!
 //! Homeservers should track successful binds so they can be unbound later.
-class QUOTIENT_API Bind3PIDJob : public BaseJob {
+class QUOTIENT_API Bind3PIDJob : public BaseJob
+{
 public:
     //! \param clientSecret
     //!   The client secret used in the session with the identity server.
@@ -195,8 +202,8 @@ public:
     //!
     //! \param sid
     //!   The session identifier given by the identity server.
-    explicit Bind3PIDJob(const QString& clientSecret, const QString& idServer,
-                         const QString& idAccessToken, const QString& sid);
+    explicit Bind3PIDJob(const QString &clientSecret, const QString &idServer,
+                         const QString &idAccessToken, const QString &sid);
 };
 
 //! \brief Deletes a third-party identifier from the user's account
@@ -207,7 +214,8 @@ public:
 //! Unlike other endpoints, this endpoint does not take an `id_access_token`
 //! parameter because the homeserver is expected to sign the request to the
 //! identity server instead.
-class QUOTIENT_API Delete3pidFromAccountJob : public BaseJob {
+class QUOTIENT_API Delete3pidFromAccountJob : public BaseJob
+{
 public:
     //! \param medium
     //!   The medium of the third-party identifier being removed.
@@ -220,8 +228,8 @@ public:
     //!   MUST use the `id_server` the identifier was added through. If the
     //!   homeserver does not know the original `id_server`, it MUST return
     //!   a `id_server_unbind_result` of `no-support`.
-    explicit Delete3pidFromAccountJob(const QString& medium, const QString& address,
-                                      const QString& idServer = {});
+    explicit Delete3pidFromAccountJob(const QString &medium, const QString &address,
+                                      const QString &idServer = {});
 
     // Result properties
 
@@ -237,7 +245,7 @@ public:
     }
 };
 
-inline auto collectResponse(const Delete3pidFromAccountJob* job)
+inline auto collectResponse(const Delete3pidFromAccountJob *job)
 {
     return job->idServerUnbindResult();
 }
@@ -250,7 +258,8 @@ inline auto collectResponse(const Delete3pidFromAccountJob* job)
 //! Unlike other endpoints, this endpoint does not take an `id_access_token`
 //! parameter because the homeserver is expected to sign the request to the
 //! identity server instead.
-class QUOTIENT_API Unbind3pidFromAccountJob : public BaseJob {
+class QUOTIENT_API Unbind3pidFromAccountJob : public BaseJob
+{
 public:
     //! \param medium
     //!   The medium of the third-party identifier being removed.
@@ -263,8 +272,8 @@ public:
     //!   MUST use the `id_server` the identifier was added through. If the
     //!   homeserver does not know the original `id_server`, it MUST return
     //!   a `id_server_unbind_result` of `no-support`.
-    explicit Unbind3pidFromAccountJob(const QString& medium, const QString& address,
-                                      const QString& idServer = {});
+    explicit Unbind3pidFromAccountJob(const QString &medium, const QString &address,
+                                      const QString &idServer = {});
 
     // Result properties
 
@@ -279,7 +288,7 @@ public:
     }
 };
 
-inline auto collectResponse(const Unbind3pidFromAccountJob* job)
+inline auto collectResponse(const Unbind3pidFromAccountJob *job)
 {
     return job->idServerUnbindResult();
 }
@@ -296,9 +305,10 @@ inline auto collectResponse(const Unbind3pidFromAccountJob* job)
 //! endpoint. The homeserver should validate
 //! the email itself, either by sending a validation email itself or by using
 //! a service it has control over.
-class QUOTIENT_API RequestTokenTo3PIDEmailJob : public BaseJob {
+class QUOTIENT_API RequestTokenTo3PIDEmailJob : public BaseJob
+{
 public:
-    explicit RequestTokenTo3PIDEmailJob(const EmailValidationData& data);
+    explicit RequestTokenTo3PIDEmailJob(const EmailValidationData &data);
 
     // Result properties
 
@@ -308,7 +318,7 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
-inline auto collectResponse(const RequestTokenTo3PIDEmailJob* job) { return job->response(); }
+inline auto collectResponse(const RequestTokenTo3PIDEmailJob *job) { return job->response(); }
 
 //! \brief Begins the validation process for a phone number for association with the user's account.
 //!
@@ -321,9 +331,10 @@ inline auto collectResponse(const RequestTokenTo3PIDEmailJob* job) { return job-
 //! endpoint. The homeserver should validate
 //! the phone number itself, either by sending a validation message itself or by using
 //! a service it has control over.
-class QUOTIENT_API RequestTokenTo3PIDMSISDNJob : public BaseJob {
+class QUOTIENT_API RequestTokenTo3PIDMSISDNJob : public BaseJob
+{
 public:
-    explicit RequestTokenTo3PIDMSISDNJob(const MsisdnValidationData& data);
+    explicit RequestTokenTo3PIDMSISDNJob(const MsisdnValidationData &data);
 
     // Result properties
 
@@ -331,6 +342,6 @@ public:
     RequestTokenResponse response() const { return fromJson<RequestTokenResponse>(jsonData()); }
 };
 
-inline auto collectResponse(const RequestTokenTo3PIDMSISDNJob* job) { return job->response(); }
+inline auto collectResponse(const RequestTokenTo3PIDMSISDNJob *job) { return job->response(); }
 
 } // namespace Quotient

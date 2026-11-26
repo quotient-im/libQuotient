@@ -3,12 +3,12 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/push_rule.h>
-
 #include <Quotient/converters.h>
 
 namespace Quotient {
 
-struct QUOTIENT_API PushRuleset {
+struct QUOTIENT_API PushRuleset
+{
     QVector<PushRule> content{};
 
     QVector<PushRule> override{};
@@ -21,8 +21,9 @@ struct QUOTIENT_API PushRuleset {
 };
 
 template <>
-struct JsonObjectConverter<PushRuleset> {
-    static void dumpTo(QJsonObject& jo, const PushRuleset& pod)
+struct JsonObjectConverter<PushRuleset>
+{
+    static void dumpTo(QJsonObject &jo, const PushRuleset &pod)
     {
         addParam<IfNotEmpty>(jo, "content"_L1, pod.content);
         addParam<IfNotEmpty>(jo, "override"_L1, pod.override);
@@ -30,7 +31,7 @@ struct JsonObjectConverter<PushRuleset> {
         addParam<IfNotEmpty>(jo, "sender"_L1, pod.sender);
         addParam<IfNotEmpty>(jo, "underride"_L1, pod.underride);
     }
-    static void fillFrom(const QJsonObject& jo, PushRuleset& pod)
+    static void fillFrom(const QJsonObject &jo, PushRuleset &pod)
     {
         fillFromJson(jo.value("content"_L1), pod.content);
         fillFromJson(jo.value("override"_L1), pod.override);

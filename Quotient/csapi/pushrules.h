@@ -5,7 +5,6 @@
 #include <Quotient/csapi/definitions/push_condition.h>
 #include <Quotient/csapi/definitions/push_rule.h>
 #include <Quotient/csapi/definitions/push_ruleset.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -14,7 +13,8 @@ namespace Quotient {
 //!
 //! Retrieve all push rulesets for this user. Currently the only push ruleset
 //! defined is `global`.
-class QUOTIENT_API GetPushRulesJob : public BaseJob {
+class QUOTIENT_API GetPushRulesJob : public BaseJob
+{
 public:
     explicit GetPushRulesJob();
 
@@ -22,7 +22,7 @@ public:
     //!
     //! This function can be used when a URL for GetPushRulesJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -30,12 +30,13 @@ public:
     PushRuleset global() const { return loadFromJson<PushRuleset>("global"_L1); }
 };
 
-inline auto collectResponse(const GetPushRulesJob* job) { return job->global(); }
+inline auto collectResponse(const GetPushRulesJob *job) { return job->global(); }
 
 //! \brief Retrieve all push rules.
 //!
 //! Retrieve all push rules for this user.
-class QUOTIENT_API GetPushRulesGlobalJob : public BaseJob {
+class QUOTIENT_API GetPushRulesGlobalJob : public BaseJob
+{
 public:
     explicit GetPushRulesGlobalJob();
 
@@ -43,7 +44,7 @@ public:
     //!
     //! This function can be used when a URL for GetPushRulesGlobalJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -51,26 +52,27 @@ public:
     PushRuleset data() const { return fromJson<PushRuleset>(jsonData()); }
 };
 
-inline auto collectResponse(const GetPushRulesGlobalJob* job) { return job->data(); }
+inline auto collectResponse(const GetPushRulesGlobalJob *job) { return job->data(); }
 
 //! \brief Retrieve a push rule.
 //!
 //! Retrieve a single specified push rule.
-class QUOTIENT_API GetPushRuleJob : public BaseJob {
+class QUOTIENT_API GetPushRuleJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit GetPushRuleJob(const QString& kind, const QString& ruleId);
+    explicit GetPushRuleJob(const QString &kind, const QString &ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetPushRuleJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &kind,
+                               const QString &ruleId);
 
     // Result properties
 
@@ -79,26 +81,27 @@ public:
     PushRule pushRule() const { return fromJson<PushRule>(jsonData()); }
 };
 
-inline auto collectResponse(const GetPushRuleJob* job) { return job->pushRule(); }
+inline auto collectResponse(const GetPushRuleJob *job) { return job->pushRule(); }
 
 //! \brief Delete a push rule.
 //!
 //! This endpoint removes the push rule defined in the path.
-class QUOTIENT_API DeletePushRuleJob : public BaseJob {
+class QUOTIENT_API DeletePushRuleJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit DeletePushRuleJob(const QString& kind, const QString& ruleId);
+    explicit DeletePushRuleJob(const QString &kind, const QString &ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for DeletePushRuleJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &kind,
+                               const QString &ruleId);
 };
 
 //! \brief Add or change a push rule.
@@ -119,7 +122,8 @@ public:
 //! the same kind.
 //!
 //! When creating push rules, they MUST be enabled by default.
-class QUOTIENT_API SetPushRuleJob : public BaseJob {
+class QUOTIENT_API SetPushRuleJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of rule
@@ -149,30 +153,31 @@ public:
     //!
     //! \param pattern
     //!   Only applicable to `content` rules. The glob-style pattern to match against.
-    explicit SetPushRuleJob(const QString& kind, const QString& ruleId,
-                            const QVector<QVariant>& actions, const QString& before = {},
-                            const QString& after = {}, const QVector<PushCondition>& conditions = {},
-                            const QString& pattern = {});
+    explicit SetPushRuleJob(const QString &kind, const QString &ruleId,
+                            const QVector<QVariant> &actions, const QString &before = {},
+                            const QString &after = {}, const QVector<PushCondition> &conditions = {},
+                            const QString &pattern = {});
 };
 
 //! \brief Get whether a push rule is enabled
 //!
 //! This endpoint gets whether the specified push rule is enabled.
-class QUOTIENT_API IsPushRuleEnabledJob : public BaseJob {
+class QUOTIENT_API IsPushRuleEnabledJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit IsPushRuleEnabledJob(const QString& kind, const QString& ruleId);
+    explicit IsPushRuleEnabledJob(const QString &kind, const QString &ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for IsPushRuleEnabledJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &kind,
+                               const QString &ruleId);
 
     // Result properties
 
@@ -180,12 +185,13 @@ public:
     bool enabled() const { return loadFromJson<bool>("enabled"_L1); }
 };
 
-inline auto collectResponse(const IsPushRuleEnabledJob* job) { return job->enabled(); }
+inline auto collectResponse(const IsPushRuleEnabledJob *job) { return job->enabled(); }
 
 //! \brief Enable or disable a push rule.
 //!
 //! This endpoint allows clients to enable or disable the specified push rule.
-class QUOTIENT_API SetPushRuleEnabledJob : public BaseJob {
+class QUOTIENT_API SetPushRuleEnabledJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of rule
@@ -195,27 +201,28 @@ public:
     //!
     //! \param enabled
     //!   Whether the push rule is enabled or not.
-    explicit SetPushRuleEnabledJob(const QString& kind, const QString& ruleId, bool enabled);
+    explicit SetPushRuleEnabledJob(const QString &kind, const QString &ruleId, bool enabled);
 };
 
 //! \brief The actions for a push rule
 //!
 //! This endpoint get the actions for the specified push rule.
-class QUOTIENT_API GetPushRuleActionsJob : public BaseJob {
+class QUOTIENT_API GetPushRuleActionsJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of rule
     //!
     //! \param ruleId
     //!   The identifier for the rule.
-    explicit GetPushRuleActionsJob(const QString& kind, const QString& ruleId);
+    explicit GetPushRuleActionsJob(const QString &kind, const QString &ruleId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetPushRuleActionsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& kind,
-                               const QString& ruleId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &kind,
+                               const QString &ruleId);
 
     // Result properties
 
@@ -223,13 +230,14 @@ public:
     QVector<QVariant> actions() const { return loadFromJson<QVector<QVariant>>("actions"_L1); }
 };
 
-inline auto collectResponse(const GetPushRuleActionsJob* job) { return job->actions(); }
+inline auto collectResponse(const GetPushRuleActionsJob *job) { return job->actions(); }
 
 //! \brief Set the actions for a push rule.
 //!
 //! This endpoint allows clients to change the actions of a push rule.
 //! This can be used to change the actions of builtin rules.
-class QUOTIENT_API SetPushRuleActionsJob : public BaseJob {
+class QUOTIENT_API SetPushRuleActionsJob : public BaseJob
+{
 public:
     //! \param kind
     //!   The kind of rule
@@ -239,8 +247,8 @@ public:
     //!
     //! \param actions
     //!   The action(s) to perform for this rule.
-    explicit SetPushRuleActionsJob(const QString& kind, const QString& ruleId,
-                                   const QVector<QVariant>& actions);
+    explicit SetPushRuleActionsJob(const QString &kind, const QString &ruleId,
+                                   const QVector<QVariant> &actions);
 };
 
 } // namespace Quotient

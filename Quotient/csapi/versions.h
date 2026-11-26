@@ -30,7 +30,8 @@ namespace Quotient {
 //! here after they've been released into the spec to give clients a chance
 //! to upgrade appropriately. Additionally, clients should avoid using
 //! unstable features in their stable releases.
-class QUOTIENT_API GetVersionsJob : public BaseJob {
+class QUOTIENT_API GetVersionsJob : public BaseJob
+{
 public:
     explicit GetVersionsJob();
 
@@ -38,7 +39,7 @@ public:
     //!
     //! This function can be used when a URL for GetVersionsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -53,7 +54,8 @@ public:
         return loadFromJson<QHash<QString, bool>>("unstable_features"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! The supported versions.
         QStringList versions{};
 
@@ -66,6 +68,6 @@ public:
 
 template <std::derived_from<GetVersionsJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetVersionsJob::Response { return { j->versions(), j->unstableFeatures() }; };
+    [](JobT *j) -> GetVersionsJob::Response { return {j->versions(), j->unstableFeatures()}; };
 
 } // namespace Quotient

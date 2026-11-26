@@ -12,21 +12,22 @@ namespace Quotient {
 //!
 //! Get a single event based on `roomId/eventId`. You must have permission to
 //! retrieve this event e.g. by being a member in the room for this event.
-class QUOTIENT_API GetOneRoomEventJob : public BaseJob {
+class QUOTIENT_API GetOneRoomEventJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The ID of the room the event is in.
     //!
     //! \param eventId
     //!   The event ID to get.
-    explicit GetOneRoomEventJob(const QString& roomId, const QString& eventId);
+    explicit GetOneRoomEventJob(const QString &roomId, const QString &eventId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetOneRoomEventJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& eventId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &eventId);
 
     // Result properties
 
@@ -34,7 +35,7 @@ public:
     RoomEventPtr requestedEvent() { return fromJson<RoomEventPtr>(jsonData()); }
 };
 
-inline auto collectResponse(GetOneRoomEventJob* job) { return job->requestedEvent(); }
+inline auto collectResponse(GetOneRoomEventJob *job) { return job->requestedEvent(); }
 
 //! \brief Get the state identified by the type and key.
 //!
@@ -42,7 +43,8 @@ inline auto collectResponse(GetOneRoomEventJob* job) { return job->requestedEven
 //! joined to the room then the state is taken from the current
 //! state of the room. If the user has left the room then the state is
 //! taken from the state of the room when they left.
-class QUOTIENT_API GetRoomStateWithKeyJob : public BaseJob {
+class QUOTIENT_API GetRoomStateWithKeyJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room to look up the state in.
@@ -53,15 +55,15 @@ public:
     //! \param stateKey
     //!   The key of the state to look up. Defaults to an empty string. When
     //!   an empty string, the trailing slash on this endpoint is optional.
-    explicit GetRoomStateWithKeyJob(const QString& roomId, const QString& eventType,
-                                    const QString& stateKey);
+    explicit GetRoomStateWithKeyJob(const QString &roomId, const QString &eventType,
+                                    const QString &stateKey);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetRoomStateWithKeyJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& eventType, const QString& stateKey);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &eventType, const QString &stateKey);
 
     // Result properties
 
@@ -69,22 +71,23 @@ public:
     QJsonObject content() const { return fromJson<QJsonObject>(jsonData()); }
 };
 
-inline auto collectResponse(const GetRoomStateWithKeyJob* job) { return job->content(); }
+inline auto collectResponse(const GetRoomStateWithKeyJob *job) { return job->content(); }
 
 //! \brief Get all state events in the current state of a room.
 //!
 //! Get the state events for the current state of a room.
-class QUOTIENT_API GetRoomStateJob : public BaseJob {
+class QUOTIENT_API GetRoomStateJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room to look up the state for.
-    explicit GetRoomStateJob(const QString& roomId);
+    explicit GetRoomStateJob(const QString &roomId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetRoomStateJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId);
 
     // Result properties
 
@@ -92,12 +95,13 @@ public:
     StateEvents events() { return fromJson<StateEvents>(jsonData()); }
 };
 
-inline auto collectResponse(GetRoomStateJob* job) { return job->events(); }
+inline auto collectResponse(GetRoomStateJob *job) { return job->events(); }
 
 //! \brief Get the m.room.member events for the room.
 //!
 //! Get the list of members for this room.
-class QUOTIENT_API GetMembersByRoomJob : public BaseJob {
+class QUOTIENT_API GetMembersByRoomJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room to get the member events for.
@@ -117,23 +121,23 @@ public:
     //! \param notMembership
     //!   The kind of membership to exclude from the results. Defaults to no
     //!   filtering if unspecified.
-    explicit GetMembersByRoomJob(const QString& roomId, const QString& at = {},
-                                 const QString& membership = {}, const QString& notMembership = {});
+    explicit GetMembersByRoomJob(const QString &roomId, const QString &at = {},
+                                 const QString &membership = {}, const QString &notMembership = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetMembersByRoomJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& at = {}, const QString& membership = {},
-                               const QString& notMembership = {});
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &at = {}, const QString &membership = {},
+                               const QString &notMembership = {});
 
     // Result properties
 
     StateEvents chunk() { return takeFromJson<StateEvents>("chunk"_L1); }
 };
 
-inline auto collectResponse(GetMembersByRoomJob* job) { return job->chunk(); }
+inline auto collectResponse(GetMembersByRoomJob *job) { return job->chunk(); }
 
 //! \brief Gets the list of currently joined users and their profile data.
 //!
@@ -141,11 +145,13 @@ inline auto collectResponse(GetMembersByRoomJob* job) { return job->chunk(); }
 //! must be in the room for it to work, unless it is an Application Service in which case any of the
 //! AS's users must be in the room. This API is primarily for Application Services and should be
 //! faster to respond than `/members` as it can be implemented more efficiently on the server.
-class QUOTIENT_API GetJoinedMembersByRoomJob : public BaseJob {
+class QUOTIENT_API GetJoinedMembersByRoomJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API RoomMember {
+    struct QUOTIENT_API RoomMember
+    {
         //! The display name of the user this object is representing.
         QString displayName{};
 
@@ -158,13 +164,13 @@ public:
 
     //! \param roomId
     //!   The room to get the members of.
-    explicit GetJoinedMembersByRoomJob(const QString& roomId);
+    explicit GetJoinedMembersByRoomJob(const QString &roomId);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetJoinedMembersByRoomJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId);
 
     // Result properties
 
@@ -175,11 +181,12 @@ public:
     }
 };
 
-inline auto collectResponse(const GetJoinedMembersByRoomJob* job) { return job->joined(); }
+inline auto collectResponse(const GetJoinedMembersByRoomJob *job) { return job->joined(); }
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember> {
-    static void fillFrom(const QJsonObject& jo, GetJoinedMembersByRoomJob::RoomMember& result)
+struct QUOTIENT_API JsonObjectConverter<GetJoinedMembersByRoomJob::RoomMember>
+{
+    static void fillFrom(const QJsonObject &jo, GetJoinedMembersByRoomJob::RoomMember &result)
     {
         fillFromJson(jo.value("display_name"_L1), result.displayName);
         fillFromJson(jo.value("avatar_url"_L1), result.avatarUrl);

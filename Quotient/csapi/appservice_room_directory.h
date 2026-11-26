@@ -17,7 +17,8 @@ namespace Quotient {
 //! This API requires the use of an application service access token (`as_token`)
 //! instead of a typical client's access_token. This API cannot be invoked by
 //! users who are not identified as application services.
-class QUOTIENT_API UpdateAppserviceRoomDirectoryVisibilityJob : public BaseJob {
+class QUOTIENT_API UpdateAppserviceRoomDirectoryVisibilityJob : public BaseJob
+{
 public:
     //! \param networkId
     //!   The protocol (network) ID to update the room list for. This would
@@ -30,9 +31,9 @@ public:
     //! \param visibility
     //!   Whether the room should be visible (public) in the directory
     //!   or not (private).
-    explicit UpdateAppserviceRoomDirectoryVisibilityJob(const QString& networkId,
-                                                        const QString& roomId,
-                                                        const QString& visibility);
+    explicit UpdateAppserviceRoomDirectoryVisibilityJob(const QString &networkId,
+                                                        const QString &roomId,
+                                                        const QString &visibility);
 };
 
 } // namespace Quotient

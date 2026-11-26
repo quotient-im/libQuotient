@@ -10,7 +10,8 @@ namespace Quotient {
 //!
 //! Sets the position of the read marker for a given room, and optionally
 //! the read receipt's location.
-class QUOTIENT_API SetReadMarkerJob : public BaseJob {
+class QUOTIENT_API SetReadMarkerJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room ID to set the read marker in for the user.
@@ -28,8 +29,8 @@ public:
     //!   The event ID to set the *private* read receipt location at. This
     //!   equivalent to calling `/receipt/m.read.private/$elsewhere:example.org`
     //!   and is provided here to save that extra call.
-    explicit SetReadMarkerJob(const QString& roomId, const QString& fullyRead = {},
-                              const QString& read = {}, const QString& readPrivate = {});
+    explicit SetReadMarkerJob(const QString &roomId, const QString &fullyRead = {},
+                              const QString &read = {}, const QString &readPrivate = {});
 };
 
 } // namespace Quotient

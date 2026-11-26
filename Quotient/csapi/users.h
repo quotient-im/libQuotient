@@ -18,11 +18,13 @@ namespace Quotient {
 //! The search is performed case-insensitively on user IDs and display
 //! names preferably using a collation determined based upon the
 //! `Accept-Language` header provided in the request, if present.
-class QUOTIENT_API SearchUserDirectoryJob : public BaseJob {
+class QUOTIENT_API SearchUserDirectoryJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API User {
+    struct QUOTIENT_API User
+    {
         //! The user's matrix user ID.
         QString userId;
 
@@ -41,7 +43,7 @@ public:
     //!
     //! \param limit
     //!   The maximum number of results to return. Defaults to 10.
-    explicit SearchUserDirectoryJob(const QString& searchTerm,
+    explicit SearchUserDirectoryJob(const QString &searchTerm,
                                     std::optional<int> limit = std::nullopt);
 
     // Result properties
@@ -52,7 +54,8 @@ public:
     //! Indicates if the result list has been truncated by the limit.
     bool limited() const { return loadFromJson<bool>("limited"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! Ordered by rank and then whether or not profile info is available.
         QVector<User> results{};
 
@@ -63,11 +66,12 @@ public:
 
 template <std::derived_from<SearchUserDirectoryJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> SearchUserDirectoryJob::Response { return { j->results(), j->limited() }; };
+    [](JobT *j) -> SearchUserDirectoryJob::Response { return {j->results(), j->limited()}; };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<SearchUserDirectoryJob::User> {
-    static void fillFrom(const QJsonObject& jo, SearchUserDirectoryJob::User& result)
+struct QUOTIENT_API JsonObjectConverter<SearchUserDirectoryJob::User>
+{
+    static void fillFrom(const QJsonObject &jo, SearchUserDirectoryJob::User &result)
     {
         fillFromJson(jo.value("user_id"_L1), result.userId);
         fillFromJson(jo.value("display_name"_L1), result.displayName);

@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/openid_token.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -18,7 +17,8 @@ namespace Quotient {
 //! The access token generated is only valid for the OpenID API. It cannot
 //! be used to request another OpenID access token or call `/sync`, for
 //! example.
-class QUOTIENT_API RequestOpenIdTokenJob : public BaseJob {
+class QUOTIENT_API RequestOpenIdTokenJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The user to request an OpenID token for. Should be the user who
@@ -26,7 +26,7 @@ public:
     //!
     //! \param dontUse
     //!   An empty object. Reserved for future expansion.
-    explicit RequestOpenIdTokenJob(const QString& userId, const QJsonObject& dontUse = {});
+    explicit RequestOpenIdTokenJob(const QString &userId, const QJsonObject &dontUse = {});
 
     // Result properties
 
@@ -39,6 +39,6 @@ public:
     OpenIdCredentials tokenData() const { return fromJson<OpenIdCredentials>(jsonData()); }
 };
 
-inline auto collectResponse(const RequestOpenIdTokenJob* job) { return job->tokenData(); }
+inline auto collectResponse(const RequestOpenIdTokenJob *job) { return job->tokenData(); }
 
 } // namespace Quotient

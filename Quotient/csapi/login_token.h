@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/auth_data.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -43,11 +42,12 @@ namespace Quotient {
 //!
 //! Servers are encouraged to apply stricter than normal rate limiting to this endpoint, such as
 //! maximum of 1 request per minute.
-class QUOTIENT_API GenerateLoginTokenJob : public BaseJob {
+class QUOTIENT_API GenerateLoginTokenJob : public BaseJob
+{
 public:
     //! \param auth
     //!   Additional authentication information for the user-interactive authentication API.
-    explicit GenerateLoginTokenJob(const std::optional<AuthenticationData>& auth = std::nullopt);
+    explicit GenerateLoginTokenJob(const std::optional<AuthenticationData> &auth = std::nullopt);
 
     // Result properties
 
@@ -58,7 +58,8 @@ public:
     //! `120000` (2 minutes) is recommended as a default.
     int expiresInMs() const { return loadFromJson<int>("expires_in_ms"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The login token for the `m.login.token` login flow.
         QString loginToken{};
 
@@ -69,8 +70,7 @@ public:
 };
 
 template <std::derived_from<GenerateLoginTokenJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GenerateLoginTokenJob::Response {
-    return { j->loginToken(), j->expiresInMs() };
-};
+constexpr inline auto doCollectResponse<JobT> =
+    [](JobT *j) -> GenerateLoginTokenJob::Response { return {j->loginToken(), j->expiresInMs()}; };
 
 } // namespace Quotient

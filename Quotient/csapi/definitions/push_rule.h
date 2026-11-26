@@ -3,12 +3,12 @@
 #pragma once
 
 #include <Quotient/csapi/definitions/push_condition.h>
-
 #include <Quotient/converters.h>
 
 namespace Quotient {
 
-struct QUOTIENT_API PushRule {
+struct QUOTIENT_API PushRule
+{
     //! The actions to perform when this rule is matched.
     QVector<QVariant> actions;
 
@@ -32,8 +32,9 @@ struct QUOTIENT_API PushRule {
 };
 
 template <>
-struct JsonObjectConverter<PushRule> {
-    static void dumpTo(QJsonObject& jo, const PushRule& pod)
+struct JsonObjectConverter<PushRule>
+{
+    static void dumpTo(QJsonObject &jo, const PushRule &pod)
     {
         addParam(jo, "actions"_L1, pod.actions);
         addParam(jo, "default"_L1, pod.isDefault);
@@ -42,7 +43,7 @@ struct JsonObjectConverter<PushRule> {
         addParam<IfNotEmpty>(jo, "conditions"_L1, pod.conditions);
         addParam<IfNotEmpty>(jo, "pattern"_L1, pod.pattern);
     }
-    static void fillFrom(const QJsonObject& jo, PushRule& pod)
+    static void fillFrom(const QJsonObject &jo, PushRule &pod)
     {
         fillFromJson(jo.value("actions"_L1), pod.actions);
         fillFromJson(jo.value("default"_L1), pod.isDefault);

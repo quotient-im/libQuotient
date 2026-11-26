@@ -11,7 +11,8 @@ namespace Quotient {
 //! Invalidates an existing access token, so that it can no longer be used for
 //! authorization. The device associated with the access token is also deleted.
 //! [Device keys](/client-server-api/#device-keys) for the device are deleted alongside the device.
-class QUOTIENT_API LogoutJob : public BaseJob {
+class QUOTIENT_API LogoutJob : public BaseJob
+{
 public:
     explicit LogoutJob();
 
@@ -19,7 +20,7 @@ public:
     //!
     //! This function can be used when a URL for LogoutJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 };
 
 //! \brief Invalidates all access tokens for a user
@@ -35,7 +36,8 @@ public:
 //! access token then takes over the account. This endpoint invalidates all access tokens for the
 //! user, including the token used in the request, and therefore the attacker is unable to take over
 //! the account in this way.
-class QUOTIENT_API LogoutAllJob : public BaseJob {
+class QUOTIENT_API LogoutAllJob : public BaseJob
+{
 public:
     explicit LogoutAllJob();
 
@@ -43,7 +45,7 @@ public:
     //!
     //! This function can be used when a URL for LogoutAllJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 };
 
 } // namespace Quotient

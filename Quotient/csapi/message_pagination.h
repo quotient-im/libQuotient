@@ -14,7 +14,8 @@ namespace Quotient {
 //!
 //! *Note*: This endpoint supports lazy-loading of room member events. See
 //! [Lazy-loading room members](/client-server-api/#lazy-loading-room-members) for more information.
-class QUOTIENT_API GetRoomEventsJob : public BaseJob {
+class QUOTIENT_API GetRoomEventsJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room to get events from.
@@ -48,17 +49,17 @@ public:
     //!
     //! \param filter
     //!   A JSON RoomEventFilter to filter returned events with.
-    explicit GetRoomEventsJob(const QString& roomId, const QString& dir, const QString& from = {},
-                              const QString& to = {}, std::optional<int> limit = std::nullopt,
-                              const QString& filter = {});
+    explicit GetRoomEventsJob(const QString &roomId, const QString &dir, const QString &from = {},
+                              const QString &to = {}, std::optional<int> limit = std::nullopt,
+                              const QString &filter = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetRoomEventsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
-                               const QString& dir, const QString& from = {}, const QString& to = {},
-                               std::optional<int> limit = std::nullopt, const QString& filter = {});
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
+                               const QString &dir, const QString &from = {}, const QString &to = {},
+                               std::optional<int> limit = std::nullopt, const QString &filter = {});
 
     // Result properties
 
@@ -95,7 +96,8 @@ public:
     //! the membership of those members has not changed.
     RoomEvents state() { return takeFromJson<RoomEvents>("state"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! A token corresponding to the start of `chunk`. This will be the same as
         //! the value given in `from`.
         QString begin{};
@@ -132,8 +134,8 @@ public:
 };
 
 template <std::derived_from<GetRoomEventsJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetRoomEventsJob::Response {
-    return { j->begin(), j->end(), j->chunk(), j->state() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> GetRoomEventsJob::Response {
+    return {j->begin(), j->end(), j->chunk(), j->state()};
 };
 
 } // namespace Quotient

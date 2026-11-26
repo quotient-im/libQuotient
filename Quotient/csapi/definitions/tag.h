@@ -6,19 +6,21 @@
 
 namespace Quotient {
 
-struct QUOTIENT_API Tag {
+struct QUOTIENT_API Tag
+{
     //! A number in a range `[0,1]` describing a relative
     //! position of the room under the given tag.
     std::optional<float> order{};
 };
 
 template <>
-struct JsonObjectConverter<Tag> {
-    static void dumpTo(QJsonObject& jo, const Tag& pod)
+struct JsonObjectConverter<Tag>
+{
+    static void dumpTo(QJsonObject &jo, const Tag &pod)
     {
         addParam<IfNotEmpty>(jo, "order"_L1, pod.order);
     }
-    static void fillFrom(const QJsonObject& jo, Tag& pod)
+    static void fillFrom(const QJsonObject &jo, Tag &pod)
     {
         fillFromJson(jo.value("order"_L1), pod.order);
     }

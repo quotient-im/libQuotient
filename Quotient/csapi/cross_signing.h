@@ -4,7 +4,6 @@
 
 #include <Quotient/csapi/definitions/auth_data.h>
 #include <Quotient/csapi/definitions/cross_signing_key.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -28,7 +27,8 @@ namespace Quotient {
 //! they already exist. Allowing clients to upload the same set of keys more than once
 //! makes this endpoint idempotent in the case where the response is lost over the network,
 //! which would otherwise cause a UIA challenge upon retry.
-class QUOTIENT_API UploadCrossSigningKeysJob : public BaseJob {
+class QUOTIENT_API UploadCrossSigningKeysJob : public BaseJob
+{
 public:
     //! \param masterKey
     //!   Optional. The user\'s master key.
@@ -49,10 +49,10 @@ public:
     //!   Additional authentication information for the
     //!   user-interactive authentication API.
     explicit UploadCrossSigningKeysJob(
-        const std::optional<CrossSigningKey>& masterKey = std::nullopt,
-        const std::optional<CrossSigningKey>& selfSigningKey = std::nullopt,
-        const std::optional<CrossSigningKey>& userSigningKey = std::nullopt,
-        const std::optional<AuthenticationData>& auth = std::nullopt);
+        const std::optional<CrossSigningKey> &masterKey = std::nullopt,
+        const std::optional<CrossSigningKey> &selfSigningKey = std::nullopt,
+        const std::optional<CrossSigningKey> &userSigningKey = std::nullopt,
+        const std::optional<AuthenticationData> &auth = std::nullopt);
 };
 
 //! \brief Upload cross-signing signatures.
@@ -62,13 +62,14 @@ public:
 //! The signed JSON object must match the key previously uploaded or
 //! retrieved for the given key ID, with the exception of the `signatures`
 //! property, which contains the new signature(s) to add.
-class QUOTIENT_API UploadCrossSigningSignaturesJob : public BaseJob {
+class QUOTIENT_API UploadCrossSigningSignaturesJob : public BaseJob
+{
 public:
     //! \param signatures
     //!   A map from user ID to key ID to signed JSON objects containing the
     //!   signatures to be published.
     explicit UploadCrossSigningSignaturesJob(
-        const QHash<UserId, QHash<QString, QJsonObject>>& signatures);
+        const QHash<UserId, QHash<QString, QJsonObject>> &signatures);
 
     // Result properties
 
@@ -81,6 +82,6 @@ public:
     }
 };
 
-inline auto collectResponse(const UploadCrossSigningSignaturesJob* job) { return job->failures(); }
+inline auto collectResponse(const UploadCrossSigningSignaturesJob *job) { return job->failures(); }
 
 } // namespace Quotient

@@ -4,12 +4,12 @@
 
 #include <Quotient/csapi/definitions/event_filter.h>
 #include <Quotient/csapi/definitions/room_event_filter.h>
-
 #include <Quotient/converters.h>
 
 namespace Quotient {
 //! Filters to be applied to room data.
-struct QUOTIENT_API RoomFilter {
+struct QUOTIENT_API RoomFilter
+{
     //! A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching
     //! room will be excluded even if it is listed in the `'rooms'` filter. This filter is applied
     //! before the filters in `ephemeral`, `state`, `timeline` or `account_data`
@@ -37,8 +37,9 @@ struct QUOTIENT_API RoomFilter {
 };
 
 template <>
-struct JsonObjectConverter<RoomFilter> {
-    static void dumpTo(QJsonObject& jo, const RoomFilter& pod)
+struct JsonObjectConverter<RoomFilter>
+{
+    static void dumpTo(QJsonObject &jo, const RoomFilter &pod)
     {
         addParam<IfNotEmpty>(jo, "not_rooms"_L1, pod.notRooms);
         addParam<IfNotEmpty>(jo, "rooms"_L1, pod.rooms);
@@ -48,7 +49,7 @@ struct JsonObjectConverter<RoomFilter> {
         addParam<IfNotEmpty>(jo, "timeline"_L1, pod.timeline);
         addParam<IfNotEmpty>(jo, "account_data"_L1, pod.accountData);
     }
-    static void fillFrom(const QJsonObject& jo, RoomFilter& pod)
+    static void fillFrom(const QJsonObject &jo, RoomFilter &pod)
     {
         fillFromJson(jo.value("not_rooms"_L1), pod.notRooms);
         fillFromJson(jo.value("rooms"_L1), pod.rooms);
@@ -60,7 +61,8 @@ struct JsonObjectConverter<RoomFilter> {
     }
 };
 
-struct QUOTIENT_API Filter {
+struct QUOTIENT_API Filter
+{
     //! List of event fields to include. If this list is absent then all fields are included. The
     //! entries are [dot-separated paths for each property](/appendices#dot-separated-property-paths)
     //! to include. So ['content.body'] will include the 'body' field of the 'content' object. A
@@ -83,8 +85,9 @@ struct QUOTIENT_API Filter {
 };
 
 template <>
-struct JsonObjectConverter<Filter> {
-    static void dumpTo(QJsonObject& jo, const Filter& pod)
+struct JsonObjectConverter<Filter>
+{
+    static void dumpTo(QJsonObject &jo, const Filter &pod)
     {
         addParam<IfNotEmpty>(jo, "event_fields"_L1, pod.eventFields);
         addParam<IfNotEmpty>(jo, "event_format"_L1, pod.eventFormat);
@@ -92,7 +95,7 @@ struct JsonObjectConverter<Filter> {
         addParam<IfNotEmpty>(jo, "account_data"_L1, pod.accountData);
         addParam<IfNotEmpty>(jo, "room"_L1, pod.room);
     }
-    static void fillFrom(const QJsonObject& jo, Filter& pod)
+    static void fillFrom(const QJsonObject &jo, Filter &pod)
     {
         fillFromJson(jo.value("event_fields"_L1), pod.eventFields);
         fillFromJson(jo.value("event_format"_L1), pod.eventFormat);

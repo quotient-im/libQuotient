@@ -11,11 +11,13 @@ namespace Quotient {
 //!
 //! This API is used to paginate through the list of events that the
 //! user has been, or would have been notified about.
-class QUOTIENT_API GetNotificationsJob : public BaseJob {
+class QUOTIENT_API GetNotificationsJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API Notification {
+    struct QUOTIENT_API Notification
+    {
         //! The action(s) to perform when the conditions for this rule are met.
         //! See [Push Rules: API](/client-server-api/#push-rules-api).
         QVector<QVariant> actions;
@@ -51,15 +53,15 @@ public:
     //!   Allows basic filtering of events returned. Supply `highlight`
     //!   to return only events where the notification had the highlight
     //!   tweak set.
-    explicit GetNotificationsJob(const QString& from = {}, std::optional<int> limit = std::nullopt,
-                                 const QString& only = {});
+    explicit GetNotificationsJob(const QString &from = {}, std::optional<int> limit = std::nullopt,
+                                 const QString &only = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetNotificationsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& from = {},
-                               std::optional<int> limit = std::nullopt, const QString& only = {});
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &from = {},
+                               std::optional<int> limit = std::nullopt, const QString &only = {});
 
     // Result properties
 
@@ -74,7 +76,8 @@ public:
         return takeFromJson<std::vector<Notification>>("notifications"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! The token to supply in the `from` param of the next
         //! `/notifications` request in order to request more
         //! events. If this is absent, there are no more results.
@@ -87,11 +90,12 @@ public:
 
 template <std::derived_from<GetNotificationsJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetNotificationsJob::Response { return { j->nextToken(), j->notifications() }; };
+    [](JobT *j) -> GetNotificationsJob::Response { return {j->nextToken(), j->notifications()}; };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetNotificationsJob::Notification> {
-    static void fillFrom(const QJsonObject& jo, GetNotificationsJob::Notification& result)
+struct QUOTIENT_API JsonObjectConverter<GetNotificationsJob::Notification>
+{
+    static void fillFrom(const QJsonObject &jo, GetNotificationsJob::Notification &result)
     {
         fillFromJson(jo.value("actions"_L1), result.actions);
         fillFromJson(jo.value("event"_L1), result.event);

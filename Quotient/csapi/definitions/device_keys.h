@@ -6,7 +6,8 @@
 
 namespace Quotient {
 //! Device identity keys
-struct QUOTIENT_API DeviceKeys {
+struct QUOTIENT_API DeviceKeys
+{
     //! The ID of the user the device belongs to. Must match the user ID used
     //! when logging in.
     QString userId;
@@ -32,8 +33,9 @@ struct QUOTIENT_API DeviceKeys {
 };
 
 template <>
-struct JsonObjectConverter<DeviceKeys> {
-    static void dumpTo(QJsonObject& jo, const DeviceKeys& pod)
+struct JsonObjectConverter<DeviceKeys>
+{
+    static void dumpTo(QJsonObject &jo, const DeviceKeys &pod)
     {
         addParam(jo, "user_id"_L1, pod.userId);
         addParam(jo, "device_id"_L1, pod.deviceId);
@@ -41,7 +43,7 @@ struct JsonObjectConverter<DeviceKeys> {
         addParam(jo, "keys"_L1, pod.keys);
         addParam(jo, "signatures"_L1, pod.signatures);
     }
-    static void fillFrom(const QJsonObject& jo, DeviceKeys& pod)
+    static void fillFrom(const QJsonObject &jo, DeviceKeys &pod)
     {
         fillFromJson(jo.value("user_id"_L1), pod.userId);
         fillFromJson(jo.value("device_id"_L1), pod.deviceId);

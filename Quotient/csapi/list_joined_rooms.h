@@ -9,7 +9,8 @@ namespace Quotient {
 //! \brief Lists the user's current rooms.
 //!
 //! This API returns a list of the user's current rooms.
-class QUOTIENT_API GetJoinedRoomsJob : public BaseJob {
+class QUOTIENT_API GetJoinedRoomsJob : public BaseJob
+{
 public:
     explicit GetJoinedRoomsJob();
 
@@ -17,7 +18,7 @@ public:
     //!
     //! This function can be used when a URL for GetJoinedRoomsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -25,6 +26,6 @@ public:
     QStringList joinedRooms() const { return loadFromJson<QStringList>("joined_rooms"_L1); }
 };
 
-inline auto collectResponse(const GetJoinedRoomsJob* job) { return job->joinedRooms(); }
+inline auto collectResponse(const GetJoinedRoomsJob *job) { return job->joinedRooms(); }
 
 } // namespace Quotient

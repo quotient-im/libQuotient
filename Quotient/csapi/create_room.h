@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <Quotient/csapi/definitions/invite_3pid.h>
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -50,29 +51,13 @@ namespace Quotient {
 //! The server will create a `m.room.create` event in the room with the
 //! requesting user as the creator, alongside other keys provided in the
 //! `creation_content`.
-class QUOTIENT_API CreateRoomJob : public BaseJob {
+class QUOTIENT_API CreateRoomJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API Invite3pid {
-        //! The hostname+port of the identity server which should be used for third-party identifier
-        //! lookups.
-        QString idServer;
-
-        //! An access token previously registered with the identity server. Servers
-        //! can treat this as optional to distinguish between r0.5-compatible clients
-        //! and this specification version.
-        QString idAccessToken;
-
-        //! The kind of address being passed in the address field, for example `email`
-        //! (see [the list of recognised values](/appendices/#3pid-types)).
-        QString medium;
-
-        //! The invitee's third-party identifier.
-        QString address;
-    };
-
-    struct QUOTIENT_API StateEvent {
+    struct QUOTIENT_API StateEvent
+    {
         //! The type of event to send.
         QString type;
 
@@ -165,14 +150,14 @@ public:
     //!   [`m.room.power_levels`](/client-server-api/#mroompower_levels)
     //!   event content prior to it being sent to the room. Defaults to
     //!   overriding nothing.
-    explicit CreateRoomJob(const QString& visibility = {}, const QString& roomAliasName = {},
-                           const QString& name = {}, const QString& topic = {},
-                           const QStringList& invite = {},
-                           const QVector<Invite3pid>& invite3pid = {},
-                           const QString& roomVersion = {}, const QJsonObject& creationContent = {},
-                           const QVector<StateEvent>& initialState = {}, const QString& preset = {},
+    explicit CreateRoomJob(const QString &visibility = {}, const QString &roomAliasName = {},
+                           const QString &name = {}, const QString &topic = {},
+                           const QStringList &invite = {},
+                           const QVector<Invite3pid> &invite3pid = {},
+                           const QString &roomVersion = {}, const QJsonObject &creationContent = {},
+                           const QVector<StateEvent> &initialState = {}, const QString &preset = {},
                            std::optional<bool> isDirect = std::nullopt,
-                           const QJsonObject& powerLevelContentOverride = {});
+                           const QJsonObject &powerLevelContentOverride = {});
 
     // Result properties
 
@@ -180,22 +165,12 @@ public:
     QString roomId() const { return loadFromJson<QString>("room_id"_L1); }
 };
 
-inline auto collectResponse(const CreateRoomJob* job) { return job->roomId(); }
+inline auto collectResponse(const CreateRoomJob *job) { return job->roomId(); }
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<CreateRoomJob::Invite3pid> {
-    static void dumpTo(QJsonObject& jo, const CreateRoomJob::Invite3pid& pod)
-    {
-        addParam(jo, "id_server"_L1, pod.idServer);
-        addParam(jo, "id_access_token"_L1, pod.idAccessToken);
-        addParam(jo, "medium"_L1, pod.medium);
-        addParam(jo, "address"_L1, pod.address);
-    }
-};
-
-template <>
-struct QUOTIENT_API JsonObjectConverter<CreateRoomJob::StateEvent> {
-    static void dumpTo(QJsonObject& jo, const CreateRoomJob::StateEvent& pod)
+struct QUOTIENT_API JsonObjectConverter<CreateRoomJob::StateEvent>
+{
+    static void dumpTo(QJsonObject &jo, const CreateRoomJob::StateEvent &pod)
     {
         addParam(jo, "type"_L1, pod.type);
         addParam(jo, "content"_L1, pod.content);

@@ -4,7 +4,6 @@
 
 #include <Quotient/csapi/definitions/user_identifier.h>
 #include <Quotient/csapi/definitions/wellknown/full.h>
-
 #include <Quotient/jobs/basejob.h>
 
 namespace Quotient {
@@ -13,11 +12,13 @@ namespace Quotient {
 //!
 //! Gets the homeserver's supported login types to authenticate users. Clients
 //! should pick one of these and supply it as the `type` when logging in.
-class QUOTIENT_API GetLoginFlowsJob : public BaseJob {
+class QUOTIENT_API GetLoginFlowsJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API LoginFlow {
+    struct QUOTIENT_API LoginFlow
+    {
         //! The login type. This is supplied as the `type` when
         //! logging in.
         QString type;
@@ -28,9 +29,9 @@ public:
         //! endpoint. Note that supporting the endpoint does not
         //! necessarily indicate that the user attempting to log in will
         //! be able to generate such a token.
-        bool getLoginToken{ false };
+        bool getLoginToken{false};
 
-        bool delegatedOidcCompatibility{ false };
+        bool delegatedOidcCompatibility{false};
     };
 
     // Construction/destruction
@@ -41,7 +42,7 @@ public:
     //!
     //! This function can be used when a URL for GetLoginFlowsJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData);
+    static QUrl makeRequestUrl(const HomeserverData &hsData);
 
     // Result properties
 
@@ -49,11 +50,12 @@ public:
     QVector<LoginFlow> flows() const { return loadFromJson<QVector<LoginFlow>>("flows"_L1); }
 };
 
-inline auto collectResponse(const GetLoginFlowsJob* job) { return job->flows(); }
+inline auto collectResponse(const GetLoginFlowsJob *job) { return job->flows(); }
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
-    static void fillFrom(const QJsonObject& jo, GetLoginFlowsJob::LoginFlow& result)
+struct QUOTIENT_API JsonObjectConverter<GetLoginFlowsJob::LoginFlow>
+{
+    static void fillFrom(const QJsonObject &jo, GetLoginFlowsJob::LoginFlow &result)
     {
         fillFromJson(jo.value("type"_L1), result.type);
         fillFromJson(jo.value("get_login_token"_L1), result.getLoginToken);
@@ -75,7 +77,8 @@ struct QUOTIENT_API JsonObjectConverter<GetLoginFlowsJob::LoginFlow> {
 //! invalidate any access token previously associated with that device. See
 //! [Relationship between access tokens and
 //! devices](/client-server-api/#relationship-between-access-tokens-and-devices).
-class QUOTIENT_API LoginJob : public BaseJob {
+class QUOTIENT_API LoginJob : public BaseJob
+{
 public:
     //! \param type
     //!   The login type being used.
@@ -106,16 +109,16 @@ public:
     //!
     //! \param refreshToken
     //!   If true, the client supports refresh tokens.
-    explicit LoginJob(const QString& type,
-                      const std::optional<UserIdentifier>& identifier = std::nullopt,
-                      const QString& password = {}, const QString& token = {},
-                      const QString& deviceId = {}, const QString& initialDeviceDisplayName = {},
+    explicit LoginJob(const QString &type,
+                      const std::optional<UserIdentifier> &identifier = std::nullopt,
+                      const QString &password = {}, const QString &token = {},
+                      const QString &deviceId = {}, const QString &initialDeviceDisplayName = {},
                       std::optional<bool> refreshToken = std::nullopt);
 
     // Result properties
 
     //! The fully-qualified Matrix ID for the account.
-    QString userId() const { return loadFromJson<QString>("user_id"_L1); }
+    UserId userId() const { return loadFromJson<UserId>("user_id"_L1); }
 
     //! An access token for the account.
     //! This access token can then be used to authorize other requests.
@@ -150,9 +153,10 @@ public:
         return loadFromJson<std::optional<DiscoveryInformation>>("well_known"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! The fully-qualified Matrix ID for the account.
-        QString userId{};
+        UserId userId{};
 
         //! An access token for the account.
         //! This access token can then be used to authorize other requests.
@@ -184,9 +188,9 @@ public:
 };
 
 template <std::derived_from<LoginJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> LoginJob::Response {
-    return { j->userId(),      j->accessToken(), j->refreshToken(),
-             j->expiresInMs(), j->deviceId(),    j->wellKnown() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> LoginJob::Response {
+    return {j->userId(),      j->accessToken(), j->refreshToken(),
+            j->expiresInMs(), j->deviceId(),    j->wellKnown()};
 };
 
 } // namespace Quotient

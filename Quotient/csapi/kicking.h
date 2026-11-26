@@ -16,7 +16,8 @@ namespace Quotient {
 //! optional `reason`. Like with other membership changes, a user can directly adjust
 //! the target member's state by making a request to `/rooms/<room id>/state/m.room.member/<user
 //! id>`.
-class QUOTIENT_API KickJob : public BaseJob {
+class QUOTIENT_API KickJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The room identifier (not alias) from which the user should be kicked.
@@ -27,7 +28,7 @@ public:
     //! \param reason
     //!   The reason the user has been kicked. This will be supplied as the
     //!   `reason` on the target's updated [`m.room.member`](/client-server-api/#mroommember) event.
-    explicit KickJob(const QString& roomId, const QString& userId, const QString& reason = {});
+    explicit KickJob(const QString &roomId, const QString &userId, const QString &reason = {});
 };
 
 } // namespace Quotient

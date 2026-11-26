@@ -18,7 +18,7 @@ namespace Quotient {
 //! servers for a suitable event.
 //!
 //! After calling this endpoint, clients can call
-//! [`/rooms/{roomId}/context/{eventId}`](#get_matrixclientv3roomsroomidcontexteventid)
+//! [`/rooms/{roomId}/context/{eventId}`](/client-server-api/#get_matrixclientv3roomsroomidcontexteventid)
 //! to obtain a pagination token to retrieve the events around the returned event.
 //!
 //! The event returned by this endpoint could be an event that the client
@@ -32,7 +32,8 @@ namespace Quotient {
 //! paginating in the opposite direction.  The client could also simply
 //! paginate in one direction and inform the user that the closest event
 //! found in that direction is outside of the expected range.
-class QUOTIENT_API GetEventByTimestampJob : public BaseJob {
+class QUOTIENT_API GetEventByTimestampJob : public BaseJob
+{
 public:
     //! \param roomId
     //!   The ID of the room to search
@@ -43,14 +44,14 @@ public:
     //!
     //! \param dir
     //!   The direction in which to search.  `f` for forwards, `b` for backwards.
-    explicit GetEventByTimestampJob(const QString& roomId, int ts, const QString& dir);
+    explicit GetEventByTimestampJob(const QString &roomId, int ts, const QString &dir);
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetEventByTimestampJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId, int ts,
-                               const QString& dir);
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId, int ts,
+                               const QString &dir);
 
     // Result properties
 
@@ -63,7 +64,8 @@ public:
     //! use case.
     int originServerTimestamp() const { return loadFromJson<int>("origin_server_ts"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The ID of the event found
         QString eventId{};
 
@@ -76,8 +78,8 @@ public:
 };
 
 template <std::derived_from<GetEventByTimestampJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> GetEventByTimestampJob::Response {
-    return { j->eventId(), j->originServerTimestamp() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> GetEventByTimestampJob::Response {
+    return {j->eventId(), j->originServerTimestamp()};
 };
 
 } // namespace Quotient

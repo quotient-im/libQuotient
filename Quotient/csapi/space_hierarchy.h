@@ -14,13 +14,15 @@ namespace Quotient {
 //! Where a child room is unknown to the local server, federation is used to fill in the details.
 //! The servers listed in the `via` array should be contacted to attempt to fill in missing rooms.
 //!
-//! Only [`m.space.child`](#mspacechild) state events of the room are considered. Invalid child
-//! rooms and parent events are not covered by this endpoint.
-class QUOTIENT_API GetSpaceHierarchyJob : public BaseJob {
+//! Only [`m.space.child`](/client-server-api/#mspacechild) state events of the room are considered.
+//! Invalid child rooms and parent events are not covered by this endpoint.
+class QUOTIENT_API GetSpaceHierarchyJob : public BaseJob
+{
 public:
     // Inner data structures
 
-    struct QUOTIENT_API SpaceHierarchyRoomsChunk {
+    struct QUOTIENT_API SpaceHierarchyRoomsChunk
+    {
         //! The number of members joined to the room.
         int numJoinedMembers;
 
@@ -35,8 +37,9 @@ public:
         //! rules like any other user.
         bool guestCanJoin;
 
-        //! The [`m.space.child`](#mspacechild) events of the space-room, represented
-        //! as [Stripped State Events](#stripped-state) with an added `origin_server_ts` key.
+        //! The [`m.space.child`](/client-server-api/#mspacechild) events of the space-room,
+        //! represented as [Stripped State Events](/client-server-api/#stripped-state) with an added
+        //! `origin_server_ts` key.
         //!
         //! If the room is not a space-room, this should be empty.
         StateEvents childrenState;
@@ -68,8 +71,8 @@ public:
     //!
     //! \param suggestedOnly
     //!   Optional (default `false`) flag to indicate whether or not the server should only consider
-    //!   suggested rooms. Suggested rooms are annotated in their [`m.space.child`](#mspacechild)
-    //!   event contents.
+    //!   suggested rooms. Suggested rooms are annotated in their
+    //!   [`m.space.child`](/client-server-api/#mspacechild) event contents.
     //!
     //! \param limit
     //!   Optional limit for the maximum number of rooms to include per response. Must be an integer
@@ -89,24 +92,38 @@ public:
     //! \param from
     //!   A pagination token from a previous result. If specified, `max_depth` and `suggested_only`
     //!   cannot be changed from the first request.
-    explicit GetSpaceHierarchyJob(const QString& roomId,
+    explicit GetSpaceHierarchyJob(const QString &roomId,
                                   std::optional<bool> suggestedOnly = std::nullopt,
                                   std::optional<int> limit = std::nullopt,
                                   std::optional<int> maxDepth = std::nullopt,
-                                  const QString& from = {});
+                                  const QString &from = {});
 
     //! \brief Construct a URL without creating a full-fledged job object
     //!
     //! This function can be used when a URL for GetSpaceHierarchyJob
     //! is necessary but the job itself isn't.
-    static QUrl makeRequestUrl(const HomeserverData& hsData, const QString& roomId,
+    static QUrl makeRequestUrl(const HomeserverData &hsData, const QString &roomId,
                                std::optional<bool> suggestedOnly = std::nullopt,
                                std::optional<int> limit = std::nullopt,
-                               std::optional<int> maxDepth = std::nullopt, const QString& from = {});
+                               std::optional<int> maxDepth = std::nullopt, const QString &from = {});
 
     // Result properties
 
     //! The rooms for the current page, with the current filters.
+    //!
+    //! The server should return any rooms where at least one of the following conditions is true:
+    //!
+    //! * The requesting user is currently a member (their [room membership](#room-membership) is
+    //! `join`).
+    //! * The requesting user already has permission to join, i.e. one of the following:
+    //!   * The user's room membership is `invite`.
+    //!   * The room's [join rules](#mroomjoin_rules) are set to `public`.
+    //!   * The room's join rules are set to [`restricted`](#restricted-rooms), provided the user
+    //!   meets one of the specified conditions.
+    //! * The room is "knockable" (the room's join rules are set to `knock`, or `knock_restricted`,
+    //! in a room version that supports those settings).
+    //! * The room's [`m.room.history_visibility`](#room-history-visibility) is set to
+    //! `world_readable`.
     std::vector<SpaceHierarchyRoomsChunk> rooms()
     {
         return takeFromJson<std::vector<SpaceHierarchyRoomsChunk>>("rooms"_L1);
@@ -116,8 +133,24 @@ public:
     //! no further results.
     QString nextBatch() const { return loadFromJson<QString>("next_batch"_L1); }
 
-    struct Response {
+    struct Response
+    {
         //! The rooms for the current page, with the current filters.
+        //!
+        //! The server should return any rooms where at least one of the following conditions is
+        //! true:
+        //!
+        //! * The requesting user is currently a member (their [room membership](#room-membership)
+        //! is `join`).
+        //! * The requesting user already has permission to join, i.e. one of the following:
+        //!   * The user's room membership is `invite`.
+        //!   * The room's [join rules](#mroomjoin_rules) are set to `public`.
+        //!   * The room's join rules are set to [`restricted`](#restricted-rooms), provided the
+        //!   user meets one of the specified conditions.
+        //! * The room is "knockable" (the room's join rules are set to `knock`, or
+        //! `knock_restricted`, in a room version that supports those settings).
+        //! * The room's [`m.room.history_visibility`](#room-history-visibility) is set to
+        //! `world_readable`.
         std::vector<SpaceHierarchyRoomsChunk> rooms{};
 
         //! A token to supply to `from` to keep paginating the responses. Not present when there are
@@ -128,12 +161,13 @@ public:
 
 template <std::derived_from<GetSpaceHierarchyJob> JobT>
 constexpr inline auto doCollectResponse<JobT> =
-    [](JobT* j) -> GetSpaceHierarchyJob::Response { return { j->rooms(), j->nextBatch() }; };
+    [](JobT *j) -> GetSpaceHierarchyJob::Response { return {j->rooms(), j->nextBatch()}; };
 
 template <>
-struct QUOTIENT_API JsonObjectConverter<GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk> {
-    static void fillFrom(const QJsonObject& jo,
-                         GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk& result)
+struct QUOTIENT_API JsonObjectConverter<GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk>
+{
+    static void fillFrom(const QJsonObject &jo,
+                         GetSpaceHierarchyJob::SpaceHierarchyRoomsChunk &result)
     {
         fillFromJson(jo.value("num_joined_members"_L1), result.numJoinedMembers);
         fillFromJson(jo.value("room_id"_L1), result.roomId);

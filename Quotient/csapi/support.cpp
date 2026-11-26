@@ -4,7 +4,7 @@
 
 using namespace Quotient;
 
-QUrl GetWellknownSupportJob::makeRequestUrl(const HomeserverData& hsData)
+QUrl GetWellknownSupportJob::makeRequestUrl(const HomeserverData &hsData)
 {
     return BaseJob::makeRequestUrl(hsData, makePath("/.well-known", "/matrix/support"));
 }

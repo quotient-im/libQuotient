@@ -12,7 +12,8 @@ namespace Quotient {
 //! milliseconds where N is the value specified in the `timeout` key.
 //! Alternatively, if `typing` is `false`, it tells the server that the
 //! user has stopped typing.
-class QUOTIENT_API SetTypingJob : public BaseJob {
+class QUOTIENT_API SetTypingJob : public BaseJob
+{
 public:
     //! \param userId
     //!   The user who has started to type.
@@ -26,7 +27,7 @@ public:
     //!
     //! \param timeout
     //!   The length of time in milliseconds to mark this user as typing.
-    explicit SetTypingJob(const QString& userId, const QString& roomId, bool typing,
+    explicit SetTypingJob(const QString &userId, const QString &roomId, bool typing,
                           std::optional<int> timeout = std::nullopt);
 };
 

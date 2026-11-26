@@ -25,11 +25,12 @@ namespace Quotient {
 //! access token. Authentication is provided via the refresh token.
 //!
 //! Application Service identity assertion is disabled for this endpoint.
-class QUOTIENT_API RefreshJob : public BaseJob {
+class QUOTIENT_API RefreshJob : public BaseJob
+{
 public:
     //! \param refreshToken
     //!   The refresh token
-    explicit RefreshJob(const QString& refreshToken);
+    explicit RefreshJob(const QString &refreshToken);
 
     // Result properties
 
@@ -49,7 +50,8 @@ public:
         return loadFromJson<std::optional<int>>("expires_in_ms"_L1);
     }
 
-    struct Response {
+    struct Response
+    {
         //! The new access token to use.
         QString accessToken{};
 
@@ -66,8 +68,8 @@ public:
 };
 
 template <std::derived_from<RefreshJob> JobT>
-constexpr inline auto doCollectResponse<JobT> = [](JobT* j) -> RefreshJob::Response {
-    return { j->accessToken(), j->refreshToken(), j->expiresInMs() };
+constexpr inline auto doCollectResponse<JobT> = [](JobT *j) -> RefreshJob::Response {
+    return {j->accessToken(), j->refreshToken(), j->expiresInMs()};
 };
 
 } // namespace Quotient
