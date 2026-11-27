@@ -1041,42 +1041,28 @@ const RoomTombstoneEvent* Room::tombstone() const
 
 void Room::Private::getAllMembers()
 {
-    const auto doGetAllMembers = [this] {
-        // If already loaded or already loading, there's nothing to do here.
-        if (q->joinedCount() <= currentState.eventsOfType(RoomMemberEvent::TypeId).size() || isJobPending(allMembersJob)) {
-            return;
-        }
-
-        allMembersJob = connection->callApi<GetMembersByRoomJob>(
-            id, connection->nextBatchToken(), "join"_L1);
-        auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
-        connect(allMembersJob, &BaseJob::success, q, [this, nextIndex] {
-            Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
-            auto roomChanges = updateStateFrom(allMembersJob->chunk());
-            // Replay member events that arrived after the point for which
-            // the full members list was requested.
-            if (!timeline.empty())
-                for (auto it = q->findInTimeline(nextIndex).base();
-                     it != syncEdge(); ++it)
-                     if (is<RoomMemberEvent>(**it))
-                         roomChanges |= q->processStateEvent(**it);
-            postprocessChanges(roomChanges);
-            emit q->allMembersLoaded();
-        });
-    };
-
-    if (!summary.joinedMemberCount.has_value()) {
-        connectUntil(q, &Room::changed, q, [doGetAllMembers, this] {
-            if (summary.joinedMemberCount.has_value()) {
-                doGetAllMembers();
-                return true;
-            }
-            return false;
-        });
+    // If already loaded or already loading, there's nothing to do here. With no member events at
+    // all, members are definitely not loaded, even if joinedCount() is not (yet) known.
+    const auto knownCount = currentState.eventsOfType(RoomMemberEvent::TypeId).size();
+    if ((knownCount > 0 && q->joinedCount() <= knownCount) || isJobPending(allMembersJob))
         return;
-    }
 
-    doGetAllMembers();
+    allMembersJob = connection->callApi<GetMembersByRoomJob>(
+        id, connection->nextBatchToken(), "join"_L1);
+    auto nextIndex = timeline.empty() ? 0 : timeline.back().index() + 1;
+    connect(allMembersJob, &BaseJob::success, q, [this, nextIndex] {
+        Q_ASSERT(timeline.empty() || nextIndex <= q->maxTimelineIndex() + 1);
+        auto roomChanges = updateStateFrom(allMembersJob->chunk());
+        // Replay member events that arrived after the point for which
+        // the full members list was requested.
+        if (!timeline.empty())
+            for (auto it = q->findInTimeline(nextIndex).base();
+                 it != syncEdge(); ++it)
+                if (is<RoomMemberEvent>(**it))
+                    roomChanges |= q->processStateEvent(**it);
+        postprocessChanges(roomChanges);
+        emit q->allMembersLoaded();
+    });
 }
 
 bool Room::displayed() const { return d->displayed; }
