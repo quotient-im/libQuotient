@@ -1041,8 +1041,10 @@ const RoomTombstoneEvent* Room::tombstone() const
 
 void Room::Private::getAllMembers()
 {
-    // If already loaded or already loading, there's nothing to do here.
-    if (q->joinedCount() <= currentState.eventsOfType(RoomMemberEvent::TypeId).size() || isJobPending(allMembersJob))
+    // If already loaded or already loading, there's nothing to do here. With no member events at
+    // all, members are definitely not loaded, even if joinedCount() is not (yet) known.
+    const auto knownCount = currentState.eventsOfType(RoomMemberEvent::TypeId).size();
+    if ((knownCount > 0 && q->joinedCount() <= knownCount) || isJobPending(allMembersJob))
         return;
 
     allMembersJob = connection->callApi<GetMembersByRoomJob>(
