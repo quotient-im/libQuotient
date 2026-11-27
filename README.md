@@ -43,7 +43,8 @@ To use libQuotient (i.e. build or run applications with it), you'll need:
 - Qt 6.8 or newer - either Open Source or Commercial
 - QtKeychain (https://github.com/frankosterfeld/qtkeychain) - the newest release is recommended;
   the build configuration of QtKeychain must use the same Qt major version, i.e. Qt 6.
-- Extra CMake Modules aka ECM (https://github.com/KDE/extra-cmake-modules) - any version from recent years
+- Extra CMake Modules aka ECM (https://github.com/KDE/extra-cmake-modules) - version 6.27
+  or newer is needed for QML integration to work outside the build tree
 - A reasonably new rust toolchain (rustc + cargo)
 - At least version 0.6.1 of [Corrosion](https://github.com/corrosion-rs/corrosion).
 
