@@ -42,6 +42,9 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
+#include <QtCore/QDateTime>
+#include <QtCore/QMutex>
+#include <QtCore/QMutexLocker>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QFile>
 #include <QtCore/QMimeDatabase>
@@ -376,6 +379,62 @@ QString Connection::Private::databaseDir() const
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) % u'/' % mxIdForDb;
 }
 
+// Debugging aid: E2EE log messages (Qt and Rust side) also go to a file
+namespace {
+QMutex e2eeLogMutex;
+QFile e2eeLogFile;
+QtMessageHandler previousMessageHandler = nullptr;
+bool e2eeDebugWasEnabled = false;
+
+void e2eeMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message)
+{
+    const bool isE2ee = context.category && qstrcmp(context.category, "quotient.e2ee") == 0;
+    // Plain qCritical() calls, which have no category of their own
+    const bool isPlainCritical = (type == QtCriticalMsg || type == QtFatalMsg) && context.category
+                                 && qstrcmp(context.category, "default") == 0;
+    if (isE2ee || isPlainCritical) {
+        const QMutexLocker locker(&e2eeLogMutex);
+        if (e2eeLogFile.isOpen()) {
+            const auto level = type == QtDebugMsg ? "DEBUG"_L1
+                               : type == QtInfoMsg ? "INFO"_L1
+                               : type == QtWarningMsg ? "WARN"_L1
+                                                      : "ERROR"_L1;
+            e2eeLogFile.write((QDateTime::currentDateTime().toString(Qt::ISODateWithMs) % u' ' % level
+                               % u" qt " % QString::fromUtf8(context.category) % u": " % message
+                               % u'\n')
+                                  .toUtf8());
+            e2eeLogFile.flush();
+        }
+        // Debug output was only enabled for the file
+        if (type == QtDebugMsg && !e2eeDebugWasEnabled)
+            return;
+    }
+    if (previousMessageHandler)
+        previousMessageHandler(type, context, message);
+    else
+        fprintf(stderr, "%s\n", qPrintable(qFormatLogMessage(type, context, message)));
+}
+
+//! Returns the path of the log file, or an empty string if it can't be used
+QString setupE2eeLogFile()
+{
+    static const QString path = [] {
+        const auto dir = QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + u"/KDE/neochat"_s;
+        if (!QDir().mkpath(dir))
+            return QString();
+        const auto filePath = dir + u"/e2ee.log"_s;
+        e2eeLogFile.setFileName(filePath);
+        if (!e2eeLogFile.open(QIODevice::Append | QIODevice::Text))
+            return QString();
+        e2eeDebugWasEnabled = E2EE().isDebugEnabled();
+        const_cast<QLoggingCategory&>(E2EE()).setEnabled(QtDebugMsg, true);
+        previousMessageHandler = qInstallMessageHandler(e2eeMessageHandler);
+        return filePath;
+    }();
+    return path;
+}
+} // namespace
+
 bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
 {
     const auto databaseFolder = databaseDir();
@@ -403,7 +462,8 @@ bool Connection::Private::setupCryptoMachine(const QByteArray& picklingKey)
 
     cryptoMachine = crypto::init(stringToRust(q->userId()), stringToRust(q->deviceId()),
                                  stringToRust(databaseFolder % u'/' % q->deviceId()),
-                                 bytesToRust(picklingKey.toBase64()), stringToRust(accountPickle));
+                                 bytesToRust(picklingKey.toBase64()), stringToRust(accountPickle),
+                                 stringToRust(setupE2eeLogFile()));
     if (!(*cryptoMachine)->is_ok()) {
         qCritical() << "Failed to load crypto machine"
                     << static_cast<int>((*cryptoMachine)->error())
@@ -629,6 +689,8 @@ void Connection::sync(int timeout)
         } else
             emit syncError(job->errorString(), job->rawDataSample());
     });
+    d->syncJob->setRawResponseProcessor(
+        [this](const QByteArray& rawData) { return d->processSyncCryptoData(rawData); });
     connect(d->syncJob, &SyncJob::retryScheduled, this,
             [this](int retriesTaken, int nextInMilliseconds) {
         d->lastSyncSuccessful = false;
@@ -665,13 +727,28 @@ void Connection::syncLoopIteration()
         qCInfo(MAIN) << "Logged out, sync loop will stop now";
 }
 
+bool Connection::Private::processSyncCryptoData(const QByteArray& rawData)
+{
+    if (!cryptoMachine)
+        return true;
+    auto result = (*cryptoMachine)->receive_sync_changes(bytesToRust(rawData));
+    if (result->has_error()) {
+        // The to-device events may carry room keys, which the server deletes once a sync uses
+        // the new token; the sync job retries with the old one so that they come again
+        qCCritical(E2EE).noquote() << "Failed to process the encryption data of the sync response:"
+                                   << stringFromRust(result->error_string());
+        return false;
+    }
+    syncChanges = result->value();
+    return true;
+}
+
 void Connection::onSyncSuccess(SyncJob *syncJob)
 {
     if (d->cryptoMachine) {
-        auto syncChangesResult =
-            (*d->cryptoMachine)->receive_sync_changes(bytesToRust(syncJob->rawData()));
-        if (!syncChangesResult->has_error()) {
-            auto syncChanges = syncChangesResult->value();
+        if (d->syncChanges) {
+            const auto syncChanges = std::move(*d->syncChanges);
+            d->syncChanges.reset();
 
             if (syncChanges->secrets_received()) {
                 emit backupFinished(BackupResult::Success);
@@ -686,6 +763,22 @@ void Connection::onSyncSuccess(SyncJob *syncJob)
             }
 
             for (const auto &key : syncChanges->keys()) {
+                qCDebug(E2EE) << "Received room key for session" << stringFromRust(key.session_id())
+                              << "in" << stringFromRust(key.room_id());
+                if (const auto &r = room(stringFromRust(key.room_id()))) {
+                    r->newMegolmSession(stringFromRust(key.session_id()));
+                } else {
+                    qCWarning(E2EE) << "Received a room key for the unknown room"
+                                    << stringFromRust(key.room_id());
+                }
+            }
+
+            // A withheld notice doesn't make anything decryptable, but it explains why the events
+            // of that session can't be decrypted; retrying updates their decryptionFailure()
+            for (const auto &key : syncChanges->withheld_keys()) {
+                qCDebug(E2EE) << "Received a withheld notice for session"
+                              << stringFromRust(key.session_id()) << "in"
+                              << stringFromRust(key.room_id());
                 if (const auto &r = room(stringFromRust(key.room_id()))) {
                     r->newMegolmSession(stringFromRust(key.session_id()));
                 }
@@ -718,10 +811,21 @@ void Connection::onSyncSuccess(SyncJob *syncJob)
                 auto request = requestResult->value();
                 callApi<PutRoomKeysJob>(stringFromRust(request->version()),
                                         fromRustJson<QHash<RoomId, RoomKeyBackup>>(request->rooms()))
-                    .onResult([this, transaction_id = request->transaction_id()](const auto &job) {
+                    .then([this, transaction_id = request->transaction_id()](const auto &job) {
                     d->isUploadingKeysToBackup = false;
                     (*d->cryptoMachine)
                         ->mark_keys_backup_as_sent(bytesToRust(job->rawData()), transaction_id);
+                }, [this](const auto& job) {
+                    d->isUploadingKeysToBackup = false;
+                    // Another client replaced or deleted the backup; uploading to this version
+                    // would keep failing
+                    if (const auto errcode =
+                            QJsonDocument::fromJson(job->rawData()).object()["errcode"_L1].toString();
+                        errcode == "M_WRONG_ROOM_KEYS_VERSION"_L1 || errcode == "M_NOT_FOUND"_L1)
+                        d->handleBackupVersionChange();
+                    else
+                        qCWarning(E2EE) << "Failed to upload room keys to the backup:"
+                                        << job->errorString();
                 });
             }
         }
@@ -748,21 +852,38 @@ void Connection::processSyncData(SyncData&& data, bool fromCache)
 void Connection::Private::processOutgoingRequests()
 {
     if (!cryptoMachine) {
+        finishOutgoingRequestsWaiters(false);
         return;
     }
 
     if (isHandlingOutgoing) {
         return;
     }
+    // This round picks up whatever made a waiter ask for another one
+    outgoingRerunRequested = false;
     const auto requestsResult = (*cryptoMachine)->outgoing_requests();
     if (requestsResult->has_error()) {
+        qCWarning(E2EE) << "Could not get the outgoing crypto requests";
+        finishOutgoingRequestsWaiters(false);
         return;
     }
     const auto requests = requestsResult->value();
     if (requests.empty()) {
+        finishOutgoingRequestsWaiters(true);
         return;
     }
     QList<QFuture<void>> futures;
+    const auto anyFailed = std::make_shared<bool>(false);
+    // Tracked separately, see whenOutgoingRequestsDone()
+    const auto keysQueryFailed = std::make_shared<bool>(false);
+    const auto onFailure = [anyFailed](const auto& job) {
+        qCWarning(E2EE) << "Outgoing crypto request" << job << "failed:" << job->errorString();
+        *anyFailed = true;
+    };
+    const auto checkMarked = [anyFailed](bool marked) {
+        if (!marked)
+            *anyFailed = true;
+    };
     for (const auto &request : requests) {
         const auto id = stringFromRust(request.id());
         const auto type = request.request_type();
@@ -775,22 +896,25 @@ void Connection::Private::processOutgoingRequests()
                                               : std::optional(fromJson<DeviceKeys>(deviceKeys)),
                          fromRustJson<OneTimeKeys>(request.keys_upload_one_time_keys()),
                          fromRustJson<OneTimeKeys>(request.keys_upload_fallback_keys()))
-                        .then([id, this](const auto& job) {
-                    (*cryptoMachine)
-                        ->mark_keys_upload_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-                })));
+                        .then([id, this, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
+                        ->mark_keys_upload_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::KeysQuery: {
-                const auto timeout = request.keys_query_timeout();
                 futures.append(QFuture<void>(
-                    q->callApi<QueryKeysJob>(fromRustJson<QHash<UserId, QStringList>>(
-                                                 request.keys_query_device_keys()),
-                                             timeout > 0 ? timeout : std::optional<int>())
-                        .then([id, this](const auto& job) {
+                    startKeysQuery(request).then([id, this, checkMarked, keysQueryFailed](const auto& job) {
                     emit q->finishedQueryingKeys();
-                    (*cryptoMachine)
-                        ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                    const auto marked =
+                        (*cryptoMachine)
+                            ->mark_keys_query_as_sent(bytesToRust(job->rawData()), stringToRust(id));
+                    checkMarked(marked);
+                    if (!marked)
+                        *keysQueryFailed = true;
+                }, [onFailure, keysQueryFailed](const auto& job) {
+                    onFailure(job);
+                    *keysQueryFailed = true;
                 })));
                 break;
             }
@@ -800,10 +924,10 @@ void Connection::Private::processOutgoingRequests()
                     q->callApi<ClaimKeysJob>(fromRustJson<QHash<UserId, QHash<QString, QString>>>(
                                                  request.keys_claim_one_time_keys()),
                                              timeout > 0 ? timeout : std::optional<int>())
-                        .then([id, this](const auto& job) {
-                    (*cryptoMachine)
-                        ->mark_keys_claim_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-                })));
+                        .then([id, this, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
+                        ->mark_keys_claim_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::ToDevice: {
@@ -813,10 +937,10 @@ void Connection::Private::processOutgoingRequests()
                                        stringFromRust(request.to_device_txn_id()),
                                        fromRustJson<QHash<UserId, QHash<QString, QJsonObject>>>(
                                            request.to_device_messages()))
-                                      .then([id, this](const auto& job) {
-                    (*cryptoMachine)
-                        ->mark_to_device_as_sent(bytesToRust(job->rawData()), stringToRust(id));
-                })));
+                                      .then([id, this, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
+                        ->mark_to_device_as_sent(bytesToRust(job->rawData()), stringToRust(id)));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::SignatureUpload: {
@@ -824,40 +948,127 @@ void Connection::Private::processOutgoingRequests()
                     QFuture<void>(q->callApi<UploadCrossSigningSignaturesJob>(
                                        fromRustJson<QHash<UserId, QHash<QString, QJsonObject>>>(
                                            request.upload_signature_signed_keys()))
-                                      .then([this, id](const auto& job) {
-                    (*cryptoMachine)
+                                      .then([this, id, checkMarked](const auto& job) {
+                    checkMarked((*cryptoMachine)
                         ->mark_signature_upload_as_sent(bytesToRust(job->rawData()),
-                                                        stringToRust(id));
-                })));
+                                                        stringToRust(id)));
+                }, onFailure)));
                 break;
             }
             case OutgoingRequestType::RoomMessage: {
-                const auto room = q->room(stringFromRust(request.room_msg_room_id()));
+                // Already posted; it is either still on its way or has failed and waits for
+                // the user to resend or discard it. Posting it again would only duplicate it.
+                if (roomMessageRequestsInFlight.contains(id))
+                    break;
+                const auto roomId = stringFromRust(request.room_msg_room_id());
+                const auto room = q->room(roomId);
                 if (!room) {
-                    qCWarning(E2EE) << "Room" << stringFromRust(request.room_msg_room_id()) << "not found";
+                    // Rooms might still be loading; the request stays unmarked, so the crypto
+                    // machine returns it again and it's picked up on a later iteration
+                    qCWarning(E2EE) << "Room" << roomId << "not found, postponing request" << id;
                     break;
                 }
-                futures.append(
-                        room->post(loadEvent<RoomEvent>(stringFromRust(request.room_msg_matrix_type()),
-                                                    jsonFromRust(request.room_msg_content())))
-                        .whenMerged()
-                        .then([this, id](const RoomEvent& targetEvt) {
-                    (*cryptoMachine)
-                        ->mark_room_message_as_sent(stringToRust(targetEvt.id()), stringToRust(id));
-                }));
+                // Not waited for; posting it again is prevented by roomMessageRequestsInFlight
+                sendRoomMessageRequest(
+                    room, id,
+                    loadEvent<RoomEvent>(stringFromRust(request.room_msg_matrix_type()),
+                                         jsonFromRust(request.room_msg_content())));
                 break;
             }
         }
     }
 
-    QtFuture::whenAll(futures.begin(), futures.end()).then([this](const auto &) {
+    // With nothing to wait for (all requests postponed or in flight), don't loop: whenAll() would
+    // return a finished future and the continuation below would run right away, retrying the same
+    // requests over and over. The next sync calls processOutgoingRequests() again anyway.
+    if (futures.isEmpty()) {
+        finishOutgoingRequestsWaiters(true);
+        return;
+    }
+
+    // Set before attaching the continuation, which resets it
+    isHandlingOutgoing = true;
+    QtFuture::whenAll(futures.begin(), futures.end()).then([this, anyFailed, keysQueryFailed](const auto &) {
         isHandlingOutgoing = false;
         if (isBeingDestructed) {
             return;
         }
+        // The crypto machine returns failed requests again; running the loop right away would
+        // resend them over and over without delay if they keep failing (e.g., with a 4xx error).
+        // Leave that to the next sync instead, which calls this function anyway - unless
+        // a waiter came in during this round, whose requests (e.g. key queries for newly
+        // tracked users) haven't been sent yet.
+        if (*anyFailed && !outgoingRerunRequested) {
+            finishOutgoingRequestsWaiters(!*keysQueryFailed);
+            return;
+        }
         processOutgoingRequests();
     });
-    isHandlingOutgoing = true;
+}
+
+QFuture<bool> Connection::Private::whenOutgoingRequestsDone()
+{
+    auto promise = std::make_shared<QPromise<bool>>();
+    promise->start();
+    auto future = promise->future();
+    outgoingRequestsWaiters.push_back(std::move(promise));
+    // A round that is running already got its requests before this was called
+    if (isHandlingOutgoing)
+        outgoingRerunRequested = true;
+    processOutgoingRequests(); // Starts the loop, unless it's running already
+    return future;
+}
+
+void Connection::Private::finishOutgoingRequestsWaiters(bool keysQueriesSucceeded)
+{
+    for (const auto& promise : std::exchange(outgoingRequestsWaiters, {})) {
+        promise->addResult(keysQueriesSucceeded);
+        promise->finish();
+    }
+}
+
+void Connection::Private::sendRoomMessageRequest(Room* room, const QString& requestId,
+                                                 RoomEventPtr event)
+{
+    const auto context = new QObject(room);
+
+    const auto& pendingItem = room->post(std::move(event));
+    const auto txnId = pendingItem->transactionId();
+    roomMessageRequestsInFlight.insert(requestId);
+    // The room may refuse to send the event right away, before the connections below exist
+    if (pendingItem.deliveryStatus() == EventStatus::SendingFailed)
+        qCWarning(E2EE) << "Failed to send room message for transaction" << txnId;
+
+    connect(room, &Room::messageSent, context,
+            [this, context, txnId, requestId](const QString& sentTxnId, const QString& eventId) {
+                if (sentTxnId != txnId)
+                    return;
+                if (cryptoMachine)
+                    (*cryptoMachine)
+                        ->mark_room_message_as_sent(stringToRust(eventId), stringToRust(requestId));
+                roomMessageRequestsInFlight.remove(requestId);
+                context->deleteLater();
+            });
+    // Keep listening after a failure: if the user resends the event, messageSent() still arrives
+    // and the request gets marked as sent
+    connect(room, &Room::pendingEventChanged, context, [room, txnId](int index) {
+        const auto& pendingEvents = room->pendingEvents();
+        if (index < 0 || std::cmp_greater_equal(index, pendingEvents.size()))
+            return;
+        if (const auto& item = pendingEvents[static_cast<size_t>(index)];
+            item->transactionId() == txnId
+            && item.deliveryStatus() == EventStatus::SendingFailed)
+            qCWarning(E2EE) << "Failed to send room message for transaction" << txnId;
+    });
+    // A discarded event is never sent, so stop listening. The request id stays in
+    // roomMessageRequestsInFlight: the user threw the event away, so don't post it again.
+    connect(room, &Room::pendingEventAboutToDiscard, context, [room, context, txnId](int index) {
+        const auto& pendingEvents = room->pendingEvents();
+        if (index < 0 || std::cmp_greater_equal(index, pendingEvents.size())
+            || pendingEvents[static_cast<size_t>(index)]->transactionId() != txnId)
+            return;
+        context->deleteLater();
+    });
 }
 
 void Connection::Private::consumeRoomData(SyncDataList&& roomDataList,
@@ -2071,6 +2282,7 @@ void Connection::startSelfVerification()
 {
     auto requestResult = (*d->cryptoMachine)->request_self_verification();
     if (requestResult->has_error()) {
+        qCWarning(E2EE) << "Could not create a self-verification request";
         return;
     }
 
@@ -2088,16 +2300,48 @@ bool Connection::allSessionsSelfVerified(const QString& userId) const
     return (*d->cryptoMachine)->all_sessions_verified(stringToRust(userId));
 }
 
-void Connection::Private::runShareKey(Room* room, std::function<void()> then)
+void Connection::Private::runShareKey(Room* room, std::function<void()> then,
+                                      std::function<void()> onFailure)
 {
+    room->loadAllMembers().then(q, [this, room = QPointer(room), then, onFailure](const bool loaded) {
+        if (!room) {
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        if (!loaded) {
+            qCWarning(E2EE) << "Could not load the members of" << room->id()
+                            << "to share the room key with";
+            onFailure();
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        shareKeyWithMembers(room, then, onFailure);
+    }).onCanceled(q, [this] {
+        Q_EMIT q->shareRoomKeyDone();
+    });
+}
+
+JobHandle<QueryKeysJob> Connection::Private::startKeysQuery(const crypto::OutgoingRequest& request)
+{
+    const auto timeout = request.keys_query_timeout();
+    return q->callApi<QueryKeysJob>(
+        fromRustJson<QHash<UserId, QStringList>>(request.keys_query_device_keys()),
+        timeout > 0 ? timeout : std::optional<int>());
+}
+
+void Connection::Private::shareKeyWithMembers(Room* room, std::function<void()> then,
+                                              std::function<void()> onFailure)
+{
+    // The values the bridge expects: 0 = invited, 1 = joined, 2 = shared, 3 = world_readable.
+    // Without a (known) history visibility, "shared" applies, as per the spec.
     auto historyVisibilityEvent = room->currentState().get("m.room.history_visibility"_L1);
-    uint8_t visibility = 0;
+    uint8_t visibility = 2;
     if (historyVisibilityEvent) {
         auto visibilityString = historyVisibilityEvent->contentJson()["history_visibility"_L1].toString();
-        if (visibilityString == u"joined"_s) {
+        if (visibilityString == u"invited"_s) {
+            visibility = 0;
+        } else if (visibilityString == u"joined"_s) {
             visibility = 1;
-        } else if (visibilityString == u"shared"_s) {
-            visibility = 2;
         } else if (visibilityString == u"world_readable"_s) {
             visibility = 3;
         }
@@ -2105,7 +2349,9 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then)
 
     auto ids = stringsToRust(room->joinedMemberIds());
 
-    if (visibility == 0 || visibility == 3) {
+    // Invited users will be able to read messages sent while they are invited, unless only
+    // messages from the moment they join on are visible to them
+    if (visibility != 1) {
         room->currentState().queryAll([&ids](const RoomMemberEvent& e) {
             if (e.isInvite()) {
                 ids.push_back(stringToRust(e.stateKey()));
@@ -2113,11 +2359,11 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then)
         });
     }
 
-    auto sendKeys = [then, this, room, ids, visibility](){
+    auto sendKeys = [then, onFailure, this, room, ids, visibility](){
         auto requestsResult =
         (*cryptoMachine)->share_room_key(stringToRust(room->id()), ids, false, visibility);
         if (requestsResult->has_error()) {
-            // Not running then()
+            onFailure();
             Q_EMIT q->shareRoomKeyDone();
             return;
         }
@@ -2128,39 +2374,74 @@ void Connection::Private::runShareKey(Room* room, std::function<void()> then)
             return;
         }
         QList<QFuture<void>> futures;
+        const auto keyNotSent = std::make_shared<bool>(false);
         for (const auto& request : requests) {
             auto txnId = request.txn_id();
+            const auto eventType = stringFromRust(request.event_type());
 
-            futures.append(QFuture<void>(q->callApi<SendToDeviceJob>(stringFromRust(request.event_type()), stringFromRust(txnId),
+            futures.append(QFuture<void>(q->callApi<SendToDeviceJob>(eventType, stringFromRust(txnId),
                                         fromRustJson<QHash<UserId, QHash<QString, QJsonObject>>>(
                                             request.messages()))
-            .then([this, txnId, then](const auto& sendJob) {
+            .then([this, txnId](const auto& sendJob) {
                 (*cryptoMachine)->mark_to_device_as_sent(bytesToRust(sendJob->rawData()), txnId);
+            }, [eventType, keyNotSent](const auto& sendJob) {
+                qCWarning(E2EE) << "Failed to send" << eventType << "to devices:" << sendJob->errorString();
+                // Without a withheld notice, recipients just don't learn why they lack the key
+                if (eventType != "m.room_key.withheld"_L1)
+                    *keyNotSent = true;
             })));
         }
-        QtFuture::whenAll(futures.begin(), futures.end()).then([this, then](const auto &) {
-            then();
+        QtFuture::whenAll(futures.begin(), futures.end()).then([this, then, onFailure, keyNotSent](const auto &) {
+            // The crypto machine keeps unsent requests and returns them with the next attempt
+            // to share the key, e.g. when the user resends the message
+            if (*keyNotSent)
+                onFailure();
+            else
+                then();
             Q_EMIT q->shareRoomKeyDone();
         });
     };
 
-    auto missingResult = (*cryptoMachine)->get_missing_sessions(ids);
-    if (missingResult->has_error()) {
-        // Not running then()
-        Q_EMIT q->shareRoomKeyDone();
-        return;
-    }
-    if (!missingResult->has_request()) {
-        sendKeys();
-        return;
-    }
-    auto missing = missingResult->request();
-    auto missingId = missing->id();
-    q->callApi<ClaimKeysJob>(
-         fromRustJson<QHash<UserId, QHash<QString, QString>>>(missing->one_time_keys()))
-        .then([this, missingId, ids, then, sendKeys](const auto& claimJob) mutable {
-        (*cryptoMachine)->mark_keys_claim_as_sent(bytesToRust(claimJob->rawData()), missingId);
-        sendKeys();
+    (*cryptoMachine)->update_tracked_users(ids);
+    // Only the loop may request key queries: the crypto machine only counts the latest batch
+    whenOutgoingRequestsDone().then(q, [this, room = QPointer(room), ids, then, onFailure,
+                                        sendKeys](const bool keysQueried) {
+        if (!room) {
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        if (!keysQueried) {
+            // get_missing_sessions() would block for its whole timeout, waiting for the queries
+            qCWarning(E2EE) << "Could not get the devices of the members of" << room->id()
+                            << "to share the room key with";
+            onFailure();
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        auto missingResult = (*cryptoMachine)->get_missing_sessions(ids);
+        if (missingResult->has_error()) {
+            onFailure();
+            Q_EMIT q->shareRoomKeyDone();
+            return;
+        }
+        if (!missingResult->has_request()) {
+            sendKeys();
+            return;
+        }
+        auto missing = missingResult->request();
+        auto missingId = missing->id();
+        q->callApi<ClaimKeysJob>(
+             fromRustJson<QHash<UserId, QHash<QString, QString>>>(missing->one_time_keys()))
+            .then([this, missingId, sendKeys](const auto& claimJob) {
+            (*cryptoMachine)->mark_keys_claim_as_sent(bytesToRust(claimJob->rawData()), missingId);
+            sendKeys();
+        }, [this, onFailure](const auto& claimJob) {
+            // Without the claimed keys, devices that have no Olm session yet wouldn't get the room
+            // key; fail rather than send a message they couldn't decrypt
+            qCWarning(E2EE) << "Failed to claim one-time keys:" << claimJob->errorString();
+            onFailure();
+            Q_EMIT q->shareRoomKeyDone();
+        });
     });
 };
 
@@ -2177,13 +2458,14 @@ void Connection::Private::startKeyShare()
             startKeyShare();
         }, Qt::QueuedConnection);
     }, Qt::SingleShotConnection);
-    auto [room, then] = keyShareQueue.dequeue();
-    runShareKey(room, then);
+    auto [room, then, onFailure] = keyShareQueue.dequeue();
+    runShareKey(room, std::move(then), std::move(onFailure));
 }
 
-void Connection::shareRoomKey(Room* room, std::function<void()> then)
+void Connection::shareRoomKey(Room* room, std::function<void()> then,
+                              std::function<void()> onFailure)
 {
-    d->keyShareQueue.enqueue({room, then});
+    d->keyShareQueue.enqueue({ room, std::move(then), std::move(onFailure) });
     if (!d->keyShareRunning) {
         d->startKeyShare();
     }
@@ -2193,20 +2475,66 @@ QString Connection::encryptRoomEvent(Room* room, const QByteArray& content, cons
 {
     auto result = (*d->cryptoMachine)->encrypt_room_event(stringToRust(room->id()), bytesToRust(content), stringToRust(type));
     if (result->has_error()) {
+        qCWarning(E2EE) << "Could not encrypt an event of type" << type << "for" << room->id();
         return {};
     }
     return stringFromRust(result->value());
 }
 
-QString Connection::decryptRoomEvent(Room* room, const QByteArray& event)
+DecryptionFailure toDecryptionFailure(DecryptionErrorKind kind, const QString& withheldCode)
+{
+    switch (kind) {
+    case DecryptionErrorKind::MissingKey:
+        return DecryptionFailure::MissingKey;
+    case DecryptionErrorKind::UnknownMessageIndex:
+        return DecryptionFailure::UnknownMessageIndex;
+    case DecryptionErrorKind::Withheld: {
+        static const QHash<QString, DecryptionFailure> withheldCodes{
+            { u"m.unverified"_s, DecryptionFailure::WithheldUnverified },
+            { u"m.blacklisted"_s, DecryptionFailure::WithheldBlacklisted },
+            { u"m.unauthorised"_s, DecryptionFailure::WithheldUnauthorised },
+            { u"m.unavailable"_s, DecryptionFailure::WithheldUnavailable },
+            { u"m.no_olm"_s, DecryptionFailure::WithheldNoOlm },
+            { u"m.history_not_shared"_s, DecryptionFailure::WithheldHistoryNotShared },
+            { u"io.element.msc4268.history_not_shared"_s,
+              DecryptionFailure::WithheldHistoryNotShared },
+        };
+        return withheldCodes.value(withheldCode, DecryptionFailure::WithheldOther);
+    }
+    default:
+        return DecryptionFailure::Other;
+    }
+}
+
+std::expected<QString, DecryptionFailure> Connection::decryptRoomEvent(Room* room,
+                                                                       const QByteArray& event)
 {
     if (!d->cryptoMachine) {
-        return {};
+        return std::unexpected(DecryptionFailure::Other);
     }
 
     auto result = (*d->cryptoMachine)->decrypt_room_event(stringToRust(room->id()), bytesToRust(event));
     if (result->has_error()) {
-        return {};
+        const auto eventId = QJsonDocument::fromJson(event)["event_id"_L1].toString();
+        const auto error = stringFromRust(result->error_string());
+        switch (result->error_kind()) {
+        case DecryptionErrorKind::MissingKey:
+            qCWarning(E2EE) << "No key (yet) to decrypt" << eventId << "in" << room->id();
+            break;
+        case DecryptionErrorKind::Withheld:
+            qCWarning(E2EE).noquote() << "The key to decrypt" << eventId << "in" << room->id()
+                                      << "was withheld:" << error;
+            break;
+        case DecryptionErrorKind::UnknownMessageIndex:
+            qCWarning(E2EE).noquote() << "The key to decrypt" << eventId << "in" << room->id()
+                                      << "is only known from a later message on:" << error;
+            break;
+        default:
+            qCWarning(E2EE).noquote() << "Failed to decrypt" << eventId << "in" << room->id()
+                                      << "-" << error;
+        }
+        return std::unexpected(
+            toDecryptionFailure(result->error_kind(), stringFromRust(result->withheld_code())));
     }
     return stringFromRust(result->value());
 }
@@ -2215,6 +2543,7 @@ void Connection::Private::acceptKeyVerification(KeyVerificationSession* session)
 {
     auto outgoingResult = (*cryptoMachine)->accept_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (outgoingResult->has_error()) {
+        qCWarning(E2EE) << "Could not accept or cancel verification session" << session->verificationId();
         return;
     }
     auto outgoing = outgoingResult->value();
@@ -2236,6 +2565,7 @@ void Connection::Private::startKeyVerification(KeyVerificationSession* session)
 {
     auto startSasResult = (*cryptoMachine)->start_sas(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (startSasResult->has_error()) {
+        qCWarning(E2EE) << "Could not start SAS for verification session" << session->verificationId();
         return;
     }
 
@@ -2256,6 +2586,7 @@ void Connection::Private::confirmKeyVerification(KeyVerificationSession* session
 {
     auto requestsResult = (*cryptoMachine)->confirm_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (requestsResult->has_error()) {
+        qCWarning(E2EE) << "Could not confirm verification session" << session->verificationId();
         return;
     }
     auto requests = requestsResult->value();
@@ -2294,6 +2625,7 @@ void Connection::Private::cancelKeyVerification(KeyVerificationSession* session)
 {
     auto outgoingResult = (*cryptoMachine)->cancel_verification(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (outgoingResult->has_error()) {
+        qCWarning(E2EE) << "Could not accept or cancel verification session" << session->verificationId();
         return;
     }
     auto outgoing = outgoingResult->value();
@@ -2316,6 +2648,7 @@ void Connection::Private::acceptSas(KeyVerificationSession* session)
 {
     const auto& requestResult = (*cryptoMachine)->accept_sas(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (requestResult->has_error()) {
+        qCWarning(E2EE) << "Could not process verification session" << session->verificationId();
         return;
     }
     const auto& request = requestResult->value();
@@ -2353,6 +2686,8 @@ QList<std::pair<QString, QString>> Connection::Private::keyVerificationSasEmoji(
 {
     auto result = (*cryptoMachine)->sas_emoji(stringToRust(session->remoteUser()), stringToRust(session->verificationId()));
     if (result->has_error()) {
+        qCWarning(E2EE) << "Could not get the SAS emoji of verification session"
+                        << session->verificationId();
         return {};
     }
 
@@ -2372,6 +2707,7 @@ void Connection::Private::requestDeviceVerification(KeyVerificationSession* sess
                              ->request_device_verification(stringToRust(session->remoteUser()),
                                                            stringToRust(session->remoteDeviceId()));
     if (requestResult->has_error()) {
+        qCWarning(E2EE) << "Could not process verification session" << session->verificationId();
         return;
     }
     auto request = requestResult->value();
@@ -2409,6 +2745,7 @@ bool Connection::isVerifiedEvent(const QString& eventId, Room* room)
     auto rustJson = bytesToRust(QJsonDocument(json).toJson(QJsonDocument::Compact));
     auto info = (*d->cryptoMachine)->get_room_event_encryption_info(rustJson, stringToRust(room->id()));
     if (info->has_error()) {
+        qCDebug(E2EE) << "No encryption info for an event in" << room->id();
         return false;
     }
     return info->value()->is_verified();
@@ -2425,6 +2762,7 @@ void Connection::Private::requestUserVerification(KeyVerificationSession* sessio
 {
     auto request = (*cryptoMachine)->request_user_verification_content(stringToRust(session->remoteUser()));
     if (request->has_error()) {
+        qCWarning(E2EE) << "Could not create a verification request for" << session->remoteUser();
         return;
     }
     auto transactionId = session->room()->postJson(RoomMessageEvent::TypeId, jsonFromRust(request->value()));
@@ -2435,6 +2773,7 @@ void Connection::Private::requestUserVerification(KeyVerificationSession* sessio
 
         auto rustSessionResult = (*cryptoMachine)->request_user_verification(stringToRust(session->remoteUser()), stringToRust(session->room()->id()), stringToRust(event->id()));
         if (rustSessionResult->has_error()) {
+            qCWarning(E2EE) << "Could not start verification of" << session->remoteUser();
             return true;
         }
         session->setVerificationId(stringFromRust(rustSessionResult->value()->verification_id()));
@@ -2542,7 +2881,26 @@ void Connection::Private::initializeExistingBackup()
     isInitializingBackup = true;
 
     q->callApi<GetRoomKeysVersionCurrentJob>().onResult([this](const auto& job) {
+        isInitializingBackup = false;
         (*cryptoMachine)->initialize_existing_backup(bytesToRust(job->rawData()));
+    });
+}
+
+void Connection::Private::handleBackupVersionChange()
+{
+    qCWarning(E2EE) << "The key backup on the server has changed, checking the current one";
+    q->callApi<GetRoomKeysVersionCurrentJob>().onResult([this](const auto& job) {
+        // On other errors, the next upload attempt will try again
+        if (!job->status().good() && job->error() != BaseJob::NotFound)
+            return;
+        if ((*cryptoMachine)
+                ->handle_backup_version_change(job->status().good() ? bytesToRust(job->rawData())
+                                                                     : rust::String()))
+            qCInfo(E2EE) << "Continuing with the current key backup";
+        else
+            qCWarning(E2EE) << "Stopped backing up room keys: the current key backup needs to be "
+                               "unlocked with its recovery key";
+        emit q->isBackupDecryptionKeyAvailableChanged();
     });
 }
 
@@ -2551,6 +2909,7 @@ KeyImport::Error Connection::importKeys(const QString& passphrase, const QString
     auto keysResult = (*d->cryptoMachine)->import_keys(stringToRust(passphrase), stringToRust(data));
 
     if (keysResult->has_error()) {
+        qCWarning(E2EE) << "Could not import room keys, error code" << keysResult->error_code();
         return (KeyImport::Error) keysResult->error_code();
     }
 
@@ -2566,6 +2925,7 @@ QByteArray Connection::exportKeys(const QString& passphrase)
 {
     auto result = (*d->cryptoMachine)->export_keys(stringToRust(passphrase));
     if (result->has_error()) {
+        qCWarning(E2EE) << "Could not export room keys";
         return {};
     }
     return bytesFromRust(result->value());

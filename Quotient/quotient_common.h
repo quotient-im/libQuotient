@@ -214,6 +214,24 @@ Q_ENUM_NS(JoinRule)
 QUO_META_ENUM(JoinRule, JoinRule::Public, "public"_L1, "knock"_L1, "invite"_L1, "private"_L1,
               "restricted"_L1, "knock_restricted"_L1)
 
+//! Why an encrypted room event could not be decrypted
+enum class DecryptionFailure : uint8_t {
+    None, //!< Not known to have failed: decrypted, not attempted yet, or not encrypted
+    MissingKey, //!< The key has not been received (yet); it may still arrive
+    //! The key was shared with this device only from a later message of the session on, e.g.
+    //! because the user joined the room or this device was logged in after this message
+    UnknownMessageIndex,
+    WithheldUnverified, //!< The sender doesn't share keys with unverified devices
+    WithheldBlacklisted, //!< The sender has blocked this device
+    WithheldUnauthorised, //!< This device or user is not allowed to have the key
+    WithheldUnavailable, //!< The key was requested, but the requested device doesn't have it
+    WithheldNoOlm, //!< The sender could not establish a secure channel with this device
+    WithheldHistoryNotShared, //!< The sender doesn't share the room history
+    WithheldOther, //!< The key was withheld for a reason not covered above
+    Other, //!< Any other reason, e.g. a malformed event or unsupported algorithm
+};
+Q_ENUM_NS(DecryptionFailure)
+
 } // namespace Quotient
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::MembershipMask)
 Q_DECLARE_OPERATORS_FOR_FLAGS(Quotient::JoinStates)

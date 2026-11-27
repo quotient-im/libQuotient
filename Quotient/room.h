@@ -274,6 +274,12 @@ public:
     int timelineSize() const;
     bool usesEncryption() const;
     RoomEventPtr decryptMessage(const EncryptedEvent& encryptedEvent);
+    //! \brief Why the event with the given id could not be decrypted
+    //!
+    //! This is the reason from the last call of decryptMessage() for the event; the library
+    //! calls it when the event arrives and again whenever a new key for its session comes in.
+    //! Returns DecryptionFailure::None if there was no failed attempt, or the last one succeeded.
+    Q_INVOKABLE DecryptionFailure decryptionFailure(const QString& eventId) const;
     int joinedCount() const;
     int invitedCount() const;
     int totalMemberCount() const;
@@ -326,6 +332,13 @@ public:
 
     //! Get a list of all member Matrix IDs known to the room.
     QStringList memberIds() const;
+
+    //! \brief Make sure that all joined and invited members are known
+    //!
+    //! With lazy loading, the room only knows some of its members until the full list is loaded.
+    //! This loads it if needed; the future yields true once the list is complete (right away if
+    //! it already is), and false if loading failed.
+    QFuture<bool> loadAllMembers();
 
     //! \brief Get Matrix IDs for room creator(s)
     //!
@@ -1029,6 +1042,9 @@ Q_SIGNALS:
     void tagsChanged();
 
     void updatedEvent(QString eventId);
+    //! The reason why the event with this id can't be decrypted has changed
+    //! \sa decryptionFailure
+    void decryptionFailureChanged(QString eventId);
     void replacedEvent(const Quotient::RoomEvent* newEvent,
                        const Quotient::RoomEvent* oldEvent);
 
